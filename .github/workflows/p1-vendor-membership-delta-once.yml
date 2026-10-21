@@ -1,0 +1,85 @@
+name: P1 FREE two-date vendor issuer membership delta (OFFLINE, NO TRADES)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p1-vendor-membership-delta-once.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  membership_difference_from_originals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run all offline no-lookahead source contracts
+        run: |
+          python -m py_compile collector/audit_vendor_roster_delta.py
+          python -m unittest discover -s tests -v
+      - name: Retrieve only the previously collected TWO dated original rosters
+        run: |
+          gh run download 39613467121 --repo "$GITHUB_REPOSITORY" \
+            --name ashare-BAOSTOCK-two-dated-rosters-PIT-UNVERIFIED \
+            --dir originals
+      - name: Bound source ZIP before reading
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile, ZIP_STORED
+          root=Path("originals")
+          expected={"quality.json"} | {
+              f"{prefix}{day}.csv"
+              for prefix in ("all_securities_","mainboard_prefix_")
+              for day in ("2025-05-26","2026-10-20")
+          }
+          files=list(root.iterdir())
+          assert set(p.name for p in files)==expected
+          assert all(p.is_file() and 0<p.stat().st_size<2000000 for p in files)
+          with ZipFile("read_only_rosters.zip","w",compression=ZIP_STORED) as f:
+              for p in sorted(files):f.write(p,arcname=p.name)
+          PY
+      - name: Check source SHA and classify vendor membership differences only
+        run: |
+          python -m collector.audit_vendor_roster_delta \
+            --artifact read_only_rosters.zip \
+            --out audit/vendor_membership_difference_2025_to_2026.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path("audit/vendor_membership_difference_2025_to_2026.json").read_text())
+          assert q["phase"]=="P1_TWO_VENDOR_DATED_ROSTERS_MEMBERSHIP_DELTA"
+          assert q["status"]=="RESEARCH_VENDOR_COHORT_DELTA_REPLAYED_OFFICIAL_PIT_BLOCKED"
+          assert q["original_sha_replay_confirmed_again_in_this_run"] is True
+          m=q["vendor_membership_delta"]
+          assert (m["early_issuer_count"],m["late_issuer_count"])==(3181,3195)
+          assert m["common_issuer_count"]>=2000
+          assert sum(m["vendor_status_changes_in_common_codes"].values())==m["common_issuer_count"]
+          assert m["membership_delta_proves_IPO_or_delisting"] is False
+          assert m["retrospective_vendor_membership_is_PIT"] is False
+          assert q["source_publication_time_at_historical_dates_verified"] is False
+          assert q["exchange_authoritative_issuer_membership_verified"] is False
+          assert q["trade_gate"]=="BLOCKED" and q["orders"]==[]
+          assert q["candidate_universe"]==[] and q["executable_candidates"]==[]
+          print("PASS: source-pinned retrospective membership delta, official PIT BLOCKED")
+          print("Same-issuer:",m["common_issuer_count"],
+                "early-only:",m["early_only_count"],
+                "late-only:",m["late_only_count"])
+          PY
+      - name: Preserve non-reconstructible source digests and cohort counts only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-vendor-two-date-membership-delta-research-only
+          path: audit/
+          if-no-files-found: warn
+          retention-days: 30
