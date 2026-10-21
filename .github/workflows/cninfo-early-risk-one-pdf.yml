@@ -1,0 +1,57 @@
+name: P3 FREE one earlier CNINFO delisting-period issuer PDF (NO TRADES)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cninfo-early-risk-one-pdf.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  one_early_issuer_pdf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline safety and source provenance tests
+        run: |
+          python -m py_compile collector/cninfo_early_risk_probe.py
+          python -m unittest discover -s tests -v
+      - name: Install PDF extractor
+        run: python -m pip install 'pypdf>=5,<7'
+      - name: Query one CNINFO issuer PDF once; no fallback, no retries
+        run: timeout 60s python -m collector.cninfo_early_risk_probe --out evidence
+      - name: Enforce source and no-trade gate
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          path=Path('evidence/quality.json')
+          assert path.exists(), 'Missing source failure receipt'
+          q=json.loads(path.read_text(encoding='utf-8'))
+          assert q['phase']=='P3_CNINFO_600421_EARLY_DELIST_RISK_PDF'
+          assert q['attempted_https_gets']==1 and q['paid_api_calls']==0
+          assert q['trade_gate']=='BLOCKED' and q['orders']==[]
+          assert q['executable_candidates']==[]
+          assert q['status']=='ISSUER_EARLY_NOTICE_OBSERVED_UNVERIFIED_PIT'
+          assert q['source_issuer']=='sh.600421' and len(q['source_sha256'])==64
+          assert q['issuer_stated_resumption_date']=='2026-06-01'
+          assert q['historical_asof_certified'] is False
+          assert q['tradability_on_resumption_date_exchange_verified'] is False
+          print('PASS: earlier issuer risk PDF observed; full P3/P4 formally BLOCKED')
+          PY
+      - name: Preserve only SHA and quality report, do not redistribute original PDF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p3-cninfo-early-issuer-PDF-source-quality-BLOCKED
+          path: evidence/quality.json
+          if-no-files-found: warn
+          retention-days: 14
