@@ -1,0 +1,63 @@
+name: P1/P3 offline PIT acceptance audit (NO TRADES)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/pit_acceptance_gate.py'
+      - 'tests/test_pit_acceptance_gate.py'
+      - 'reports/p1_vendor_lifecycle_20261021.json'
+      - 'reports/p1_pilot_16_source_digests_20261021.json'
+      - '.github/workflows/pit-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ashare-pit-acceptance-audit
+  cancel-in-progress: true
+
+jobs:
+  research_gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile safety audit and run all independent offline tests
+        run: |
+          python -m py_compile collector/pit_acceptance_gate.py collector/sse_official_delist_evidence.py
+          python -m unittest discover -s tests -v
+      - name: Validate actual frozen source receipts at two decision dates
+        run: |
+          python -m collector.pit_acceptance_gate \
+            --decision-date 2025-05-26 --out audit/pit_2025-05-26.json
+          python -m collector.pit_acceptance_gate \
+            --decision-date 2026-10-20 --out audit/pit_2026-10-20.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for day in ("2025-05-26", "2026-10-20"):
+              p = Path("audit", f"pit_{day}.json")
+              x = json.loads(p.read_text())
+              assert x["decision_date"] == day
+              assert x["status"] == "BLOCKED_NO_CERTIFIED_HISTORICAL_UNIVERSE"
+              assert x["trade_gate"] == "BLOCKED"
+              assert x["candidate_universe"] == []
+              assert x["orders"] == [] and x["executable_candidates"] == []
+              assert x["historical_ST_halt_delist_complete"] is False
+              assert x["p4_out_of_sample_certified"] is False
+              assert x["original_source_reverified_in_this_run"] is False
+          print("PASS: Actual source digests audited; historical PIT and trading remain BLOCKED.")
+          PY
+      - name: Preserve only non-reconstructible gate audit receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ashare-real-report-PIT-fail-closed-audit
+          path: audit/
+          if-no-files-found: warn
+          retention-days: 30
