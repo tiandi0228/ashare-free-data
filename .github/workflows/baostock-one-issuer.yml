@@ -1,0 +1,49 @@
+name: A-share alternative Baostock ONE issuer connectivity proof (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/baostock_probe.py'
+      - '.github/workflows/baostock-one-issuer.yml'
+permissions:
+  contents: read
+jobs:
+  bounded_one_issuer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile no-trade bounded probe
+        run: python -m py_compile collector/baostock_probe.py
+      - name: Install alternative free source
+        run: python -m pip install 'baostock>=0.8,<1'
+      - name: Capture one public issuer exactly once
+        run: timeout 75s python -m collector.baostock_probe --out evidence
+      - name: Preserve raw bytes and source receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ashare-BAOSTOCK-one-issuer-UNVERIFIED
+          path: evidence/
+          retention-days: 7
+          if-no-files-found: warn
+      - name: Formal trade gate remains blocked
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          p=Path('evidence/quality.json')
+          assert p.exists(),'Missing evidence'
+          r=json.loads(p.read_text())
+          assert r['login_attempts']==1 and r['query_attempts']==1
+          assert r['status']=='OBSERVED_UNVERIFIED'
+          assert r['trade_gate']=='BLOCKED' and r['orders']==[]
+          assert r['paid_api_calls']==0 and not r['publisher_identity_authenticated']
+          data=Path('evidence/600000_baostock_original.csv').read_bytes()
+          assert hashlib.sha256(data).hexdigest()==r['sha256']
+          print('One issuer free alternative source observed, formal P3/P4 BLOCKED')
+          PY
