@@ -1,0 +1,66 @@
+name: P3 two real issuer PDFs event chronology (OFFLINE, NO TRADES)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p3_two_pdf_event_chain.py'
+      - 'tests/test_p3_two_pdf_event_chain.py'
+      - 'reports/p3_cninfo_600421_early_20261021.json'
+      - 'reports/p3_cninfo_600421_disclosure_pdf_20261021.json'
+      - '.github/workflows/p3-two-pdf-event-chain.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ashare-two-verified-issuer-pdf-temporal-audit
+  cancel-in-progress: true
+
+jobs:
+  two_issuer_pdfs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline Python compile and original source provenance contracts
+        run: |
+          python -m py_compile collector/p3_two_pdf_event_chain.py
+          python -m unittest discover -s tests -v
+      - name: Seven historical decision dates using two REAL issuer PDF SHA receipts
+        run: |
+          for day in 2026-05-22 2026-05-23 2026-05-29 2026-06-01 2026-06-19 2026-06-22 2026-06-26; do
+            python -m collector.p3_two_pdf_event_chain --asof "$day" \
+              --out "audit/600421_event_chain_$day.json"
+          done
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          reports=list(Path('audit').glob('*.json'))
+          assert len(reports)==7
+          for item in reports:
+              q=json.loads(item.read_text(encoding='utf-8'))
+              assert q['phase']=='P3_CNINFO_TWO_REAL_PDF_ISSUER_EVENT_CHAIN'
+              assert q['status']=='TWO_ISSUER_DOCUMENT_SHA_RECEIPTS_PIT_BLOCKED'
+              assert q['trade_gate']=='BLOCKED'
+              assert q['candidate_universe']==[] and q['orders']==[]
+              assert q['executable_candidates']==[]
+              assert q['historical_release_timestamp_verified'] is False
+              assert q['historical_asof_document_availability'] is None
+              assert q['historical_exchange_delist_complete'] is False
+              assert len(q['issuer_pdf_sha_receipts'])==2
+              assert q['event_types'][2]['exchange_original_sha256'] is None
+          print('PASS: two real source digests, seven temporal decisions quarantined')
+          PY
+      - name: Retain only provenance metadata, not original PDF bytes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p3-600421-two-PDF-seven-date-provenance-BLOCKED
+          path: audit/
+          retention-days: 30
+          if-no-files-found: warn
