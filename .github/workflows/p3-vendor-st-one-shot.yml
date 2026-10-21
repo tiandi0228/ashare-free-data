@@ -1,0 +1,69 @@
+name: P3 FREE Baostock two-issuer dated isST and halted-state trial (NO TRADES)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p3-vendor-st-one-shot.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p3-vendor-st-one-shot
+  cancel-in-progress: false
+
+jobs:
+  two_issuer_st_trial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile and run ALL offline source contracts
+        run: |
+          python -m py_compile collector/vendor_historical_st_probe.py
+          python -m unittest discover -s tests -v
+      - name: Install free research provider client
+        run: python -m pip install 'baostock>=0.8,<1'
+      - name: Exactly two bounded queries, no retry, no live trades
+        run: timeout 120s python -m collector.vendor_historical_st_probe --out evidence
+      - name: Strictly audit original CSV SHA and source status
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          p=Path('evidence/quality.json')
+          assert p.exists(), 'No network source failure receipt'
+          q=json.loads(p.read_text(encoding='utf-8'))
+          assert q['phase']=='P3_BAOSTOCK_TWO_ISSUER_HISTORICAL_VENDOR_ST'
+          assert q['max_source_queries']==2
+          assert q['logical_issuer_queries']<=2
+          assert q['paid_api_calls']==0 and q['trade_gate']=='BLOCKED'
+          assert q['candidate_universe']==[] and q['orders']==[]
+          assert q['executable_candidates']==[]
+          assert q['source_exchange_authenticated'] is False
+          assert q['historical_asof_publication_authenticated'] is False
+          assert q['full_market_ST_halt_delist_complete'] is False
+          assert q['status']=='TWO_ISSUER_VENDOR_ST_OBSERVED_NOT_OFFICIAL'
+          assert [r['code'] for r in q['issuer_results']]==['sh.600421','sh.603019']
+          for r in q['issuer_results']:
+              assert r['status']=='OBSERVED_VENDOR_ST_UNVERIFIED'
+              assert 0<=r['vendor_ST_unknown_rows']<=r['vendor_halted_rows']
+              assert r['vendor_ST_0_rows']+r['vendor_ST_1_rows']+r['vendor_ST_unknown_rows']==r['rows']
+              raw=Path('evidence',r['code'].replace('.','_')+'_vendor_ST.csv').read_bytes()
+              assert hashlib.sha256(raw).hexdigest()==r['original_csv_sha256']
+          print('PASS: TWO independently source-hashed vendor isST/halt series; official P3 BLOCKED')
+          PY
+      - name: Retain raw source ONLY in temporary Artifact (not repository)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p3-two-issuer-vendor-ST-halts-unverified
+          path: evidence/
+          retention-days: 14
+          if-no-files-found: warn
