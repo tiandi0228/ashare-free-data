@@ -66,6 +66,14 @@ Independent CNINFO disclosure PDF [source](https://static.cninfo.com.cn/finalpag
 
 This issuer disclosure mentions **estimated last trading day 2026-06-22**, not the exchange's independently verified actual delisting date. SSE's [2026-06-22 announcement](https://www.sse.com.cn/disclosure/announcement/listing/stock/c/c_20260622_10823158.shtml) says actual removal 2026-06-26; the GitHub Runner **did not** obtain this SSE page's raw bytes or signed publisher evidence. CNINFO PDF is one issuer source, not complete historical ST/delisting, official PIT universe or trading permission. Only public source SHA metadata is committed in [PDF research receipt](reports/p3_cninfo_600421_disclosure_pdf_20261021.json); original PDF is not redistributed here, and the hash is not a reconstructible archive. PDF online-probe workflow is now manual-only. No paid calls or orders, trade_gate BLOCKED.
 
+### 2026-10-21: two independently captured issuer risk PDFs
+
+Real source PDFs from 600421 were separately retrieved on GitHub **Public** Actions using only free standard runners:
+- [2026-05-23 early issuer resumption / delisting-period PDF](https://static.cninfo.com.cn/finalpage/2026-05-23/1225327963.PDF): [real run #39580585146](https://github.com/tiandi0228/ashare-free-data/actions/runs/39580585146), 244,242 bytes, three pages, SHA-256 `ef9b9113b2a51ca718e786de0613860351f0c8056916e7decb5a010da7acaff8`. The notice states resumption scheduled for **2026-06-01**, not independently verified tradability.
+- [2026-06-19 issuer risk notice PDF](https://static.cninfo.com.cn/finalpage/2026-06-19/1225377517.PDF): [real run #39579302851](https://github.com/tiandi0228/ashare-free-data/actions/runs/39579302851), 109,614 bytes, three pages, SHA-256 `6e43f458ee70b11dc5ab7331c2d67dee62dc26fa2121e138a2c93ef71c65409f`. The notice says **expected final trading day 2026-06-22**, NOT exchange-verified actual delisting date.
+
+[Chronological independent offline audit #39581101776](https://github.com/tiandi0228/ashare-free-data/actions/runs/39581101776) **SUCCESS with 70/70 tests**, seven explicitly frozen decision dates from May 22 to June 26 all QUARANTINED; original-exchange notice PDF/HTML was not fetched on Runner, precise historical publication timestamps not authenticated, complete historical ST/halt/delist universe unknown. [Permanent digest-only event-chain audit](reports/p3_600421_two_pdf_event_chain_20261021.json) and 30-day Artifact `12336735597` (expiry 2026-11-20). Hashes cannot reconstruct missing original PDF bytes and do not certify historical issuer state. `trade_gate=BLOCKED`, no orders or paid calls.
+
 ## Next formal acceptance gates
 
 1. Establish reliable no-cost and properly permitted historical dated
