@@ -1,10 +1,6 @@
 name: P3 FREE CNINFO one issuer PDF disclosure probe (NO TRADES)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/cninfo-one-pdf.yml'
   workflow_dispatch:
 
 permissions:
