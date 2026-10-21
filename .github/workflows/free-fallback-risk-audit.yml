@@ -1,0 +1,83 @@
+name: FREE fallback source routing and strict P4 risk audit (NO TRADES)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/free_source_fallback_router.py'
+      - 'collector/p4_position_notional_guard.py'
+      - 'tests/test_free_source_fallback_router.py'
+      - 'tests/test_p4_position_notional_guard.py'
+      - '.github/workflows/free-fallback-risk-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ashare-source-alternatives-and-position-risk
+  cancel-in-progress: true
+
+jobs:
+  audited_research_only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile and run all offline safety tests without external data requests
+        run: |
+          python -m py_compile collector/free_source_fallback_router.py collector/p4_position_notional_guard.py
+          python -m unittest discover -s tests -v
+      - name: Research-only fallback selection based on real frozen source receipts
+        run: |
+          python -m collector.free_source_fallback_router --out evidence/route.json
+      - name: Strict 3 percent of purchased stock notional including fees and slipped fill
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from collector.p4_position_notional_guard import check
+          d=Path("evidence")
+          d.mkdir(exist_ok=True)
+          samples=[
+              ("old_account_budget_false_positive",{"synthetic_test_case":True,"market":"SH","entry_actual_fill":"10.00","stop_exit_actual_fill":"9.50","shares":400}),
+              ("position_budget_narrow_stop",{"synthetic_test_case":True,"market":"SH","entry_actual_fill":"10.00","stop_exit_actual_fill":"9.80","shares":400}),
+          ]
+          for name,case in samples:
+              r=check(case)
+              (d/(name+".json")).write_text(json.dumps(r,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          bad=json.loads((d/"old_account_budget_false_positive.json").read_text())
+          good=json.loads((d/"position_budget_narrow_stop.json").read_text())
+          assert bad["position_three_percent_risk_cap_yuan"]=="120.00"
+          assert bad["modeled_net_stop_loss_yuan"]=="211.98"
+          assert bad["synthetic_policy_pass"] is False
+          assert good["synthetic_policy_pass"] is True
+          assert all(x["trade_gate"]=="BLOCKED" and x["orders"]==[] for x in (bad,good))
+          print("PASS: position-denominator risk invariant audited; never enables orders")
+          PY
+      - name: Enforce hard no-trade and no-false-P3 fallback routing
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("evidence/route.json").read_text(encoding="utf-8"))
+          assert r["status"]=="RESEARCH_ONLY_NO_AUTHENTICATED_EXCHANGE_STATUS"
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          assert r["executable_candidates"]==[]
+          assert r["paid_api_calls"]==0
+          assert r["source_routes"][-1]["selected_free_source"] is None
+          assert r["historical_point_in_time_universe_verified"] is False
+          assert r["source_substitution_policy"]["automatic_paid_fallback"] is False
+          print("PASS: free alternatives research-only; authoritative P3 unavailable")
+          PY
+      - name: Preserve derived non-reconstructible audit receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ashare-free-source-fallback-and-P4-notional-budget
+          path: evidence/
+          retention-days: 30
+          if-no-files-found: warn
