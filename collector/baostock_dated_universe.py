@@ -83,7 +83,7 @@ def capture(out, provider, minimum=MIN_MAINBOARD_ISSUERS):
     try:
         login = provider.login()
         if login.error_code != "0":
-            raise ValueError("Provider login failed")
+            report["login_error_code"] = str(login.error_code)[:24]\n            raise ValueError("Provider login failed")
         logged = True
         for day in DATES:
             item = {"date": day, "status": "ERROR", "mainboard_prefix_only": True}
