@@ -1,0 +1,76 @@
+name: Baostock free bounded eight-issuer pilot (RESEARCH ONLY)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/baostock_batch.py'
+      - 'tests/test_baostock_batch.py'
+      - 'manifests/baostock_pilot.txt'
+      - '.github/workflows/baostock-batch.yml'
+  workflow_dispatch:
+    inputs:
+      batch_index:
+        type: choice
+        required: true
+        default: '0'
+        options: ['0','1']
+permissions:
+  contents: read
+concurrency:
+  group: baostock-bounded-pilot
+  cancel-in-progress: false
+jobs:
+  bounded:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline contract tests
+        run: python -m unittest discover -s tests -v
+      - name: Install no-cost historical provider
+        run: python -m pip install 'baostock>=0.8,<1'
+      - name: Select bounded research shard
+        id: select
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          MANUAL_INDEX: ${{ inputs.batch_index }}
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import os
+          i=int(os.environ['MANUAL_INDEX']) if os.environ['EVENT_NAME']=='workflow_dispatch' else 0
+          assert i in (0,1)
+          print('index='+str(i))
+          PY
+      - name: Fetch at most eight issuer histories, no retries
+        run: timeout 155s python -m collector.baostock_batch --batch-index "${{ steps.select.outputs.index }}" --out evidence
+      - name: Preserve original CSVs and SHA256 receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ashare-BAOSTOCK-subset-${{ steps.select.outputs.index }}-${{ github.run_id }}-BLOCKED
+          path: evidence/
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Fail closed on partial or invalid source
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          p=Path('evidence/quality.json')
+          assert p.exists(),'No audit evidence'
+          r=json.loads(p.read_text())
+          assert r['phase']=='BAOSTOCK_FREE_BOUNDED_BATCH'
+          assert r['status']=='OBSERVED_SUBSET_UNVERIFIED'
+          assert 1<=r['issuer_count']<=8 and r['query_attempts']==r['issuer_count']
+          assert r['trade_gate']=='BLOCKED' and not r['orders'] and not r['executable_candidates']
+          assert r['paid_api_calls']==0 and r['historical_point_in_time_universe_verified'] is False
+          for x in r['results']:
+              assert x['status']=='OBSERVED_UNVERIFIED'
+              raw=Path('evidence',x['code'].replace('.','_')+'.csv').read_bytes()
+              assert hashlib.sha256(raw).hexdigest()==x['sha256']
+          print('PASS: bounded subset data observed; historical PIT and trading BLOCKED')
+          PY
