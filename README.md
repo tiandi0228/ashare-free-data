@@ -74,6 +74,14 @@ Real source PDFs from 600421 were separately retrieved on GitHub **Public** Acti
 
 [Chronological independent offline audit #39581101776](https://github.com/tiandi0228/ashare-free-data/actions/runs/39581101776) **SUCCESS with 70/70 tests**, seven explicitly frozen decision dates from May 22 to June 26 all QUARANTINED; original-exchange notice PDF/HTML was not fetched on Runner, precise historical publication timestamps not authenticated, complete historical ST/halt/delist universe unknown. [Permanent digest-only event-chain audit](reports/p3_600421_two_pdf_event_chain_20261021.json) and 30-day Artifact `12336735597` (expiry 2026-11-20). Hashes cannot reconstruct missing original PDF bytes and do not certify historical issuer state. `trade_gate=BLOCKED`, no orders or paid calls.
 
+### 2026-10-21: Free provider substitution and 3%-of-position risk test
+
+Independent source-capability routing now selects **Baostock** for small research-only historical price/lifecycle tasks and **CNINFO public issuer PDFs** for confirmed positive risk notices. Official SSE/SZSE per-session full-market status/membership (historical ST, halts and delistings) has **NO VERIFIED FREE AUTHENTICATED REPLACEMENT**. A news page, static PDF or retrospective vendor list may NOT fill this specific requirement. The fallback selector rejects falsified receipts, paid fallback, and accidental trade promotion.
+
+**Policy regression identified:** the older PRIVATE P4 synthetic calculator uses 3% of an 8,000 CNY account as its *per-stock stop risk* (CNY 240). The user's frozen position policy is instead **3% of each stock's purchase notional**, including buy/sell commissions, stamp, transfer fees and slippage already reflected once in assumed actual fill prices. A public **independent synthetic audit** with 400 shares at CNY 10 and an assumed CNY 9.50 stop yields CNY 211.98 fee-inclusive modeled loss vs an eligible **CNY 120** notional-based budget. Therefore this scenario must FAIL even though it passes the older CNY 240 account-denominator budget. Synthetic assumed fills never guarantee actual loss limits in gaps, suspensions or locked limit days.
+
+[Real CI #39584957755](https://github.com/tiandi0228/ashare-free-data/actions/runs/39584957755) **SUCCESS, 85 offline tests**. Source router `collector/free_source_fallback_router.py`, numeric pilot `collector/p4_position_notional_guard.py`, regression tests and [durable report](reports/free_fallback_p4_notional_20261021.json). **This does not change the PRIVATE P4 model yet**. Private model and P3 issuer authentication still need separate integration, validation and signoff. `trade_gate=BLOCKED`, no orders, zero paid APIs.
+
 ## Next formal acceptance gates
 
 1. Establish reliable no-cost and properly permitted historical dated
