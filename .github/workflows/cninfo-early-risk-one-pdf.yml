@@ -1,10 +1,6 @@
 name: P3 FREE one earlier CNINFO delisting-period issuer PDF (NO TRADES)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/cninfo-early-risk-one-pdf.yml'
   workflow_dispatch:
 
 permissions:
