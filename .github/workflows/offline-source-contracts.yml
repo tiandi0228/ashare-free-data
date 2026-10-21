@@ -11,6 +11,8 @@ on:
       - 'collector/baostock_batch.py'
       - 'collector/research_24_coverage_gate.py'
       - 'tests/test_research_24_coverage_gate.py'
+      - 'collector/vendor_historical_st_probe.py'
+      - 'tests/test_vendor_historical_st_probe.py'
       - 'reports/p1_delisted_8_source_digests_20261021.json'
       - '.github/workflows/offline-source-contracts.yml'
   workflow_dispatch:
@@ -32,7 +34,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Compile offline source-contract modules
-        run: python -m py_compile collector/baostock_dated_universe.py collector/baostock_batch.py collector/research_24_coverage_gate.py
+        run: python -m py_compile collector/baostock_dated_universe.py collector/baostock_batch.py collector/research_24_coverage_gate.py collector/vendor_historical_st_probe.py
       - name: Verify fail-closed source tests without installing a provider or contacting markets
         run: python -m unittest discover -s tests -v
       - name: Aggregate 24 independently replayed research issuer SHA receipts only
