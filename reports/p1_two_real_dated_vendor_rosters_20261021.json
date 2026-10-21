@@ -1,0 +1,73 @@
+{
+  "evidence_type": "RESEARCH_TWO_REAL_DATED_VENDOR_UNIVERSE_ORIGINAL_SHA_AUDITED_NOT_OFFICIAL_PIT",
+  "source_capture_run_id": 39613467121,
+  "source_capture_run_sha": "3d5eec858305f950b03c443a2e4b531bd57e44d1",
+  "source_original_data_artifact_id": 12350373792,
+  "source_original_data_artifact_expires_at_utc": "2026-11-04T14:05:02Z",
+  "independent_original_csv_audit_run_id": 39614404688,
+  "independent_audit_sha": "75f10d1c756e65265ee411f2783621099f01036c",
+  "independent_audit_artifact_id": 12351732903,
+  "independent_audit_artifact_expires_at_utc": "2026-11-20T14:09:55Z",
+  "offline_tests_passed": 147,
+  "raw_originals_stored_in_public_repo": false,
+  "retrospective_provider_snapshots_not_authenticated_at_historical_time": true,
+  "official_mainboard_or_ST_halt_delist_full_history_authenticated": false,
+  "provider_raw_data_redistribution_rights_verified": false,
+  "trade_gate": "BLOCKED",
+  "orders": [],
+  "executable_candidates": [],
+  "paid_api_calls": 0,
+  "audit_report": {
+    "phase": "P1_TWO_DATED_VENDOR_ROSTER_ORIGINAL_BYTES_REPLAY",
+    "status": "ORIGINAL_TWO_VENDOR_ROSTERS_REPLAYED_PIT_BLOCKED",
+    "original_vendor_capture_run": 39613467121,
+    "historical_dates": [
+      "2025-05-26",
+      "2026-10-20"
+    ],
+    "dated_originals_replayed_in_this_run": true,
+    "issuer_pool_size_2025_05_26": 3181,
+    "issuer_pool_size_2026_10_20": 3195,
+    "provisional_prefix_pool_only": true,
+    "retrospective_provider_revision_possible": true,
+    "authenticated_as_of_publication_instant": false,
+    "official_exchange_mainboard_membership_verified": false,
+    "full_history_ST_halt_delist_verified": false,
+    "full_market_two_year_bars_verified": false,
+    "original_source_bytes_archived_permanently": false,
+    "provider_data_republication_license_verified": false,
+    "trade_gate": "BLOCKED",
+    "candidate_universe": [],
+    "orders": [],
+    "executable_candidates": [],
+    "paid_api_calls": 0,
+    "date_results": [
+      {
+        "decision_date": "2025-05-26",
+        "source_original_rows": 6825,
+        "mainboard_prefix_rows": 3181,
+        "mainboard_vendor_status_1": 3163,
+        "mainboard_vendor_status_0": 18,
+        "mainboard_st_name_flags": 149,
+        "known_603019_vendor_status": "0",
+        "full_original_sha256": "3489ff2062502ec9ef0580ed9d2f94f93e250930f7adbe0765a0a169040f7da5",
+        "mainboard_subset_sha256": "b5abfe659520531dc81f07a8af0fea324c63091b6439540faed3bf023e2b80b6",
+        "original_csv_reverified_in_this_audit": true,
+        "exchange_official_asof_verified": false
+      },
+      {
+        "decision_date": "2026-10-20",
+        "source_original_rows": 7440,
+        "mainboard_prefix_rows": 3195,
+        "mainboard_vendor_status_1": 3191,
+        "mainboard_vendor_status_0": 4,
+        "mainboard_st_name_flags": 143,
+        "known_603019_vendor_status": "1",
+        "full_original_sha256": "9c7f9fa7e8ad4a91bc6b5f54cbec26bbae9c2f2f8b79b8164653bfbcdf4b1696",
+        "mainboard_subset_sha256": "930a53f525471a92561457ec819c797f36292fc34a2b69df6889daa6a0178cc1",
+        "original_csv_reverified_in_this_audit": true,
+        "exchange_official_asof_verified": false
+      }
+    ]
+  }
+}
