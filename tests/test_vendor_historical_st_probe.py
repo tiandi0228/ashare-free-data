@@ -98,10 +98,12 @@ class VendorSTProbeTests(unittest.TestCase):
         for r in rows:
             if r[0]=="2025-05-26":
                 r[2]="1"
+                r[3]="0"
         with self.assertRaisesRegex(ValueError,"Known 603019"):
             validate("sh.603019",rows)
         rows=data_for("sh.600421")
         rows[-1][2]="1"
+        rows[-1][3]="0"
         with self.assertRaisesRegex(ValueError,"Known 600421"):
             validate("sh.600421",rows)
 
