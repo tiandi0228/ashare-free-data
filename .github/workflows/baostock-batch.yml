@@ -21,6 +21,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   bounded:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[BATCH-1-CAPTURE]')
     runs-on: ubuntu-latest
     timeout-minutes: 7
     steps:
@@ -37,10 +38,11 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           MANUAL_INDEX: ${{ inputs.batch_index }}
+          HEAD_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           python - <<'PY' >> "$GITHUB_OUTPUT"
           import os
-          i=int(os.environ['MANUAL_INDEX']) if os.environ['EVENT_NAME']=='workflow_dispatch' else 0
+          i=int(os.environ['MANUAL_INDEX']) if os.environ['EVENT_NAME']=='workflow_dispatch' else (1 if '[BATCH-1-CAPTURE]' in os.environ['HEAD_MESSAGE'] else 0)
           assert i in (0,1)
           print('index='+str(i))
           PY
