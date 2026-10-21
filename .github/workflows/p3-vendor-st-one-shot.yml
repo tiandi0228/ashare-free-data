@@ -1,10 +1,6 @@
 name: P3 FREE Baostock two-issuer dated isST and halted-state trial (NO TRADES)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/p3-vendor-st-one-shot.yml'
   workflow_dispatch:
 
 permissions:
