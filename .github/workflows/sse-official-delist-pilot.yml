@@ -1,0 +1,64 @@
+name: P3 FREE SSE official delist event pilot (NO TRADES)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/sse-official-delist-pilot.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: official-sse-delist-two-doc-probe
+  cancel-in-progress: false
+
+jobs:
+  official_two_document_audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile no-dependency official exchange evidence module
+        run: python -m py_compile collector/sse_official_delist_evidence.py
+      - name: Offline contract and anti-lookahead tests (no external dependencies)
+        run: python -m unittest discover -s tests -v
+      - name: Two bounded HTTPS GET requests to official SSE host, no retries
+        run: timeout 45s python -m collector.sse_official_delist_evidence --out evidence
+      - name: Verify original page digests, dates and safety state
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("evidence/quality.json")
+          assert p.exists(), "Missing source quality report"
+          q = json.loads(p.read_text(encoding="utf-8"))
+          assert q["phase"] == "P3_SSE_TWO_OFFICIAL_HOST_DELISTING_PAGES"
+          assert q["attempted_gets"] == 2
+          assert q["trade_gate"] == "BLOCKED"
+          assert q["orders"] == [] and q["executable_candidates"] == []
+          assert q["paid_api_calls"] == 0
+          assert q["historical_point_in_time_universe_verified"] is False
+          assert q["source_publisher_digitally_authenticated"] is False
+          assert q["status"] == "TWO_OFFICIAL_HOST_DOCUMENTS_OBSERVED_NO_PIT_CERTIFICATION"
+          a, b = q["page_events"]
+          assert a["event"] == "DELIST_DECISION_ONLY"
+          assert a["effective_delist_date"] is None
+          assert b["event"] == "DELIST_EFFECTIVE_DATE_ANNOUNCED"
+          assert b["effective_delist_date"] == "2026-06-26"
+          assert all(len(e["page_content_sha256"]) == 64 for e in (a, b))
+          print("PASS: Official-host content observed, historical exchange universe not certified.")
+          PY
+      - name: Retain only URL/SHA evidence receipts (no reproduced official HTML)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ashare-sse-two-official-delisting-events-RESEARCH-BLOCKED
+          path: evidence/quality.json
+          if-no-files-found: warn
+          retention-days: 14
