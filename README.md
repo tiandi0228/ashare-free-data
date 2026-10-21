@@ -1,17 +1,64 @@
-# ashare-free-data — PUBLIC, research-only
+# ashare-free-data — Public, FREE, research-only
 
-Independent, minimally scoped public data probe. No private `tiandi0228/scripts` source, strategy logic, git history, accounts or credentials are copied.
+Isolated public market-data **research** workflow. The private repository
+`tiandi0228/scripts`, personal holdings, trading strategies, secrets and
+historical Git commits have **not** been copied here.
 
-## Safety and acceptance
-- Opt-in **manual** `workflow_dispatch` only for the initial pilot, no scheduling yet.
-- Precisely three current mainboard codes, one AkShare logical query each; underlying SDK HTTP calls not audited.
-- Raw UTF-8 BOM CSV, quality.json and SHA-256 digests preserved in an artifact for seven days (not permanent).
-- Observations are **NOT** exchange-publisher authenticated, complete market coverage, historical ST/halt/delist or backtested strategy evidence.
-- `trade_gate=BLOCKED`; `orders=[]`; `executable_candidates=[]`.
-- Public Actions use is subject to GitHub fair-use/limits and provider terms. No paid services.
-- Do not publish secret account info or proprietary strategy research.
+## Verified research-only milestones (2026-10-21)
 
-## Initial test
-Open [Actions](https://github.com/tiandi0228/ashare-free-data/actions) and run **A-share bounded FREE source probe (RESEARCH ONLY)** manually on `main`. Inspect original CSV and quality report; do not equate a successful workflow with P3/P4 readiness.
+| Milestone | GitHub Actions run | Actual result |
+|---|---|---|
+| Baostock 3 securities / 2 calendar years | [#39571589234](https://github.com/tiandi0228/ashare-free-data/actions/runs/39571589234) | SUCCESS: 3 × 485 rows |
+| Baostock first eight current securities | [#39572697952](https://github.com/tiandi0228/ashare-free-data/actions/runs/39572697952) | SUCCESS: 8 × 485, including 10 suspended rows for sh.603019 |
+| Baostock second eight current securities | [#39573265839](https://github.com/tiandi0228/ashare-free-data/actions/runs/39573265839) | SUCCESS: 8 × 485 rows |
+| Independently validate original-source bytes from both runs | [#39573806984](https://github.com/tiandi0228/ashare-free-data/actions/runs/39573806984) | SUCCESS: 16 issuer originals, 7,760 rows; 7,750 trade-status=1, 10 trade-status=0 |
+| Baostock historical vendor roster for 2025-05-26 and 2026-10-20 | [#39574658518](https://github.com/tiandi0228/ashare-free-data/actions/runs/39574658518) | **BLOCKED:** vendor login rejected, **zero** real roster queries |
+| Offline vendor-roster validation and fail-closed tests | [#39575055183](https://github.com/tiandi0228/ashare-free-data/actions/runs/39575055183) | SUCCESS: 22 offline tests, zero market queries |
 
-Next: verify source redistribution/license, exchange-dated historical membership and risk flags, bounded resumable per-issuer backfill, full P4 independent chronological evaluation.
+**Important:** 16 stock codes were manually frozen for a limited capacity
+pilot, **not** reconstructed from historical official exchange membership.
+The two-year range in the successful limited study is
+2024-10-21 through 2026-10-20. `sh.603019` has 485 source rows of
+which 475 have tradeStatus=1 and ten have tradeStatus=0. Do not count
+suspended placeholder rows as tradeable bars.
+
+[Durable public source SHA metadata](reports/p1_pilot_16_source_digests_20261021.json)
+has been committed without republishing raw CSV source bytes. Original
+CSV artifacts expire under GitHub retention rules; the metadata digests
+alone cannot reconstruct expired source files.
+
+## Current safety posture
+
+- **No paid APIs, server purchases, broker connectivity or live orders.**
+  Research `trade_gate=BLOCKED`, `orders=[]`,
+  `executable_candidates=[]`.
+- Cloud Runner previously downloaded 16 stocks using a limited Baostock
+  client. Repeated successful tests do not imply unlimited Baostock
+  reliability; latest two-date roster probe **failed on login**.
+- Historical membership, dates, names and ST markers obtained from
+  retrospective third-party vendor endpoints are *not* authenticated
+  contemporaneous exchange snapshots.
+- The dated Baostock roster workflow remains **manual-only** until
+  network access reliability, permitted source usage, historical metadata
+  and archive policy are verified. No unattended whole-market crawling.
+- Earlier Eastmoney batch runs encountered ConnectionError; its routine
+  push triggers were disabled to avoid waste.
+- Only bounded pilot probes and offline unit tests run in GitHub Actions.
+  Public Actions are still subject to provider acceptable-use restrictions.
+
+## Next formal acceptance gates
+
+1. Establish reliable no-cost and properly permitted historical dated
+   universe snapshots with authoritative listing, suspensions, ST and
+   delistings, including securities absent from today's pool.
+2. Expand **bounded, resumable** history capture with authentic
+   publisher/source timestamps and durable authorized storage. Verify
+   checksum and individual code/day coverage, not only row counts.
+3. Validate P4 historical point-in-time walk-forward, fees, slippage,
+   realistic T+1/tradeable exits, genuinely out-of-sample net returns
+   and forward shadow runs before any executable candidates.
+4. Keep the private main strategy/recommendation workflow isolated and
+   PR gates blocked until all evidence is independently audited.
+
+See [Issue #1](https://github.com/tiandi0228/ashare-free-data/issues/1)
+for the running quality and capability evidence log.
