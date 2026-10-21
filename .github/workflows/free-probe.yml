@@ -1,0 +1,61 @@
+name: A-share bounded FREE source probe (RESEARCH ONLY)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/**'
+      - 'tests/**'
+      - '.github/workflows/free-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ashare-free-bounded-probe
+  cancel-in-progress: false
+
+jobs:
+  bounded_public_probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline tests first, no provider network requests
+        run: python -m unittest discover -s tests -v
+      - name: Install free public source dependencies
+        run: python -m pip install 'akshare>=1.16,<2' 'pandas>=2.2,<3'
+      - name: At most one logical SDK call per issuer, strictly three issuers
+        run: python -m collector.probe --out evidence
+      - name: Keep original CSV and source quality evidence for seven days
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ashare-public-free-three-issuer-BLOCKED
+          path: evidence/
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Enforce research-only gate
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('evidence/quality.json')
+          if not p.exists():
+              raise SystemExit('FAIL CLOSED: quality evidence absent')
+          q=json.loads(p.read_text())
+          assert q['count_expected']==3 and q['logical_sdk_calls']==3
+          assert q['paid_api_calls']==0 and q['trade_gate']=='BLOCKED'
+          assert q['orders']==[] and q['executable_candidates']==[]
+          assert q['full_market_coverage_verified'] is False
+          assert q['point_in_time_universe_verified'] is False
+          assert q['formal_st_halt_delist_verified'] is False
+          assert q['strategy_validated'] is False
+          assert all(x['status']=='OBSERVED_UNVERIFIED' for x in q['symbols'])
+          print('Research-only bounded source probe accepted. Formal market-wide gates BLOCKED.')
+          PY
