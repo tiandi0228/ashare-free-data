@@ -1,12 +1,5 @@
 name: A-share FREE bounded research batch (NO TRADES)
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'collector/batch.py'
-      - 'tests/test_batch.py'
-      - 'manifests/pilot_issuers.txt'
-      - '.github/workflows/bounded-daily.yml'
   workflow_dispatch:
     inputs:
       batch_index:
@@ -15,9 +8,6 @@ on:
         default: '0'
         type: choice
         options: ['0', '1']
-  schedule:
-    # Beijing 15:40 Mon-Fri; not an authenticated exchange holiday schedule.
-    - cron: '40 7 * * 1-5'
 permissions:
   contents: read
 concurrency:
