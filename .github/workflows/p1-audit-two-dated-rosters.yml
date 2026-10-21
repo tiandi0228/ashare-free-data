@@ -1,10 +1,6 @@
 name: P1 two REAL dated issuer roster original-CSV replay (OFFLINE, NO TRADES)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/p1-audit-two-dated-rosters.yml'
   workflow_dispatch:
 
 permissions:
