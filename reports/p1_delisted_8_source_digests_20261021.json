@@ -1,0 +1,119 @@
+{
+  "evidence_type": "P1_PUBLIC_BAOSTOCK_EIGHT_ISSUER_SOURCE_SHA_RECEIPT_ONLY",
+  "source_run_id": 39589103403,
+  "source_run_sha": "da3e470b19e52820192af94a97371e99fe77aa1a",
+  "replay_audit_run_id": 39589886891,
+  "replay_run_sha": "c66148d7cda5e3c3760720282a8ccbf021b7dcc3",
+  "original_data_artifact_id": 12340239649,
+  "original_data_artifact_expires_at_utc": "2026-11-04T11:04:14Z",
+  "replay_metadata_artifact_id": 12341690315,
+  "replay_metadata_expires_at_utc": "2026-11-20T11:09:51Z",
+  "original_csv_bytes_committed_to_git": false,
+  "original_csv_sha_receipts_alone_not_reconstructible": true,
+  "actual_replay_verified": true,
+  "trade_gate": "BLOCKED",
+  "orders": [],
+  "executable_candidates": [],
+  "paid_api_calls": 0,
+  "replay_report": {
+    "phase": "P1_EIGHT_ISSUER_DELISTED_ORIGINAL_BYTE_AUDIT",
+    "status": "ORIGINAL_SOURCE_BYTES_REPLAYED_RESEARCH_ONLY",
+    "frozen_capture_run_id": 39589103403,
+    "original_csv_issuer_count": 8,
+    "original_csv_total_rows": 3803,
+    "trade_status_1_total_rows": 3773,
+    "trade_status_0_total_rows": 30,
+    "delisted_issuer_last_status_1_date": "2026-06-22",
+    "delisted_issuer_last_vendor_row_date": "2026-06-25",
+    "independent_actual_exchange_pit_verified": false,
+    "one_issuer_event_not_market_wide": true,
+    "data_retention_depends_on_actions_artifact": true,
+    "source_observed_during_later_replay_not_historical_asof": true,
+    "trade_gate": "BLOCKED",
+    "orders": [],
+    "executable_candidates": [],
+    "paid_api_calls": 0,
+    "source_receipts": [
+      {
+        "code": "sh.600421",
+        "source_rows": 408,
+        "trade_status_1_rows": 378,
+        "trade_status_0_rows": 30,
+        "last_status_1_date": "2026-06-22",
+        "last_original_csv_date": "2026-06-25",
+        "first_original_csv_date": "2024-10-21",
+        "original_csv_sha256": "6bef8cb4aa83229d09f5ea32c67fbddea74572fced377901527214bafac0c89a"
+      },
+      {
+        "code": "sh.600519",
+        "source_rows": 485,
+        "trade_status_1_rows": 485,
+        "trade_status_0_rows": 0,
+        "last_status_1_date": "2026-10-20",
+        "last_original_csv_date": "2026-10-20",
+        "first_original_csv_date": "2024-10-21",
+        "original_csv_sha256": "620c901183e45811d0bca1effd2c7e133605e2b12d085d40d96052e5c03db966"
+      },
+      {
+        "code": "sh.601318",
+        "source_rows": 485,
+        "trade_status_1_rows": 485,
+        "trade_status_0_rows": 0,
+        "last_status_1_date": "2026-10-20",
+        "last_original_csv_date": "2026-10-20",
+        "first_original_csv_date": "2024-10-21",
+        "original_csv_sha256": "a5c8c614e395bc3b2707deeb9565448b324a455e3cdb75c07f95d888a24bdfcf"
+      },
+      {
+        "code": "sh.600036",
+        "source_rows": 485,
+        "trade_status_1_rows": 485,
+        "trade_status_0_rows": 0,
+        "last_status_1_date": "2026-10-20",
+        "last_original_csv_date": "2026-10-20",
+        "first_original_csv_date": "2024-10-21",
+        "original_csv_sha256": "29f44d4098bc680ab0ab78f68b21ad25c40aca01f05054895d21d0c603c19a61"
+      },
+      {
+        "code": "sz.000858",
+        "source_rows": 485,
+        "trade_status_1_rows": 485,
+        "trade_status_0_rows": 0,
+        "last_status_1_date": "2026-10-20",
+        "last_original_csv_date": "2026-10-20",
+        "first_original_csv_date": "2024-10-21",
+        "original_csv_sha256": "b78dc2645e32e746ea7e6f921b0ecdde305a9e6b46113662555736350e834e93"
+      },
+      {
+        "code": "sz.002594",
+        "source_rows": 485,
+        "trade_status_1_rows": 485,
+        "trade_status_0_rows": 0,
+        "last_status_1_date": "2026-10-20",
+        "last_original_csv_date": "2026-10-20",
+        "first_original_csv_date": "2024-10-21",
+        "original_csv_sha256": "7d7fd921725fc8ebaccb671308da2a369a5336993415e06e7e2c280d79412866"
+      },
+      {
+        "code": "sh.600900",
+        "source_rows": 485,
+        "trade_status_1_rows": 485,
+        "trade_status_0_rows": 0,
+        "last_status_1_date": "2026-10-20",
+        "last_original_csv_date": "2026-10-20",
+        "first_original_csv_date": "2024-10-21",
+        "original_csv_sha256": "6cc183bcf50258888ef0d77204b7884ce01afc71ecc58be4cbd01b2363a5d1c4"
+      },
+      {
+        "code": "sz.000333",
+        "source_rows": 485,
+        "trade_status_1_rows": 485,
+        "trade_status_0_rows": 0,
+        "last_status_1_date": "2026-10-20",
+        "last_original_csv_date": "2026-10-20",
+        "first_original_csv_date": "2024-10-21",
+        "original_csv_sha256": "edda503cfbffe65444b9621cd224118ff5aa2447a8dbcf875d8d7567b7dae2c9"
+      }
+    ]
+  }
+}
