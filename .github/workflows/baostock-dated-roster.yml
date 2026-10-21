@@ -1,0 +1,74 @@
+name: A-share FREE Baostock historical roster snapshot (NO TRADES)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/baostock_dated_universe.py'
+      - 'tests/test_baostock_dated_universe.py'
+      - '.github/workflows/baostock-dated-roster.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ashare-dated-roster-pilot
+  cancel-in-progress: false
+
+jobs:
+  two_dated_snapshot_probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run pure offline tests before network access
+        run: python -m unittest discover -s tests -v
+      - name: Install free public source client
+        run: python -m pip install 'baostock>=0.8,<1'
+      - name: Two dated source roster calls, no retry, no full-bar requests
+        run: timeout 120s python -m collector.baostock_dated_universe --out evidence
+      - name: Retain dated original CSV and SHA quality report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ashare-BAOSTOCK-two-dated-rosters-PIT-UNVERIFIED
+          path: evidence/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Reject incomplete or wrongly authenticated market state
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          p = Path('evidence/quality.json')
+          assert p.exists(), 'Missing dated source evidence'
+          q = json.loads(p.read_text(encoding='utf-8'))
+          assert q['phase'] == 'P1_FREE_BAOSTOCK_DATED_UNIVERSE_SNAPSHOT'
+          assert q['status'] == 'OBSERVED_TWO_DATED_PROVIDER_SNAPSHOTS_UNVERIFIED'
+          assert q['requested_dates'] == ['2025-05-26', '2026-10-20']
+          assert q['logical_query_attempts'] == 2 and q['login_attempts'] == 1
+          assert q['paid_api_calls'] == 0 and q['trade_gate'] == 'BLOCKED'
+          assert q['orders'] == [] and q['executable_candidates'] == []
+          assert q['exchange_publisher_authenticated'] is False
+          assert q['point_in_time_issuer_membership_verified'] is False
+          assert q['historical_st_delist_completeness_verified'] is False
+          assert q['market_wide_historical_bars_complete'] is False
+          assert len(q['date_results']) == 2
+          for item in q['date_results']:
+              assert item['status'] == 'OBSERVED_UNVERIFIED'
+              assert item['mainboard_prefix_rows'] >= 1000
+              assert item['mainboard_status_1'] + item['mainboard_status_0'] == item['mainboard_prefix_rows']
+              for name, digest in [
+                  ('original_csv_file', 'original_csv_sha256'),
+                  ('mainboard_csv_file', 'mainboard_csv_sha256')
+              ]:
+                  raw = Path('evidence', item[name]).read_bytes()
+                  assert hashlib.sha256(raw).hexdigest() == item[digest]
+          assert q['date_results'][0]['known_halt_case_status'] == '0'
+          print('PASS: 2 dated vendor rosters; official historical PIT status BLOCKED.')
+          PY
