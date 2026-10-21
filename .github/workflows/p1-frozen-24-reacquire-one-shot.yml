@@ -1,10 +1,6 @@
 name: P1 FREE eight-of-24 byte-identical SHA re-fetch (NO TRADES)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/p1-frozen-24-reacquire-one-shot.yml'
   workflow_dispatch:
     inputs:
       batch_index:
