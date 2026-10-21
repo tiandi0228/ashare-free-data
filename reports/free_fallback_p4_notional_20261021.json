@@ -1,0 +1,40 @@
+{
+  "phase": "FREE_SOURCE_SUBSTITUTION_AND_P4_POSITION_DENOMINATOR_AUDIT",
+  "result": "OFFLINE_TESTS_PASS_FORMAL_MARKET_AND_PRIVATE_P4_NOT_VALIDATED",
+  "public_ci_run_id": 39584957755,
+  "public_ci_sha": "e46519b224e0eb77e031c3352ea0ecc67c467057",
+  "public_ci_result": "success",
+  "passed_offline_tests": 85,
+  "source_routes": {
+    "research_historical_prices": "Baostock limited 16 symbols, 2 historical years; original exchange authenticity not established",
+    "research_vendor_issuer_lifecycles": "Baostock retrospective 3489 mainboard-prefix lifecycles; not certified as-of",
+    "issuer_positive_disclosure": "CNINFO 2 original PDF digests for 600421; incomplete and not independent exchange history",
+    "official_complete_exchange_ST_halt_delist": "NO_FREE_AUTHENTICATED_SOURCE_VERIFIED"
+  },
+  "model_risk_denominator": "3 percent of position buy notional, not total equity",
+  "synthetic_counterexample": {
+    "assumed_entry_price": "10.00",
+    "assumed_stop_fill_price": "9.50",
+    "shares": 400,
+    "entry_notional_yuan": "4000.00",
+    "account_budget_three_pct_yuan": "240.00",
+    "valid_position_three_pct_budget_yuan": "120.00",
+    "modeled_fee_inclusive_stop_loss_yuan": "211.98",
+    "position_budget_pass": false,
+    "simulated_trade_performed": false
+  },
+  "independent_source_router_added": true,
+  "independent_public_synthetic_guard_added": true,
+  "private_p4_risk_model_changed": false,
+  "private_model_risk_denominator_discrepancy_open": true,
+  "duplicate_slippage_prohibited": "slippage is counted in actual fill prices once, no separate slippage charge field",
+  "trusted_official_P3_complete": false,
+  "p4_strategy_real_out_of_sample_complete": false,
+  "trade_gate": "BLOCKED",
+  "v2_2_validated": false,
+  "executable_candidates": [],
+  "orders": [],
+  "paid_api_calls": 0,
+  "artifact_id": 12338778176,
+  "artifact_expires_at": "2026-11-20T10:29:34Z"
+}
