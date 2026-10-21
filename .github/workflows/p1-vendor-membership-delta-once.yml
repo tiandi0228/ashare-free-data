@@ -1,10 +1,6 @@
 name: P1 FREE two-date vendor issuer membership delta (OFFLINE, NO TRADES)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/p1-vendor-membership-delta-once.yml'
   workflow_dispatch:
 
 permissions:
