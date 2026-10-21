@@ -1,0 +1,79 @@
+{
+  "evidence_type": "P1_BOUNDED_TWO_SOURCE_REACQUISITION_SHA_ONLY",
+  "run_id": 39606036344,
+  "run_sha": "b2ede5680a5021ed5c64464e247c6584c999a4a2",
+  "run_result": "success",
+  "original_comparison_count": 2,
+  "passed_offline_tests": 124,
+  "artifact_id": 12348595495,
+  "artifact_expires_utc": "2026-11-04T13:14:37Z",
+  "vendor_could_revise_later": true,
+  "source_raw_bytes_not_archived": true,
+  "provider_license_for_redistribution_not_verified": true,
+  "official_market_PIT_not_verified": true,
+  "trade_gate": "BLOCKED",
+  "orders": [],
+  "paid_api_calls": 0,
+  "observed_comparison": {
+    "phase": "P1_ZERO_COST_BOUNDED_HISTORICAL_SOURCE_REACQUISITION",
+    "status": "TWO_SOURCES_REACQUIRED_IDENTICAL_NOW_NO_DURABLE_STORAGE",
+    "source_codes": [
+      "sh.600421",
+      "sh.600000"
+    ],
+    "query_range": [
+      "2024-10-20",
+      "2026-10-20"
+    ],
+    "query_fields": [
+      "date",
+      "code",
+      "open",
+      "high",
+      "low",
+      "close",
+      "volume",
+      "amount",
+      "adjustflag",
+      "tradestatus"
+    ],
+    "source_record_baseline_not_official_pit": true,
+    "login_attempts": 1,
+    "issuer_queries": 2,
+    "max_issuer_queries": 2,
+    "source_reports": [
+      {
+        "code": "sh.600421",
+        "status": "BYTE_IDENTICAL_NOW_NOT_PERMANENT",
+        "previous_SHA256": "6bef8cb4aa83229d09f5ea32c67fbddea74572fced377901527214bafac0c89a",
+        "observed_SHA256": "6bef8cb4aa83229d09f5ea32c67fbddea74572fced377901527214bafac0c89a",
+        "previous_source_rows": 408,
+        "observed_source_rows": 408,
+        "same_SHA256_and_row_count": true,
+        "original_source_bytes_redistributed": false
+      },
+      {
+        "code": "sh.600000",
+        "status": "BYTE_IDENTICAL_NOW_NOT_PERMANENT",
+        "previous_SHA256": "8cac0bfe8301a4b6080688a3ba1deba6c69688ea88daef26ef3446a6d738d151",
+        "observed_SHA256": "8cac0bfe8301a4b6080688a3ba1deba6c69688ea88daef26ef3446a6d738d151",
+        "previous_source_rows": 485,
+        "observed_source_rows": 485,
+        "same_SHA256_and_row_count": true,
+        "original_source_bytes_redistributed": false
+      }
+    ],
+    "source_raw_csv_republished": false,
+    "source_raw_bytes_durably_archived": false,
+    "provider_historical_version_can_change": true,
+    "publication_instant_authenticated": false,
+    "official_exchange_historical_risk_verified": false,
+    "all_market_replay_ready": false,
+    "paid_api_calls": 0,
+    "trade_gate": "BLOCKED",
+    "orders": [],
+    "candidate_universe": [],
+    "executable_candidates": [],
+    "observed_at_utc": "2026-10-21T13:14:36.816348+00:00"
+  }
+}
