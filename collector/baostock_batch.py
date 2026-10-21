@@ -47,10 +47,16 @@ def run(path,index,dest,bs):
                 days=[row[0] for row in rows]
                 if not days or days!=sorted(set(days)) or days[0]<START or days[-1]>END or any(row[1]!=code for row in rows):
                     raise ValueError("Date or identity mismatch")
+                # Suspended sessions can appear as placeholder rows.
+                # Preserve them but never count them as executable trading bars.
+                statuses=[row[FIELDS.index("tradestatus")] for row in rows]
+                if any(s not in ("0","1") for s in statuses):
+                    raise ValueError("Unknown trading-status encoding")
+                suspended=sum(s=="0" for s in statuses)
                 raw=(",".join(FIELDS)+"\n"+"".join(",".join(row)+"\n" for row in rows)).encode()
                 if len(raw)>250000:raise ValueError("Excessive source bytes")
                 (out/(code.replace(".","_")+".csv")).write_bytes(raw)
-                item.update(status="OBSERVED_UNVERIFIED",rows=len(rows),first=days[0],last=days[-1],sha256=hashlib.sha256(raw).hexdigest())
+                item.update(status="OBSERVED_UNVERIFIED",rows=len(rows),tradable_rows=len(rows)-suspended,suspended_status_rows=suspended,first=days[0],last=days[-1],sha256=hashlib.sha256(raw).hexdigest())
             except Exception as exc:
                 item["error_type"]=type(exc).__name__
             report["results"].append(item)
