@@ -1,12 +1,6 @@
 name: A-share bounded FREE source probe (RESEARCH ONLY)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'collector/**'
-      - 'tests/**'
-      - '.github/workflows/free-probe.yml'
   workflow_dispatch:
 
 permissions:
