@@ -82,6 +82,16 @@ Independent source-capability routing now selects **Baostock** for small researc
 
 [Real CI #39584957755](https://github.com/tiandi0228/ashare-free-data/actions/runs/39584957755) **SUCCESS, 85 offline tests**. Source router `collector/free_source_fallback_router.py`, numeric pilot `collector/p4_position_notional_guard.py`, regression tests and [durable report](reports/free_fallback_p4_notional_20261021.json). **This does not change the PRIVATE P4 model yet**. Private model and P3 issuer authentication still need separate integration, validation and signoff. `trade_gate=BLOCKED`, no orders, zero paid APIs.
 
+### 2026-10-21: delisted issuer original history and 24-source coverage (FREE, RESEARCH ONLY)
+
+**Real new eight-issuer source** [#39589103403](https://github.com/tiandi0228/ashare-free-data/actions/runs/39589103403) succeeded on a public Runner (one Baostock login and eight issuer-history queries): seven active Shanghai/Shenzhen mainboard issuers each returned **485** source sessions, and the historically delisted `sh.600421` returned **408** source rows (378 with vendor tradeStatus=1 and **30** vendor suspended placeholders). The source's final *tradeStatus=1* row for `600421` is **2026-06-22**, whereas the final CSV row is **2026-06-25** and 2026-06-23 through June 25 are suspended placeholders. Thus the last data row must never be used as the final trading date. This is third-party trade status, not original exchange-signed PIT provenance.
+
+Independent no-provider-request original ZIP/CSV/SHA replay [#39589886891](https://github.com/tiandi0228/ashare-free-data/actions/runs/39589886891) **SUCCESS, 94 offline tests**: 8 original CSV hashes matched the quality receipt, total **3,803** source rows, **3,773** vendor status=1 and **30** vendor status=0. [Permanent SHA-only receipt](reports/p1_delisted_8_source_digests_20261021.json). Original data Artifact `12340239649` expires **2026-11-04**; replay audit Artifact `12341690315` expires **2026-11-20**.
+
+Combining the previously validated 16-issuer sources with these *disjoint* eight issuer codes, the verified research subset is **24 issuers, 11,563 original rows, 11,523 vendor status=1 and 40 vendor status=0**. [Offline combined-gate #39590598008](https://github.com/tiandi0228/ashare-free-data/actions/runs/39590598008) **SUCCESS with 100/100 tests**, derived Artifact `12342725142` (expires **2026-11-20**), durable [combined SHA-only source audit](reports/p1_research_24_coverage_20261021.json). First CI attempt failed due to a regression test accidentally mutating the wrong JSON level, not a bypassed production gate; the corrected test passed.
+
+**Safety boundary:** these 24 purposively selected issuer histories do not prove full Shanghai/Shenzhen mainboard coverage, authoritative historical point-in-time membership, historical ST/halts/delist completeness, or real P4 walk-forward/OOS performance. Original source bytes are *not* permanently available from SHA-only Git metadata; respect provider licensing and Artifact expiration. Source audit success **never unlocks** `trade_gate=BLOCKED`, candidate lists or orders. No data source was purchased; private `tiandi0228/scripts` Actions were not triggered.
+
 ## Next formal acceptance gates
 
 1. Establish reliable no-cost and properly permitted historical dated
