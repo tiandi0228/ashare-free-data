@@ -58,7 +58,7 @@ class OfficialSourceTests(unittest.TestCase):
             self.assertEqual(capture(root, lambda u: (fake_html(SOURCES[0]), "https://other.test")), 2)
 
     def test_decision_page_cannot_substitute_for_effective_date(self):
-        wrong = fake_html(SOURCES[1]).replace("2026年6月26日", "2026年5月22日".encode("utf-8"))
+        wrong = fake_html(SOURCES[1]).replace("2026年6月26日".encode("utf-8"), "2026年5月22日".encode("utf-8"))
         with self.assertRaisesRegex(ValueError, "anchor missing"):
             inspect_document(SOURCES[1], wrong, SOURCES[1]["url"])
 
