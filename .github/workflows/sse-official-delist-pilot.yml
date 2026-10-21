@@ -1,10 +1,6 @@
 name: P3 FREE SSE official delist event pilot (NO TRADES)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/sse-official-delist-pilot.yml'
   workflow_dispatch:
 
 permissions:
