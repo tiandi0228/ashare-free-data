@@ -1,0 +1,64 @@
+name: P3 actual issuer PDF temporal quarantine (OFFLINE, NO TRADES)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p3_disclosure_event_ledger.py'
+      - 'tests/test_p3_disclosure_event_ledger.py'
+      - 'reports/p3_cninfo_600421_disclosure_pdf_20261021.json'
+      - '.github/workflows/p3-disclosure-ledger.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ashare-p3-disclosure-quarantine
+  cancel-in-progress: true
+
+jobs:
+  issuer_notice_temporal_audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile and test every offline source contract
+        run: |
+          python -m py_compile collector/p3_disclosure_event_ledger.py
+          python -m unittest discover -s tests -v
+      - name: Re-evaluate real source digest receipt for five historical decisions
+        run: |
+          for day in 2026-06-18 2026-06-19 2026-06-20 2026-06-22 2026-06-26; do
+            python -m collector.p3_disclosure_event_ledger \
+              --asof-day "$day" \
+              --out "audit/600421_asof_${day}.json"
+          done
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          results = sorted(Path("audit").glob("*.json"))
+          assert len(results) == 5
+          for filename in results:
+              q = json.loads(filename.read_text(encoding="utf-8"))
+              assert q['status'] == 'QUARANTINED_UNVERIFIED_HISTORICAL_ASOF'
+              assert q['trade_gate'] == 'BLOCKED'
+              assert q['executable_candidates'] == [] and q['orders'] == []
+              assert q['candidate_universe'] == []
+              assert q['issuer_tradable_as_of_day'] is None
+              assert q['known_historical_asof'] is False
+              assert q['non_executable_research_events'][0]['forecast_date'] == '2026-06-22'
+              assert q['non_executable_research_events'][1]['original_exchange_document_sha256'] is None
+          print('PASS: 600421 issuer PDF research only; 5 PIT decisions quarantined')
+          PY
+      - name: Store derived audit metadata, not original disclosure PDF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p3-600421-five-day-temporal-quarantine
+          path: audit/
+          if-no-files-found: warn
+          retention-days: 30
