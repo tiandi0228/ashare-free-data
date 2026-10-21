@@ -1,0 +1,59 @@
+{
+  "audit_type": "FREE_VENDOR_RETROSPECTIVE_LIFECYCLE_METADATA_ONLY",
+  "public_run_id": 39576085424,
+  "public_run_sha": "0eaa4338e8e6d72f4e568a67d78b47774cef6368",
+  "public_workflow_result": "success",
+  "source_original_csv_sha256": "359d138e5a30e1f6ecdef02ab9e8da485f9f4d5f822241b6eb7340fa776354b4",
+  "original_csv_not_preserved_in_repo": true,
+  "original_csv_artifact_not_published": true,
+  "source_recoverability_after_run": "SHA alone does NOT recover original vendor CSV",
+  "private_2026_10_20_mainboard_baseline_count": 3052,
+  "private_baseline_provenance": "Research frozen P1 historical dataset from private tiandi0228/scripts, NOT an independently reverified like-for-like provider roster",
+  "vendor_2026_10_20_retrospective_candidate_count": 3195,
+  "simple_numerical_difference_not_scope_validated": 143,
+  "same_scope_membership_equality_verified": false,
+  "source_report": {
+    "phase": "P1_BAOSTOCK_LISTING_LIFECYCLE_CANDIDATE_AUDIT",
+    "status": "VENDOR_LIFECYCLE_CANDIDATE_OBSERVED_NOT_OFFICIAL_PIT",
+    "source": "Baostock query_stock_basic() historical dates",
+    "requested_dates": [
+      "2025-05-26",
+      "2026-10-20"
+    ],
+    "login_attempts": 1,
+    "logical_query_attempts": 1,
+    "underlying_protocol_calls_verified": false,
+    "vendor_dates_are_retrospective_not_asof": true,
+    "source_exchange_authenticated": false,
+    "historical_point_in_time_universe_verified": false,
+    "historical_ST_halt_delist_verified": false,
+    "historical_daily_bar_coverage_verified": false,
+    "live_or_backtest_trade_validated": false,
+    "paid_api_calls": 0,
+    "trade_gate": "BLOCKED",
+    "orders": [],
+    "executable_candidates": [],
+    "original_source_rows": 9018,
+    "mainboard_prefix_lifecycles": 3489,
+    "vendor_currently_delisted_mainboard_rows": 294,
+    "source_csv_name": "baostock_stock_basic_original.csv",
+    "source_csv_sha256": "359d138e5a30e1f6ecdef02ab9e8da485f9f4d5f822241b6eb7340fa776354b4",
+    "source_csv_bytes": 398158,
+    "retrospective_interval_candidates": [
+      {
+        "date": "2025-05-26",
+        "candidate_issuer_count_from_vendor_dates": 3181,
+        "vendor_currently_delisted_but_candidate_at_date": 32,
+        "source_datetime_proves_historical_knowledge": false,
+        "verified_historical_ST_halt_state": false
+      },
+      {
+        "date": "2026-10-20",
+        "candidate_issuer_count_from_vendor_dates": 3195,
+        "vendor_currently_delisted_but_candidate_at_date": 0,
+        "source_datetime_proves_historical_knowledge": false,
+        "verified_historical_ST_halt_state": false
+      }
+    ]
+  }
+}
