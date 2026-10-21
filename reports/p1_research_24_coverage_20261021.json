@@ -1,0 +1,148 @@
+{
+  "evidence_type": "PUBLIC_P1_LIMITED_24_ISSUER_CROSS_RUN_SOURCE_DIGEST_REPORT",
+  "aggregation_run_id": 39590598008,
+  "aggregation_run_sha": "cb4559e24963dfeac7094a9954114c08620e1a07",
+  "unit_tests_passed": 100,
+  "audit_artifact_id": 12342725142,
+  "audit_artifact_expires_at_utc": "2026-11-20T11:15:31Z",
+  "original_source_bytes_in_public_repo": false,
+  "original_csv_source_artifacts_expire": true,
+  "source_sha_metadata_alone_not_reconstructible": true,
+  "original_source_replayed_in_separate_verified_runs": [
+    39573806984,
+    39589886891
+  ],
+  "formal_P3_historical_point_in_time_source_complete": false,
+  "formal_P4_oos_validated": false,
+  "trade_gate": "BLOCKED",
+  "orders": [],
+  "executable_candidates": [],
+  "audit_report": {
+    "phase": "P1_FREE_RESEARCH_24_ISSUER_CROSS_RUN_COVERAGE",
+    "status": "24_UNIQUE_SOURCE_ISSUERS_RESEARCH_ONLY",
+    "source_captures": [
+      39572697952,
+      39573265839,
+      39589103403
+    ],
+    "independent_original_byte_audits": [
+      39573806984,
+      39589886891
+    ],
+    "frozen_issuer_count": 24,
+    "original_source_rows": 11563,
+    "trade_status_1_rows": 11523,
+    "trade_status_0_rows": 40,
+    "delisted_600421_last_status_1_date": "2026-06-22",
+    "delisted_600421_last_vendor_row_date": "2026-06-25",
+    "all_original_bytes_rechecked_in_this_metadata_only_run": false,
+    "original_csv_replay_dependence_on_expiring_artifacts": true,
+    "official_historical_point_in_time_issuer_pool_verified": false,
+    "full_mainboard_historical_backfill_complete": false,
+    "ST_halt_delist_history_complete": false,
+    "p4_out_of_sample_validated": false,
+    "trade_gate": "BLOCKED",
+    "candidate_universe": [],
+    "orders": [],
+    "executable_candidates": [],
+    "paid_api_calls": 0,
+    "original_sha_receipts": [
+      {
+        "code": "sh.600000",
+        "sha256": "8cac0bfe8301a4b6080688a3ba1deba6c69688ea88daef26ef3446a6d738d151"
+      },
+      {
+        "code": "sz.000001",
+        "sha256": "1e6ded81f06039496d75e644dd544a3841c416e6754d249d9394cc2eaf79c001"
+      },
+      {
+        "code": "sh.601398",
+        "sha256": "de29d78daaa14d81898a9c2c613945b0ae17047e691cdc69dea8c9be5ddef242"
+      },
+      {
+        "code": "sz.002204",
+        "sha256": "b92aa54fd6b88db6b376e2739f0c668cdf736370ee19f28d34f86f159a9933d4"
+      },
+      {
+        "code": "sh.603019",
+        "sha256": "6f2a8905f6289d6eb06835f97b0ece0cd30b0f18b2763fc49cef026a9f69e87c"
+      },
+      {
+        "code": "sz.000651",
+        "sha256": "95064008d3902e5d80a13b52b5eb25f57bae8789abf3fa4aed3f676b332043a3"
+      },
+      {
+        "code": "sh.601975",
+        "sha256": "0faaeba8ef295bb7fd783ce03ce85569cf9586a6d87ad453b6959981421fc1ed"
+      },
+      {
+        "code": "sh.600256",
+        "sha256": "31e0e86d7472564c14285fceb2cccbe2b57af3f58786037eac63b7f4ff240d98"
+      },
+      {
+        "code": "sz.002733",
+        "sha256": "d70a03a9e8771680de9ccbf2f78b8c0d5da79b4b57bb82d5e4a9f0cdc4663ba9"
+      },
+      {
+        "code": "sh.601208",
+        "sha256": "d914fca32b94eb747ccf4a132ef7bdeae73fcdd59aad74f005e234b569e69f26"
+      },
+      {
+        "code": "sz.002565",
+        "sha256": "99598b627ae3eadeafdfa15439235049689fc3fa4def56ede1678535de769eb7"
+      },
+      {
+        "code": "sz.002149",
+        "sha256": "1c9679e2e1285415882a06263c1d34075db53a01822c6ab39e4c3367bc594e6a"
+      },
+      {
+        "code": "sz.002580",
+        "sha256": "9ade19f0634caf8241723ccbc66b4444e3d53af7ef1faf55c4f50aace95cb46b"
+      },
+      {
+        "code": "sh.600026",
+        "sha256": "2271b435d5361be2c22879ce980559eae8859a299a2dd017cb5daf9b04187f29"
+      },
+      {
+        "code": "sh.601872",
+        "sha256": "69fd826a3f2881cbbeb19db39d818f266c1b93dee1fc9f13d1539166ff65325a"
+      },
+      {
+        "code": "sh.600028",
+        "sha256": "30bff7c30625fbcfcc48fea453ee4dbb3edfe019a7d4c3105f7c6a51a0742773"
+      },
+      {
+        "code": "sh.600421",
+        "sha256": "6bef8cb4aa83229d09f5ea32c67fbddea74572fced377901527214bafac0c89a"
+      },
+      {
+        "code": "sh.600519",
+        "sha256": "620c901183e45811d0bca1effd2c7e133605e2b12d085d40d96052e5c03db966"
+      },
+      {
+        "code": "sh.601318",
+        "sha256": "a5c8c614e395bc3b2707deeb9565448b324a455e3cdb75c07f95d888a24bdfcf"
+      },
+      {
+        "code": "sh.600036",
+        "sha256": "29f44d4098bc680ab0ab78f68b21ad25c40aca01f05054895d21d0c603c19a61"
+      },
+      {
+        "code": "sz.000858",
+        "sha256": "b78dc2645e32e746ea7e6f921b0ecdde305a9e6b46113662555736350e834e93"
+      },
+      {
+        "code": "sz.002594",
+        "sha256": "7d7fd921725fc8ebaccb671308da2a369a5336993415e06e7e2c280d79412866"
+      },
+      {
+        "code": "sh.600900",
+        "sha256": "6cc183bcf50258888ef0d77204b7884ce01afc71ecc58be4cbd01b2363a5d1c4"
+      },
+      {
+        "code": "sz.000333",
+        "sha256": "edda503cfbffe65444b9621cd224118ff5aa2447a8dbcf875d8d7567b7dae2c9"
+      }
+    ]
+  }
+}
