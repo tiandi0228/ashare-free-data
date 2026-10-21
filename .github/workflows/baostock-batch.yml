@@ -1,12 +1,5 @@
 name: Baostock free bounded eight-issuer pilot (RESEARCH ONLY)
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'collector/baostock_batch.py'
-      - 'tests/test_baostock_batch.py'
-      - 'manifests/baostock_pilot.txt'
-      - '.github/workflows/baostock-batch.yml'
   workflow_dispatch:
     inputs:
       batch_index:
@@ -26,7 +19,6 @@ concurrency:
   cancel-in-progress: false
 jobs:
   bounded:
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[BATCH-1-CAPTURE]') || contains(github.event.head_commit.message, '[DELISTED-ONCE-CAPTURE]')
     runs-on: ubuntu-latest
     timeout-minutes: 7
     steps:
@@ -44,13 +36,12 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           MANUAL_INDEX: ${{ inputs.batch_index }}
           MANUAL_SOURCE: ${{ inputs.source_manifest }}
-          HEAD_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           python - <<'PY' >> "$GITHUB_OUTPUT"
           import os
-          manual=os.environ['EVENT_NAME']=='workflow_dispatch'
-          new=('delisted8' == os.environ['MANUAL_SOURCE']) if manual else '[DELISTED-ONCE-CAPTURE]' in os.environ['HEAD_MESSAGE']
-          i=int(os.environ['MANUAL_INDEX']) if manual else (0 if new else 1)
+          assert os.environ['EVENT_NAME']=='workflow_dispatch'
+          new=os.environ['MANUAL_SOURCE']=='delisted8'
+          i=int(os.environ['MANUAL_INDEX'])
           assert i in (0,1) and (not new or i==0)
           print('index='+str(i))
           print('manifest='+('manifests/baostock_delisted_8_pilot.txt' if new else 'manifests/baostock_pilot.txt'))
