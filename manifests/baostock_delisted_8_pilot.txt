@@ -1,0 +1,11 @@
+# RESEARCH-ONLY bounded new source capacity trial; 7 current + 1 delisted
+# Excludes prior 16-issuer pilot; not an official historical PIT security universe
+# 600421 delisted effective 2026-06-26 per SSE notice, ORIGINAL SSE source not runner authenticated
+sh.600421
+sh.600519
+sh.601318
+sh.600036
+sz.000858
+sz.002594
+sh.600900
+sz.000333
