@@ -11,8 +11,8 @@ import json
 from pathlib import Path
 import re
 
-ISSUER_PATTERN=re.compile(r"(?:sh\\.60[0-5]|sz\\.00[0-3])[0-9]{3}\\Z")
-SHA_PATTERN=re.compile(r"[0-9a-f]{64}\\Z")
+ISSUER_PATTERN=re.compile(r"(?:sh\.60[0-5]|sz\.00[0-3])[0-9]{3}\Z")
+SHA_PATTERN=re.compile(r"[0-9a-f]{64}\Z")
 
 
 def ensure(ok, reason):
