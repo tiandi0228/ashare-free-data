@@ -1,10 +1,6 @@
 name: P1 FREE remaining two frozen 8-issuer SHA cohorts (NO TRADES)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/p1-frozen-remaining16-once.yml'
   workflow_dispatch:
 
 permissions:
