@@ -60,7 +60,7 @@ class Research24Tests(unittest.TestCase):
 
     def test_incomplete_eight_source_replay_rejected(self):
         new=copy.deepcopy(self.new)
-        new["replay_report"]["actual_replay_verified"]=False
+        new["actual_replay_verified"]=False
         with self.assertRaisesRegex(ValueError,"identity"):
             self.result(new=new)
 
