@@ -48,7 +48,7 @@ jobs:
           from collector.batch import load_manifest,MAX_BATCH
           codes,_=load_manifest('manifests/pilot_issuers.txt')
           count=(len(codes)+MAX_BATCH-1)//MAX_BATCH
-          if os.environ['EVENT']=='schedule':
+          if os.environ['EVENT']!='workflow_dispatch':
               idx=datetime.datetime.now(ZoneInfo('Asia/Shanghai')).date().toordinal()%count
           else:
               idx=int(os.environ['CHOICE'])
