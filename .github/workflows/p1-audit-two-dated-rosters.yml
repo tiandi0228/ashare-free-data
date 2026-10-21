@@ -1,0 +1,84 @@
+name: P1 two REAL dated issuer roster original-CSV replay (OFFLINE, NO TRADES)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p1-audit-two-dated-rosters.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  independent_vendor_roster_replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile and test all offline contracts before source access
+        run: |
+          python -m py_compile collector/audit_dated_rosters.py
+          python -m unittest discover -s tests -v
+      - name: Download prior successful roster artifact without any new market query
+        run: |
+          gh run download 39613467121 --repo "$GITHUB_REPOSITORY" \
+            --name ashare-BAOSTOCK-two-dated-rosters-PIT-UNVERIFIED \
+            --dir originals
+      - name: Verify bounded raw file set and make non-published replay ZIP
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile, ZIP_STORED
+          root=Path("originals")
+          expected={"quality.json"} | {
+              prefix+day+".csv"
+              for day in ("2025-05-26","2026-10-20")
+              for prefix in ("all_securities_","mainboard_prefix_")
+          }
+          files=list(root.iterdir())
+          assert set(p.name for p in files)==expected
+          assert all(p.is_file() and 0 < p.stat().st_size < 2000000 for p in files)
+          with ZipFile("temporary_rosters_for_audit.zip","w",compression=ZIP_STORED) as z:
+              for p in sorted(files):
+                  z.write(p,arcname=p.name)
+          print("Downloaded five exact earlier source members; no fresh provider calls")
+          PY
+      - name: Independently audit source bytes, issuer status and name-flag counts
+        run: |
+          python -m collector.audit_dated_rosters \
+            --artifact temporary_rosters_for_audit.zip \
+            --out audit/replay_two_dated_rosters.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path("audit/replay_two_dated_rosters.json").read_text())
+          assert q["phase"]=="P1_TWO_DATED_VENDOR_ROSTER_ORIGINAL_BYTES_REPLAY"
+          assert q["status"]=="ORIGINAL_TWO_VENDOR_ROSTERS_REPLAYED_PIT_BLOCKED"
+          assert q["issuer_pool_size_2025_05_26"]==3181
+          assert q["issuer_pool_size_2026_10_20"]==3195
+          assert q["dated_originals_replayed_in_this_run"] is True
+          assert q["provisional_prefix_pool_only"] is True
+          assert q["authenticated_as_of_publication_instant"] is False
+          assert q["official_exchange_mainboard_membership_verified"] is False
+          assert q["full_history_ST_halt_delist_verified"] is False
+          assert q["original_source_bytes_archived_permanently"] is False
+          assert q["trade_gate"]=="BLOCKED" and q["orders"]==[]
+          assert q["candidate_universe"]==[] and q["executable_candidates"]==[]
+          assert q["paid_api_calls"]==0
+          print("PASS: two dated vendor originals SHA verified, PIT still BLOCKED")
+          PY
+      - name: Retain SHA/count receipt only; do not re-upload vendor original CSV
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-dated-roster-two-original-sha-replay-PIT-BLOCKED
+          path: audit/
+          if-no-files-found: warn
+          retention-days: 30
