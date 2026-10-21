@@ -9,6 +9,9 @@ on:
       - 'tests/test_delisted_backfill_pilot.py'
       - 'manifests/baostock_delisted_8_pilot.txt'
       - 'collector/baostock_batch.py'
+      - 'collector/research_24_coverage_gate.py'
+      - 'tests/test_research_24_coverage_gate.py'
+      - 'reports/p1_delisted_8_source_digests_20261021.json'
       - '.github/workflows/offline-source-contracts.yml'
   workflow_dispatch:
 
@@ -29,6 +32,31 @@ jobs:
         with:
           python-version: '3.11'
       - name: Compile offline source-contract modules
-        run: python -m py_compile collector/baostock_dated_universe.py collector/baostock_batch.py
+        run: python -m py_compile collector/baostock_dated_universe.py collector/baostock_batch.py collector/research_24_coverage_gate.py
       - name: Verify fail-closed source tests without installing a provider or contacting markets
         run: python -m unittest discover -s tests -v
+      - name: Aggregate 24 independently replayed research issuer SHA receipts only
+        run: |
+          python -m collector.research_24_coverage_gate --out audit/24_research_source_coverage.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('audit/24_research_source_coverage.json')
+          q=json.loads(p.read_text())
+          assert q['frozen_issuer_count']==24
+          assert q['original_source_rows']==11563
+          assert q['trade_status_1_rows']==11523
+          assert q['trade_status_0_rows']==40
+          assert q['trade_gate']=='BLOCKED' and q['orders']==[]
+          assert q['official_historical_point_in_time_issuer_pool_verified'] is False
+          assert q['full_mainboard_historical_backfill_complete'] is False
+          print('PASS: 24 limited research issuers, NOT official complete mainboard coverage')
+          PY
+      - name: Retain non-reconstructible 24-source coverage metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-24-issuer-SHA-coverage-research-BLOCKED
+          path: audit/
+          if-no-files-found: warn
+          retention-days: 30
