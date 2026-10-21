@@ -14,11 +14,15 @@ on:
       - 'collector/vendor_historical_st_probe.py'
       - 'tests/test_vendor_historical_st_probe.py'
       - 'reports/p1_delisted_8_source_digests_20261021.json'
+      - 'collector/source_retention_gate.py'
+      - 'tests/test_source_retention_gate.py'
+      - 'reports/source_artifact_inventory_20261021.json'
       - '.github/workflows/offline-source-contracts.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: offline-source-contracts
@@ -34,7 +38,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Compile offline source-contract modules
-        run: python -m py_compile collector/baostock_dated_universe.py collector/baostock_batch.py collector/research_24_coverage_gate.py collector/vendor_historical_st_probe.py
+        run: python -m py_compile collector/baostock_dated_universe.py collector/baostock_batch.py collector/research_24_coverage_gate.py collector/vendor_historical_st_probe.py collector/source_retention_gate.py
       - name: Verify fail-closed source tests without installing a provider or contacting markets
         run: python -m unittest discover -s tests -v
       - name: Aggregate 24 independently replayed research issuer SHA receipts only
@@ -53,6 +57,56 @@ jobs:
           assert q['official_historical_point_in_time_issuer_pool_verified'] is False
           assert q['full_mainboard_historical_backfill_complete'] is False
           print('PASS: 24 limited research issuers, NOT official complete mainboard coverage')
+          PY
+      - name: Re-check FOUR real original Artifacts from GitHub API (no market queries)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          from datetime import datetime, timezone
+          import json, os, subprocess
+          from pathlib import Path
+          repo=os.environ["GITHUB_REPOSITORY"]
+          ids=(39572697952,39573265839,39589103403,39602222641)
+          runs=[]
+          for run_id in ids:
+              out=subprocess.run(
+                  ["gh","api",f"/repos/{repo}/actions/runs/{run_id}/artifacts?per_page=100"],
+                  capture_output=True,text=True,check=True,timeout=20,
+              )
+              raw=json.loads(out.stdout)
+              runs.append({"run_id":run_id,"artifacts":[{
+                  k:a.get(k) for k in ("id","name","created_at","expires_at","expired")
+              } for a in raw["artifacts"]]})
+          q={"repository":repo,
+             "inspected_at_utc":datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+             "runs":runs}
+          Path("audit").mkdir(exist_ok=True)
+          Path("audit/live_artifacts.json").write_text(json.dumps(q,indent=2)+"\n")
+          print("Read GitHub Actions retention metadata for exactly 4 known captures.")
+          PY
+      - name: Audit live retention, licensing blocker, and fail-closed trade gate
+        run: |
+          python -m collector.source_retention_gate \
+            --inventory audit/live_artifacts.json \
+            --out audit/original_source_retention_readiness.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path("audit/original_source_retention_readiness.json").read_text())
+          assert q["phase"]=="P1_P3_FREE_GITHUB_ORIGINAL_RETENTION_PREFLIGHT"
+          assert q["original_artifacts_expected"]==4
+          assert q["retention_is_permanent"] is False
+          assert q["license_for_public_vendor_CSV_redistribution_verified"] is False
+          assert q["public_GitHub_Releases_is_approved_storage"] is False
+          assert q["original_source_archive_replay_ready"] is False
+          assert q["historical_point_in_time_authority_verified"] is False
+          assert q["trade_gate"]=="BLOCKED" and q["orders"]==[]
+          assert q["executable_candidates"]==[] and q["candidate_universe"]==[]
+          print("Artifact inventory:",q["status"],
+                "currently available",q["original_artifacts_currently_available"],
+                "/4, min days",q["minimum_remaining_days"])
+          print("PASS: data storage/license and official PIT stay BLOCKED")
           PY
       - name: Retain non-reconstructible 24-source coverage metadata
         if: always()
