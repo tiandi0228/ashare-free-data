@@ -60,6 +60,12 @@ The independent two-document original-HTML/SHA pilot [#39578232761](https://gith
 
 The [independent offline source-digest PIT gate #39578658808](https://github.com/tiandi0228/ashare-free-data/actions/runs/39578658808) **SUCCEEDED with 42 unit tests**. It reconciles the Baostock 9,018-row lifecycle source receipt and 16-issuer source SHA metadata, rejects hindsight, incomplete historical ST/halt/delist evidence and mismatched 3,195 vs 3,052 universe scope. Both historical dates remain **trade_gate=BLOCKED**. Durable [gate report](reports/p1_p3_pit_gate_20261021.json) contains SHA receipts and metadata, not reconstructible original CSV files.
 
+### 2026-10-21: 600421 CNINFO statutory issuer PDF cloud-source evidence
+
+Independent CNINFO disclosure PDF [source](https://static.cninfo.com.cn/finalpage/2026-06-19/1225377517.PDF) was **successfully retrieved by the public GitHub Runner** in [#39579302851](https://github.com/tiandi0228/ashare-free-data/actions/runs/39579302851), unlike the two official SSE website URLs that failed with URLError on the earlier Runner. One HTTPS request, 109,614 source bytes, three readable PDF pages and SHA-256 `6e43f458ee70b11dc5ab7331c2d67dee62dc26fa2121e138a2c93ef71c65409f`. 47 offline tests passed.
+
+This issuer disclosure mentions **estimated last trading day 2026-06-22**, not the exchange's independently verified actual delisting date. SSE's [2026-06-22 announcement](https://www.sse.com.cn/disclosure/announcement/listing/stock/c/c_20260622_10823158.shtml) says actual removal 2026-06-26; the GitHub Runner **did not** obtain this SSE page's raw bytes or signed publisher evidence. CNINFO PDF is one issuer source, not complete historical ST/delisting, official PIT universe or trading permission. Only public source SHA metadata is committed in [PDF research receipt](reports/p3_cninfo_600421_disclosure_pdf_20261021.json); original PDF is not redistributed here, and the hash is not a reconstructible archive. PDF online-probe workflow is now manual-only. No paid calls or orders, trade_gate BLOCKED.
+
 ## Next formal acceptance gates
 
 1. Establish reliable no-cost and properly permitted historical dated
