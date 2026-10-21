@@ -52,6 +52,14 @@ alone cannot reconstruct expired source files.
 - Only bounded pilot probes and offline unit tests run in GitHub Actions.
   Public Actions are still subject to provider acceptable-use restrictions.
 
+### 2026-10-21: Official SSE event chronology and PIT acceptance
+
+Exchange notice [2026-05-22 termination decision](https://www.sse.com.cn/disclosure/announcement/listing/stock/c/c_20260522_10819392.shtml) for 600421 is distinct from the [2026-06-22 notice announcing actual removal on 2026-06-26](https://www.sse.com.cn/disclosure/announcement/listing/stock/c/c_20260622_10823158.shtml). Do not use the termination decision date as the effective delisting date.
+
+The independent two-document original-HTML/SHA pilot [#39578232761](https://github.com/tiandi0228/ashare-free-data/actions/runs/39578232761) **FAILED**: the public GitHub Actions runner got URL errors from both official pages. Original exchange bytes and SHA were NOT obtained; the workflow is now manual-only. Offline event chronology and tamper guards passed, but this is not an authenticated whole-market state.
+
+The [independent offline source-digest PIT gate #39578658808](https://github.com/tiandi0228/ashare-free-data/actions/runs/39578658808) **SUCCEEDED with 42 unit tests**. It reconciles the Baostock 9,018-row lifecycle source receipt and 16-issuer source SHA metadata, rejects hindsight, incomplete historical ST/halt/delist evidence and mismatched 3,195 vs 3,052 universe scope. Both historical dates remain **trade_gate=BLOCKED**. Durable [gate report](reports/p1_p3_pit_gate_20261021.json) contains SHA receipts and metadata, not reconstructible original CSV files.
+
 ## Next formal acceptance gates
 
 1. Establish reliable no-cost and properly permitted historical dated
