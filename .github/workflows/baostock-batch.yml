@@ -14,6 +14,11 @@ on:
         required: true
         default: '0'
         options: ['0','1']
+      source_manifest:
+        type: choice
+        required: true
+        default: 'main16'
+        options: ['main16','delisted8']
 permissions:
   contents: read
 concurrency:
@@ -21,7 +26,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   bounded:
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[BATCH-1-CAPTURE]')
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[BATCH-1-CAPTURE]') || contains(github.event.head_commit.message, '[DELISTED-ONCE-CAPTURE]')
     runs-on: ubuntu-latest
     timeout-minutes: 7
     steps:
@@ -38,21 +43,25 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           MANUAL_INDEX: ${{ inputs.batch_index }}
+          MANUAL_SOURCE: ${{ inputs.source_manifest }}
           HEAD_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           python - <<'PY' >> "$GITHUB_OUTPUT"
           import os
-          i=int(os.environ['MANUAL_INDEX']) if os.environ['EVENT_NAME']=='workflow_dispatch' else (1 if '[BATCH-1-CAPTURE]' in os.environ['HEAD_MESSAGE'] else 0)
-          assert i in (0,1)
+          manual=os.environ['EVENT_NAME']=='workflow_dispatch'
+          new=('delisted8' == os.environ['MANUAL_SOURCE']) if manual else '[DELISTED-ONCE-CAPTURE]' in os.environ['HEAD_MESSAGE']
+          i=int(os.environ['MANUAL_INDEX']) if manual else (0 if new else 1)
+          assert i in (0,1) and (not new or i==0)
           print('index='+str(i))
+          print('manifest='+('manifests/baostock_delisted_8_pilot.txt' if new else 'manifests/baostock_pilot.txt'))
           PY
       - name: Fetch at most eight issuer histories, no retries
-        run: timeout 155s python -m collector.baostock_batch --batch-index "${{ steps.select.outputs.index }}" --out evidence
+        run: timeout 155s python -m collector.baostock_batch --manifest "${{ steps.select.outputs.manifest }}" --batch-index "${{ steps.select.outputs.index }}" --out evidence
       - name: Preserve original CSVs and SHA256 receipt
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ashare-BAOSTOCK-subset-${{ steps.select.outputs.index }}-${{ github.run_id }}-BLOCKED
+          name: ashare-BAOSTOCK-${{ steps.select.outputs.index }}-${{ github.run_id }}-BLOCKED
           path: evidence/
           retention-days: 14
           if-no-files-found: warn
