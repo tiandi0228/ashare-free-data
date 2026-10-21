@@ -1,0 +1,82 @@
+name: A-share FREE bounded research batch (NO TRADES)
+on:
+  workflow_dispatch:
+    inputs:
+      batch_index:
+        description: 'Zero-based batch index (pilot 0 or 1, max 8 issuers)'
+        required: true
+        default: '0'
+        type: choice
+        options: ['0', '1']
+  schedule:
+    # Beijing 15:40 Mon-Fri; not an authenticated exchange holiday schedule.
+    - cron: '40 7 * * 1-5'
+permissions:
+  contents: read
+concurrency:
+  group: ashare-free-bounded-daily
+  cancel-in-progress: false
+jobs:
+  bounded_capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run all offline no-trade contract tests
+        run: python -m unittest discover -s tests -v
+      - name: Install public-provider SDK only
+        run: python -m pip install 'akshare>=1.16,<2' 'pandas>=2.2,<3'
+      - name: Resolve one daily shard or explicit manual choice
+        id: shard
+        env:
+          CHOICE: ${{ inputs.batch_index }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import datetime,os
+          from zoneinfo import ZoneInfo
+          from collector.batch import load_manifest,MAX_BATCH
+          codes,_=load_manifest('manifests/pilot_issuers.txt')
+          count=(len(codes)+MAX_BATCH-1)//MAX_BATCH
+          if os.environ['EVENT']=='schedule':
+              idx=datetime.datetime.now(ZoneInfo('Asia/Shanghai')).date().toordinal()%count
+          else:
+              idx=int(os.environ['CHOICE'])
+          assert 0 <= idx < count
+          print(f"batch_index={idx}")
+          print(f"batch_count={count}")
+          PY
+      - name: Capture only one bounded shard (no retry, no fallback)
+        run: python -m collector.batch --batch-index "${{ steps.shard.outputs.batch_index }}" --out evidence
+      - name: Retain source originals and SHA receipt for 14 days
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ashare-research-UNVERIFIED-batch-${{ steps.shard.outputs.batch_index }}-${{ github.run_id }}
+          path: evidence/
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Enforce fail-closed receipt
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          p=Path('evidence/quality.json')
+          assert p.exists(), 'FAIL CLOSED: no receipt'
+          q=json.loads(p.read_text())
+          assert q['phase']=='PUBLIC_FREE_BOUND_BATCH'
+          assert q['batch_cap']==8 and 1<=q['requested_count']<=8
+          assert q['logical_sdk_calls']==q['requested_count']
+          assert q['status']=='OBSERVED_UNVERIFIED'
+          assert q['paid_api_calls']==0 and q['trade_gate']=='BLOCKED'
+          assert not q['orders'] and not q['executable_candidates']
+          assert not q['historical_point_in_time_universe_verified']
+          for s in q['issuers']:
+              assert s['status']=='OBSERVED_UNVERIFIED'
+              assert hashlib.sha256(Path('evidence',s['code']+'.csv').read_bytes()).hexdigest()==s['sha256']
+          print('Bounded shard source receipt verified; formal P3/P4 BLOCKED.')
+          PY
