@@ -1,0 +1,82 @@
+name: P1 FREE original-source sixteen-issuer cross-run audit (NO MARKET QUERIES)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/audit_baostock_sixteen.py'
+      - 'tests/test_audit_baostock_sixteen.py'
+      - '.github/workflows/audit-baostock-sixteen.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  audit_frozen_sixteen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Audit offline no-market tests
+        run: python -m unittest discover -s tests -v
+      - name: Verify frozen original GitHub Actions run identities
+        run: |
+          python - <<'PY'
+          import json,os,subprocess
+          receipts = [
+              (39572697952, '2f1d264ccae9d258ab764022fbfd30ba3eb3e14e'),
+              (39573265839, 'ae64b076416a391df032de8dff59dda35740ae8d'),
+          ]
+          for run_id, sha in receipts:
+              result = subprocess.check_output([
+                  'gh','api',f"repos/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{run_id}"
+              ], text=True)
+              item = json.loads(result)
+              assert item['head_sha'] == sha, "Wrong original run SHA"
+              assert item['head_repository']['full_name'] == os.environ['GITHUB_REPOSITORY']
+              assert item['conclusion'] == 'success' and item['status'] == 'completed'
+              assert item['event'] == 'push'
+          print("Both original capture runs identity verified")
+          PY
+      - name: Download two source-pinned original artifacts without market requests
+        run: |
+          mkdir -p originals/first originals/second
+          gh run download 39572697952 --repo "$GITHUB_REPOSITORY" --name ashare-BAOSTOCK-subset-0-39572697952-BLOCKED --dir originals/first
+          gh run download 39573265839 --repo "$GITHUB_REPOSITORY" --name ashare-BAOSTOCK-subset-1-39573265839-BLOCKED --dir originals/second
+      - name: Recheck all 16 original CSV files and frozen 603019 halt dates
+        run: |
+          python -m collector.audit_baostock_sixteen \
+            --manifest manifests/baostock_pilot.txt \
+            --first originals/first \
+            --second originals/second \
+            --first-run 39572697952 \
+            --second-run 39573265839 \
+            --out audit/sixteen_source_audit.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report=json.loads(Path('audit/sixteen_source_audit.json').read_text())
+          assert report['issuer_count']==16
+          assert report['original_source_rows']==7760
+          assert report['trade_status_1_rows']==7750
+          assert report['trade_status_0_rows']==10
+          assert report['market_wide_backfill_complete'] is False
+          assert report['trade_gate']=='BLOCKED'
+          assert report['paid_api_calls']==0 and not report['orders']
+          print("Validated 16 real pilot sources, NOT official historical point-in-time universe.")
+          PY
+      - name: Preserve derived metadata audit, no redistributed raw source CSV
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ashare-16-issuer-independent-SHA-audit-NO-TRADES
+          path: audit/
+          if-no-files-found: warn
+          retention-days: 30
