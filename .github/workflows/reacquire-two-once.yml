@@ -1,10 +1,6 @@
 name: P1 FREE exactly-two-source SHA reacquisition (RESEARCH, NO TRADES)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/reacquire-two-once.yml'
   workflow_dispatch:
 
 permissions:
