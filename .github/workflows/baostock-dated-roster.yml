@@ -1,12 +1,6 @@
 name: A-share FREE Baostock historical roster snapshot (NO TRADES)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'collector/baostock_dated_universe.py'
-      - 'tests/test_baostock_dated_universe.py'
-      - '.github/workflows/baostock-dated-roster.yml'
   workflow_dispatch:
 
 permissions:
