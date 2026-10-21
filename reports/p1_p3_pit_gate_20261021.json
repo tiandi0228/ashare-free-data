@@ -1,0 +1,73 @@
+{
+  "title": "Historical PIT fail-closed audit of real research-only 16-issuer / vendor lifecycle digests",
+  "public_repository": "tiandi0228/ashare-free-data",
+  "run_id": 39578658808,
+  "run_sha": "70249d1ec4daef4f713fb1b93e38732ada770742",
+  "run_conclusion": "success",
+  "run_completed_at_utc": "2026-10-21T09:39:40Z",
+  "audit_artifact_id": 12335945775,
+  "audit_artifact_retention_end": "2026-11-20T09:39:38Z",
+  "num_offline_tests_passed": 42,
+  "raw_csv_data_in_this_report": false,
+  "independent_sha_recomputed_from_original_csv_here": false,
+  "formal_historical_PIT_verified": false,
+  "p3_trade_gate": "BLOCKED",
+  "entries": [
+    {
+      "phase": "P1_P3_HISTORICAL_POINT_IN_TIME_ACCEPTANCE",
+      "status": "BLOCKED_NO_CERTIFIED_HISTORICAL_UNIVERSE",
+      "decision_date": "2025-05-26",
+      "vendor_retrospective_candidate_count": 3181,
+      "vendor_later_delisted_count": 32,
+      "recovered_source_receipts": 16,
+      "original_source_bytes_available_in_metadata": false,
+      "original_source_reverified_in_this_run": false,
+      "trusted_historical_as_of_publication": false,
+      "same_scope_universe_comparison_verified": false,
+      "exchange_official_membership_complete": false,
+      "historical_ST_halt_delist_complete": false,
+      "candidate_universe": [],
+      "executable_candidates": [],
+      "orders": [],
+      "trade_gate": "BLOCKED",
+      "p4_out_of_sample_certified": false,
+      "paid_api_calls": 0,
+      "blockers": [
+        "RETROSPECTIVE_VENDOR_DATES_NOT_CONTEMPORANEOUSLY_CAPTURED",
+        "HISTORICAL_ST_HALT_DELIST_EVENTS_INCOMPLETE",
+        "EXCHANGE_LISTING_MEMBERSHIP_UNCERTIFIED",
+        "INDEPENDENT_SOURCE_POOL_SCOPES_NOT_RECONCILED",
+        "ONLY_SHA_RECEIPTS_NOT_RECONSTRUCTIBLE_ORIGINAL_BYTES",
+        "P4_RESEARCH_VALIDATION_NOT_COMPLETED"
+      ]
+    },
+    {
+      "phase": "P1_P3_HISTORICAL_POINT_IN_TIME_ACCEPTANCE",
+      "status": "BLOCKED_NO_CERTIFIED_HISTORICAL_UNIVERSE",
+      "decision_date": "2026-10-20",
+      "vendor_retrospective_candidate_count": 3195,
+      "vendor_later_delisted_count": 0,
+      "recovered_source_receipts": 16,
+      "original_source_bytes_available_in_metadata": false,
+      "original_source_reverified_in_this_run": false,
+      "trusted_historical_as_of_publication": false,
+      "same_scope_universe_comparison_verified": false,
+      "exchange_official_membership_complete": false,
+      "historical_ST_halt_delist_complete": false,
+      "candidate_universe": [],
+      "executable_candidates": [],
+      "orders": [],
+      "trade_gate": "BLOCKED",
+      "p4_out_of_sample_certified": false,
+      "paid_api_calls": 0,
+      "blockers": [
+        "RETROSPECTIVE_VENDOR_DATES_NOT_CONTEMPORANEOUSLY_CAPTURED",
+        "HISTORICAL_ST_HALT_DELIST_EVENTS_INCOMPLETE",
+        "EXCHANGE_LISTING_MEMBERSHIP_UNCERTIFIED",
+        "INDEPENDENT_SOURCE_POOL_SCOPES_NOT_RECONCILED",
+        "ONLY_SHA_RECEIPTS_NOT_RECONSTRUCTIBLE_ORIGINAL_BYTES",
+        "P4_RESEARCH_VALIDATION_NOT_COMPLETED"
+      ]
+    }
+  ]
+}
