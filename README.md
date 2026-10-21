@@ -92,6 +92,16 @@ Combining the previously validated 16-issuer sources with these *disjoint* eight
 
 **Safety boundary:** these 24 purposively selected issuer histories do not prove full Shanghai/Shenzhen mainboard coverage, authoritative historical point-in-time membership, historical ST/halts/delist completeness, or real P4 walk-forward/OOS performance. Original source bytes are *not* permanently available from SHA-only Git metadata; respect provider licensing and Artifact expiration. Source audit success **never unlocks** `trade_gate=BLOCKED`, candidate lists or orders. No data source was purchased; private `tiandi0228/scripts` Actions were not triggered.
 
+### 2026-10-21: free historical vendor ST and halt labels, original CSV independently replayed (P3 NOT CERTIFIED)
+
+Beneath the original 24 stock-price research pilot, we also tested Baostock's **documented** daily `isST` and `tradestatus` fields for **two strictly scoped issuers**, `sh.600421` and `sh.603019` over **2025-05-20 through 2026-06-25**, without reclassifying them as exchange historical PIT:
+
+- Real [vendor source capture #39602222641](https://github.com/tiandi0228/ashare-free-data/actions/runs/39602222641) **SUCCESS**: each issuer 268 original day/status rows; `sh.600421` has 250 vendor isST=1, 18 vendor isST=0, and 27 vendor suspended days in this window; `sh.603019` has 0 isST=1, 268 isST=0, and 10 vendor suspended days. All 536 source rows had an explicit isST field; no provider-paid API, at most 2 logical issuer queries. The `600421` expected final trading-status=1 2026-06-22 followed by suspended rows June 23–25, and known halted `603019` 2025-05-26 were validated against earlier vendor cases, **not exchange originals**.
+- Independent real original CSV and SHA-256 [replay #39602931290](https://github.com/tiandi0228/ashare-free-data/actions/runs/39602931290) **SUCCESS with 111 offline tests**; all issuer source bytes/dates/statuses independently matched the original frozen source receipt, with zero fresh market requests. Permanent [P3 vendor ST SHA-only report](reports/p3_two_issuer_vendor_st_replay_20261021.json). Original CSV source Artifact `12346189195` expires **2026-11-04**, replay JSON Artifact `12347785076` expires **2026-11-20**. Both network and replay workflows are now **manual-only**, not recurring automatic queries.
+- Upstream provider docs describe `isST` as a 0/1 **vendor historical daily data field**, not an original authenticated SSE/SZSE status announcement. Retroactive vendor revisions and historical publication times have **not** been established; full-market historical ST, suspension, delisting, corporate-action adjustment and source-licensed durable replay are still absent. `trade_gate=BLOCKED`, `orders=[]`, `executable_candidates=[]`.
+
+GitHub's own public Actions Artifact retention cap is **90 days**, not permanent; merely increasing retention would not fix original data governance, and stored artifacts/logs can count toward billable storage. We avoid claiming a permanent free cloud data warehouse or redistributing vendor CSVs publicly without confirmed data rights.
+
 ## Next formal acceptance gates
 
 1. Establish reliable no-cost and properly permitted historical dated
