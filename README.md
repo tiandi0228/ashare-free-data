@@ -15,6 +15,12 @@ historical Git commits have **not** been copied here.
 | Baostock historical vendor roster for 2025-05-26 and 2026-10-20 | [#39574658518](https://github.com/tiandi0228/ashare-free-data/actions/runs/39574658518) | **BLOCKED:** vendor login rejected, **zero** real roster queries |
 | Offline vendor-roster validation and fail-closed tests | [#39575055183](https://github.com/tiandi0228/ashare-free-data/actions/runs/39575055183) | SUCCESS: 22 offline tests, zero market queries |
 
+### 2026-10-21: free Baostock listing lifecycle candidate (retrospective, NOT certified PIT)
+
+[One-off source verification #39576085424](https://github.com/tiandi0228/ashare-free-data/actions/runs/39576085424) **SUCCESS**: 27 unit tests, one source login, one `query_stock_basic()` call, 9,018 original security records; 3,489 Shanghai/Shenzhen mainboard-prefix stock lifecycle records (of these, 294 marked delisted as of data capture). Retrospective IPO/delist intervals suggest **3,181 candidates on 2025-05-26** (including 32 later delisted names) and **3,195 candidates on 2026-10-20**. Data source and response checksums are recorded in [dated metadata](reports/p1_vendor_lifecycle_20261021.json).
+
+**Do not equate** 3,195 third-party retrospective listing candidates with the separate private-repo 3,052 current-mainboard frozen research pool. Raw numeric difference is 143 but data-source and inclusion-policy equivalence has **not** been established. Issuer life dates lack publisher signature, historical ST status, authoritative trading halts, as-of revisions, and delist/IPO boundary semantics. Vendor records can have hindsight contamination. They are **not** an official point-in-time tradable historical universe. The original stock-basic CSV bytes were intentionally **not redistributed** publicly; durable SHA metadata does not preserve reconstructible original contents. Network workflow is now **manual-only** to protect public provider limits.
+
 **Important:** 16 stock codes were manually frozen for a limited capacity
 pilot, **not** reconstructed from historical official exchange membership.
 The two-year range in the successful limited study is
