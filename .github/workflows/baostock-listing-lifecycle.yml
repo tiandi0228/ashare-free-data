@@ -1,10 +1,6 @@
 name: A-share FREE issuer listing lifecycle source audit (NO TRADES)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/baostock-listing-lifecycle.yml'
   workflow_dispatch:
 
 permissions:
