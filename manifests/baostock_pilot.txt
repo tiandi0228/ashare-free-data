@@ -1,0 +1,17 @@
+# Explicit research-only current issuer pilot, NOT historic point-in-time listing
+sh.600000
+sz.000001
+sh.601398
+sz.002204
+sh.603019
+sz.000651
+sh.601975
+sh.600256
+sz.002733
+sh.601208
+sz.002565
+sz.002149
+sz.002580
+sh.600026
+sh.601872
+sh.600028
