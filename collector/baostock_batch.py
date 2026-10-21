@@ -5,7 +5,7 @@ from pathlib import Path
 FIELDS="date,code,open,high,low,close,volume,amount,adjustflag,tradestatus".split(",")
 START,END="2024-10-20","2026-10-20"
 CAP=8
-PATTERN=re.compile(r"(?:sh\\.60[0-5]|sz\\.00[0-3])[0-9]{3}\\Z")
+PATTERN=re.compile(r"(?:sh\.60[0-5]|sz\.00[0-3])[0-9]{3}\Z")
 
 def manifest(path):
     raw=Path(path).read_bytes()
@@ -47,7 +47,7 @@ def run(path,index,dest,bs):
                 days=[row[0] for row in rows]
                 if not days or days!=sorted(set(days)) or days[0]<START or days[-1]>END or any(row[1]!=code for row in rows):
                     raise ValueError("Date or identity mismatch")
-                raw=(",".join(FIELDS)+"\\n"+"".join(",".join(row)+"\\n" for row in rows)).encode()
+                raw=(",".join(FIELDS)+"\n"+"".join(",".join(row)+"\n" for row in rows)).encode()
                 if len(raw)>250000:raise ValueError("Excessive source bytes")
                 (out/(code.replace(".","_")+".csv")).write_bytes(raw)
                 item.update(status="OBSERVED_UNVERIFIED",rows=len(rows),first=days[0],last=days[-1],sha256=hashlib.sha256(raw).hexdigest())
@@ -62,7 +62,7 @@ def run(path,index,dest,bs):
         if logged:
             try:bs.logout()
             except Exception:pass
-        (out/"quality.json").write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\\n")
+        (out/"quality.json").write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\n")
     print(json.dumps(report,ensure_ascii=False))
     return 0 if report["status"]=="OBSERVED_SUBSET_UNVERIFIED" else 2
 
