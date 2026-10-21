@@ -1,0 +1,79 @@
+name: P3 real Baostock vendor ST originals SHA replay (NO TRADES)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p3-vendor-st-replay.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  verify_real_vendor_st_originals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run offline fail-closed tests including vendor source audit
+        run: |
+          python -m py_compile collector/audit_vendor_st_archive.py
+          python -m unittest discover -s tests -v
+      - name: Download PREVIOUS successful source Artifact without market requests
+        run: |
+          gh run download 39602222641 --repo "$GITHUB_REPOSITORY" \
+            --name p3-two-issuer-vendor-ST-halts-unverified \
+            --dir originals
+      - name: Verify raw downloaded originals under strict size bounds
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile, ZIP_STORED
+          root=Path('originals')
+          names={'quality.json','sh_600421_vendor_ST.csv','sh_603019_vendor_ST.csv'}
+          files=list(root.iterdir())
+          assert set(p.name for p in files)==names
+          assert all(p.is_file() and 0 < p.stat().st_size <= 50000 for p in files)
+          with ZipFile('real_st_source.zip','w',compression=ZIP_STORED) as z:
+              for p in sorted(files):
+                  z.write(p,arcname=p.name)
+          print('Original bytes retrieved from one prior source run, NO fresh market requests')
+          PY
+      - name: Strictly replay vendor ST/halts CSV sources, avoid PIT elevation
+        run: |
+          python -m collector.audit_vendor_st_archive \
+            --artifact real_st_source.zip --out audit/two_historical_vendor_st_sources.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path('audit/two_historical_vendor_st_sources.json').read_text())
+          assert q['phase']=='P3_TWO_ISSUER_REAL_VENDOR_ST_SOURCE_REPLAY'
+          assert q['status']=='ORIGINAL_CSV_SHA_VERIFIED_VENDOR_ST_ONLY'
+          assert q['total_source_rows']==536
+          assert q['vendor_ST_1_rows']==250
+          assert q['vendor_ST_0_rows']==286
+          assert q['vendor_ST_unknown_rows']==0
+          assert q['vendor_halted_rows']==37
+          assert q['original_csv_replayed_in_this_run'] is True
+          assert q['exchange_ST_status_verified'] is False
+          assert q['historical_publication_instant_verified'] is False
+          assert q['complete_mainboard_universe_verified'] is False
+          assert q['trade_gate']=='BLOCKED' and q['orders']==[]
+          assert q['paid_api_calls']==0 and q['executable_candidates']==[]
+          print('PASS: 2 real original CSV SHA matched; official ST/PIT BLOCKED')
+          PY
+      - name: Preserve audit report only (source CSV remains in existing temporary Artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p3-real-vendor-ST-sha-audit-research-only
+          path: audit/
+          if-no-files-found: warn
+          retention-days: 30
