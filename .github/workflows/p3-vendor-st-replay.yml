@@ -1,10 +1,6 @@
 name: P3 real Baostock vendor ST originals SHA replay (NO TRADES)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/p3-vendor-st-replay.yml'
   workflow_dispatch:
 
 permissions:
