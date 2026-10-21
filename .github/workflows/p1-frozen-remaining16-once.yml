@@ -1,0 +1,82 @@
+name: P1 FREE remaining two frozen 8-issuer SHA cohorts (NO TRADES)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p1-frozen-remaining16-once.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ashare-frozen-remainder-16-single-trial
+  cancel-in-progress: false
+
+jobs:
+  two_bounded_cohorts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify offline SHA no-trade regressions before any source request
+        run: |
+          python -m py_compile collector/reacquire_24_pilot.py
+          python -m unittest discover -s tests -v
+      - name: Install free research-only provider
+        run: python -m pip install 'baostock>=0.8,<1'
+      - name: Only batches 0 then 1, each capped at 8 sources, no retries
+        run: |
+          mkdir -p evidence
+          for idx in 0 1; do
+            echo "Reacquisition batch $idx of 24 original SHA-trusted issuer codes"
+            timeout 165s python -m collector.reacquire_24_pilot \
+              --batch-index "$idx" \
+              --out "evidence/batch_${idx}_digest_only.json" || exit 2
+          done
+      - name: Independently verify both current-source comparisons and no trades
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          reports=[]
+          for idx in (0,1):
+              p=Path('evidence',f'batch_{idx}_digest_only.json')
+              assert p.is_file(),f'Missing actual source evidence for batch {idx}'
+              d=json.loads(p.read_text(encoding='utf-8'))
+              assert d['phase']=='P1_FROZEN_24_SOURCE_REACQUIRE_EIGHT_NO_RAW_REDISTRIBUTION'
+              assert d['batch_index']==idx
+              assert d['logical_issuer_queries']==8
+              assert d['logical_query_limit']==8
+              assert d['identical_source_count']==8
+              assert len(d['source_entries'])==8
+              assert d['status']=='EIGHT_SOURCE_BYTES_IDENTICAL_NOW_RESEARCH_ONLY'
+              assert all(e['sha256_matches_frozen_original'] for e in d['source_entries'])
+              assert d['original_raw_CSV_durably_archived'] is False
+              assert d['provider_market_data_republication_license_verified'] is False
+              assert d['official_exchange_historical_PIT_verified'] is False
+              assert d['all_24_history_recovered_in_this_run'] is False
+              assert d['trade_gate']=='BLOCKED' and d['orders']==[]
+              assert d['candidate_universe']==[] and d['executable_candidates']==[]
+              assert d['paid_api_calls']==0
+              reports.append(d)
+          codes=[e['code'] for d in reports for e in d['source_entries']]
+          assert len(codes)==16 and len(set(codes))==16
+          rows=sum(e['current_row_count'] for d in reports for e in d['source_entries'])
+          assert rows==7760
+          print('PASS: 16 source histories SHA identical NOW, two separately capped cohorts')
+          print('NO source bytes published, NO permanent archive, NO official PIT')
+          PY
+      - name: Preserve only source SHA comparison metadata, not original vendor CSV
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-two-frozen-eight-cohorts-sha-reacquired-research-BLOCKED
+          path: evidence/
+          if-no-files-found: warn
+          retention-days: 14
