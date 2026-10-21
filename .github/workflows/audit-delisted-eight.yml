@@ -1,0 +1,77 @@
+name: P1 FREE 600421 original data replay and 8-source SHA audit (NO TRADES)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/audit_delisted_archive.py'
+      - 'tests/test_audit_delisted_archive.py'
+      - '.github/workflows/audit-delisted-eight.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  replay_real_eight_sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run all offline data safety tests (no provider connections)
+        run: python -m unittest discover -s tests -v
+      - name: Retrieve only already-successful original source Artifact
+        run: |
+          gh run download 39589103403 --repo "$GITHUB_REPOSITORY" \
+            --name ashare-BAOSTOCK-0-39589103403-BLOCKED \
+            --dir originals
+      - name: Repack in memory-safe bounded ZIP for replay validator
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile, ZIP_STORED
+          root=Path('originals')
+          files=list(root.iterdir())
+          assert len(files)==9 and all(f.is_file() and f.stat().st_size<=250000 for f in files)
+          with ZipFile('source_originals.zip','w',compression=ZIP_STORED) as archive:
+              for file in sorted(files):
+                  archive.write(file,arcname=file.name)
+          print('Prepared already-acquired originals for SHA replay; no market requests')
+          PY
+      - name: Verify all eight original SHA hashes and 600421 last active-status day
+        run: |
+          python -m collector.audit_delisted_archive \
+            --artifact source_originals.zip \
+            --manifest manifests/baostock_delisted_8_pilot.txt \
+            --out audit/delisted_8_original_source_replay.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path('audit/delisted_8_original_source_replay.json').read_text())
+          assert q['phase']=='P1_EIGHT_ISSUER_DELISTED_ORIGINAL_BYTE_AUDIT'
+          assert q['status']=='ORIGINAL_SOURCE_BYTES_REPLAYED_RESEARCH_ONLY'
+          assert q['original_csv_issuer_count']==8
+          assert q['original_csv_total_rows']==3803
+          assert q['trade_status_0_total_rows']==30
+          assert q['trade_status_1_total_rows']==3773
+          assert q['delisted_issuer_last_status_1_date']=='2026-06-22'
+          assert q['delisted_issuer_last_vendor_row_date']=='2026-06-25'
+          assert q['independent_actual_exchange_pit_verified'] is False
+          assert q['trade_gate']=='BLOCKED' and q['orders']==[] and q['executable_candidates']==[]
+          assert q['paid_api_calls']==0
+          print('PASS: frozen 8 originals, 600421 6/22 last trade-status=1, historical PIT blocked')
+          PY
+      - name: Retain audit report only, not another source-data copy
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-eight-delisted-original-sha-replay-no-trades
+          path: audit/
+          if-no-files-found: warn
+          retention-days: 30
