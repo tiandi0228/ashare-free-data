@@ -1,5 +1,12 @@
 name: A-share FREE bounded research batch (NO TRADES)
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/batch.py'
+      - 'tests/test_batch.py'
+      - 'manifests/pilot_issuers.txt'
+      - '.github/workflows/bounded-daily.yml'
   workflow_dispatch:
     inputs:
       batch_index:
