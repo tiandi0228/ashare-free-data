@@ -88,7 +88,7 @@ jobs:
                       break
               except (ValueError,KeyError,TypeError):pass
           PY
-      - name: Choose two bounded shards (manual first pair, scheduled rotating pair)
+      - name: Choose next incomplete pair from same-roster ledger, or bounded date rotation
         id: pick
         run: |
           python - <<'PY' >> "$GITHUB_OUTPUT"
@@ -97,9 +97,9 @@ jobs:
           from zoneinfo import ZoneInfo
           q=json.loads(Path('evidence/shards/plan.json').read_text())
           pair_count=(q['shard_count']+1)//2
-          idx=0 if os.environ.get('GITHUB_EVENT_NAME')!='schedule' else datetime.datetime.now(ZoneInfo('Asia/Shanghai')).date().toordinal()%pair_count
+          idx=datetime.datetime.now(ZoneInfo('Asia/Shanghai')).date().toordinal()%pair_count
           prior=Path('evidence/prior_ledger.json')
-          if prior.exists() and os.environ.get('GITHUB_EVENT_NAME')=='schedule':
+          if prior.exists():
               ledger=json.loads(prior.read_text())
               done={e['index'] for e in ledger['completed']}
               idx=next((i for i in range(pair_count) if (2*i not in done or (2*i+1<q['shard_count'] and 2*i+1 not in done))),idx)
@@ -172,7 +172,7 @@ jobs:
           from pathlib import Path
           x=json.loads(Path('evidence/ledger.json').read_text())
           assert x['trade_gate']=='BLOCKED' and x['historical_PIT_verified'] is False
-          assert x['completed_issuers']<=16
+          assert x['completed_issuers']<=json.loads(Path('evidence/shards/plan.json').read_text())['issuer_count']
           print('AUDIT: source-bound completed issuers',x['completed_issuers'])
           PY
       - uses: actions/upload-artifact@v4
