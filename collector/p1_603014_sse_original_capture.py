@@ -31,10 +31,20 @@ def main():
     p=argparse.ArgumentParser();p.add_argument("--out",required=True);p.add_argument("--raw",required=True)
     a=p.parse_args()
     req=Request(OFFICIAL["url"],headers={"User-Agent":"Mozilla/5.0 research provenance verifier"})
-    with urlopen(req,timeout=25) as response:
-        raw=response.read(400001)
-    r=capture(raw)
-    path=Path(a.raw);path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw)
+    try:
+        with urlopen(req,timeout=25) as response:
+            raw=response.read(400001)
+        r=capture(raw)
+        path=Path(a.raw);path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw)
+    except (HTTPError,URLError,TimeoutError,ValueError,UnicodeError) as exc:
+        r={"phase":"P1_603014_SSE_ORIGINAL_HTML_RECEIPT","url":OFFICIAL["url"],
+           "source_status":"UNAVAILABLE_OR_CONTENT_UNVERIFIED",
+           "failure_type":type(exc).__name__,
+           "http_status":exc.code if isinstance(exc,HTTPError) else None,
+           "original_html_observed":False,
+           "historical_publication_instant_verified":False,
+           "historical_PIT_membership_verified":False,
+           "trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
     Path(a.out).write_text(json.dumps(r,ensure_ascii=False,indent=2)+"\n")
     print(json.dumps(r,ensure_ascii=False))
 if __name__=="__main__":main()
