@@ -8,6 +8,8 @@ on:
       - 'tests/test_p1_fresh_vendor_roster.py'
       - 'collector/p1_fresh_shard_plan.py'
       - 'tests/test_p1_fresh_shard_plan.py'
+      - 'collector/p1_shard_ledger.py'
+      - 'tests/test_p1_shard_ledger.py'
   schedule:
     - cron: '10 9 * * 1-5' # 17:10 Beijing weekdays
   workflow_dispatch:
@@ -23,7 +25,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline source tests
-        run: python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan -v
+        run: python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_shard_ledger -v
       - name: Install free Baostock
         run: python -m pip install 'baostock>=0.8,<1'
       - name: Observe current Beijing-date mainboard roster from free provider
@@ -126,6 +128,19 @@ jobs:
               assert hashlib.sha256(raw).hexdigest()==item['sha256']
           assert set(x['code'] for x in s['results']).isdisjoint(x['code'] for x in t['results'])
           print('PASS: sixteen unique real roster-derived histories verified; NOT PIT-certified')
+          PY
+      - name: Reconcile observed shards into versioned source ledger
+        if: always()
+        run: |
+          test -f evidence/shards/plan.json
+          python -m collector.p1_shard_ledger --plan evidence/shards/plan.json --receipt "${{ steps.pick.outputs.first == '' && '0' || steps.pick.outputs.first }}:evidence/first_shard/quality.json" ${{ steps.pick.outputs.has_second == 'true' && format('--receipt {0}:evidence/second_shard/quality.json', steps.pick.outputs.second) || '' }} --out evidence/ledger.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path('evidence/ledger.json').read_text())
+          assert x['trade_gate']=='BLOCKED' and x['historical_PIT_verified'] is False
+          assert x['completed_issuers']<=16
+          print('AUDIT: source-bound completed issuers',x['completed_issuers'])
           PY
       - uses: actions/upload-artifact@v4
         if: always()
