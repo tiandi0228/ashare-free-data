@@ -1,4 +1,4 @@
-name: P1 SSE official free PDF alternate provenance probe (NO TRADES)
+name: P1 SSE PDF original content evidence recheck (NO TRADES)
 on:
   push:
     branches: [main]
@@ -36,6 +36,8 @@ jobs:
                   assert raw.startswith(b"%PDF-")
                   assert hashlib.sha256(raw).hexdigest()==r["sha256"]
                   assert r["historic_PIT_publication_verified"] is False
+                  assert r["historical_ipo_notice_verified"] is False
+                  assert r["listing_day_text_verified"] is (r.get("code_text_observed",False) and r.get("date_text_observed",False))
               else:
                   assert not path.exists()
           print("PASS: official alternate originals are hash-validated or transparently unavailable; trades BLOCKED")
