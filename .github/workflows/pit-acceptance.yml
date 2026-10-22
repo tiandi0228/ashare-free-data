@@ -66,6 +66,9 @@ jobs:
           assert x['independent_live_source_reverification_in_this_run'] is False
           assert x['latest_market_coverage_verified_in_this_run'] is False
           assert len(x['evidence_report_files'])==4
+          assert x['current_evidence_eligible'] is False
+          assert x['production_readiness_eligible'] is False
+          assert 'NO_INDEPENDENT_LIVE_SOURCE_REVERIFICATION' in x['live_readiness_blocking_reasons']
           assert x['required_conditions']==6
           assert x['verified_conditions']<6
           assert x['trade_gate']=='BLOCKED'
