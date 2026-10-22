@@ -28,7 +28,7 @@ def audit(root, expected_manifest_sha=EXPECTED_MANIFEST_SHA):
             raise ValueError("source receipt contract mismatch")
         manifest=file.parent/"manifest.txt"
         raw_manifest=manifest.read_bytes()
-        if hashlib.sha256(raw_manifest).hexdigest()!=EXPECTED_MANIFEST_SHA:
+        if hashlib.sha256(raw_manifest).hexdigest()!=expected_manifest_sha:
             raise ValueError("manifest byte hash mismatch")
         codes=raw_manifest.decode().splitlines()
         if len(codes)!=128 or len(set(codes))!=128:
