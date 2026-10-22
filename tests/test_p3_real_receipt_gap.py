@@ -25,6 +25,26 @@ class ReceiptGapTests(unittest.TestCase):
         x=copy.deepcopy(self.receipt);x["exchange_deletion_effective_original_obtained"]=True
         with self.assertRaisesRegex(ValueError,"unrecognized"):
             reconcile(x)
+    def test_forecast_cannot_be_rewritten_as_actual(self):
+        x=copy.deepcopy(self.receipt)
+        x["events"][1]["is_effective_exchange_delist"]=True
+        with self.assertRaisesRegex(ValueError,"chronology"):
+            reconcile(x)
+    def test_effective_date_change_is_rejected(self):
+        x=copy.deepcopy(self.receipt)
+        x["events"][2]["reference_effective_date"]="2026-06-22"
+        with self.assertRaisesRegex(ValueError,"chronology"):
+            reconcile(x)
+    def test_missing_asof_day_is_rejected(self):
+        x=copy.deepcopy(self.receipt)
+        x["seven_asof_days"][0]="2026-05-21"
+        with self.assertRaisesRegex(ValueError,"chronology"):
+            reconcile(x)
+    def test_order_promotion_rejected(self):
+        x=copy.deepcopy(self.receipt)
+        x["orders"]=[{"code":"600421"}]
+        with self.assertRaisesRegex(ValueError,"chronology"):
+            reconcile(x)
     def test_wrong_original_digest_rejected(self):
         x=copy.deepcopy(self.receipt);x["source_sha256"][0]="0"*64
         with self.assertRaisesRegex(ValueError,"unrecognized"):
