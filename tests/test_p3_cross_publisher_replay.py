@@ -16,6 +16,15 @@ class PublisherReplayTests(unittest.TestCase):
     def test_changed_source_digest_rejected(self):
         q=copy.deepcopy(self.q);q[3]["results"][0]["sha256"]="0"*64
         with self.assertRaisesRegex(ValueError,"mismatch"):audit(*q)
+    def test_replay_wrong_url_rejected(self):
+        q=copy.deepcopy(self.q);q[3]["results"][0]["url"]="https://example.invalid/"
+        with self.assertRaisesRegex(ValueError,"URL or size"):audit(*q)
+    def test_replay_wrong_length_rejected(self):
+        q=copy.deepcopy(self.q);q[2]["sources"][0]["bytes"]=1
+        with self.assertRaisesRegex(ValueError,"URL or size"):audit(*q)
+    def test_not_independent_run_rejected(self):
+        q=copy.deepcopy(self.q);q[3]["first_run_id"]=q[3]["second_run_id"]
+        with self.assertRaisesRegex(ValueError,"capture identity"):audit(*q)
     def test_forged_timestamp_rejected(self):
         q=copy.deepcopy(self.q);q[2]["historical_asof_publication_instant_verified"]=True
         with self.assertRaisesRegex(ValueError,"PIT proof"):audit(*q)
