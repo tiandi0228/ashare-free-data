@@ -39,7 +39,9 @@ def audit_coverage(codes, days, observations):
                 raise ValueError("invalid day")
     except (TypeError, ValueError) as exc:
         raise ValueError("invalid decision date") from exc
-    if len(codes) > 100 or len(days) > 31:\n        raise ValueError("bounded P3 audit scope exceeded")\n    if not isinstance(observations, list):
+    if len(codes) > 100 or len(days) > 31:
+        raise ValueError("bounded P3 audit scope exceeded")
+    if not isinstance(observations, list):
         raise ValueError("invalid evidence")
     expected = {(c, d, k) for c in codes for d in days for k in KINDS}
     verified = set()
