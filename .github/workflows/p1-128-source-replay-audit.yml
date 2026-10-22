@@ -1,0 +1,37 @@
+name: P1 cross-run 128 real-source replay audit (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p1-128-source-replay-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Download frozen original research CSV artifacts for all 16 shards
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p replay/first replay/second replay/rest
+          gh run download 39727144159 --dir replay/first
+          gh run download 39727776234 --dir replay/second
+          gh run download 39730414540 --dir replay/rest
+      - name: Independently verify full 128-issuer frozen research panel
+        run: python -m collector.p1_128_source_replay_audit --input replay --out audit/p1_128_real_replay.json
+      - name: Retain compact audit result only, not vendor raw CSVs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-128-source-replay-receipt-${{ github.run_id }}
+          path: audit/
+          retention-days: 30
+          if-no-files-found: warn
