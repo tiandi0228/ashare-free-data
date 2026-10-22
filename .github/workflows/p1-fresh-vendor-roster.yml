@@ -108,7 +108,7 @@ jobs:
           assert p['historical_PIT_verified'] is False and p['trade_gate']=='BLOCKED'
           print('PASS: fresh vendor roster mapped to deterministic research shards; no historical PIT certification')
           PY
-      - name: Recover durable same-version GitHub checkpoint
+      - name: Recover durable same-version GitHub checkpoint (legacy JSON suffix compatible)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
