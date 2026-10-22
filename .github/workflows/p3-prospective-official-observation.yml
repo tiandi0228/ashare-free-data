@@ -98,11 +98,63 @@ jobs:
           if not observed:
             raise SystemExit("NO_SOURCE_REACHABLE: all free official/public disclosure indexes failed")
           PY
+      - name: Query bounded CNINFO announcements JSON (research-only)
+        run: |
+          python - <<'PY'
+          import datetime,hashlib,json,pathlib,urllib.parse,urllib.request
+          from zoneinfo import ZoneInfo
+          now=datetime.datetime.now(datetime.timezone.utc)
+          day=now.astimezone(ZoneInfo("Asia/Shanghai")).date().isoformat()
+          url="https://www.cninfo.com.cn/new/hisAnnouncement/query"
+          output=[]
+          for column in ("sse","szse"):
+            form={
+              "pageNum":"1","pageSize":"30","tabName":"fulltext","column":column,
+              "plate":"","stock":"","searchkey":"","secid":"","category":"",
+              "trade":"","seDate":day+"~"+day,"sortName":"","sortType":"","isHLtitle":"false"
+            }
+            result={"column":column,"request_day":day,"captured_at_utc":datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                    "status":"UNAVAILABLE","record_count":0,"records":[]}
+            try:
+              req=urllib.request.Request(url,data=urllib.parse.urlencode(form).encode(),
+                  headers={"User-Agent":"Mozilla/5.0","Content-Type":"application/x-www-form-urlencoded; charset=UTF-8",
+                           "X-Requested-With":"XMLHttpRequest","Referer":"https://www.cninfo.com.cn/new/index"},method="POST")
+              with urllib.request.urlopen(req,timeout=12) as resp:
+                if resp.geturl()!=url:raise ValueError("redirect")
+                body=resp.read(500001)
+              if len(body)>500000:raise ValueError("oversize")
+              obj=json.loads(body)
+              records=obj.get("announcements")
+              if not isinstance(records,list):raise ValueError("invalid shape")
+              items=[]
+              for x in records[:30]:
+                if not isinstance(x,dict):continue
+                code=x.get("secCode")
+                title=x.get("announcementTitle")
+                adjunct=x.get("adjunctUrl")
+                if (not isinstance(code,str) or not isinstance(title,str) or
+                    not isinstance(adjunct,str) or not adjunct.lower().endswith(".pdf")):continue
+                items.append({"code":code,"title":title[:160],"announcement_time_ms":x.get("announcementTime"),
+                              "pdf_url":"https://static.cninfo.com.cn/"+adjunct.lstrip("/")})
+              result.update(status="OBSERVED_INDEX_RECORDS_RESEARCH_ONLY",record_count=len(items),
+                            response_sha256=hashlib.sha256(body).hexdigest(),records=items)
+            except Exception as exc:
+              result["failure_type"]=type(exc).__name__
+            output.append(result)
+          receipt={"phase":"P3_CNINFO_BOUNDED_PROSPECTIVE_INDEX","observed_at_utc":now.isoformat(),
+                   "columns":output,"one_page_per_column":True,"historical_publication_instant_authenticated":False,
+                   "not_complete_market_disclosure":True,"paid_api_calls":0,
+                   "trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
+          path=pathlib.Path("audit");path.mkdir(exist_ok=True)
+          (path/"cninfo_announcements.json").write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+"\\n")
+          print(json.dumps({"statuses":[x["status"] for x in output],
+                            "record_counts":[x["record_count"] for x in output],"gate":"BLOCKED"}))
+          PY
       - name: Preserve timestamped metadata without republishing originals
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: p3-official-index-metadata-${{ github.run_id }}
-          path: audit/official_index_capture.json
+          path: audit/
           retention-days: 30
           if-no-files-found: warn
