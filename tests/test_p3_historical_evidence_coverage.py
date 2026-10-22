@@ -36,6 +36,17 @@ class CoverageTests(unittest.TestCase):
     def test_same_day_instant_not_proven_before_decision(self):
         r=audit_coverage(["sh.600421"],["2026-06-22"],[item(publication_day="2026-06-22",publication_instant_utc="2026-06-22T00:01:00Z")])
         self.assertEqual(r["verified_evidence_cells"],0)
+    def test_utc_previous_day_is_same_china_trading_day(self):
+        # 2026-06-21 20:00 UTC is 2026-06-22 04:00 CST.
+        r=audit_coverage(["sh.600421"],["2026-06-22"],
+            [item(publication_day="2026-06-21",publication_instant_utc="2026-06-21T20:00:00Z")])
+        self.assertEqual(r["verified_evidence_cells"],0)
+    def test_previous_china_day_before_midnight_allowed_structurally(self):
+        # 2026-06-21 15:59 UTC is still June 21 in Shanghai.
+        r=audit_coverage(["sh.600421"],["2026-06-22"],
+            [item(publication_day="2026-06-21",publication_instant_utc="2026-06-21T15:59:00Z")])
+        self.assertEqual(r["verified_evidence_cells"],1)
+        self.assertEqual(r["trade_gate"],"BLOCKED")
     def test_malformed_timestamp_fails_closed(self):
         r=audit_coverage(["sh.600421"],["2026-06-22"],[item(publication_instant_utc="unknown")])
         self.assertFalse(r["complete"])
