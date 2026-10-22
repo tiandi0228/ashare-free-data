@@ -19,7 +19,7 @@ def plan(source, out, requested_day):
     receipts=[]
     for i,group in enumerate(groups):
         name=f"shard_{i:04d}.txt"
-        data=("\\n".join(group)+"\\n").encode()
+        data=("\n".join(group)+"\n").encode()
         (out/name).write_bytes(data)
         receipts.append({"index":i,"name":name,"count":len(group),"sha256":hashlib.sha256(data).hexdigest()})
     result={"phase":"P1_FRESH_VENDOR_SHARD_PLAN","requested_day":requested_day,
@@ -28,7 +28,7 @@ def plan(source, out, requested_day):
             "historical_PIT_verified":False,"complete_historical_ST_halt_delist_verified":False,
             "full_market_bars_observed":False,"paid_api_calls":0,
             "trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
-    (out/"plan.json").write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\\n")
+    (out/"plan.json").write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
     return result
 def main():
     p=argparse.ArgumentParser()
