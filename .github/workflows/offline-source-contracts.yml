@@ -38,6 +38,8 @@ on:
       - 'tests/test_p3_cross_publisher_replay.py'
       - 'collector/p4_real_source_readiness.py'
       - 'collector/p4_prospective_handoff.py'
+      - 'collector/p3_typed_event_research_ledger.py'
+      - 'tests/test_p3_typed_event_research_ledger.py'
       - 'tests/test_p4_prospective_handoff.py'
       - 'tests/test_p4_real_source_readiness.py'
       - 'collector/p3_capture_temporal_boundary.py'
@@ -73,7 +75,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Compile offline source-contract modules
-        run: python -m py_compile collector/baostock_dated_universe.py collector/baostock_batch.py collector/research_24_coverage_gate.py collector/vendor_historical_st_probe.py collector/source_retention_gate.py collector/reacquire_source_digest.py collector/reacquire_24_pilot.py collector/p1_early_only_recovery.py collector/audit_dated_rosters.py collector/audit_24_reacquisition.py collector/p4_prospective_handoff.py
+        run: python -m py_compile collector/baostock_dated_universe.py collector/baostock_batch.py collector/research_24_coverage_gate.py collector/vendor_historical_st_probe.py collector/source_retention_gate.py collector/reacquire_source_digest.py collector/reacquire_24_pilot.py collector/p1_early_only_recovery.py collector/audit_dated_rosters.py collector/audit_24_reacquisition.py collector/p4_prospective_handoff.py collector/p3_typed_event_research_ledger.py
       - name: Verify fail-closed source tests without installing a provider or contacting markets
         run: python -m unittest discover -s tests -v
       - name: Audit real CNINFO two-PDF receipt against frozen P3 decision days
@@ -111,6 +113,17 @@ jobs:
           assert r['trade_gate']=='BLOCKED' and r['orders']==[]
           assert r['historical_publication_instant_verified'] is False
           print('PASS: 4/4 independently matched originals; official historical PIT still unverified')
+          PY
+      - name: Generate typed issuer event chronology without asserting effective states
+        run: |
+          python -m collector.p3_typed_event_research_ledger --out audit/p3_typed_event_research_ledger.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path('audit/p3_typed_event_research_ledger.json').read_text())
+          assert q['row_count']==3 and q['confirmed_exchange_effective_event_count']==0
+          assert all(x['confirmed_effective_date'] is None for x in q['rows'])
+          assert q['trade_gate']=='BLOCKED' and q['orders']==[]
           PY
       - name: P4 readiness from real evidence, not fictional backtest
         run: |
