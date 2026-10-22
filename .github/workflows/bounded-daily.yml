@@ -6,8 +6,6 @@ on:
       - '.github/workflows/bounded-daily.yml'
       - 'collector/batch.py'
       - 'manifests/pilot_issuers.txt'
-  schedule:
-    - cron: '15 8 * * 1-5' # 16:15 Beijing, weekdays (UTC scheduler)
   workflow_dispatch:
     inputs:
       batch_index:
