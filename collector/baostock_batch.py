@@ -1,11 +1,33 @@
 """Bounded Baostock historical source batches; independent public research only."""
-import argparse,csv,hashlib,json,re
+import argparse,csv,hashlib,json,re,math
 from pathlib import Path
 
 FIELDS="date,code,open,high,low,close,volume,amount,adjustflag,tradestatus".split(",")
 START,END="2024-10-20","2026-10-20"
 CAP=8
 PATTERN=re.compile(r"(?:sh\.60[0-5]|sz\.00[0-3])[0-9]{3}\Z")
+
+def check_daily_bars(rows):
+    """Reject impossible active OHLC bars; suspended placeholders remain non-executable."""
+    active=0;suspended=0
+    for row in rows:
+        if row[9]=="0":
+            suspended+=1
+            continue
+        if row[9]!="1":
+            raise ValueError("Unknown trading status")
+        try:
+            o,h,l,close=(float(row[i]) for i in (2,3,4,5))
+            volume=float(row[6]);amount=float(row[7])
+        except (ValueError,TypeError) as exc:
+            raise ValueError("Active bar has missing numeric prices") from exc
+        if not all(math.isfinite(v) for v in (o,h,l,close,volume,amount)):
+            raise ValueError("Active bar contains nonfinite numbers")
+        if (min(o,h,l,close)<=0 or h<max(o,close,l) or
+            l>min(o,close,h) or volume<0 or amount<0):
+            raise ValueError("Active bar violates OHLC or quantity constraints")
+        active+=1
+    return active,suspended
 
 def manifest(path):
     raw=Path(path).read_bytes()
@@ -52,11 +74,11 @@ def run(path,index,dest,bs):
                 statuses=[row[FIELDS.index("tradestatus")] for row in rows]
                 if any(s not in ("0","1") for s in statuses):
                     raise ValueError("Unknown trading-status encoding")
-                suspended=sum(s=="0" for s in statuses)
+                tradable,suspended=check_daily_bars(rows)
                 raw=(",".join(FIELDS)+"\n"+"".join(",".join(row)+"\n" for row in rows)).encode()
                 if len(raw)>250000:raise ValueError("Excessive source bytes")
                 (out/(code.replace(".","_")+".csv")).write_bytes(raw)
-                item.update(status="OBSERVED_UNVERIFIED",rows=len(rows),tradable_rows=len(rows)-suspended,suspended_status_rows=suspended,first=days[0],last=days[-1],sha256=hashlib.sha256(raw).hexdigest())
+                item.update(status="OBSERVED_UNVERIFIED",rows=len(rows),tradable_rows=tradable,suspended_status_rows=suspended,first=days[0],last=days[-1],sha256=hashlib.sha256(raw).hexdigest())
             except Exception as exc:
                 item["error_type"]=type(exc).__name__
             report["results"].append(item)
