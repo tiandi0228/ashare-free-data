@@ -2,7 +2,10 @@ name: P3 original announcement action-to-date evidence research (NO TRADES)
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/p3-original-action-date-proximity.yml']
+    paths:
+      - '.github/workflows/p3-original-action-date-proximity.yml'
+      - 'collector/p3_original_action_date_proximity.py'
+      - 'tests/test_p3_original_action_date_proximity.py'
   workflow_dispatch:
 permissions:
   contents: read
@@ -13,6 +16,8 @@ jobs:
     timeout-minutes: 4
     steps:
       - uses: actions/checkout@v4
+      - name: Regression test repeated dates and conservative gates
+        run: python -m unittest tests/test_p3_original_action_date_proximity.py -v
       - name: Download original source date context evidence
         env:
           GH_TOKEN: ${{ github.token }}
