@@ -1,0 +1,45 @@
+name: P3 free official two issuer source probe (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/p3-free-official-two-issuer-probe.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'pypdf>=5,<7'
+      - name: Acquire original two-issuer announcements for free
+        run: python -m collector.p3_free_official_multi_issuer_probe --manifest collector/p3_free_official_probe_manifest.json --out evidence
+      - name: Independently verify downloaded SHA receipts
+        run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          q=json.loads(Path("evidence/quality.json").read_text())
+          assert q["source_count"]==2
+          assert q["trade_gate"]=="BLOCKED" and q["orders"]==[]
+          assert q["historical_PIT_eligible"]==0
+          for r in q["sources"]:
+              file=Path("evidence")/(r["source_id"]+".pdf")
+              if r["original_bytes_verified"]:
+                  assert hashlib.sha256(file.read_bytes()).hexdigest()==r["sha256"]
+              else:
+                  assert not file.exists()
+              assert r["PIT_publication_verified"] is False
+          print("PASS: research sources provenance checked; no PIT signal promotion")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p3-free-two-issuer-originals-${{ github.run_id }}
+          path: evidence/
+          retention-days: 14
+          if-no-files-found: warn
