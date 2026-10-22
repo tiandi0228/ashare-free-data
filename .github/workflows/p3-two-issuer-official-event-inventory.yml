@@ -1,0 +1,46 @@
+name: P3 two-issuer original listing and delisting inventory (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/p3-two-issuer-official-event-inventory.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  provenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download original independently verified IPO PDF receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p source
+          gh run download 39740152424 --dir source
+      - name: Join retrospective originals for 603014 IPO and 600421 delist
+        run: |
+          RECEIPT="$(find source -name fallback_quality.json -print -quit)"
+          test -n "$RECEIPT"
+          python -m collector.p3_official_two_issuer_event_inventory --ipo "$RECEIPT" --out audit/p3_official_two_issuer_inventory.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("audit/p3_official_two_issuer_inventory.json").read_text())
+          assert r["independent_issuers"]==2
+          assert r["retrospective_official_events"]==2
+          assert r["historical_PIT_eligible_events"]==0
+          assert {x["kind"] for x in r["events"]}=={"IPO_LISTING","DELIST_EFFECTIVE"}
+          assert all(x["original_bytes_verified"] and x["official_content_verified"] for x in r["events"])
+          assert all(x["issuer_day_state_PIT_eligible"] is False for x in r["events"])
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("PASS: two real exchange/issuer original events counted; no historical PIT promotion")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p3-two-issuer-real-official-event-inventory-${{ github.run_id }}
+          path: audit/
+          retention-days: 30
+          if-no-files-found: warn
