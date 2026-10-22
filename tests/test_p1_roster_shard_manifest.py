@@ -18,6 +18,15 @@ class RosterShardTests(unittest.TestCase):
             self.assertEqual(len(codes),128)
             self.assertEqual((len(codes)+CAP-1)//CAP,16)
             self.assertEqual(sha,report["manifest_sha256"])
+    def test_all_available_mainboard_prefix_strata_are_sampled(self):
+        prefixes=("sh.600","sh.601","sh.603","sh.605","sz.000","sz.001","sz.002","sz.003")
+        rows=[{"code":f"{prefix}{i:03d}"} for prefix in prefixes for i in range(40)]
+        content,receipt=select_roster(rows)
+        self.assertEqual(len(content.splitlines()),128)
+        self.assertEqual(receipt["prefix_counts"],{prefix:16 for prefix in prefixes})
+        self.assertEqual(receipt["candidate_mainboard_count"],320)
+        self.assertEqual(select_roster(list(reversed(rows)))[0],content)
+        self.assertFalse(receipt["historical_asof_verified"])
     def test_duplicate_code_fails_closed(self):
         with self.assertRaisesRegex(ValueError,"duplicate"):
             select_roster([{"code":"sh.600001"},{"code":"sh.600001"}])
