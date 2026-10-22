@@ -32,7 +32,6 @@ jobs:
       - name: Observe current Beijing-date mainboard roster from free provider
         run: timeout 90s python -m collector.p1_fresh_vendor_roster --out evidence
       - name: Verify bounded original roster receipt
-        if: always()
         run: |
           python - <<'PY'
           import json,hashlib
@@ -130,7 +129,6 @@ jobs:
           PY
           timeout 150s python -m collector.baostock_batch --manifest evidence/shards/shard_${{ steps.pick.outputs.second }}.txt --batch-index 0 --out evidence/second_shard
       - name: Verify real roster-to-bars linkage and SHA receipts
-        if: always()
         run: |
           python - <<'PY'
           import json,hashlib
@@ -161,7 +159,6 @@ jobs:
           print('PASS: sixteen unique real roster-derived histories verified; NOT PIT-certified')
           PY
       - name: Reconcile observed shards into versioned source ledger
-        if: always()
         run: |
           test -f evidence/shards/plan.json
           PRIOR_ARGS=()
