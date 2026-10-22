@@ -42,6 +42,7 @@ def audit_coverage(codes, days, observations):
         raise ValueError("invalid evidence")
     expected = {(c, d, k) for c in codes for d in days for k in KINDS}
     verified = set()
+    seen = set()
     rejected = 0
     for o in observations:
         if not isinstance(o, dict):
@@ -49,8 +50,9 @@ def audit_coverage(codes, days, observations):
         key = (o.get("code"), o.get("decision_date"), o.get("kind"))
         if key not in expected:
             raise ValueError("evidence outside frozen scope")
-        if key in verified:
-            raise ValueError("duplicate verified evidence")
+        if key in seen:
+            raise ValueError("duplicate evidence for issuer/date/kind")
+        seen.add(key)
         # Require a source original, authenticated timestamp <= decision day,
         # and contemporaneous official exchange provenance. Hash alone is
         # insufficient; third-party retrospective rows cannot pass.
