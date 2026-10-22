@@ -393,6 +393,8 @@ jobs:
           (root/"p3_risk_pdf_hash_receipts.json").write_text(json.dumps(result,indent=2)+"\n")
           print(json.dumps({"attempted":result["attempted"],"successful":result["successful"],"text_extracted_count":result["text_extracted_count"],"no_text_count":result["no_text_count"],"text_extraction_failed_count":result["text_extraction_failed_count"],"body_signal_counts":result["body_signal_counts"],"date_context_hint_counts":result["date_context_hint_counts"],"date_snippet_counts":[len(x.get("date_context_snippets_unverified",[])) for x in rows],"date_format_counts":result["date_format_counts"],"event_date_proximity_leads_count":result["event_date_proximity_leads_count"],"event_date_documents":result["event_date_documents"],"ambiguous_or_negated_leads":result["ambiguous_or_negated_leads"],"unverified_direction_leads":result["unverified_direction_leads"],"issuer_code_nearby_leads":result["issuer_code_nearby_leads"],"issuer_ownership_unverified_leads":result["issuer_ownership_unverified_leads"],"issuer_header_code_documents":result["issuer_header_code_documents"],"issuer_header_label_documents":result["issuer_header_label_documents"],"date_context_documents":result["date_context_documents"],"effective_dates_legally_verified":0,"trade_gate":"BLOCKED"}))
           PY
+      - name: Normalize live PDF cues into multi-issuer research-only events
+        run: python -m collector.p3_live_multi_issuer_adapter
       - name: Synthesize fail-closed P3 to P4 prospective research handoff
         run: python -m collector.p4_prospective_handoff --audit-dir audit
       - name: Preserve timestamped metadata without republishing originals
