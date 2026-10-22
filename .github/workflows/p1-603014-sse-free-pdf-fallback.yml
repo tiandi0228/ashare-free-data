@@ -1,0 +1,50 @@
+name: P1 SSE official free PDF alternate provenance probe (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p1-603014-sse-free-pdf-fallback.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  independent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install free PDF original-text extractor
+        run: python -m pip install 'pypdf>=5,<7'
+      - name: Probe official free SSE PDF fallback sources
+        run: python -m collector.p1_603014_official_pdf_fallback --out evidence
+      - name: Fail closed, independently verify any captured source hashes
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          q=json.loads(Path('evidence/fallback_quality.json').read_text())
+          assert q["trade_gate"]=="BLOCKED" and q["official_PIT_universe_verified"] is False
+          assert q["orders"]==[] and q["executable_candidates"]==[]
+          assert len(q["sources"])==2
+          for r in q["sources"]:
+              path=Path("evidence")/(r["source_id"]+".pdf")
+              if r["original_bytes_verified"]:
+                  raw=path.read_bytes()
+                  assert raw.startswith(b"%PDF-")
+                  assert hashlib.sha256(raw).hexdigest()==r["sha256"]
+                  assert r["historic_PIT_publication_verified"] is False
+              else:
+                  assert not path.exists()
+          print("PASS: official alternate originals are hash-validated or transparently unavailable; trades BLOCKED")
+          PY
+      - name: Retain original research evidence in Actions artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-603014-official-free-pdf-alternative-${{ github.run_id }}
+          path: evidence/
+          retention-days: 14
+          if-no-files-found: warn
