@@ -26,9 +26,22 @@ def assess(index, candidate, pdf):
     checks={"paged_raw_count":totals,"query_date":date_ok,
             "sample_stability":stable,"pagination":pagination,
             "candidate_lineage":candidate_consistent,"pdf_text":parsed}
+    # A successful daily capture is not a valid historical OOS research panel.
+    historical_requirements={
+        "point_in_time_security_universe":False,
+        "historical_ST_halt_delist_daily_states":False,
+        "independently_authenticated_publication_instant":False,
+        "source_rights_and_reproducible_retention":False,
+        "frozen_training_validation_test_split":False,
+        "independent_execution_cost_and_fill_replay":False,
+    }
+    backtest_eligible=all(historical_requirements.values()) and all(checks.values())
     return {"phase":"P3_TO_P4_PROSPECTIVE_HANDOFF",
             "capture_quality_checks":checks,
             "capture_checks_all_passed":all(checks.values()),
+            "historical_backtest_input_requirements":historical_requirements,
+            "historical_backtest_input_eligible":backtest_eligible,
+            "missing_historical_backtest_requirements":[k for k,v in historical_requirements.items() if not v],
             "date":index.get("query_day"),
             "prospective_candidate_count":candidate.get("candidate_count"),
             "pdf_text_count":pdf.get("text_extracted_count"),
