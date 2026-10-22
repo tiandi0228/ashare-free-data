@@ -1,0 +1,50 @@
+name: P1 stratified 128 original-file independent replay (NO TRADES)
+on:
+  workflow_run:
+    workflows: ["P1 stratified SH SZ research shards 1-15 (NO TRADES)"]
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  replay:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Locate latest successful stratified 15-shard run
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ github.event.workflow_run.id }}
+        run: |
+          if [[ -n "$SOURCE_RUN" ]]; then
+            echo "id=$SOURCE_RUN" >> "$GITHUB_OUTPUT"
+          else
+            run_id="$(gh run list --workflow p1-live-roster-eight-on-push.yml --json databaseId,conclusion --limit 15 --jq '[.[] | select(.conclusion=="success")][0].databaseId')"
+            test -n "$run_id" && test "$run_id" != "null"
+            echo "id=$run_id" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Download actual source CSVs from new stratified panel
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p replay/first replay/rest
+          gh run download 39733363864 --dir replay/first
+          gh run download "${{ steps.source.outputs.id }}" --dir replay/rest
+      - name: Replay and audit all sixteen shards against new independent SHA
+        run: |
+          python -m collector.p1_128_source_replay_audit --input replay --out audit/p1_128_stratified_verified.json --manifest-sha f70bbb790e33dfda2354efad6433a92f6d64f768a5af80e66d8a7db62008bfdf
+      - name: Persist audit receipt without redistributing vendor CSVs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-stratified-128-quality-audit-${{ github.run_id }}
+          path: audit/
+          retention-days: 30
+          if-no-files-found: warn
