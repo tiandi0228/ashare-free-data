@@ -50,8 +50,14 @@ def assess(p1_receipt, p3_receipts, as_of_date=None):
     }
     missing=[k for k,v in prerequisites.items() if v is not True]
     as_of_date=as_of_date or date.today().isoformat()
+    age=snapshot_age(as_of_date)
+    # A same-day filename does not certify that a live source was rechecked.
+    live_current=False
+    blocking_reasons=list(missing)
+    if not live_current:
+        blocking_reasons.append("NO_INDEPENDENT_LIVE_SOURCE_REVERIFICATION")
     return {
-        **snapshot_age(as_of_date),
+        **age,
         "assessment_as_of_date":as_of_date,
         "phase":"P4_REAL_SOURCE_PREREQUISITE_READINESS",
         "evidence_mode":"FROZEN_REPOSITORY_SNAPSHOT",
@@ -63,6 +69,9 @@ def assess(p1_receipt, p3_receipts, as_of_date=None):
         "required_conditions":len(prerequisites),
         "verified_conditions":len(prerequisites)-len(missing),
         "missing_conditions":missing,
+        "current_evidence_eligible":live_current,
+        "live_readiness_blocking_reasons":blocking_reasons,
+        "production_readiness_eligible":False,
         "original_sources_independently_matched":p3["independently_replayed_originals"],
         "full_market_backtest_performed_in_this_audit":False,
         "claimed_positive_return_prediction":False,
