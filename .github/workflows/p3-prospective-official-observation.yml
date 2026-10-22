@@ -289,9 +289,16 @@ jobs:
                       "delist":bool(re.search("终止上市|退市整理|摘牌",context)),
                       "warning_apply":bool(re.search("实施.*风险警示|被实施风险警示",context)),
                       "warning_remove":bool(re.search("撤销.*风险警示|取消.*风险警示",context))}
+                    # A date near a risk term does not establish issuer ownership.
+                    # Require the six-digit code in the same bounded excerpt,
+                    # and still do not promote to certified historical state.
+                    issuer_code=item["code"]
+                    issuer_code_nearby=bool(re.search(r"(?<![0-9])"+re.escape(issuer_code)+r"(?![0-9])",context))
                     ambiguous=(sum(directions.values())!=1 or negated)
+
                     leads.append({"date_text":dm.group(),"event_terms_nearby":kinds,
                                   "direction_flags":directions,"negative_or_prospective_context":negated,
+                                  "issuer_code_nearby":issuer_code_nearby,
                                   "status":"AMBIGUOUS_OR_NEGATED" if ambiguous else "UNVERIFIED_DIRECTION_LEAD",
                                   "context_unverified":context})
                   if len(leads)>=12:break
@@ -326,9 +333,11 @@ jobs:
           result["event_date_documents"]=sum(bool(x.get("event_date_proximity_leads_unverified")) for x in rows)
           result["ambiguous_or_negated_leads"]=sum(x.get("status")=="AMBIGUOUS_OR_NEGATED" for row in rows for x in row.get("event_date_proximity_leads_unverified",[]))
           result["unverified_direction_leads"]=sum(x.get("status")=="UNVERIFIED_DIRECTION_LEAD" for row in rows for x in row.get("event_date_proximity_leads_unverified",[]))
+          result["issuer_code_nearby_leads"]=sum(x.get("issuer_code_nearby") is True for row in rows for x in row.get("event_date_proximity_leads_unverified",[]))
+          result["issuer_ownership_unverified_leads"]=result["event_date_proximity_leads_count"]-result["issuer_code_nearby_leads"]
           result["effective_dates_legally_verified"]=0
           (root/"p3_risk_pdf_hash_receipts.json").write_text(json.dumps(result,indent=2)+"\n")
-          print(json.dumps({"attempted":result["attempted"],"successful":result["successful"],"text_extracted_count":result["text_extracted_count"],"no_text_count":result["no_text_count"],"text_extraction_failed_count":result["text_extraction_failed_count"],"body_signal_counts":result["body_signal_counts"],"date_context_hint_counts":result["date_context_hint_counts"],"date_snippet_counts":[len(x.get("date_context_snippets_unverified",[])) for x in rows],"date_format_counts":result["date_format_counts"],"event_date_proximity_leads_count":result["event_date_proximity_leads_count"],"event_date_documents":result["event_date_documents"],"ambiguous_or_negated_leads":result["ambiguous_or_negated_leads"],"unverified_direction_leads":result["unverified_direction_leads"],"date_context_documents":result["date_context_documents"],"effective_dates_legally_verified":0,"trade_gate":"BLOCKED"}))
+          print(json.dumps({"attempted":result["attempted"],"successful":result["successful"],"text_extracted_count":result["text_extracted_count"],"no_text_count":result["no_text_count"],"text_extraction_failed_count":result["text_extraction_failed_count"],"body_signal_counts":result["body_signal_counts"],"date_context_hint_counts":result["date_context_hint_counts"],"date_snippet_counts":[len(x.get("date_context_snippets_unverified",[])) for x in rows],"date_format_counts":result["date_format_counts"],"event_date_proximity_leads_count":result["event_date_proximity_leads_count"],"event_date_documents":result["event_date_documents"],"ambiguous_or_negated_leads":result["ambiguous_or_negated_leads"],"unverified_direction_leads":result["unverified_direction_leads"],"issuer_code_nearby_leads":result["issuer_code_nearby_leads"],"issuer_ownership_unverified_leads":result["issuer_ownership_unverified_leads"],"date_context_documents":result["date_context_documents"],"effective_dates_legally_verified":0,"trade_gate":"BLOCKED"}))
           PY
       - name: Preserve timestamped metadata without republishing originals
         if: always()
