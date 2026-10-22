@@ -37,7 +37,7 @@ class BatchTests(unittest.TestCase):
                     raise ConnectionError("transient")
                 return self.inner.stock_zh_a_hist(**kwargs)
         with tempfile.TemporaryDirectory() as tmp:
-            root=Path(tmp); manifest=root/"m.txt";manifest.write_text("600000\\n")
+            root=Path(tmp); manifest=root/"m.txt";manifest.write_text("600000\n")
             api=TransientProvider()
             self.assertEqual(capture(manifest,0,root/"out",api),0)
             q=json.loads((root/"out/quality.json").read_text())
