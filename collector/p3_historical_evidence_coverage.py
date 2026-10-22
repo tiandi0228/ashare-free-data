@@ -79,10 +79,12 @@ def audit_coverage(codes, days, observations):
     return {
         "phase": "P3_OFFICIAL_HISTORICAL_EVENT_COVERAGE",
         "required_evidence_cells": len(expected),
-        "verified_evidence_cells": len(verified),
+        "verified_evidence_cells": 0,  # no independent source authentication in this offline gate
+        "self_reported_plausible_cells": len(verified),
         "rejected_evidence_records": rejected,
-        "missing_evidence_cells": len(missing),
-        "sample_missing_cells": [list(k) for k in missing[:12]],
+        "missing_evidence_cells": len(expected),  # all cells remain unverified
+        "self_reported_missing_cells": len(missing),
+        "sample_missing_cells": [list(k) for k in sorted(expected)[:12]],
         "self_reported_cell_claims_complete": len(missing) == 0,
         "independent_source_authentication_performed": False,
         "complete": False,  # no independent original/timestamp proof in this offline function
