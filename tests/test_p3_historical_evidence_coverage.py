@@ -15,11 +15,13 @@ def item(code="sh.600421",kind="listing",**changes):
 class CoverageTests(unittest.TestCase):
     def test_missing_three_event_kinds_blocks(self):
         r=audit_coverage(["sh.600421"],["2026-06-22"],[item()])
-        self.assertEqual((r["required_evidence_cells"],r["verified_evidence_cells"],r["missing_evidence_cells"]),(4,1,3))
+        self.assertEqual((r["required_evidence_cells"],r["verified_evidence_cells"],r["missing_evidence_cells"]),(4,0,4))
         self.assertFalse(r["complete"]);self.assertEqual(r["trade_gate"],"BLOCKED")
     def test_all_four_synthetic_complete_still_no_orders(self):
         r=audit_coverage(["sh.600421"],["2026-06-22"],[item(kind=k) for k in ("listing","st","halt","delisting")])
         self.assertTrue(r["self_reported_cell_claims_complete"])
+        self.assertEqual(r["verified_evidence_cells"],0)
+        self.assertEqual(r["self_reported_plausible_cells"],4)
         self.assertFalse(r["independent_source_authentication_performed"])
         self.assertFalse(r["complete"]);self.assertEqual(r["orders"],[])
         self.assertEqual(r["trade_gate"],"BLOCKED")
@@ -47,7 +49,8 @@ class CoverageTests(unittest.TestCase):
         # 2026-06-21 15:59 UTC is still June 21 in Shanghai.
         r=audit_coverage(["sh.600421"],["2026-06-22"],
             [item(publication_day="2026-06-21",publication_instant_utc="2026-06-21T15:59:00Z")])
-        self.assertEqual(r["verified_evidence_cells"],1)
+        self.assertEqual(r["self_reported_plausible_cells"],1)
+        self.assertEqual(r["verified_evidence_cells"],0)
         self.assertEqual(r["trade_gate"],"BLOCKED")
     def test_malformed_timestamp_fails_closed(self):
         r=audit_coverage(["sh.600421"],["2026-06-22"],[item(publication_instant_utc="unknown")])
