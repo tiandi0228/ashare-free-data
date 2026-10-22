@@ -21,7 +21,7 @@ class ShardPlanTests(unittest.TestCase):
     def test_duplicates_fail_closed(self):
         with tempfile.TemporaryDirectory() as d:
             source=Path(d)/"source.csv"
-            source.write_text("code,tradeStatus,code_name\\n"+("sh.600000,1,name\\n"*1000))
+            source.write_text("code,tradeStatus,code_name\n"+("sh.600000,1,name\n"*1000))
             with self.assertRaises(ValueError):
                 plan(source,Path(d)/"out","2026-10-22")
 if __name__=="__main__":unittest.main()
