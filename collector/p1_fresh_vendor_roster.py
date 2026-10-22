@@ -31,7 +31,7 @@ def capture(out, provider, day):
                 if len(rows)>10000:raise ValueError("roster excessive")
             report["last_source_total_rows"]=len(rows)
             try:
-                main=inspect_rows(rows)
+                main=inspect_rows(rows, minimum=2500)
                 break
             except ValueError as exc:
                 if str(exc)!="Implausibly small mainboard subset" or attempt==1:
