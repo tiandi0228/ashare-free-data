@@ -68,6 +68,22 @@ class OriginalActionDateProximityTests(unittest.TestCase):
         q = extract(report(sample))
         self.assertEqual(q["dates_with_nearby_actions"], 0)
 
+    def test_malformed_document_rejected(self):
+        q = report("公司股票2026年1月5日起复牌")
+        q["results"][0] = None
+        with self.assertRaisesRegex(ValueError, "malformed original PDF evidence"):
+            extract(q)
+
+    def test_missing_issuer_rejected(self):
+        q = report("公司股票2026年1月5日起复牌")
+        q["results"][0]["issuer"] = ""
+        with self.assertRaisesRegex(ValueError, "missing original issuer"):
+            extract(q)
+
+    def test_invalid_top_level_rejected(self):
+        with self.assertRaisesRegex(ValueError, "invalid original PDF report"):
+            extract([])
+
     def test_duplicate_source_id_rejected(self):
         q = report("公司股票2026年1月5日起复牌")
         q["results"][1]["source_id"] = q["results"][0]["source_id"]
