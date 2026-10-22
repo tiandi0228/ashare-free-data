@@ -28,7 +28,8 @@ def capture(out,bs,day="2026-10-20",batch_index=0):
         manifest,receipt=select_roster(rows,maximum=128)
         (root/"manifest.txt").write_text(manifest)
         info.update(roster_total=len(rows),mainboard_candidates=receipt["candidate_mainboard_count"],
-                    shard_manifest_count=receipt["selected_count"],manifest_sha256=receipt["manifest_sha256"])
+                    shard_manifest_count=receipt["selected_count"],manifest_sha256=receipt["manifest_sha256"],
+                    prefix_counts=receipt["prefix_counts"],selection=receipt["selection"])
         # No nested second login: only a bounded first eight issuer observations.
         from collector.baostock_batch import FIELDS,START,END,check_daily_bars
         selected=manifest.splitlines()[batch_index*8:(batch_index+1)*8]
