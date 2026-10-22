@@ -42,6 +42,14 @@ class CoverageTests(unittest.TestCase):
     def test_duplicate_rejected(self):
         with self.assertRaisesRegex(ValueError,"duplicate"):
             audit_coverage(["sh.600421"],["2026-06-22"],[item(),item()])
+    def test_duplicate_rejected_records_cannot_mask_conflict(self):
+        bad=item(original_bytes_verified=False)
+        good=item()
+        with self.assertRaisesRegex(ValueError,"duplicate evidence"):
+            audit_coverage(["sh.600421"],["2026-06-22"],[bad,good])
+        with self.assertRaisesRegex(ValueError,"duplicate evidence"):
+            audit_coverage(["sh.600421"],["2026-06-22"],[bad,bad])
+
     def test_scope_rejected(self):
         with self.assertRaisesRegex(ValueError,"outside"):
             audit_coverage(["sh.600421"],["2026-06-22"],[item(code="sh.600608")])
