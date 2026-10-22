@@ -51,7 +51,7 @@ jobs:
           from zoneinfo import ZoneInfo
           event=os.environ['EVENT_NAME']
           new=event=='workflow_dispatch' and os.environ['MANUAL_SOURCE']=='delisted8'
-          i=int(os.environ['MANUAL_INDEX']) if event=='workflow_dispatch' else datetime.datetime.now(ZoneInfo('Asia/Shanghai')).date().toordinal()%2
+          i=int(os.environ['MANUAL_INDEX']) if event=='workflow_dispatch' else (0 if event=='push' else datetime.datetime.now(ZoneInfo('Asia/Shanghai')).date().toordinal()%2)
           assert i in (0,1) and (not new or i==0)
           print('index='+str(i))
           print('manifest='+('manifests/baostock_delisted_8_pilot.txt' if new else 'manifests/baostock_pilot.txt'))
