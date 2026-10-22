@@ -1,0 +1,50 @@
+name: P1 fresh Baostock mainboard roster observation (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p1-fresh-vendor-roster.yml'
+      - 'collector/p1_fresh_vendor_roster.py'
+      - 'tests/test_p1_fresh_vendor_roster.py'
+  schedule:
+    - cron: '10 9 * * 1-5' # 17:10 Beijing weekdays
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  roster:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline source tests
+        run: python -m unittest tests.test_p1_fresh_vendor_roster -v
+      - name: Install free Baostock
+        run: python -m pip install 'baostock>=0.8,<1'
+      - name: Observe current Beijing-date mainboard roster from free provider
+        run: timeout 90s python -m collector.p1_fresh_vendor_roster --out evidence
+      - name: Verify bounded original roster receipt
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          q=json.loads(Path('evidence/quality.json').read_text())
+          assert q['status']=='OBSERVED_UNVERIFIED'
+          assert q['mainboard_prefix_rows']>=1000
+          assert hashlib.sha256(Path('evidence/mainboard.csv').read_bytes()).hexdigest()==q['mainboard_sha256']
+          assert q['logical_queries']==1 and q['paid_api_calls']==0
+          assert q['publisher_authenticated'] is False and q['historical_PIT_verified'] is False
+          assert q['trade_gate']=='BLOCKED' and q['orders']==[] and q['executable_candidates']==[]
+          print('PASS: fresh vendor snapshot observed; no historical PIT or tradability certification')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p1-fresh-roster-${{ github.run_id }}
+          path: evidence/
+          retention-days: 14
+          if-no-files-found: warn
