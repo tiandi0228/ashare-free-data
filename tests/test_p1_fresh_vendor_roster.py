@@ -26,7 +26,7 @@ class Provider:
         pass
     def query_all_stock(self,day):
         self.queries+=1
-        return Result([[f"sh.{600000+i}","1",f"issuer{i}"] for i in range(1000)] if self.valid else [])
+        return Result([[f"sh.{[600,601,603][i//1000]*1000+i%1000}","1",f"issuer{i}"] for i in range(3000)] if self.valid else [])
 
 class FreshRosterTests(unittest.TestCase):
     def test_fresh_roster_observed_but_not_certified(self):
@@ -34,7 +34,7 @@ class FreshRosterTests(unittest.TestCase):
             provider=Provider()
             self.assertEqual(capture(tmp,provider,"2026-10-22"),0)
             q=json.loads((Path(tmp)/"quality.json").read_text())
-            self.assertEqual(q["mainboard_prefix_rows"],1000)
+            self.assertEqual(q["mainboard_prefix_rows"],3000)
             self.assertEqual(q["logical_queries"],1)
             self.assertFalse(q["historical_PIT_verified"])
             self.assertFalse(q["publisher_authenticated"])
@@ -44,7 +44,7 @@ class FreshRosterTests(unittest.TestCase):
         class TruncatedOnce(Provider):
             def query_all_stock(self,day):
                 self.queries+=1
-                count=50 if self.queries==1 else 1000
+                count=50 if self.queries==1 else 3000
                 return Result([[f"sh.{600000+i}","1",f"issuer{i}"] for i in range(count)])
         with tempfile.TemporaryDirectory() as tmp:
             api=TruncatedOnce()
