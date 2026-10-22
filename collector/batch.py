@@ -1,7 +1,7 @@
 """Free bounded research-only batch capture, resumable across *different* Actions runs.
 
 Input codes are a reviewed manifest, not a verified point-in-time exchange pool.
-One SDK call per code, no retry. No signals or trades.
+At most two SDK attempts per code for connection/timeouts only. No signals or trades.
 """
 from __future__ import annotations
 import argparse
@@ -37,18 +37,28 @@ def capture(manifest, batch_index, dest, provider=None):
         import akshare as provider
     out = Path(dest); out.mkdir(parents=True, exist_ok=True)
     results = []
+    logical_calls = 0
     for code in selected:
         row = {"code":code,"status":"ERROR","publisher_authenticated":False}
-        try:
-            frame = provider.stock_zh_a_hist(
-                symbol=code,period="daily",start_date=START.strftime("%Y%m%d"),
-                end_date=END.strftime("%Y%m%d"),adjust="",timeout=12)
-            raw, dates = check_frame(frame,code)
-            (out / (code+".csv")).write_bytes(raw)
-            row.update(status="OBSERVED_UNVERIFIED",rows=len(dates),first=dates[0].isoformat(),
-                       last=dates[-1].isoformat(),sha256=hashlib.sha256(raw).hexdigest())
-        except Exception as exc:
-            row["error_type"]=type(exc).__name__
+        for attempt in range(1,3):
+            logical_calls += 1
+            row["attempts"] = attempt
+            try:
+                frame = provider.stock_zh_a_hist(
+                    symbol=code,period="daily",start_date=START.strftime("%Y%m%d"),
+                    end_date=END.strftime("%Y%m%d"),adjust="",timeout=12)
+                raw, dates = check_frame(frame,code)
+                (out / (code+".csv")).write_bytes(raw)
+                row.update(status="OBSERVED_UNVERIFIED",rows=len(dates),first=dates[0].isoformat(),
+                           last=dates[-1].isoformat(),sha256=hashlib.sha256(raw).hexdigest())
+                break
+            except (ConnectionError, TimeoutError) as exc:
+                row["error_type"] = type(exc).__name__
+                if attempt == 2:
+                    break
+            except Exception as exc:
+                row["error_type"] = type(exc).__name__
+                break
         results.append(row)
     succeeded=sum(x["status"]=="OBSERVED_UNVERIFIED" for x in results)
     report={"phase":"PUBLIC_FREE_BOUND_BATCH","status":"OBSERVED_UNVERIFIED" if all(x["status"]=="OBSERVED_UNVERIFIED" for x in results) else "BLOCKED_PARTIAL",
@@ -57,7 +67,7 @@ def capture(manifest, batch_index, dest, provider=None):
             "failed_issuer_count":len(selected)-succeeded,
             "observed_issuer_coverage_fraction":succeeded/len(selected),
             "manifest_sha256":manifest_sha,"batch_index":batch_index,"batch_count":batches,
-            "batch_cap":MAX_BATCH,"requested_count":len(selected),"logical_sdk_calls":len(selected),
+            "batch_cap":MAX_BATCH,"requested_count":len(selected),"logical_sdk_calls":logical_calls,"max_attempts_per_issuer":2,
             "underlying_http_count_verified":False,"paid_api_calls":0,"source":"Eastmoney via AkShare",
             "issuers":results,"official_exchange_publisher_verified":False,
             "historical_point_in_time_universe_verified":False,"historical_ST_halt_delist_verified":False,
