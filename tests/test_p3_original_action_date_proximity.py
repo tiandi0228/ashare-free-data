@@ -64,7 +64,7 @@ class OriginalActionDateProximityTests(unittest.TestCase):
         self.assertEqual(q["candidates"][0]["nearby_action_labels"], ["RESUME"])
 
     def test_actual_newline_is_sentence_boundary(self):
-        sample = "公告日期2026年1月5日\\n公司股票复牌".replace("\\\\n", "\\n")
+        sample = "公告日期2026年1月5日\n公司股票复牌"
         q = extract(report(sample))
         self.assertEqual(q["dates_with_nearby_actions"], 0)
 
