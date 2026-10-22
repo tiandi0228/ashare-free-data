@@ -79,10 +79,12 @@ def audit_coverage(codes, days, observations):
         "rejected_evidence_records": rejected,
         "missing_evidence_cells": len(missing),
         "sample_missing_cells": [list(k) for k in missing[:12]],
-        "complete": len(missing) == 0,
+        "self_reported_cell_claims_complete": len(missing) == 0,
+        "independent_source_authentication_performed": False,
+        "complete": False,  # no independent original/timestamp proof in this offline function
         "trade_gate": "BLOCKED",
         "orders": [],
         "executable_candidates": [],
         "paid_api_calls": 0,
-        "note": "Evidence-cell completeness alone cannot unlock trading; independent P1/P2/P4 gates remain mandatory.",
+        "note": "Input boolean flags and hashes are self-reported; this offline function cannot independently authenticate source bytes or historical timestamps. Structural cell counts cannot certify historical coverage.",
     }
