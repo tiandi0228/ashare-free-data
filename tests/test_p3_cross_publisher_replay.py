@@ -13,6 +13,10 @@ class PublisherReplayTests(unittest.TestCase):
         self.assertEqual(r["independently_replayed_originals"],4)
         self.assertEqual(r["trade_gate"],"BLOCKED")
         self.assertFalse(r["historical_publication_instant_verified"])
+        self.assertTrue(r["evidence_layers"]["official_SSE_delist_notice_observed"])
+        self.assertFalse(r["evidence_layers"]["historical_point_in_time_membership_proven"])
+        self.assertEqual(len(r["missing_acceptance_requirements"]),5)
+        self.assertFalse(r["historical_risk_coverage_complete"])
     def test_changed_source_digest_rejected(self):
         q=copy.deepcopy(self.q);q[3]["results"][0]["sha256"]="0"*64
         with self.assertRaisesRegex(ValueError,"mismatch"):audit(*q)
