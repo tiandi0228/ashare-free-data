@@ -1,4 +1,4 @@
-name: P1 stratified 128 original-file independent replay (NO TRADES)
+name: P1 stratified 128 gap-position audit (NO TRADES)
 on:
   push:
     branches: [main]
