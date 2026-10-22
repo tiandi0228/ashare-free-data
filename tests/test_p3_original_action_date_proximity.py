@@ -45,6 +45,24 @@ class OriginalActionDateProximityTests(unittest.TestCase):
         self.assertEqual(q["certified_effective_state_transitions"], 0)
         self.assertEqual(q["trade_gate"], "BLOCKED")
 
+    def test_duplicate_source_id_rejected(self):
+        q = report("公司股票2026年1月5日起复牌")
+        q["results"][1]["source_id"] = q["results"][0]["source_id"]
+        with self.assertRaisesRegex(ValueError, "duplicate original source"):
+            extract(q)
+
+    def test_empty_original_date_context_rejected(self):
+        q = report("公司股票2026年1月5日起复牌")
+        q["results"][0]["date_contexts"] = []
+        with self.assertRaisesRegex(ValueError, "date contexts missing"):
+            extract(q)
+
+    def test_empty_date_string_rejected(self):
+        q = report("公司股票2026年1月5日起复牌")
+        q["results"][0]["date_contexts"][0]["date_text"] = ""
+        with self.assertRaisesRegex(ValueError, "invalid original date"):
+            extract(q)
+
 
 if __name__ == "__main__":
     unittest.main()
