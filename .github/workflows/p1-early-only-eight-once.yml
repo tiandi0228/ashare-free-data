@@ -1,10 +1,6 @@
 name: P1 FREE one-shot early-only cohort history probe (NO TRADES)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/p1-early-only-eight-once.yml'
   workflow_dispatch:
 
 permissions:
