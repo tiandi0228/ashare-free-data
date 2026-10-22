@@ -24,6 +24,19 @@ def audit(cninfo, sse, cninfo_replay, sse_replay):
         any(e.get("independent_sha_match") is not True for e in cninfo_replay["sources"]) or
         any(e.get("matched") is not True for e in sse_replay["results"])):
         raise ValueError("cross-source original hash or independent replay mismatch")
+    expected_pdf=[
+      ("https://static.cninfo.com.cn/finalpage/2026-05-23/1225327963.PDF",244242),
+      ("https://static.cninfo.com.cn/finalpage/2026-06-19/1225377517.PDF",109614),
+    ]
+    if any(e.get("url")!=u or e.get("bytes")!=size for e,(u,size) in zip(cninfo_replay["sources"],expected_pdf)):
+        raise ValueError("CNINFO replay URL or size mismatch")
+    if (sse_replay.get("first_run_id")!=39704160169
+        or sse_replay.get("second_run_id")==sse_replay.get("first_run_id")
+        or cninfo_replay.get("job_id")!=119579327490):
+        raise ValueError("independent capture identity mismatch")
+    for original,replay in zip(sse["pages"],sse_replay["results"]):
+        if replay.get("url")!=original["url"] or replay.get("bytes")!=original["bytes"]:
+            raise ValueError("SSE replay URL or size mismatch")
     if (cninfo_replay.get("trade_gate")!="BLOCKED" or sse_replay.get("trade_gate")!="BLOCKED" or
         cninfo_replay.get("historical_asof_publication_instant_verified") is not False or
         sse_replay.get("historical_publication_instant_verified") is not False):
