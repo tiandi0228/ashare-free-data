@@ -1,4 +1,4 @@
-name: P1 stratified 128 gap-position audit (NO TRADES)
+name: P1 stratified 128 official IPO gap check (NO TRADES)
 on:
   push:
     branches: [main]
@@ -44,6 +44,18 @@ jobs:
       - name: Replay and audit all sixteen shards against new independent SHA
         run: |
           python -m collector.p1_128_source_replay_audit --input replay --out audit/p1_128_stratified_verified.json --manifest-sha f70bbb790e33dfda2354efad6433a92f6d64f768a5af80e66d8a7db62008bfdf
+      - name: Reconcile 139 gap dates against official SSE 603014 IPO notice
+        run: |
+          python -m collector.p1_603014_official_ipo_gap_reconcile --infile audit/p1_128_stratified_verified.json --out audit/p1_official_ipo_gap_reconciliation.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("audit/p1_official_ipo_gap_reconciliation.json").read_text())
+          assert r["total_peer_missing"]==139
+          assert r["prelisting_consistent_gaps"]==139
+          assert r["unresolved_gaps"]==0
+          assert r["trade_gate"]=="BLOCKED" and not r["orders"]
+          PY
       - name: Persist audit receipt without redistributing vendor CSVs
         if: always()
         uses: actions/upload-artifact@v4
