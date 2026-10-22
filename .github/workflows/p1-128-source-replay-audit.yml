@@ -1,4 +1,4 @@
-name: P1 cross-run 128 real-source replay audit (NO TRADES)
+name: P1 cross-run 128 source quality and coverage audit (NO TRADES)
 on:
   push:
     branches: [main]
