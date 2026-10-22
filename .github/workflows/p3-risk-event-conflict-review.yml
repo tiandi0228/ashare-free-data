@@ -1,0 +1,44 @@
+name: P3 risk event ambiguity and conflict gate (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/p3-risk-event-conflict-review.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recover seven real dated semantic cues
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 39757542925 --dir evidence
+      - name: Flag contradictory or insufficient risk-state evidence
+        run: |
+          INPUT="$(find evidence -name semantic_candidates.json -print -quit)"
+          test -n "$INPUT"
+          python -m collector.p3_risk_event_state_conflict_review --input "$INPUT" --out audit/risk_conflict_reviews.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path("audit/risk_conflict_reviews.json").read_text())
+          assert q["date_candidates"]==7
+          assert q["documents"]==6
+          assert q["multi_date_documents"]==1
+          assert q["flagged_candidates"]==7
+          assert q["confirmed_effective_state_changes"]==0
+          assert q["PIT_eligible_count"]==0
+          assert q["trade_gate"]=="BLOCKED" and q["orders"]==[]
+          print("PASS: seven real date cues flagged, zero unjustified ST/halt/delist promotion")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p3-risk-state-conflict-reviews-${{ github.run_id }}
+          path: audit/
+          retention-days: 30
+          if-no-files-found: warn
