@@ -4,7 +4,9 @@ from pathlib import Path
 from collector.baostock_batch import run
 from collector.p1_roster_shard_manifest import select_roster
 
-def capture(out,bs,day="2026-10-20"):
+def capture(out,bs,day="2026-10-20",batch_index=0):
+    if type(batch_index) is not int or not 0<=batch_index<16:
+        raise ValueError("batch index must be 0..15")
     root=Path(out);root.mkdir(parents=True,exist_ok=True)
     info={"phase":"P1_REAL_ROSTER_TO_EIGHT_BARS","date_requested":day,"trade_gate":"BLOCKED",
           "orders":[],"executable_candidates":[],"paid_api_calls":0,
@@ -29,7 +31,8 @@ def capture(out,bs,day="2026-10-20"):
                     shard_manifest_count=receipt["selected_count"],manifest_sha256=receipt["manifest_sha256"])
         # No nested second login: only a bounded first eight issuer observations.
         from collector.baostock_batch import FIELDS,START,END,check_daily_bars
-        selected=manifest.splitlines()[:8]
+        selected=manifest.splitlines()[batch_index*8:(batch_index+1)*8]
+        info["batch_index"]=batch_index
         obtained=[]
         for code in selected:
             result=bs.query_history_k_data_plus(code,fields=",".join(FIELDS),
@@ -63,7 +66,8 @@ def capture(out,bs,day="2026-10-20"):
     return 0 if info["source_status"]=="EIGHT_FREE_ISSUER_HISTORIES_OBSERVED_RESEARCH_ONLY" else 2
 def main():
     p=argparse.ArgumentParser();p.add_argument("--out",required=True)
+    p.add_argument("--batch-index",type=int,default=0)
     a=p.parse_args()
     import baostock
-    raise SystemExit(capture(a.out,baostock))
+    raise SystemExit(capture(a.out,baostock,batch_index=a.batch_index))
 if __name__=="__main__":main()
