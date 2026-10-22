@@ -1,10 +1,6 @@
 name: P3 bounded official SSE availability diagnostic (NO TRADES)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/p3-sse-access-diagnostic-once.yml'
   workflow_dispatch:
 
 permissions:
