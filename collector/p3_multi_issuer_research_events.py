@@ -1,6 +1,7 @@
 """Multi-issuer strict research-event intake. Unverified sources never become trading states."""
-from datetime import date
+from datetime import date, datetime
 import re
+from urllib.parse import urlparse
 
 CODE=re.compile(r"^(sh\.(?:600|601|603|605)[0-9]{3}|sz\.(?:000|001|002|003)[0-9]{3})$")
 SHA=re.compile(r"^[a-f0-9]{64}$")
@@ -33,7 +34,22 @@ def merge_research_ledgers(ledgers):
                 raise ValueError("invalid sha receipts")
             if row["date_semantics"]=="UNVERIFIED_REFERENCE" and hashes:
                 raise ValueError("reference cannot inherit original hashes")
-            key=(issuer,row.get("event_kind"),day,row["date_semantics"])
+            announcement_id=row.get("source_announcement_id")
+            if announcement_id is not None:
+                if not isinstance(announcement_id,str) or not announcement_id.isdigit():
+                    raise ValueError("invalid announcement lineage")
+                source=row.get("source_pdf_url")
+                observed=row.get("source_retrieved_at_utc")
+                if not isinstance(source,str) or urlparse(source).scheme!="https" or urlparse(source).hostname!="static.cninfo.com.cn":
+                    raise ValueError("invalid original PDF URL")
+                if not isinstance(observed,str):
+                    raise ValueError("missing observed instant")
+                dt=datetime.fromisoformat(observed)
+                if dt.tzinfo is None or dt.utcoffset() is None:
+                    raise ValueError("missing source timezone")
+                if not hashes:
+                    raise ValueError("missing original PDF digest")
+            key=(issuer,row.get("event_kind"),day,row["date_semantics"],announcement_id)
             if key in seen:raise ValueError("duplicate event across ledgers")
             seen.add(key)
             out.append(dict(row))
