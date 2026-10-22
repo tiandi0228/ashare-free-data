@@ -60,26 +60,42 @@ jobs:
           assert p['historical_PIT_verified'] is False and p['trade_gate']=='BLOCKED'
           print('PASS: fresh vendor roster mapped to deterministic research shards; no historical PIT certification')
           PY
+      - name: Choose two bounded shards (manual first pair, scheduled rotating pair)
+        id: pick
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import datetime,json,os
+          from pathlib import Path
+          from zoneinfo import ZoneInfo
+          q=json.loads(Path('evidence/shards/plan.json').read_text())
+          pair_count=(q['shard_count']+1)//2
+          idx=0 if os.environ.get('GITHUB_EVENT_NAME')!='schedule' else datetime.datetime.now(ZoneInfo('Asia/Shanghai')).date().toordinal()%pair_count
+          first=idx*2
+          print(f'first={first:04d}')
+          print(f'second={first+1:04d}')
+          print(f'has_second={str(first+1<q["shard_count"]).lower()}')
+          PY
       - name: Fetch first real roster shard historical bars (bounded 8 only)
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
           p=json.loads(Path('evidence/shards/plan.json').read_text())
-          assert p['shard_count']>=1 and p['shards'][0]['count']==8
-          print('Real roster shard 0 SHA:',p['shards'][0]['sha256'])
+          assert p['shard_count']>=1 and p['shards'][int('${{ steps.pick.outputs.first }}')]['count']<=8
+          print('Real roster shard 0 SHA:',p['shards'][int('${{ steps.pick.outputs.first }}')]['sha256'])
           PY
-          timeout 150s python -m collector.baostock_batch --manifest evidence/shards/shard_0000.txt --batch-index 0 --out evidence/first_shard
+          timeout 150s python -m collector.baostock_batch --manifest evidence/shards/shard_${{ steps.pick.outputs.first }}.txt --batch-index 0 --out evidence/first_shard
       - name: Fetch next real roster shard historical bars (bounded 8 only)
+        if: steps.pick.outputs.has_second == 'true'
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
           p=json.loads(Path('evidence/shards/plan.json').read_text())
-          assert p['shard_count']>=2 and p['shards'][1]['count']==8
-          print('Real roster shard 1 SHA:',p['shards'][1]['sha256'])
+          assert p['shard_count']>=2 and p['shards'][int('${{ steps.pick.outputs.second }}')]['count']<=8
+          print('Real roster shard 1 SHA:',p['shards'][int('${{ steps.pick.outputs.second }}')]['sha256'])
           PY
-          timeout 150s python -m collector.baostock_batch --manifest evidence/shards/shard_0001.txt --batch-index 0 --out evidence/second_shard
+          timeout 150s python -m collector.baostock_batch --manifest evidence/shards/shard_${{ steps.pick.outputs.second }}.txt --batch-index 0 --out evidence/second_shard
       - name: Verify real roster-to-bars linkage and SHA receipts
         if: always()
         run: |
@@ -89,16 +105,19 @@ jobs:
           p=json.loads(Path('evidence/shards/plan.json').read_text())
           s=json.loads(Path('evidence/first_shard/quality.json').read_text())
           assert s['manifest_sha256']==p['shards'][0]['sha256']
-          assert s['issuer_count']==8 and s['query_attempts']==8
+          assert 1<=s['issuer_count']<=8 and s['query_attempts']==s['issuer_count']
           assert s['status']=='OBSERVED_SUBSET_UNVERIFIED'
           assert s['trade_gate']=='BLOCKED' and not s['orders']
           for item in s['results']:
               assert item['status']=='OBSERVED_UNVERIFIED'
               raw=Path('evidence/first_shard',item['code'].replace('.','_')+'.csv').read_bytes()
               assert hashlib.sha256(raw).hexdigest()==item['sha256']
+          if '${{ steps.pick.outputs.has_second }}' != 'true':
+              print('Only one final shard remains; no duplicate second acquisition')
+              raise SystemExit(0)
           t=json.loads(Path('evidence/second_shard/quality.json').read_text())
           assert t['manifest_sha256']==p['shards'][1]['sha256']
-          assert t['issuer_count']==8 and t['query_attempts']==8
+          assert 1<=t['issuer_count']<=8 and t['query_attempts']==t['issuer_count']
           assert t['status']=='OBSERVED_SUBSET_UNVERIFIED'
           assert t['trade_gate']=='BLOCKED' and not t['orders']
           for item in t['results']:
