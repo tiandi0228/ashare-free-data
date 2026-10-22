@@ -16,7 +16,8 @@ def adapt_live_pdf_receipts(pdf):
     ledgers=[]
     for receipt in receipts:
         code=receipt.get("code")
-        market=receipt.get("market")
+        market=("SH" if isinstance(code,str) and code.startswith(("600","601","603","605")) else
+                "SZ" if isinstance(code,str) and code.startswith(("000","001","002","003")) else None)
         if market not in ("SH","SZ") or not isinstance(code,str):
             raise ValueError("invalid source issuer identity")
         issuer=market.lower()+"."+code
