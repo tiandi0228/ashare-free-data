@@ -1,0 +1,22 @@
+{
+  "phase": "P1_EIGHT_INDEPENDENT_RECAPTURE_VERIFIED_RESEARCH_ONLY",
+  "verified_at_utc": "2026-10-22T00:45:19Z",
+  "repository": "tiandi0228/ashare-free-data",
+  "first_capture_run_id": 39699471799,
+  "second_capture_run_id": 39701536983,
+  "source_job_id": 119571665580,
+  "offline_tests_passed": 171,
+  "matching_issuers": 8,
+  "issuer_count": 8,
+  "mismatching_codes": [],
+  "status": "INDEPENDENT_VENDOR_RECAPTURE_MATCH_PIT_BLOCKED",
+  "provenance": "GitHub Actions job logs (not an archived raw source dataset)",
+  "original_source_data_durably_replayable": false,
+  "official_historical_PIT_universe_verified": false,
+  "full_mainboard_historical_backfill_complete": false,
+  "p4_actual_OOS_validated": false,
+  "trade_gate": "BLOCKED",
+  "orders": [],
+  "executable_candidates": [],
+  "paid_api_calls": 0
+}
