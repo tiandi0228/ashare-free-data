@@ -54,7 +54,7 @@ jobs:
           print(f"batch_index={idx}")
           print(f"batch_count={count}")
           PY
-      - name: Capture only one bounded shard (no retry, no fallback)
+      - name: Capture bounded shard (one transient retry, no fallback)
         run: python -m collector.batch --batch-index "${{ steps.shard.outputs.batch_index }}" --out evidence
       - name: Retain source originals and SHA receipt for 14 days
         if: always()
@@ -75,7 +75,9 @@ jobs:
           q=json.loads(p.read_text())
           assert q['phase']=='PUBLIC_FREE_BOUND_BATCH'
           assert q['batch_cap']==8 and 1<=q['requested_count']<=8
-          assert q['logical_sdk_calls']==q['requested_count']
+          assert q['requested_count']<=q['logical_sdk_calls']<=2*q['requested_count']
+          assert q['max_attempts_per_issuer']==2
+          assert sum(s['attempts'] for s in q['issuers'])==q['logical_sdk_calls']
           assert q['successful_issuer_count']+q['failed_issuer_count']==q['requested_count']
           assert q['observed_issuer_coverage_fraction']==q['successful_issuer_count']/q['requested_count']
           assert q['observed_at_utc'].endswith('+00:00')
