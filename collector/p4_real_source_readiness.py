@@ -31,6 +31,11 @@ def assess(p1_receipt, p3_receipts):
     missing=[k for k,v in prerequisites.items() if v is not True]
     return {
         "phase":"P4_REAL_SOURCE_PREREQUISITE_READINESS",
+        "evidence_mode":"FROZEN_REPOSITORY_SNAPSHOT",
+        "evidence_report_files":list(FILENAMES),
+        "source_receipt_run_id":39703908661,
+        "independent_live_source_reverification_in_this_run":False,
+        "latest_market_coverage_verified_in_this_run":False,
         "status":"NOT_READY_RESEARCH_ONLY",
         "required_conditions":len(prerequisites),
         "verified_conditions":len(prerequisites)-len(missing),
