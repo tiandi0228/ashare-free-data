@@ -1,10 +1,6 @@
 name: P3 SSE two-page independent original SHA replay (NO TRADES)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/p3-sse-independent-replay-once.yml'
   workflow_dispatch:
 
 permissions:
