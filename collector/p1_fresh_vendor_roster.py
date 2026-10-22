@@ -35,6 +35,7 @@ def capture(out, provider, day):
                       source_day_is_official_publication_proof=False)
     except Exception as exc:
         report["error_type"]=type(exc).__name__
+        report["error_detail"]=str(exc)[:240]
     finally:
         if logged:
             try: provider.logout()
