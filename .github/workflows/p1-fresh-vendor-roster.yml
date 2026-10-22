@@ -70,6 +70,16 @@ jobs:
           print('Real roster shard 0 SHA:',p['shards'][0]['sha256'])
           PY
           timeout 150s python -m collector.baostock_batch --manifest evidence/shards/shard_0000.txt --batch-index 0 --out evidence/first_shard
+      - name: Fetch next real roster shard historical bars (bounded 8 only)
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('evidence/shards/plan.json').read_text())
+          assert p['shard_count']>=2 and p['shards'][1]['count']==8
+          print('Real roster shard 1 SHA:',p['shards'][1]['sha256'])
+          PY
+          timeout 150s python -m collector.baostock_batch --manifest evidence/shards/shard_0001.txt --batch-index 0 --out evidence/second_shard
       - name: Verify real roster-to-bars linkage and SHA receipts
         if: always()
         run: |
@@ -86,7 +96,17 @@ jobs:
               assert item['status']=='OBSERVED_UNVERIFIED'
               raw=Path('evidence/first_shard',item['code'].replace('.','_')+'.csv').read_bytes()
               assert hashlib.sha256(raw).hexdigest()==item['sha256']
-          print('PASS: eight real roster-derived bars audited, NOT historical PIT-certified')
+          t=json.loads(Path('evidence/second_shard/quality.json').read_text())
+          assert t['manifest_sha256']==p['shards'][1]['sha256']
+          assert t['issuer_count']==8 and t['query_attempts']==8
+          assert t['status']=='OBSERVED_SUBSET_UNVERIFIED'
+          assert t['trade_gate']=='BLOCKED' and not t['orders']
+          for item in t['results']:
+              assert item['status']=='OBSERVED_UNVERIFIED'
+              raw=Path('evidence/second_shard',item['code'].replace('.','_')+'.csv').read_bytes()
+              assert hashlib.sha256(raw).hexdigest()==item['sha256']
+          assert set(x['code'] for x in s['results']).isdisjoint(x['code'] for x in t['results'])
+          print('PASS: sixteen unique real roster-derived histories verified; NOT PIT-certified')
           PY
       - uses: actions/upload-artifact@v4
         if: always()
