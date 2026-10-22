@@ -1,0 +1,32 @@
+{
+  "phase": "P3_TWO_CNINFO_ORIGINAL_PDF_REACQUISITION",
+  "run_id": 39703908661,
+  "job_id": 119579327490,
+  "observed_utc": "2026-10-22T01:08:20Z",
+  "conclusion": "success",
+  "sources": [
+    {
+      "date": "2026-05-23",
+      "url": "https://static.cninfo.com.cn/finalpage/2026-05-23/1225327963.PDF",
+      "bytes": 244242,
+      "sha256": "ef9b9113b2a51ca718e786de0613860351f0c8056916e7decb5a010da7acaff8",
+      "independent_sha_match": true
+    },
+    {
+      "date": "2026-06-19",
+      "url": "https://static.cninfo.com.cn/finalpage/2026-06-19/1225377517.PDF",
+      "bytes": 109614,
+      "sha256": "6e43f458ee70b11dc5ab7331c2d67dee62dc26fa2121e138a2c93ef71c65409f",
+      "independent_sha_match": true
+    }
+  ],
+  "raw_source_archived_permanently": false,
+  "source_redistribution_rights_verified": false,
+  "historical_asof_publication_instant_verified": false,
+  "exchange_effective_delisting_original_verified": false,
+  "full_historical_market_risk_coverage_verified": false,
+  "trade_gate": "BLOCKED",
+  "orders": [],
+  "executable_candidates": [],
+  "paid_api_calls": 0
+}
