@@ -36,6 +36,8 @@ on:
       - 'tests/test_p3_sse_official_receipt_gap.py'
       - 'collector/p3_cross_publisher_replay.py'
       - 'tests/test_p3_cross_publisher_replay.py'
+      - 'collector/p4_real_source_readiness.py'
+      - 'tests/test_p4_real_source_readiness.py'
       - 'reports/p3_sse_independent_two_originals_verified_20261022.json'
       - 'reports/p3_cninfo_two_pdf_independent_sha_recapture_20261022.json'
       - 'reports/p3_sse_two_official_original_sha_observed_20261022.json'
@@ -105,6 +107,18 @@ jobs:
           assert r['trade_gate']=='BLOCKED' and r['orders']==[]
           assert r['historical_publication_instant_verified'] is False
           print('PASS: 4/4 independently matched originals; official historical PIT still unverified')
+          PY
+      - name: P4 readiness from real evidence, not fictional backtest
+        run: |
+          python -m collector.p4_real_source_readiness --out audit/p4_real_source_readiness.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path('audit/p4_real_source_readiness.json').read_text())
+          assert q['required_conditions']==6 and q['verified_conditions']==1
+          assert q['status']=='NOT_READY_RESEARCH_ONLY'
+          assert q['trade_gate']=='BLOCKED' and q['orders']==[]
+          print('PASS: real provenance present but P4 not ready for OOS/backtest/trading')
           PY
       - name: Aggregate 24 independently replayed research issuer SHA receipts only
         run: |
