@@ -1,0 +1,176 @@
+{
+  "title": "Eight hindsight-selected early-only vendor issuer history recovery: NOT historical PIT",
+  "capture_run_id": 39699471799,
+  "capture_run_sha": "7f44ad07affc8ab60c7c0e807eac0dbc831f6e2a",
+  "run_conclusion": "success",
+  "offline_tests_passed": 160,
+  "prior_original_roster_capture_run_id": 39613467121,
+  "original_roster_independent_replay_run_id": 39614404688,
+  "capture_receipt_artifact_id": 12392616020,
+  "capture_receipt_artifact_expires_at_utc": "2026-11-05T00:24:55Z",
+  "raw_vendor_bar_CSV_redistributed": false,
+  "data_permission_for_public_raw_CSV_unknown": true,
+  "full_official_exchange_issuer_set_verified": false,
+  "original_issuer_source_data_durably_replayable": false,
+  "new_eight_codes_nonoverlapping_prior_24": true,
+  "earlier_24_independently_sha_replayed_but_new_8_not_replayed": true,
+  "total_research_issuer_samples_with_history": 32,
+  "vendor_total_rows_for_all_32": 14007,
+  "official_event_reference_not_runner_original_sha": [
+    {
+      "issuer": "sh.600190",
+      "sse_publication_date": "2025-07-18",
+      "sse_announced_final_session": "2025-07-18",
+      "sse_announced_delisting_effective": "2025-07-25",
+      "url": "https://www.sse.com.cn/disclosure/announcement/listing/stock/c/c_20250718_10785880.shtml",
+      "official_original_html_sha_verified_on_cloud_runner": false
+    },
+    {
+      "issuer": "sh.600608",
+      "sse_publication_date": "2026-06-29",
+      "sse_announced_final_session": "2026-06-29",
+      "sse_announced_delisting_effective": "2026-07-03",
+      "url": "https://www.sse.com.cn/disclosure/announcement/listing/stock/c/c_20260629_10823833.shtml",
+      "official_original_html_sha_verified_on_cloud_runner": false
+    }
+  ],
+  "trade_gate": "BLOCKED",
+  "candidate_universe": [],
+  "executable_candidates": [],
+  "orders": [],
+  "paid_api_calls": 0,
+  "source_quality": {
+    "phase": "P1_BOUNDED_VENDOR_EARLY_ONLY_HINDSIGHT_RESEARCH_HISTORY",
+    "status": "EIGHT_HISTORICAL_EARLY_ONLY_VENDOR_SAMPLES_OBSERVED_PIT_BLOCKED",
+    "selection_lineage": {
+      "source_run_id": 39613467121,
+      "replayed_original_roster_sha": [
+        "3489ff2062502ec9ef0580ed9d2f94f93e250930f7adbe0765a0a169040f7da5",
+        "9c7f9fa7e8ad4a91bc6b5f54cbec26bbae9c2f2f8b79b8164653bfbcdf4b1696"
+      ],
+      "early_only_vendor_issuer_count": 32,
+      "early_only_excluding_prior_24_count": 31,
+      "selection": "LEXICOGRAPHIC_FIRST_8_EARLY_ONLY_NO_PRIOR_PILOT_CODES",
+      "not_a_historical_asof_eligible_universe": true,
+      "not_independent_exchange_delisting_proof": true
+    },
+    "issuer_count": 8,
+    "issuer_codes": [
+      "sh.600190",
+      "sh.600193",
+      "sh.600200",
+      "sh.600355",
+      "sh.600387",
+      "sh.600462",
+      "sh.600599",
+      "sh.600608"
+    ],
+    "login_attempts": 1,
+    "logical_source_queries": 8,
+    "max_logical_source_queries": 8,
+    "results": [
+      {
+        "code": "sh.600190",
+        "status": "VENDOR_HISTORY_OBSERVED_NOT_PIT",
+        "original_source_sha256": "0c5a1a1fdfc403d6772039e616e496ffd880bfee39b9d199ff76cdc1c9a55386",
+        "original_source_rows": 187,
+        "vendor_trade_status_1_rows": 153,
+        "vendor_trade_status_0_rows": 34,
+        "first_vendor_row_date": "2024-10-21",
+        "last_vendor_row_date": "2025-07-24",
+        "last_vendor_trade_status_1_date": "2025-07-18"
+      },
+      {
+        "code": "sh.600193",
+        "status": "VENDOR_HISTORY_OBSERVED_NOT_PIT",
+        "original_source_sha256": "4351e6b7d0a9fd5e5df8c6801af0e57541c3685ac5f46e4b61494488a8c7c232",
+        "original_source_rows": 414,
+        "vendor_trade_status_1_rows": 383,
+        "vendor_trade_status_0_rows": 31,
+        "first_vendor_row_date": "2024-10-21",
+        "last_vendor_row_date": "2026-07-03",
+        "last_vendor_trade_status_1_date": "2026-06-29"
+      },
+      {
+        "code": "sh.600200",
+        "status": "VENDOR_HISTORY_OBSERVED_NOT_PIT",
+        "original_source_sha256": "4e27776154637705bd6eeb881ac87b1a5b614a051eae0342b69738bb2face2b3",
+        "original_source_rows": 294,
+        "vendor_trade_status_1_rows": 283,
+        "vendor_trade_status_0_rows": 11,
+        "first_vendor_row_date": "2024-10-21",
+        "last_vendor_row_date": "2025-12-30",
+        "last_vendor_trade_status_1_date": "2025-12-29"
+      },
+      {
+        "code": "sh.600355",
+        "status": "VENDOR_HISTORY_OBSERVED_NOT_PIT",
+        "original_source_sha256": "37303ef65fa648f5e676f0331af760d8238435fd5bce805be73bc3bef387704b",
+        "original_source_rows": 368,
+        "vendor_trade_status_1_rows": 353,
+        "vendor_trade_status_0_rows": 15,
+        "first_vendor_row_date": "2024-10-21",
+        "last_vendor_row_date": "2026-04-24",
+        "last_vendor_trade_status_1_date": "2026-04-03"
+      },
+      {
+        "code": "sh.600387",
+        "status": "VENDOR_HISTORY_OBSERVED_NOT_PIT",
+        "original_source_sha256": "a3a45d0c8a07135582d1217684f618d7f1c13662b8a810aed509b021fd362b10",
+        "original_source_rows": 177,
+        "vendor_trade_status_1_rows": 144,
+        "vendor_trade_status_0_rows": 33,
+        "first_vendor_row_date": "2024-10-21",
+        "last_vendor_row_date": "2025-07-10",
+        "last_vendor_trade_status_1_date": "2025-07-04"
+      },
+      {
+        "code": "sh.600462",
+        "status": "VENDOR_HISTORY_OBSERVED_NOT_PIT",
+        "original_source_sha256": "ddaba023b8e4d5b7e739ea1a2f708eecd6897df5ebd9e03a8b875bf3535a49c3",
+        "original_source_rows": 183,
+        "vendor_trade_status_1_rows": 144,
+        "vendor_trade_status_0_rows": 39,
+        "first_vendor_row_date": "2024-10-21",
+        "last_vendor_row_date": "2025-07-18",
+        "last_vendor_trade_status_1_date": "2025-07-14"
+      },
+      {
+        "code": "sh.600599",
+        "status": "VENDOR_HISTORY_OBSERVED_NOT_PIT",
+        "original_source_sha256": "498c1c22868804e1d89df493743be45db36b824f5a33428f8f30cac7e6eea553",
+        "original_source_rows": 408,
+        "vendor_trade_status_1_rows": 380,
+        "vendor_trade_status_0_rows": 28,
+        "first_vendor_row_date": "2024-10-21",
+        "last_vendor_row_date": "2026-06-25",
+        "last_vendor_trade_status_1_date": "2026-06-22"
+      },
+      {
+        "code": "sh.600608",
+        "status": "VENDOR_HISTORY_OBSERVED_NOT_PIT",
+        "original_source_sha256": "b465159e453e113cae70b8e15c5b780fff86e3229f83a39df74ddb3cec346c26",
+        "original_source_rows": 413,
+        "vendor_trade_status_1_rows": 385,
+        "vendor_trade_status_0_rows": 28,
+        "first_vendor_row_date": "2024-10-21",
+        "last_vendor_row_date": "2026-07-02",
+        "last_vendor_trade_status_1_date": "2026-06-29"
+      }
+    ],
+    "source_raw_bar_bytes_published": false,
+    "source_original_bytes_durably_archived": false,
+    "vendor_historical_revisions_possible": true,
+    "retrospective_selection_uses_future_information": true,
+    "valid_for_backtest_membership_asof_early_day": false,
+    "official_delisting_state_verified": false,
+    "official_historical_PIT_universe_verified": false,
+    "paid_api_calls": 0,
+    "trade_gate": "BLOCKED",
+    "candidate_universe": [],
+    "executable_candidates": [],
+    "orders": [],
+    "source_observed_issuers": 8,
+    "source_observed_rows": 2444
+  }
+}
