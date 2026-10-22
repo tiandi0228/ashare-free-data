@@ -28,6 +28,8 @@ on:
       - 'tests/test_p1_eight_reacquire_compare.py'
       - 'collector/p3_historical_evidence_coverage.py'
       - 'tests/test_p3_historical_evidence_coverage.py'
+      - 'collector/p3_evidence_gap_report.py'
+      - 'tests/test_p3_evidence_gap_report.py'
       - 'reports/p1_early_only_8_historical_research_20261022.json'
       - 'collector/audit_dated_rosters.py'
       - 'tests/test_audit_dated_rosters.py'
