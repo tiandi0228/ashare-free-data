@@ -63,10 +63,15 @@ jobs:
           import hashlib,json
           from pathlib import Path
           r=json.loads(Path("audit/p1_603014_sse_source_receipt.json").read_text())
-          assert r["original_html_observed"] is True and r["historical_publication_instant_verified"] is False
-          assert r["first_trading_day"] == "2025-05-19" and r["issuer"] == "sh.603014"
-          assert hashlib.sha256(Path("evidence/sse_603014_original.html").read_bytes()).hexdigest()==r["sha256"]
-          assert r["trade_gate"] == "BLOCKED"
+          assert r["trade_gate"]=="BLOCKED" and r["historical_publication_instant_verified"] is False
+          if r["original_html_observed"]:
+              assert r["first_trading_day"]=="2025-05-19" and r["issuer"]=="sh.603014"
+              assert hashlib.sha256(Path("evidence/sse_603014_original.html").read_bytes()).hexdigest()==r["sha256"]
+          else:
+              assert r["source_status"]=="UNAVAILABLE_OR_CONTENT_UNVERIFIED"
+              assert r["failure_type"] in ("HTTPError","URLError","TimeoutError","ValueError","UnicodeError")
+              assert not Path("evidence/sse_603014_original.html").exists()
+              print("GAP: official original not captured; no source-byte certification")
           PY
       - name: Persist audit receipt without redistributing vendor CSVs
         if: always()
