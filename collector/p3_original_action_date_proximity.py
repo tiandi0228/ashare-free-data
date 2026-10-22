@@ -11,13 +11,22 @@ def extract(report):
         raise ValueError("wrong original PDF context phase")
     docs=report.get("results",[])
     if len(docs)!=6:raise ValueError("missing original PDF evidence")
+    source_ids=[doc.get("source_id") for doc in docs]
+    if any(not isinstance(s,str) or not s.strip() for s in source_ids) or len(set(source_ids))!=len(source_ids):
+        raise ValueError("missing or duplicate original source IDs")
     output=[]
     for doc in docs:
         actions=ACTIONS.get(doc.get("event_family"))
         if not actions:raise ValueError("unknown family")
-        for d in doc.get("date_contexts",[]):
+        contexts=doc.get("date_contexts")
+        if not isinstance(contexts,list) or not contexts:
+            raise ValueError("original date contexts missing")
+        for d in contexts:
+            if not isinstance(d,dict) or not isinstance(d.get("date_text"),str) or not d["date_text"].strip():
+                raise ValueError("invalid original date")
             samples=d.get("nearby_text_samples",[])
-            if not samples:raise ValueError("original context missing")
+            if not isinstance(samples,list) or not samples or any(not isinstance(s,str) or not s for s in samples):
+                raise ValueError("original context missing")
             hits=[]
             for sample in samples:
                 positions=[m.start() for m in re.finditer(re.escape(d["date_text"]),sample)]
