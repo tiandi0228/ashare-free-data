@@ -108,7 +108,7 @@ jobs:
           url="https://www.cninfo.com.cn/new/hisAnnouncement/query"
           seen=set(); records=[]; pages=[]; total=None; status="UNAVAILABLE"
           try:
-            for page in range(1,13):
+            for page in range(1,37):
               form={"pageNum":str(page),"pageSize":"30","tabName":"fulltext",
                     "column":"","plate":"","stock":"","searchkey":"",
                     "secid":"","category":"","trade":"","seDate":day+"~"+day,
@@ -156,13 +156,21 @@ jobs:
           except Exception as exc:
             status="PARTIAL_OR_FAILED_"+type(exc).__name__
           complete=(status=="BOUNDED_PAGE_STREAM_COMPLETE_RESEARCH_ONLY")
+          # A stable total and distinct IDs are necessary, but a live list can
+          # still shift during paging. Never certify a PIT market snapshot.
+          if complete and total!=len(seen):
+            status="INCOMPLETE_RAW_ID_COUNT_MISMATCH"
+            complete=False
           result={"phase":"P3_CNINFO_SINGLE_STREAM_PROSPECTIVE_RESEARCH",
                   "capture_utc":now.isoformat(),"query_day":day,"status":status,
                   "reported_total":total,"pages":pages,
                   "raw_rows_seen":sum(p["raw_rows"] for p in pages),
                   "unique_raw_announcement_ids":len(seen),
                   "mainboard_records":records,"mainboard_record_count":len(records),
-                  "pagination_complete":complete,"market_scoping_from_code_only":True,
+                  "pagination_complete":complete,"max_pages_per_run":36,
+                  "raw_count_matches_reported_total":total==len(seen),
+                  "full_market_historical_snapshot_verified":False,
+                  "market_scoping_from_code_only":True,
                   "mainboard_membership_historical_PIT_verified":False,
                   "historical_publication_instant_authenticated":False,
                   "all_historical_risk_events_complete":False,
