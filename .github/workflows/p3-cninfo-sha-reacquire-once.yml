@@ -1,10 +1,6 @@
 name: P3 FREE one-shot CNINFO original PDF SHA reacquisition (NO TRADES)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/p3-cninfo-sha-reacquire-once.yml'
   workflow_dispatch:
 
 permissions:
