@@ -98,7 +98,7 @@ jobs:
           if not observed:
             raise SystemExit("NO_SOURCE_REACHABLE: all free official/public disclosure indexes failed")
           PY
-      - name: Query bounded CNINFO announcements with verified page boundaries
+      - name: Query one full-market CNINFO announcement stream with bounded pagination
         run: |
           python - <<'PY'
           import datetime,hashlib,json,pathlib,urllib.parse,urllib.request
@@ -106,99 +106,70 @@ jobs:
           now=datetime.datetime.now(datetime.timezone.utc)
           day=now.astimezone(ZoneInfo("Asia/Shanghai")).date().isoformat()
           url="https://www.cninfo.com.cn/new/hisAnnouncement/query"
-          output=[]
-          for column in ("sse","szse"):
-            seen=set()
-            result={"column":column,"request_day":day,"status":"UNAVAILABLE",
-                    "record_count":0,"records":[],"pages":[],"pagination_complete":False,"exchange_scope_filter_applied":True}
-            total=None
-            try:
-              for page in range(1,4):
-                form={"pageNum":str(page),"pageSize":"30","tabName":"fulltext",
-                      "column":column,"plate":"","stock":"","searchkey":"",
-                      "secid":"","category":"","trade":"","seDate":day+"~"+day,
-                      "sortName":"","sortType":"","isHLtitle":"false"}
-                req=urllib.request.Request(url,data=urllib.parse.urlencode(form).encode(),
-                    headers={"User-Agent":"Mozilla/5.0","Content-Type":"application/x-www-form-urlencoded; charset=UTF-8",
-                             "X-Requested-With":"XMLHttpRequest","Referer":"https://www.cninfo.com.cn/new/index"},method="POST")
-                with urllib.request.urlopen(req,timeout=12) as resp:
-                  if resp.geturl()!=url:raise ValueError("redirect")
-                  body=resp.read(500001)
-                if len(body)>500000:raise ValueError("oversize")
-                obj=json.loads(body)
-                records=obj.get("announcements")
-                if not isinstance(records,list) or len(records)>30:raise ValueError("invalid page shape")
-                declared=obj.get("totalAnnouncement")
-                if type(declared) is not int or declared<0:raise ValueError("missing totalAnnouncement")
-                if total is None:total=declared
-                if total!=declared:raise ValueError("total changed between pages")
-                accepted=0
-                for x in records:
-                  if not isinstance(x,dict):continue
-                  code,title,adjunct=x.get("secCode"),x.get("announcementTitle"),x.get("adjunctUrl")
-                  if not all(isinstance(y,str) for y in (code,title,adjunct)):continue
-                  if not code.isdigit() or len(code)!=6:continue
-                  if column=="sse" and not code.startswith(("600","601","603","605","688","689")):continue
-                  if column=="szse" and not code.startswith(("000","001","002","003","300","301")):continue
-                  if not adjunct.startswith("finalpage/") or not adjunct.lower().endswith(".pdf"):continue
-                  identifier=x.get("announcementId")
-                  if identifier is None:continue
-                  if str(identifier) in seen:raise ValueError("duplicate announcementId across pages")
-                  seen.add(str(identifier))
-                  result["records"].append({"code":code,"title":title[:160],
-                      "announcement_id":str(identifier),"announcement_time_ms":x.get("announcementTime"),
-                      "pdf_url":"https://static.cninfo.com.cn/"+adjunct})
-                  accepted+=1
-                result["pages"].append({"number":page,"raw_count":len(records),
-                    "accepted_count":accepted,"sha256":hashlib.sha256(body).hexdigest()})
-                if page*30>=total:
-                  result["pagination_complete"]=True
-                  break
-                if len(records)!=30:raise ValueError("short nonterminal page")
-              result.update(status="OBSERVED_RECORDS_RESEARCH_ONLY" if result["pagination_complete"]
-                            else "PARTIAL_PAGE_CAP_REACHED",total_announcements_reported=total,
-                            record_count=len(result["records"]))
-            except Exception as exc:
-              result.update(status="PARTIAL_OR_FAILED",pagination_complete=False,
-                            record_count=len(result["records"]),failure_type=type(exc).__name__)
-            output.append(result)
-          # Identical response page hashes across requested columns prove that
-          # the server did not provide distinct market-specific page results.
-          fingerprints=[tuple(p["sha256"] for p in x["pages"]) for x in output]
-          same_pages=bool(fingerprints[0]) and fingerprints[0]==fingerprints[1]
-          if same_pages:
-            for entry in output:
-              entry["exchange_column_isolation_verified"]=False
-              entry["status"]="CROSS_COLUMN_IDENTICAL_PAGES_NOT_EXCHANGE_SCOPED"
-              entry["pagination_complete"]=False
-          else:
-            for entry in output:
-              # Different pages alone do not independently certify a market filter.
-              entry["exchange_column_isolation_verified"]=False
-          unique_ids=set()
-          duplicates_between_columns=0
-          for entry in output:
-            for record in entry["records"]:
-              ident=record["announcement_id"]
-              if ident in unique_ids:duplicates_between_columns+=1
-              unique_ids.add(ident)
-          receipt={"phase":"P3_CNINFO_BOUNDED_PROSPECTIVE_INDEX",
-                   "observed_at_utc":now.isoformat(),"columns":output,
-                   "page_cap_per_column":3,"page_size":30,
-                   "all_columns_complete":all(x["pagination_complete"] for x in output),
-                   "cross_column_identical_page_responses":same_pages,
-                   "duplicate_announcements_between_columns":duplicates_between_columns,
-                   "deduplicated_announcement_count":len(unique_ids),
-                   "market_column_isolation_verified":False,
-                   "historical_publication_instant_authenticated":False,
-                   "not_complete_market_disclosure":True,"paid_api_calls":0,
-                   "trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
+          seen=set(); records=[]; pages=[]; total=None; status="UNAVAILABLE"
+          try:
+            for page in range(1,13):
+              form={"pageNum":str(page),"pageSize":"30","tabName":"fulltext",
+                    "column":"","plate":"","stock":"","searchkey":"",
+                    "secid":"","category":"","trade":"","seDate":day+"~"+day,
+                    "sortName":"","sortType":"","isHLtitle":"false"}
+              req=urllib.request.Request(url,data=urllib.parse.urlencode(form).encode(),
+                  headers={"User-Agent":"Mozilla/5.0","Content-Type":"application/x-www-form-urlencoded; charset=UTF-8",
+                           "X-Requested-With":"XMLHttpRequest","Referer":"https://www.cninfo.com.cn/new/index"},method="POST")
+              with urllib.request.urlopen(req,timeout=12) as resp:
+                if resp.geturl()!=url:raise ValueError("redirect")
+                body=resp.read(500001)
+              if len(body)>500000:raise ValueError("oversize")
+              obj=json.loads(body)
+              batch=obj.get("announcements")
+              declared=obj.get("totalAnnouncement")
+              if not isinstance(batch,list) or len(batch)>30:raise ValueError("invalid page shape")
+              if type(declared) is not int or declared<0:raise ValueError("invalid count")
+              if total is None:total=declared
+              if total!=declared:raise ValueError("count changed")
+              accepted=0
+              for item in batch:
+                if not isinstance(item,dict):continue
+                identifier=item.get("announcementId")
+                if identifier is None:raise ValueError("missing announcement ID")
+                if str(identifier) in seen:raise ValueError("repeated ID across pages")
+                seen.add(str(identifier))
+                code=item.get("secCode")
+                title=item.get("announcementTitle")
+                adjunct=item.get("adjunctUrl")
+                if not all(isinstance(x,str) for x in (code,title,adjunct)):continue
+                if len(code)!=6 or not code.isascii() or not code.isdigit():continue
+                market=("SH" if code.startswith(("600","601","603","605")) else
+                        "SZ" if code.startswith(("000","001","002","003")) else None)
+                if market is None:continue
+                if not adjunct.startswith("finalpage/") or not adjunct.lower().endswith(".pdf"):continue
+                records.append({"announcement_id":str(identifier),"code":code,"market":market,
+                    "title":title[:160],"announcement_time_ms":item.get("announcementTime"),
+                    "pdf_url":"https://static.cninfo.com.cn/"+adjunct})
+                accepted+=1
+              pages.append({"page":page,"raw_rows":len(batch),"accepted_mainboard_rows":accepted,
+                            "response_sha256":hashlib.sha256(body).hexdigest()})
+              if page*30>=total:
+                status="BOUNDED_PAGE_STREAM_COMPLETE_RESEARCH_ONLY";break
+              if len(batch)!=30:raise ValueError("short intermediate page")
+            else:status="PAGE_CAP_REACHED_INCOMPLETE"
+          except Exception as exc:
+            status="PARTIAL_OR_FAILED_"+type(exc).__name__
+          complete=(status=="BOUNDED_PAGE_STREAM_COMPLETE_RESEARCH_ONLY")
+          result={"phase":"P3_CNINFO_SINGLE_STREAM_PROSPECTIVE_RESEARCH",
+                  "capture_utc":now.isoformat(),"query_day":day,"status":status,
+                  "reported_total":total,"pages":pages,
+                  "raw_rows_seen":sum(p["raw_rows"] for p in pages),
+                  "unique_raw_announcement_ids":len(seen),
+                  "mainboard_records":records,"mainboard_record_count":len(records),
+                  "pagination_complete":complete,"market_scoping_from_code_only":True,
+                  "mainboard_membership_historical_PIT_verified":False,
+                  "historical_publication_instant_authenticated":False,
+                  "all_historical_risk_events_complete":False,
+                  "paid_api_calls":0,"trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
           root=pathlib.Path("audit");root.mkdir(exist_ok=True)
-          (root/"cninfo_announcements.json").write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+"\n")
-          print(json.dumps({"statuses":[x["status"] for x in output],
-                            "record_counts":[x["record_count"] for x in output],
-                            "totals":[x.get("total_announcements_reported") for x in output],
-                            "complete":[x["pagination_complete"] for x in output],"gate":"BLOCKED"}))
+          (root/"cninfo_announcements.json").write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\\n")
+          print(json.dumps({k:result[k] for k in ("status","reported_total","raw_rows_seen","unique_raw_announcement_ids","mainboard_record_count","pagination_complete","trade_gate")}))
           PY
       - name: Preserve timestamped metadata without republishing originals
         if: always()
