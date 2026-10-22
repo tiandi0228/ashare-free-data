@@ -27,7 +27,7 @@ def remote_read(repo):
     try:
         result=json.loads(gh(f"repos/{repo}/contents/{CHECKPOINT}", "-f", "ref=main", "--method", "GET"))
         raw=base64.b64decode(result["content"]).decode()
-        return json.loads(raw.removesuffix("\\\\n")),result["sha"]
+        return json.loads(raw.removesuffix(chr(92)+"n")),result["sha"]
     except subprocess.CalledProcessError as exc:
         if exc.returncode==1: return None,None
         raise
