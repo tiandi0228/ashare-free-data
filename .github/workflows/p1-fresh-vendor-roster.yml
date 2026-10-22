@@ -36,15 +36,53 @@ jobs:
       - name: Install free Baostock
         run: python -m pip install 'baostock>=0.8,<1'
       - name: Observe current Beijing-date mainboard roster from free provider
+        id: roster
+        continue-on-error: true
         run: timeout 210s python -m collector.p1_fresh_vendor_roster --out evidence
+      - name: Recover explicitly stale vendor roster if live source fails
+        if: steps.roster.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import hashlib,json,subprocess
+          from pathlib import Path
+          runs=json.loads(subprocess.check_output(['gh','run','list','--workflow','p1-fresh-vendor-roster.yml','--json','databaseId,conclusion','--limit','20']))
+          for run in runs:
+              if run['conclusion']!='success':continue
+              rid=run['databaseId']
+              dest=Path('frozen_previous')
+              result=subprocess.run(['gh','run','download',str(rid),'-n',f'p1-fresh-roster-{rid}','-D',str(dest)],capture_output=True,text=True)
+              if result.returncode:continue
+              qfile=dest/'quality.json'; csvfile=dest/'mainboard.csv'
+              if not (qfile.exists() and csvfile.exists()):continue
+              try:
+                  q=json.loads(qfile.read_text())
+                  if q['status']!='OBSERVED_UNVERIFIED' or q['mainboard_prefix_rows']<2500 or hashlib.sha256(csvfile.read_bytes()).hexdigest()!=q['mainboard_sha256'] or q['trade_gate']!='BLOCKED':continue
+                  Path('evidence').mkdir(exist_ok=True)
+                  Path('evidence/mainboard.csv').write_bytes(csvfile.read_bytes())
+                  q.update(status='FROZEN_VENDOR_SNAPSHOT_UNVERIFIED',snapshot_origin_run=rid,
+                           snapshot_requested_day=q['requested_day'],snapshot_reused=True,
+                           source_day_is_official_publication_proof=False,
+                           historical_PIT_verified=False,publisher_authenticated=False,
+                           trade_gate='BLOCKED',orders=[],executable_candidates=[])
+                  Path('evidence/quality.json').write_text(json.dumps(q,ensure_ascii=False,indent=2)+'\\n')
+                  print('RECOVERED: explicitly frozen vendor snapshot from',rid,q['requested_day'])
+                  break
+              except (ValueError,KeyError,TypeError):continue
+          else:raise SystemExit('No verified frozen vendor snapshot available; fail closed')
+          PY
       - name: Verify bounded original roster receipt
         run: |
           python - <<'PY'
           import json,hashlib
           from pathlib import Path
           q=json.loads(Path('evidence/quality.json').read_text())
-          assert q['status']=='OBSERVED_UNVERIFIED'
+          assert q['status'] in ('OBSERVED_UNVERIFIED','FROZEN_VENDOR_SNAPSHOT_UNVERIFIED')
           assert q['mainboard_prefix_rows']>=2500
+          if q['status']=='FROZEN_VENDOR_SNAPSHOT_UNVERIFIED':
+              assert q['snapshot_reused'] is True and q['snapshot_origin_run']>0
+              print('WARNING: STALE vendor snapshot, not a current-day roster')
           assert hashlib.sha256(Path('evidence/mainboard.csv').read_bytes()).hexdigest()==q['mainboard_sha256']
           assert 1<=q['logical_queries']<=2 and q['paid_api_calls']==0
           assert q['publisher_authenticated'] is False and q['historical_PIT_verified'] is False
