@@ -40,11 +40,26 @@ class FreshRosterTests(unittest.TestCase):
             self.assertFalse(q["publisher_authenticated"])
             self.assertEqual(q["trade_gate"],"BLOCKED")
             self.assertEqual(provider.queries,1)
+    def test_one_retry_recovers_truncated_roster(self):
+        class TruncatedOnce(Provider):
+            def query_all_stock(self,day):
+                self.queries+=1
+                count=50 if self.queries==1 else 1000
+                return Result([[f"sh.{600000+i}","1",f"issuer{i}"] for i in range(count)])
+        with tempfile.TemporaryDirectory() as tmp:
+            api=TruncatedOnce()
+            self.assertEqual(capture(tmp,api,"2026-10-22"),0)
+            q=json.loads((Path(tmp)/"quality.json").read_text())
+            self.assertEqual(q["logical_queries"],2)
+            self.assertEqual(q["mainboard_prefix_rows"],1000)
+            self.assertEqual(q["trade_gate"],"BLOCKED")
     def test_implausibly_small_roster_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(capture(tmp,Provider(False),"2026-10-22"),2)
             q=json.loads((Path(tmp)/"quality.json").read_text())
             self.assertEqual(q["status"],"BLOCKED_PARTIAL")
+            self.assertEqual(q["logical_queries"],2)
+            self.assertEqual(q["last_source_total_rows"],0)
             self.assertEqual(q["trade_gate"],"BLOCKED")
             self.assertFalse((Path(tmp)/"mainboard.csv").exists())
 if __name__=="__main__":unittest.main()
