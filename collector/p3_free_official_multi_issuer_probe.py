@@ -16,7 +16,7 @@ def capture(specs,out):
         sid=s["id"];url=s["url"];kind=s["kind"];code=s["issuer"]
         if (not re.fullmatch(r"[a-z0-9_]{3,60}",sid) or sid in ids or
             urlparse(url).scheme!="https" or urlparse(url).hostname not in ALLOWED or
-            kind not in KINDS or not re.fullmatch(r"(sh|sz)\\.[0-9]{6}",code)):
+            kind not in KINDS or not re.fullmatch(r"(sh|sz)[.][0-9]{6}",code)):
             raise ValueError("invalid original source specification")
         ids.add(sid)
         r={"source_id":sid,"issuer":code,"event_kind":kind,"url":url,
