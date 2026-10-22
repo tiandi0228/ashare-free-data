@@ -66,7 +66,7 @@ jobs:
                            source_day_is_official_publication_proof=False,
                            historical_PIT_verified=False,publisher_authenticated=False,
                            trade_gate='BLOCKED',orders=[],executable_candidates=[])
-                  Path('evidence/quality.json').write_text(json.dumps(q,ensure_ascii=False,indent=2)+'\\n')
+                  Path('evidence/quality.json').write_text(json.dumps(q,ensure_ascii=False,indent=2)+chr(10))
                   print('RECOVERED: explicitly frozen vendor snapshot from',rid,q['requested_day'])
                   break
               except (ValueError,KeyError,TypeError):continue
