@@ -52,13 +52,14 @@ def capture(manifest, batch_index, dest, provider=None):
                 row.update(status="OBSERVED_UNVERIFIED",rows=len(dates),first=dates[0].isoformat(),
                            last=dates[-1].isoformat(),sha256=hashlib.sha256(raw).hexdigest())
                 break
-            except (ConnectionError, TimeoutError) as exc:
-                row["error_type"] = type(exc).__name__
-                if attempt == 2:
-                    break
             except Exception as exc:
                 row["error_type"] = type(exc).__name__
-                break
+                # requests/urllib3 raise their own ConnectionError/Timeout classes.
+                # Never retry parse, validation, auth, or unknown exceptions.
+                transient = (isinstance(exc, (ConnectionError, TimeoutError)) or
+                             type(exc).__name__ in ("ConnectionError", "ConnectTimeout", "ReadTimeout", "Timeout"))
+                if not transient or attempt == 2:
+                    break
         results.append(row)
     succeeded=sum(x["status"]=="OBSERVED_UNVERIFIED" for x in results)
     report={"phase":"PUBLIC_FREE_BOUND_BATCH","status":"OBSERVED_UNVERIFIED" if all(x["status"]=="OBSERVED_UNVERIFIED" for x in results) else "BLOCKED_PARTIAL",
