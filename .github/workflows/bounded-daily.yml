@@ -1,5 +1,13 @@
 name: A-share FREE bounded research batch (NO TRADES)
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bounded-daily.yml'
+      - 'collector/batch.py'
+      - 'manifests/pilot_issuers.txt'
+  schedule:
+    - cron: '15 8 * * 1-5' # 16:15 Beijing, weekdays (UTC scheduler)
   workflow_dispatch:
     inputs:
       batch_index:
@@ -68,6 +76,9 @@ jobs:
           assert q['phase']=='PUBLIC_FREE_BOUND_BATCH'
           assert q['batch_cap']==8 and 1<=q['requested_count']<=8
           assert q['logical_sdk_calls']==q['requested_count']
+          assert q['successful_issuer_count']+q['failed_issuer_count']==q['requested_count']
+          assert q['observed_issuer_coverage_fraction']==q['successful_issuer_count']/q['requested_count']
+          assert q['observed_at_utc'].endswith('+00:00')
           assert q['status']=='OBSERVED_UNVERIFIED'
           assert q['paid_api_calls']==0 and q['trade_gate']=='BLOCKED'
           assert not q['orders'] and not q['executable_candidates']
