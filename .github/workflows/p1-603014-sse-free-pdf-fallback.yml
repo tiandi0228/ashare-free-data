@@ -1,4 +1,4 @@
-name: P1 contemporary CNINFO IPO original PDF proof (NO TRADES)
+name: P1 CNINFO IPO contemporary PDF whitespace-normalized audit (NO TRADES)
 on:
   push:
     branches: [main]
