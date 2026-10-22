@@ -215,10 +215,13 @@ jobs:
                             "source_pagination_complete":report["source_pagination_complete"],
                             "trade_gate":"BLOCKED"},ensure_ascii=False))
           PY
+      - name: Install free PDF text extractor
+        run: python -m pip install "pypdf>=5,<7"
       - name: Independently fetch bounded candidate PDF originals and hash bytes
         run: |
           python - <<'PY'
-          import datetime,hashlib,json,pathlib,urllib.parse,urllib.request
+          import datetime,hashlib,io,json,pathlib,re,urllib.parse,urllib.request
+          from pypdf import PdfReader
           root=pathlib.Path("audit")
           audit=json.loads((root/"p3_title_risk_candidates.json").read_text())
           rows=[]
@@ -239,6 +242,23 @@ jobs:
                 raise ValueError("invalid bounded PDF")
               out.update(status="ORIGINAL_BYTES_CAPTURED_RESEARCH_ONLY",
                          bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest())
+              try:
+                reader=PdfReader(io.BytesIO(raw),strict=True)
+                if reader.is_encrypted:raise ValueError("encrypted PDF")
+                if len(reader.pages)>80:raise ValueError("too many pages")
+                text=" ".join((page.extract_text() or "") for page in reader.pages)
+                signals={
+                  "trading_halt":bool(re.search("停牌|复牌|暂停交易",text)),
+                  "delisting":bool(re.search("终止上市|退市整理|摘牌",text)),
+                  "risk_warning":bool(re.search("风险警示|\\\\*ST",text)),
+                }
+                # Date mentions may refer to unrelated events: never declare effective date.
+                dates=list(dict.fromkeys(re.findall(r"20[0-9]{2}年[0-9]{1,2}月[0-9]{1,2}日",text)))[:8]
+                out.update(pdf_pages=len(reader.pages),text_chars=len(text),
+                           body_keyword_signals=signals,date_mentions_unverified=dates,
+                           text_extraction_status="TEXT_OBSERVED_NOT_LEGALLY_CLASSIFIED" if text else "NO_EXTRACTABLE_TEXT")
+              except Exception as parse_exc:
+                out["text_extraction_status"]="FAILED_"+type(parse_exc).__name__
             except Exception as exc:
               out["failure_type"]=type(exc).__name__
             rows.append(out)
