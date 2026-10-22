@@ -6,6 +6,8 @@ on:
       - '.github/workflows/p1-fresh-vendor-roster.yml'
       - 'collector/p1_fresh_vendor_roster.py'
       - 'tests/test_p1_fresh_vendor_roster.py'
+      - 'collector/p1_fresh_shard_plan.py'
+      - 'tests/test_p1_fresh_shard_plan.py'
   schedule:
     - cron: '10 9 * * 1-5' # 17:10 Beijing weekdays
   workflow_dispatch:
@@ -21,7 +23,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline source tests
-        run: python -m unittest tests.test_p1_fresh_vendor_roster -v
+        run: python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan -v
       - name: Install free Baostock
         run: python -m pip install 'baostock>=0.8,<1'
       - name: Observe current Beijing-date mainboard roster from free provider
@@ -40,6 +42,23 @@ jobs:
           assert q['publisher_authenticated'] is False and q['historical_PIT_verified'] is False
           assert q['trade_gate']=='BLOCKED' and q['orders']==[] and q['executable_candidates']==[]
           print('PASS: fresh vendor snapshot observed; no historical PIT or tradability certification')
+          PY
+      - name: Build deterministic eight-issuer research batches from real roster
+        run: |
+          python -m collector.p1_fresh_shard_plan --source evidence/mainboard.csv --out evidence/shards --requested-day "$(TZ=Asia/Shanghai date +%F)"
+          python - <<'PY'
+          import json,hashlib,math
+          from pathlib import Path
+          q=json.loads(Path('evidence/quality.json').read_text())
+          p=json.loads(Path('evidence/shards/plan.json').read_text())
+          assert p['source_sha256']==q['mainboard_sha256']
+          assert p['issuer_count']==q['mainboard_prefix_rows']
+          assert p['shard_count']==math.ceil(q['mainboard_prefix_rows']/8)
+          assert sum(s['count'] for s in p['shards'])==q['mainboard_prefix_rows']
+          for s in p['shards']:
+              assert hashlib.sha256(Path('evidence/shards',s['name']).read_bytes()).hexdigest()==s['sha256']
+          assert p['historical_PIT_verified'] is False and p['trade_gate']=='BLOCKED'
+          print('PASS: fresh vendor roster mapped to deterministic research shards; no historical PIT certification')
           PY
       - uses: actions/upload-artifact@v4
         if: always()
