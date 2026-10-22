@@ -26,6 +26,26 @@ class BatchTests(unittest.TestCase):
             self.assertEqual(report["orders"],[])
             self.assertFalse(report["historical_point_in_time_universe_verified"])
             self.assertEqual(len(api.calls),2)
+    def test_connection_error_retried_once(self):
+        class TransientProvider:
+            def __init__(self):
+                self.calls = 0
+                self.inner = FakeProvider()
+            def stock_zh_a_hist(self, **kwargs):
+                self.calls += 1
+                if self.calls == 1:
+                    raise ConnectionError("transient")
+                return self.inner.stock_zh_a_hist(**kwargs)
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp); manifest=root/"m.txt";manifest.write_text("600000\\n")
+            api=TransientProvider()
+            self.assertEqual(capture(manifest,0,root/"out",api),0)
+            q=json.loads((root/"out/quality.json").read_text())
+            self.assertEqual(q["logical_sdk_calls"],2)
+            self.assertEqual(q["issuers"][0]["attempts"],2)
+            self.assertEqual(q["successful_issuer_count"],1)
+            self.assertEqual(q["trade_gate"],"BLOCKED")
+
     def test_out_of_range_does_not_query(self):
         with tempfile.TemporaryDirectory() as tmp:
             p=Path(tmp)/"m.txt";p.write_text("600000\n")
