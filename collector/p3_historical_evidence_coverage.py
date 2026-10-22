@@ -18,9 +18,9 @@ def verified_before_decision(observation):
         instant = datetime.fromisoformat(raw.replace('Z', '+00:00'))
         day = date.fromisoformat(observation['decision_date'])
         published_day = date.fromisoformat(observation['publication_day'])
+        china_day = instant.astimezone(timezone(timedelta(hours=8))).date()
         return (instant.tzinfo is not None and
-                instant.astimezone(timezone.utc).date() == published_day and
-                instant.astimezone(timezone(timedelta(hours=8))).date() < day)
+                china_day == published_day and china_day < day)
     except (ValueError, TypeError, KeyError):
         return False
 
