@@ -29,13 +29,18 @@ def extract(report):
                 raise ValueError("original context missing")
             hits=[]
             for sample in samples:
-                positions=[m.start() for m in re.finditer(re.escape(d["date_text"]),sample)]
-                if not positions:raise ValueError("date/context mismatched")
-                for label,word in actions.items():
-                    for m in re.finditer(re.escape(word),sample):
-                        gap=min(min(abs(m.start()-position),abs(m.end()-position)) for position in positions)
-                        if gap<=80:
-                            hits.append({"action":label,"phrase":word,"character_gap":gap})
+                if d["date_text"] not in sample:
+                    raise ValueError("date/context mismatched")
+                # Never join a date and an event verb across sentence or clause boundaries.
+                for clause in re.split(r"[。！？；;\\n]",sample):
+                    positions=[m.start() for m in re.finditer(re.escape(d["date_text"]),clause)]
+                    if not positions:
+                        continue
+                    for label,word in actions.items():
+                        for m in re.finditer(re.escape(word),clause):
+                            gap=min(min(abs(m.start()-position),abs(m.end()-position)) for position in positions)
+                            if gap<=80:
+                                hits.append({"action":label,"phrase":word,"character_gap":gap})
             labels=sorted(set(x["action"] for x in hits))
             output.append({"issuer":doc["issuer"],"source_id":doc["source_id"],
                 "date_text":d["date_text"],"nearby_action_labels":labels,
