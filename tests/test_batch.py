@@ -1,5 +1,6 @@
 """Offline tests for manifest scope and batch safety."""
 import json
+from datetime import datetime, timezone
 import tempfile
 import unittest
 from pathlib import Path
@@ -16,6 +17,10 @@ class BatchTests(unittest.TestCase):
             self.assertEqual(capture(manifest,0,root/"out",api),0)
             report=json.loads((root/"out/quality.json").read_text())
             self.assertEqual(report["requested_count"],2)
+            self.assertEqual(report["successful_issuer_count"],2)
+            self.assertEqual(report["failed_issuer_count"],0)
+            self.assertEqual(report["observed_issuer_coverage_fraction"],1.0)
+            self.assertIsNotNone(datetime.fromisoformat(report["observed_at_utc"]).tzinfo)
             self.assertEqual(report["logical_sdk_calls"],2)
             self.assertEqual(report["trade_gate"],"BLOCKED")
             self.assertEqual(report["orders"],[])
@@ -44,6 +49,9 @@ class BatchTests(unittest.TestCase):
             self.assertEqual(capture(m,0,root/"out",FakeProvider(invalid=True)),2)
             report=json.loads((root/"out/quality.json").read_text())
             self.assertEqual(report["status"],"BLOCKED_PARTIAL")
+            self.assertEqual(report["successful_issuer_count"],0)
+            self.assertEqual(report["failed_issuer_count"],1)
+            self.assertEqual(report["observed_issuer_coverage_fraction"],0.0)
             self.assertEqual(report["orders"],[])
 
 if __name__=="__main__":
