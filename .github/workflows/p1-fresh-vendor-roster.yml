@@ -77,6 +77,8 @@ jobs:
           from pathlib import Path
           p=json.loads(Path('evidence/shards/plan.json').read_text())
           runs=json.loads(subprocess.check_output(['gh','run','list','--workflow','p1-fresh-vendor-roster.yml','--json','databaseId,conclusion','--limit','12']))
+          best=None
+          best_count=-1
           for entry in runs:
               if entry['conclusion']!='success': continue
               rid=entry['databaseId']
@@ -88,10 +90,14 @@ jobs:
               try:
                   ledger=json.loads(candidates[0].read_text())
                   if ledger['source_sha256']==p['source_sha256'] and ledger['shard_count']==p['shard_count']:
-                      Path('evidence/prior_ledger.json').write_text(json.dumps(ledger))
-                      print('Recovered same-roster ledger from run',rid)
-                      break
+                      count=ledger.get('completed_issuers',-1)
+                      if type(count) is int and count>best_count:
+                          best,best_count=(ledger,rid),count
               except (ValueError,KeyError,TypeError):pass
+          if best is not None:
+              ledger,rid=best
+              Path('evidence/prior_ledger.json').write_text(json.dumps(ledger))
+              print('Recovered highest-progress same-roster ledger from run',rid,'issuers',best_count)
           PY
       - name: Choose next incomplete pair from same-roster ledger, or bounded date rotation
         id: pick
