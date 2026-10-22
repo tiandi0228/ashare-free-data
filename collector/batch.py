@@ -9,7 +9,7 @@ import csv
 import hashlib
 import json
 import re
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from collector.probe import check_frame, START, END
 
@@ -50,7 +50,12 @@ def capture(manifest, batch_index, dest, provider=None):
         except Exception as exc:
             row["error_type"]=type(exc).__name__
         results.append(row)
+    succeeded=sum(x["status"]=="OBSERVED_UNVERIFIED" for x in results)
     report={"phase":"PUBLIC_FREE_BOUND_BATCH","status":"OBSERVED_UNVERIFIED" if all(x["status"]=="OBSERVED_UNVERIFIED" for x in results) else "BLOCKED_PARTIAL",
+            "observed_at_utc":datetime.now(timezone.utc).isoformat(),
+            "successful_issuer_count":succeeded,
+            "failed_issuer_count":len(selected)-succeeded,
+            "observed_issuer_coverage_fraction":succeeded/len(selected),
             "manifest_sha256":manifest_sha,"batch_index":batch_index,"batch_count":batches,
             "batch_cap":MAX_BATCH,"requested_count":len(selected),"logical_sdk_calls":len(selected),
             "underlying_http_count_verified":False,"paid_api_calls":0,"source":"Eastmoney via AkShare",
