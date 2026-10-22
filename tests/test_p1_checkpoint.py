@@ -15,6 +15,13 @@ class CheckpointTests(unittest.TestCase):
     def test_other_roster_is_rejected(self):
         other=self.ledger(1);other["source_sha256"]="z"*64
         with self.assertRaises(ValueError):merge(self.ledger(2),other)
+    def test_equal_count_replacement_rejected(self):
+        newer=self.ledger(1)
+        older=self.ledger(1)
+        newer["completed"][0]["receipt_sha256"]="d"*64
+        with self.assertRaises(ValueError):merge(newer,older)
+    def test_added_shard_preserves_old_evidence(self):
+        self.assertEqual(merge(self.ledger(2),self.ledger(1))["completed_issuers"],16)
     def test_orders_rejected(self):
         candidate=self.ledger(0);candidate["orders"]=[{"buy":"SH"}]
         with self.assertRaises(ValueError):validate(candidate)
