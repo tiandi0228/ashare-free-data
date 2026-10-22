@@ -31,7 +31,7 @@ def join(root, inventory):
             raise ValueError("invalid provenance or PIT elevation")
         date.fromisoformat(e["effective_date_as_stated"])
         by_issuer[e["issuer"]].append(e)
-    counts=Counter();present=set();source_rows=0
+    counts=Counter();present=set();source_rows=0;date_spans={}
     for receipt in Path(root).rglob("quality.json"):
         q=json.loads(receipt.read_text())
         for entry in q["issuer_receipts"]:
@@ -39,6 +39,9 @@ def join(root, inventory):
             with (receipt.parent/(code.replace(".","_")+".csv")).open(newline="") as fh:
                 rows=list(csv.DictReader(fh))
             source_rows+=len(rows)
+            if rows:
+                dates=[r["date"] for r in rows]
+                date_spans[code]=(min(dates),max(dates))
             for row in rows:
                 for e in by_issuer.get(code,[]):
                     before=row["date"]<e["effective_date_as_stated"]
@@ -52,7 +55,14 @@ def join(root, inventory):
             unmatched.append({"issuer":code,"event_kind":e["kind"],
                               "reason":"NOT_IN_FROZEN_128_RESEARCH_SAMPLE"})
             continue
+        first,last=date_spans[code]
+        effective=e["effective_date_as_stated"]
+        relation=("BEFORE_SOURCE_WINDOW" if effective<first else
+                  "AFTER_SOURCE_WINDOW" if effective>last else
+                  "WITHIN_SOURCE_WINDOW")
         joined.append({"issuer":code,"event_kind":e["kind"],
+                       "source_first_day":first,"source_last_day":last,
+                       "effective_date_relation_to_source_window":relation,
                        "effective_day":e["effective_date_as_stated"],
                        "before_effective_source_rows":counts[(code,e["kind"],"BEFORE")],
                        "on_or_after_effective_source_rows":counts[(code,e["kind"],"ON_OR_AFTER")],
@@ -63,6 +73,11 @@ def join(root, inventory):
             "sample_source_rows":source_rows,
             "official_verified_event_count":len(events),
             "joined_events":joined,"events_not_in_sample":unmatched,
+            "event_sample_disposition_counts":{
+                "IN_SAMPLE_WITH_BARS":len(joined),
+                "OUTSIDE_FROZEN_SAMPLE":len(unmatched),
+                "IN_SAMPLE_NO_BARS":0},
+            "frozen_sample_scope_only":True,
             "historical_point_in_time_risk_coverage_rows":0,
             "historical_full_market_verified":False,
             "trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
