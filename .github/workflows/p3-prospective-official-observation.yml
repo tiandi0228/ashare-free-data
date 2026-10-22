@@ -154,7 +154,7 @@ jobs:
                     "title":title[:160],"announcement_time_ms":item.get("announcementTime"),
                     "pdf_url":"https://static.cninfo.com.cn/"+adjunct})
                 accepted+=1
-              pages.append({"page":page,"raw_rows":len(batch),"accepted_mainboard_rows":accepted,
+              pages.append({"page":page,"raw_rows":len(batch),"first_page_ids":[str(x.get("announcementId")) for x in batch] if page==1 else [],"accepted_mainboard_rows":accepted,
                             "response_sha256":hashlib.sha256(body).hexdigest()})
               if page*30>=total:
                 status="BOUNDED_PAGE_STREAM_COMPLETE_RESEARCH_ONLY";break
@@ -162,6 +162,27 @@ jobs:
             else:status="PAGE_CAP_REACHED_INCOMPLETE"
           except Exception as exc:
             status="PARTIAL_OR_FAILED_"+type(exc).__name__
+          # Re-fetch page one to detect live-list shifts during pagination.
+          first_page_recheck="NOT_CHECKED"
+          if status=="BOUNDED_PAGE_STREAM_COMPLETE_RESEARCH_ONLY" and pages:
+            try:
+              form["pageNum"]="1"
+              req=urllib.request.Request(url,data=urllib.parse.urlencode(form).encode(),
+                headers={"User-Agent":"Mozilla/5.0","Content-Type":"application/x-www-form-urlencoded; charset=UTF-8",
+                         "X-Requested-With":"XMLHttpRequest","Referer":"https://www.cninfo.com.cn/new/index"},method="POST")
+              with urllib.request.urlopen(req,timeout=12) as resp:
+                if resp.geturl()!=url:raise ValueError("redirect")
+                recheck=resp.read(500001)
+              if len(recheck)>500000:raise ValueError("oversize")
+              obj=json.loads(recheck)
+              ids=[str(x.get("announcementId")) for x in obj.get("announcements",[])]
+              expected=pages[0]["first_page_ids"]
+              first_page_recheck=("MATCH" if ids==expected and obj.get("totalAnnouncement")==total else "CHANGED")
+              if first_page_recheck!="MATCH":status="LIVE_PAGE_ONE_CHANGED"
+            except Exception as exc:
+              first_page_recheck="FAILED_"+type(exc).__name__
+              status="LIVE_PAGE_ONE_RECHECK_FAILED"
+          for p in pages:p.pop("first_page_ids",None)
           complete=(status=="BOUNDED_PAGE_STREAM_COMPLETE_RESEARCH_ONLY")
           if status=="BOUNDED_PAGE_STREAM_COMPLETE_RESEARCH_ONLY" and (wrong_day_count or invalid_timestamp_count):
             status="DATE_FILTER_NOT_CONFIRMED"
@@ -176,6 +197,7 @@ jobs:
                   "reported_total":total,"pages":pages,
                   "raw_rows_seen":sum(p["raw_rows"] for p in pages),
                   "unique_raw_announcement_ids":len(seen),
+                  "page_one_stability_recheck":first_page_recheck,
                   "raw_valid_timestamps":raw_timestamp_count,
                   "raw_wrong_day_timestamps":wrong_day_count,
                   "raw_invalid_timestamps":invalid_timestamp_count,
@@ -191,7 +213,7 @@ jobs:
                   "paid_api_calls":0,"trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
           root=pathlib.Path("audit");root.mkdir(exist_ok=True)
           (root/"cninfo_announcements.json").write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
-          print(json.dumps({k:result[k] for k in ("status","reported_total","raw_rows_seen","unique_raw_announcement_ids","mainboard_record_count","pagination_complete","raw_valid_timestamps","raw_wrong_day_timestamps","raw_invalid_timestamps","trade_gate")}))
+          print(json.dumps({k:result[k] for k in ("status","reported_total","raw_rows_seen","unique_raw_announcement_ids","mainboard_record_count","pagination_complete","raw_valid_timestamps","raw_wrong_day_timestamps","raw_invalid_timestamps","page_one_stability_recheck","trade_gate")}))
           PY
       - name: Triage candidate risk notices without certifying issuer state
         run: |
