@@ -30,6 +30,8 @@ on:
       - 'tests/test_p3_historical_evidence_coverage.py'
       - 'collector/p3_evidence_gap_report.py'
       - 'tests/test_p3_evidence_gap_report.py'
+      - 'collector/p3_real_receipt_gap.py'
+      - 'tests/test_p3_real_receipt_gap.py'
       - 'reports/p1_early_only_8_historical_research_20261022.json'
       - 'collector/audit_dated_rosters.py'
       - 'tests/test_audit_dated_rosters.py'
@@ -61,6 +63,18 @@ jobs:
         run: python -m py_compile collector/baostock_dated_universe.py collector/baostock_batch.py collector/research_24_coverage_gate.py collector/vendor_historical_st_probe.py collector/source_retention_gate.py collector/reacquire_source_digest.py collector/reacquire_24_pilot.py collector/p1_early_only_recovery.py collector/audit_dated_rosters.py collector/audit_24_reacquisition.py
       - name: Verify fail-closed source tests without installing a provider or contacting markets
         run: python -m unittest discover -s tests -v
+      - name: Audit real CNINFO two-PDF receipt against frozen P3 decision days
+        run: |
+          python -m collector.p3_real_receipt_gap --out audit/p3_real_600421_evidence_gaps.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path('audit/p3_real_600421_evidence_gaps.json').read_text())
+          assert q['required_evidence_cells']==28 and q['verified_evidence_cells']==0
+          assert q['missing_evidence_cells']==28 and q['issuer_documents_observed']==2
+          assert q['trade_gate']=='BLOCKED' and q['orders']==[]
+          print('PASS: two authentic issuer capture receipts; zero independently official PIT-complete cells')
+          PY
       - name: Aggregate 24 independently replayed research issuer SHA receipts only
         run: |
           python -m collector.research_24_coverage_gate --out audit/24_research_source_coverage.json
