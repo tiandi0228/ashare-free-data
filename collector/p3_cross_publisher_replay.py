@@ -55,6 +55,24 @@ def audit(cninfo, sse, cninfo_replay, sse_replay):
       "complete_historical_daily_status_verified":False,
       "cninfo_missing_PIT_cells":a["missing_evidence_cells"],
       "sse_missing_PIT_cells":b["missing_evidence_cells"],
+      "evidence_layers":{
+        "original_source_bytes_same_at_two_observation_times":True,
+        "official_SSE_delist_notice_observed":True,
+        "issuer_CNINFO_notice_observed":True,
+        "historical_publication_instant_proven":False,
+        "all_ST_halt_listing_intervals_proven":False,
+        "historical_point_in_time_membership_proven":False,
+        "P4_out_of_sample_strategy_passed":False
+      },
+      "current_use":"SOURCE_PROVENANCE_RESEARCH_ONLY",
+      "missing_acceptance_requirements":[
+        "HISTORICAL_PUBLICATION_TIMESTAMPS",
+        "OFFICIAL_DAILY_LISTING_ST_HALT_DELIST_INTERVALS",
+        "FULL_MAINBOARD_HISTORICAL_UNIVERSE",
+        "DURABLE_REPLAYABLE_ORIGINALS_WITH_PERMITTED_RETENTION",
+        "P4_OUT_OF_SAMPLE_AND_EXECUTION_VALIDATION"
+      ],
+      "historical_risk_coverage_complete":False,
       "raw_source_durably_archived":False,
       "data_redistribution_licensed":False,
       "trade_gate":"BLOCKED","orders":[],"executable_candidates":[],"paid_api_calls":0
