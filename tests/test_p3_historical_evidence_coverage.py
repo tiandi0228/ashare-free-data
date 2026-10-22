@@ -74,6 +74,14 @@ class CoverageTests(unittest.TestCase):
                 r=audit_coverage([code],["2026-06-22"],[])
                 self.assertEqual(r["required_evidence_cells"],4)
                 self.assertEqual(r["trade_gate"],"BLOCKED")
+    def test_unhashable_scope_fails_with_validation_error(self):
+        for codes,days in [([["sh.600421"]],["2026-06-22"]),
+                           (["sh.600421"],[["2026-06-22"]])]:
+            with self.assertRaisesRegex(ValueError,"invalid frozen"):
+                audit_coverage(codes,days,[])
+    def test_bounded_scope_enforced_at_core_gate(self):
+        with self.assertRaisesRegex(ValueError,"bounded P3"):
+            audit_coverage(["sh.600421"],[f"2026-01-{i:02d}" for i in range(1,32)]+["2026-02-01"],[])
     def test_scope_rejected(self):
         with self.assertRaisesRegex(ValueError,"outside"):
             audit_coverage(["sh.600421"],["2026-06-22"],[item(code="sh.600608")])
