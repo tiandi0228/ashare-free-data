@@ -10,6 +10,7 @@ on:
       - 'tests/test_p1_fresh_shard_plan.py'
       - 'collector/p1_shard_ledger.py'
       - 'collector/p1_checkpoint.py'
+      - 'tests/test_p1_checkpoint.py'
       - 'tests/test_p1_shard_ledger.py'
   schedule:
     - cron: '10 1 * * 1-5' # 09:10 Beijing
@@ -33,7 +34,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline source tests
-        run: python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_shard_ledger -v
+        run: python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_shard_ledger tests.test_p1_checkpoint -v
       - name: Install free Baostock
         run: python -m pip install 'baostock>=0.8,<1'
       - name: Observe current Beijing-date mainboard roster from free provider
