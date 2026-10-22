@@ -26,6 +26,13 @@ class ProspectiveHandoffTests(unittest.TestCase):
         self.assertFalse(r["official_historical_PIT_universe_verified"])
         self.assertFalse(r["frozen_out_of_sample_backtest_verified"])
 
+    def test_historical_oos_is_blocked_even_if_capture_passes(self):
+        r=self.run_assessment()
+        self.assertTrue(r["capture_checks_all_passed"])
+        self.assertFalse(r["historical_backtest_input_eligible"])
+        self.assertEqual(len(r["missing_historical_backtest_requirements"]),6)
+        self.assertTrue(all(v is False for v in r["historical_backtest_input_requirements"].values()))
+
     def test_wrong_day_does_not_pass(self):
         self.index["raw_wrong_day_timestamps"]=1
         self.assertFalse(self.run_assessment()["capture_checks_all_passed"])
