@@ -110,7 +110,7 @@ jobs:
           for column in ("sse","szse"):
             seen=set()
             result={"column":column,"request_day":day,"status":"UNAVAILABLE",
-                    "record_count":0,"records":[],"pages":[],"pagination_complete":False}
+                    "record_count":0,"records":[],"pages":[],"pagination_complete":False,"exchange_scope_filter_applied":True}
             total=None
             try:
               for page in range(1,4):
@@ -137,6 +137,9 @@ jobs:
                   if not isinstance(x,dict):continue
                   code,title,adjunct=x.get("secCode"),x.get("announcementTitle"),x.get("adjunctUrl")
                   if not all(isinstance(y,str) for y in (code,title,adjunct)):continue
+                  if not code.isdigit() or len(code)!=6:continue
+                  if column=="sse" and not code.startswith(("600","601","603","605","688","689")):continue
+                  if column=="szse" and not code.startswith(("000","001","002","003","300","301")):continue
                   if not adjunct.startswith("finalpage/") or not adjunct.lower().endswith(".pdf"):continue
                   identifier=x.get("announcementId")
                   if identifier is None:continue
