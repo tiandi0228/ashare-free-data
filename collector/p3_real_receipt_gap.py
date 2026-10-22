@@ -22,6 +22,20 @@ def reconcile(receipt):
         or receipt.get("original_pdf_bytes_recoverable_from_this_receipt") is not False
         or receipt.get("trade_gate") != "BLOCKED"):
         raise ValueError("unrecognized original two-PDF research evidence")
+    expected_events = [
+        {"type":"ISSUER_STATED_RESUMPTION_DATE","source_url_date":"2026-05-23","stated_date":"2026-06-01","actual_exchange_tradability_verified":False},
+        {"type":"ISSUER_FORECAST_FINAL_TRADING_DATE","source_url_date":"2026-06-19","forecast":"2026-06-22","is_effective_exchange_delist":False},
+        {"type":"EXCHANGE_EFFECTIVE_DELIST_DATE_AUDIT_REFERENCE_ONLY","reference_effective_date":"2026-06-26","first_party_original_observed_in_runner":False,"exchange_original_sha256":None},
+    ]
+    expected_days = ["2026-05-22","2026-05-23","2026-05-29","2026-06-01","2026-06-19","2026-06-22","2026-06-26"]
+    if (receipt.get("events") != expected_events
+        or receipt.get("seven_asof_days") != expected_days
+        or receipt.get("source_run_conclusion") != "success"
+        or receipt.get("source_run_id") != 39581101776
+        or receipt.get("formal_full_market_history_verified") is not False
+        or receipt.get("orders") != []
+        or receipt.get("executable_candidates") != []):
+        raise ValueError("historical event chronology or source scope altered")
     days=receipt.get("seven_asof_days")
     if not isinstance(days,list) or len(days)!=7:
         raise ValueError("frozen decision-day scope changed")
