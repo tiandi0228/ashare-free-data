@@ -7,7 +7,8 @@ def item(code="sh.600421",kind="listing",**changes):
        "original_bytes_verified":True,"official_exchange_source_verified":True,
        "publication_instant_verified":True,"historical_asof_verified":True,
        "entire_decision_day_state_covered":True,
-       "original_sha256":"a"*64,"publication_day":"2026-06-21"}
+       "original_sha256":"a"*64,"publication_day":"2026-06-21",
+       "publication_instant_utc":"2026-06-21T12:00:00Z"}
     v.update(changes)
     return v
 
@@ -29,6 +30,15 @@ class CoverageTests(unittest.TestCase):
     def test_no_original_bytes_blocked(self):
         r=audit_coverage(["sh.600421"],["2026-06-22"],[item(original_bytes_verified=False)])
         self.assertEqual(r["rejected_evidence_records"],1)
+    def test_missing_authenticated_instant_rejected(self):
+        r=audit_coverage(["sh.600421"],["2026-06-22"],[item(publication_instant_utc=None)])
+        self.assertEqual(r["verified_evidence_cells"],0)
+    def test_same_day_instant_not_proven_before_decision(self):
+        r=audit_coverage(["sh.600421"],["2026-06-22"],[item(publication_day="2026-06-22",publication_instant_utc="2026-06-22T00:01:00Z")])
+        self.assertEqual(r["verified_evidence_cells"],0)
+    def test_malformed_timestamp_fails_closed(self):
+        r=audit_coverage(["sh.600421"],["2026-06-22"],[item(publication_instant_utc="unknown")])
+        self.assertFalse(r["complete"])
     def test_duplicate_rejected(self):
         with self.assertRaisesRegex(ValueError,"duplicate"):
             audit_coverage(["sh.600421"],["2026-06-22"],[item(),item()])
