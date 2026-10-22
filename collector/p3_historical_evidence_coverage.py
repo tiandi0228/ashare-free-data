@@ -27,9 +27,9 @@ def verified_before_decision(observation):
 KINDS = ("listing", "st", "halt", "delisting")
 
 def audit_coverage(codes, days, observations):
-    if not isinstance(codes, list) or not codes or len(codes) != len(set(codes)):
+    if not isinstance(codes, list) or not codes or any(not isinstance(x, str) for x in codes) or len(codes) != len(set(codes)):
         raise ValueError("invalid frozen issuer pool")
-    if not isinstance(days, list) or not days or len(days) != len(set(days)):
+    if not isinstance(days, list) or not days or any(not isinstance(x, str) for x in days) or len(days) != len(set(days)):
         raise ValueError("invalid frozen decision dates")
     if any(not isinstance(c, str) or not CODE.fullmatch(c) for c in codes):
         raise ValueError("invalid issuer id")
@@ -39,7 +39,7 @@ def audit_coverage(codes, days, observations):
                 raise ValueError("invalid day")
     except (TypeError, ValueError) as exc:
         raise ValueError("invalid decision date") from exc
-    if not isinstance(observations, list):
+    if len(codes) > 100 or len(days) > 31:\n        raise ValueError("bounded P3 audit scope exceeded")\n    if not isinstance(observations, list):
         raise ValueError("invalid evidence")
     expected = {(c, d, k) for c in codes for d in days for k in KINDS}
     verified = set()
