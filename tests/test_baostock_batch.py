@@ -1,6 +1,6 @@
 import json,tempfile,unittest
 from pathlib import Path
-from collector.baostock_batch import manifest,run
+from collector.baostock_batch import manifest,run,check_daily_bars
 
 class Result:
     error_code="0"
@@ -31,6 +31,22 @@ class Tests(unittest.TestCase):
             self.assertFalse(q["full_market_history_verified"])
             self.assertEqual(len(api.calls),2)
             self.assertTrue(api.out)
+    def test_reject_impossible_active_prices(self):
+        row=["2026-10-20","sh.600000","10","9","8","10","100","1000","3","1"]
+        with self.assertRaisesRegex(ValueError,"OHLC"):
+            check_daily_bars([row])
+
+    def test_reject_nan_and_non_numeric_active_bar(self):
+        for value in ("nan","inf",""):
+            with self.subTest(value=value):
+                row=["2026-10-20","sh.600000",value,"10","8","9","100","1000","3","1"]
+                with self.assertRaises(ValueError):
+                    check_daily_bars([row])
+
+    def test_suspended_placeholder_not_counted_as_tradable(self):
+        row=["2026-10-20","sh.600000","","","","","","","3","0"]
+        self.assertEqual(check_daily_bars([row]),(0,1))
+
     def test_invalid_manifest_does_not_query(self):
         with tempfile.TemporaryDirectory() as d:
             m=Path(d)/"m.txt";m.write_text("sz.300001\n")
