@@ -1,4 +1,4 @@
-name: P3 strict multi-issuer free official PDF evidence (NO TRADES)
+name: P3 six issuer free official ST halt IPO event probe (NO TRADES)
 on:
   push:
     branches: [main]
@@ -24,7 +24,7 @@ jobs:
           import json,hashlib
           from pathlib import Path
           q=json.loads(Path("evidence/quality.json").read_text())
-          assert q["source_count"]==2
+          assert q["source_count"]==6
           assert q["trade_gate"]=="BLOCKED" and q["orders"]==[]
           assert q["historical_PIT_eligible"]==0
           for r in q["sources"]:
@@ -34,7 +34,8 @@ jobs:
               else:
                   assert not file.exists()
               assert r["PIT_publication_verified"] is False
-          print("PASS: research sources provenance checked; no PIT signal promotion")
+          assert q["content_matched"] >= 2
+          print("PASS: all official originals independently hash-checked; unconfirmed event cues remain research only")
           PY
       - uses: actions/upload-artifact@v4
         if: always()
