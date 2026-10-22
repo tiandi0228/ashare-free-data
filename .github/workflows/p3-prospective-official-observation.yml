@@ -1,0 +1,76 @@
+name: P3 free prospective official-source observation (NO TRADES)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p3-prospective-official-observation.yml'
+  schedule:
+    - cron: '45 7 * * 1-5'  # 15:45 China Standard Time, weekdays
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p3-prospective-official-observation
+  cancel-in-progress: false
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Capture two official public notice indexes, bounded, metadata only
+        run: |
+          python - <<'PY'
+          import datetime,hashlib,json,pathlib,urllib.request
+          from zoneinfo import ZoneInfo
+          now=datetime.datetime.now(datetime.timezone.utc)
+          china=now.astimezone(ZoneInfo("Asia/Shanghai"))
+          targets=[
+            ("SSE","https://www.sse.com.cn/disclosure/announcement/listing/stock/"),
+            ("SZSE","https://www.szse.cn/disclosure/listed/notice/"),
+          ]
+          rows=[]
+          for publisher,url in targets:
+            row={"publisher":publisher,"url":url,"observed_at_utc":datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                 "status":"UNAVAILABLE","source_sha256":None,"bytes":None,"network_requests":1}
+            try:
+              req=urllib.request.Request(url,headers={"User-Agent":"ashare-free-data-research/1.0","Accept-Encoding":"identity"})
+              with urllib.request.urlopen(req,timeout=12) as resp:
+                if resp.geturl()!=url:raise ValueError("unapproved redirect")
+                raw=resp.read(500001)
+              if not raw or len(raw)>500000:raise ValueError("invalid size")
+              row.update(status="OBSERVED_HTML_ONLY",source_sha256=hashlib.sha256(raw).hexdigest(),bytes=len(raw))
+            except Exception as exc:
+              row["failure_type"]=type(exc).__name__
+            rows.append(row)
+          report={
+            "phase":"P3_PROSPECTIVE_OFFICIAL_SOURCE_INDEX_OBSERVATION",
+            "captured_at_utc":now.isoformat(),
+            "china_calendar_date":china.date().isoformat(),
+            "observations":rows,
+            "prospective_index_page_is_historical_issuer_state":False,
+            "full_historical_ST_halt_delist_verified":False,
+            "official_intraday_publication_certified":False,
+            "replayable_original_bytes_saved":False,
+            "paid_api_calls":0,"trade_gate":"BLOCKED","orders":[],"executable_candidates":[]
+          }
+          p=pathlib.Path("audit");p.mkdir(exist_ok=True)
+          (p/"official_index_capture.json").write_text(json.dumps(report,indent=2)+"\n")
+          print(json.dumps(report))
+          assert len(rows)==2 and report["trade_gate"]=="BLOCKED"
+          PY
+      - name: Preserve timestamped metadata without republishing originals
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p3-official-index-metadata-${{ github.run_id }}
+          path: audit/official_index_capture.json
+          retention-days: 30
+          if-no-files-found: warn
