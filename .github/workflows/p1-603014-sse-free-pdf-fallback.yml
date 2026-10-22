@@ -1,4 +1,4 @@
-name: P1 SSE PDF original content evidence recheck (NO TRADES)
+name: P1 contemporary CNINFO IPO original PDF proof (NO TRADES)
 on:
   push:
     branches: [main]
@@ -28,7 +28,7 @@ jobs:
           q=json.loads(Path('evidence/fallback_quality.json').read_text())
           assert q["trade_gate"]=="BLOCKED" and q["official_PIT_universe_verified"] is False
           assert q["orders"]==[] and q["executable_candidates"]==[]
-          assert len(q["sources"])==2
+          assert len(q["sources"])==3
           for r in q["sources"]:
               path=Path("evidence")/(r["source_id"]+".pdf")
               if r["original_bytes_verified"]:
@@ -40,7 +40,9 @@ jobs:
                   assert r["listing_day_text_verified"] is (r.get("code_text_observed",False) and r.get("date_text_observed",False))
               else:
                   assert not path.exists()
-          print("PASS: official alternate originals are hash-validated or transparently unavailable; trades BLOCKED")
+          ipo=next(x for x in q["sources"] if x["source_id"]=="cninfo_2025_ipo_original")
+          assert ipo["original_bytes_verified"] and ipo["listing_day_text_verified"], "original issuer IPO listing PDF must be verified"
+          print("PASS: contemporaneous CNINFO IPO PDF and listing date verified; historical arrival instant still unproven")
           PY
       - name: Retain original research evidence in Actions artifacts
         if: always()
