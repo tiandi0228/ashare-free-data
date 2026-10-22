@@ -9,6 +9,8 @@ on:
       - 'tests/test_delisted_backfill_pilot.py'
       - 'manifests/baostock_delisted_8_pilot.txt'
       - 'collector/baostock_batch.py'
+      - 'collector/batch.py'
+      - 'tests/test_batch.py'
       - 'collector/p1_roster_shard_manifest.py'
       - 'tests/test_p1_roster_shard_manifest.py'
       - 'collector/research_24_coverage_gate.py'
