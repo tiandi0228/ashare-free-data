@@ -1,0 +1,47 @@
+name: P3 original event effective text positive candidate verification (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/p3-positive-effective-text.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test positive and negative explicit clause recognizers
+        run: python -m unittest tests.test_p3_positive_effective_text_candidates -v
+      - name: Download actually replayed original PDF date contexts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 39754510346 --dir evidence
+      - name: Reconcile original PDF text with strict temporal boundary
+        run: |
+          INPUT="$(find evidence -name date_contexts.json -print -quit)"
+          test -n "$INPUT"
+          python -m collector.p3_positive_effective_text_candidates --input "$INPUT" --out audit/positive_effective_text.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("audit/positive_effective_text.json").read_text())
+          assert r["source_count"]==6 and r["date_cues"]==7
+          assert 0<=r["local_assertion_candidates"]<=7
+          assert r["official_PIT_trade_eligible"]==0
+          assert all(not e["effective_day_independently_certified"] for e in r["candidates"])
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("PASS: verified original clause-level evidence with separate zero PIT eligibility")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p3-original-positive-date-clauses-${{ github.run_id }}
+          path: audit/
+          retention-days: 30
+          if-no-files-found: warn
