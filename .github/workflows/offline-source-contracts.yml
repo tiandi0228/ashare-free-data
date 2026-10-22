@@ -23,6 +23,8 @@ on:
       - 'tests/test_reacquire_24_pilot.py'
       - 'collector/p1_early_only_recovery.py'
       - 'tests/test_p1_early_only_recovery.py'
+      - 'tests/test_p1_eight_committed_receipt_integrity.py'
+      - 'reports/p1_early_only_8_historical_research_20261022.json'
       - 'collector/audit_dated_rosters.py'
       - 'tests/test_audit_dated_rosters.py'
       - 'collector/audit_24_reacquisition.py'
