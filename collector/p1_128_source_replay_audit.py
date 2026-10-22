@@ -78,6 +78,19 @@ def audit(root, expected_manifest_sha=EXPECTED_MANIFEST_SHA):
     # Peer-observed sessions are a diagnostic, not an official trading calendar.
     peer_days={d for d,n in calendars.items() if n>=64}
     missing_peer={code:len(peer_days-days) for code,days in per_issuer.items()}
+    missing_detail=[]
+    buckets={"BEFORE_FIRST_VENDOR_ROW":0,"BETWEEN_VENDOR_ROWS":0,"AFTER_LAST_VENDOR_ROW":0}
+    for code, days in sorted(per_issuer.items()):
+        first,last=min(days),max(days)
+        for day in sorted(peer_days-days):
+            classification=("BEFORE_FIRST_VENDOR_ROW" if day<first else
+                            "AFTER_LAST_VENDOR_ROW" if day>last else
+                            "BETWEEN_VENDOR_ROWS")
+            buckets[classification]+=1
+            missing_detail.append({"code":code,"date":day,"position":classification,
+                                   "reason_authenticated":False})
+    if sum(buckets.values())!=sum(missing_peer.values()):
+        raise ValueError("missing-day diagnostic accounting mismatch")
     report={"phase":"P1_128_LIVE_CROSS_RUN_INDEPENDENT_AUDIT",
             "manifest_sha256":expected_manifest_sha,
             "verified_batches":len(seen_batches),"verified_unique_issuers":len(seen_issuers),
@@ -86,6 +99,10 @@ def audit(root, expected_manifest_sha=EXPECTED_MANIFEST_SHA):
             "majority_peer_observed_days":len(peer_days),
             "issuer_peer_missing_day_counts":missing_peer,
             "total_peer_missing_issuer_days":sum(missing_peer.values()),
+            "missing_peer_date_position_counts":buckets,
+            "missing_peer_date_details":missing_detail,
+            "first_last_vendor_row_is_listing_lifecycle_proof":False,
+            "inside_span_gap_is_confirmed_source_error":False,
             "peer_calendar_is_official":False,"active_status_rows":active,
             "suspended_status_rows":halted,
             "complete_128_research_source_replay":len(seen_issuers)==128,
