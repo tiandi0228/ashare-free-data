@@ -34,6 +34,10 @@ on:
       - 'tests/test_p3_real_receipt_gap.py'
       - 'collector/p3_sse_official_receipt_gap.py'
       - 'tests/test_p3_sse_official_receipt_gap.py'
+      - 'collector/p3_cross_publisher_replay.py'
+      - 'tests/test_p3_cross_publisher_replay.py'
+      - 'reports/p3_sse_independent_two_originals_verified_20261022.json'
+      - 'reports/p3_cninfo_two_pdf_independent_sha_recapture_20261022.json'
       - 'reports/p3_sse_two_official_original_sha_observed_20261022.json'
       - 'reports/p1_early_only_8_historical_research_20261022.json'
       - 'collector/audit_dated_rosters.py'
@@ -89,6 +93,18 @@ jobs:
           assert q['verified_evidence_cells']==0 and q['missing_evidence_cells']==28
           assert q['trade_gate']=='BLOCKED' and q['orders']==[]
           print('PASS: official SSE source verified as observed; full historical PIT still blocked')
+          PY
+      - name: Reconcile four real CNINFO and SSE independently replayed originals
+        run: |
+          python -m collector.p3_cross_publisher_replay --out audit/p3_cross_publisher_replay.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('audit/p3_cross_publisher_replay.json').read_text())
+          assert r['independently_replayed_originals']==4
+          assert r['trade_gate']=='BLOCKED' and r['orders']==[]
+          assert r['historical_publication_instant_verified'] is False
+          print('PASS: 4/4 independently matched originals; official historical PIT still unverified')
           PY
       - name: Aggregate 24 independently replayed research issuer SHA receipts only
         run: |
