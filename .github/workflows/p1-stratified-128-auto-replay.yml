@@ -1,4 +1,4 @@
-name: P1 stratified 128 official IPO gap check (NO TRADES)
+name: P1 stratified 128 original SSE IPO evidence replay (NO TRADES)
 on:
   push:
     branches: [main]
@@ -55,6 +55,18 @@ jobs:
           assert r["prelisting_consistent_gaps"]==139
           assert r["unresolved_gaps"]==0
           assert r["trade_gate"]=="BLOCKED" and not r["orders"]
+          PY
+      - name: Independently capture and SHA hash real SSE original IPO HTML
+        run: |
+          python -m collector.p1_603014_sse_original_capture --out audit/p1_603014_sse_source_receipt.json --raw evidence/sse_603014_original.html
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          r=json.loads(Path("audit/p1_603014_sse_source_receipt.json").read_text())
+          assert r["original_html_observed"] is True and r["historical_publication_instant_verified"] is False
+          assert r["first_trading_day"] == "2025-05-19" and r["issuer"] == "sh.603014"
+          assert hashlib.sha256(Path("evidence/sse_603014_original.html").read_bytes()).hexdigest()==r["sha256"]
+          assert r["trade_gate"] == "BLOCKED"
           PY
       - name: Persist audit receipt without redistributing vendor CSVs
         if: always()
