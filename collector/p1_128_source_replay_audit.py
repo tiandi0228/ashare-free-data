@@ -1,5 +1,7 @@
 """Independent cross-run audit of the 16 real free-Baostock shard artifacts."""
-import argparse,csv,hashlib,json
+import argparse,csv,hashlib,json,math
+from collections import Counter
+from datetime import date
 from pathlib import Path
 
 EXPECTED_MANIFEST_SHA="a369c66bbb8289ed418fdec7fd3cc4e5200ad0214916aea4cfbf46a40af68af0"
@@ -9,6 +11,7 @@ def audit(root):
     if len(docs)!=16:
         raise ValueError(f"expected 16 actual source receipts; got {len(docs)}")
     seen_batches=set();seen_issuers=set();total_rows=0;active=0;halted=0
+    per_issuer={};calendars=Counter()
     for file in docs:
         q=json.loads(file.read_text())
         batch=q.get("batch_index",0)
@@ -45,15 +48,45 @@ def audit(root):
             records=list(csv.reader(raw.decode().splitlines()))
             if len(records)-1!=entry["rows"]:
                 raise ValueError("source CSV row count mismatch")
+            rows=records[1:]
+            if records[0]!=["date","code","open","high","low","close","volume","amount","adjustflag","tradestatus"]:
+                raise ValueError("source column mismatch")
+            dates=[r[0] for r in rows]
+            if any(len(r)!=10 or r[1]!=code for r in rows):
+                raise ValueError("source row identity/shape mismatch")
+            if dates!=sorted(set(dates)):
+                raise ValueError("duplicate or unordered issuer dates")
+            for r in rows:
+                date.fromisoformat(r[0])
+                if r[9]=="1":
+                    try:
+                        op,hi,lo,cl,vol,amt=[float(r[i]) for i in (2,3,4,5,6,7)]
+                    except (ValueError,TypeError) as exc:
+                        raise ValueError("invalid active bar number") from exc
+                    if (not all(map(math.isfinite,(op,hi,lo,cl,vol,amt))) or
+                        min(op,hi,lo,cl)<=0 or hi<max(op,cl) or lo>min(op,cl) or vol<0 or amt<0):
+                        raise ValueError("invalid active OHLC values")
+                elif r[9]!="0":
+                    raise ValueError("invalid vendor trading status")
+                calendars[r[0]]+=1
+            per_issuer[code]=set(dates)
             trade=sum(r[9]=="1" for r in records[1:])
             suspend=sum(r[9]=="0" for r in records[1:])
             if trade!=entry["valid_active_bars"] or suspend!=entry["suspended_placeholder_rows"]:
                 raise ValueError("source status count mismatch")
             total_rows+=len(records)-1;active+=trade;halted+=suspend
+    # Peer-observed sessions are a diagnostic, not an official trading calendar.
+    peer_days={d for d,n in calendars.items() if n>=64}
+    missing_peer={code:len(peer_days-days) for code,days in per_issuer.items()}
     report={"phase":"P1_128_LIVE_CROSS_RUN_INDEPENDENT_AUDIT",
             "manifest_sha256":EXPECTED_MANIFEST_SHA,
             "verified_batches":len(seen_batches),"verified_unique_issuers":len(seen_issuers),
-            "historical_rows":total_rows,"active_status_rows":active,
+            "historical_rows":total_rows,
+            "distinct_vendor_observed_days":len(calendars),
+            "majority_peer_observed_days":len(peer_days),
+            "issuer_peer_missing_day_counts":missing_peer,
+            "total_peer_missing_issuer_days":sum(missing_peer.values()),
+            "peer_calendar_is_official":False,"active_status_rows":active,
             "suspended_status_rows":halted,
             "complete_128_research_source_replay":len(seen_issuers)==128,
             "official_PIT_universe_verified":False,
