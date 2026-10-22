@@ -1,9 +1,11 @@
 """Deterministically create a bounded, reproducible research shard manifest from vendor roster rows."""
 import argparse, hashlib, json, re
+from collections import defaultdict
 from pathlib import Path
 
 CODE=re.compile(r"^(?:sh\.(?:600|601|603|605)|sz\.(?:000|001|002|003))[0-9]{3}$")
 MAX=128
+BUCKETS=("sh.600","sh.601","sh.603","sh.605","sz.000","sz.001","sz.002","sz.003")
 def select_roster(rows, maximum=MAX):
     if not isinstance(rows,list) or type(maximum) is not int or not 1<=maximum<=MAX:
         raise ValueError("invalid roster input/cap")
@@ -18,11 +20,22 @@ def select_roster(rows, maximum=MAX):
     selected=sorted(c for c in all_codes if CODE.fullmatch(c))
     if not selected:
         raise ValueError("empty mainboard sample")
-    selected=selected[:maximum]
+    groups=defaultdict(list)
+    for code in selected:
+        groups[code[:6]].append(code)
+    ordered=[]
+    idx=0
+    while len(ordered)<maximum and len(ordered)<len(selected):
+        for bucket in BUCKETS:
+            if idx<len(groups[bucket]) and len(ordered)<maximum:
+                ordered.append(groups[bucket][idx])
+        idx+=1
+    selected=ordered
     content="".join(c+"\n" for c in selected)
     return content,{"phase":"P1_VENDOR_ROSTER_RESEARCH_MANIFEST",
                     "selected_count":len(selected),"candidate_mainboard_count":sum(bool(CODE.fullmatch(c)) for c in all_codes),
-                    "selection":"sorted mainboard IDs, first bounded N (NOT representative)",
+                    "selection":"deterministic prefix-stratified round-robin from retrospective roster (NOT historical PIT universe)",
+                    "prefix_counts":{k:sum(x.startswith(k) for x in selected) for k in BUCKETS},
                     "manifest_sha256":hashlib.sha256(content.encode()).hexdigest(),
                     "official_historical_membership_verified":False,
                     "historical_asof_verified":False,
