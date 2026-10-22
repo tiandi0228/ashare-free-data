@@ -1,5 +1,9 @@
 name: P1 stratified 128 original-file independent replay (NO TRADES)
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p1-stratified-128-auto-replay.yml'
   workflow_run:
     workflows: ["P1 stratified SH SZ research shards 1-15 (NO TRADES)"]
     types: [completed]
