@@ -7,13 +7,18 @@ from pathlib import Path
 
 ACTIONS={"ST_CHANGE":{"REVOKE_DELIST_WARNING":"撤销退市风险警示","REVOKE_OTHER_WARNING":"撤销其他风险警示","APPLY_OTHER_WARNING":"实施其他风险警示","APPLY_DELIST_WARNING":"实施退市风险警示"},"TRADING_HALT":{"HALT":"停牌","RESUME":"复牌"},"IPO_LISTING":{"LISTING":"上市交易"},"DELIST_RISK_ISSUER_FORECAST":{"FORECAST":"预计"}}
 def extract(report):
+    if not isinstance(report,dict):
+        raise ValueError("invalid original PDF report")
     if report.get("phase")!="P3_SIX_ORIGINAL_PDF_DATE_CONTEXT_INSPECTION" or report.get("trade_gate")!="BLOCKED":
         raise ValueError("wrong original PDF context phase")
     docs=report.get("results",[])
-    if len(docs)!=6:raise ValueError("missing original PDF evidence")
+    if not isinstance(docs,list) or len(docs)!=6 or any(not isinstance(doc,dict) for doc in docs):
+        raise ValueError("missing or malformed original PDF evidence")
     source_ids=[doc.get("source_id") for doc in docs]
     if any(not isinstance(s,str) or not s.strip() for s in source_ids) or len(set(source_ids))!=len(source_ids):
         raise ValueError("missing or duplicate original source IDs")
+    if any(not isinstance(doc.get("issuer"),str) or not doc["issuer"].strip() for doc in docs):
+        raise ValueError("missing original issuer")
     output=[]
     for doc in docs:
         actions=ACTIONS.get(doc.get("event_family"))
