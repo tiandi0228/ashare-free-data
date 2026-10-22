@@ -1,0 +1,30 @@
+{
+  "phase": "P3_SSE_INDEPENDENT_TWO_PAGE_SHA_REPLAY",
+  "first_run_id": 39704160169,
+  "second_run_id": 39705092936,
+  "job_id": 119583157455,
+  "observed_utc": "2026-10-22T01:20:29Z",
+  "match_count": 2,
+  "total": 2,
+  "results": [
+    {
+      "url": "https://www.sse.com.cn/disclosure/announcement/listing/stock/c/c_20260522_10819392.shtml",
+      "sha256": "87406ff9a1bac59c856612fbb8da947593cc4ab779401c6d656dc1399790fa4c",
+      "bytes": 27955,
+      "matched": true
+    },
+    {
+      "url": "https://www.sse.com.cn/disclosure/announcement/listing/stock/c/c_20260622_10823158.shtml",
+      "sha256": "d5c80ca0800759ec3f0ffafdf6643dada32bee8a4b4be7bff30cd133887784e8",
+      "bytes": 26422,
+      "matched": true
+    }
+  ],
+  "original_html_permanently_archived": false,
+  "historical_publication_instant_verified": false,
+  "full_market_PIT_ST_halt_delist_verified": false,
+  "paid_api_calls": 0,
+  "trade_gate": "BLOCKED",
+  "orders": [],
+  "executable_candidates": []
+}
