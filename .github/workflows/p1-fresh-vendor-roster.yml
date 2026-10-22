@@ -15,6 +15,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 jobs:
   roster:
     runs-on: ubuntu-latest
@@ -62,6 +63,31 @@ jobs:
           assert p['historical_PIT_verified'] is False and p['trade_gate']=='BLOCKED'
           print('PASS: fresh vendor roster mapped to deterministic research shards; no historical PIT certification')
           PY
+      - name: Recover prior successful ledger only for identical roster SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json,subprocess
+          from pathlib import Path
+          p=json.loads(Path('evidence/shards/plan.json').read_text())
+          runs=json.loads(subprocess.check_output(['gh','run','list','--workflow','p1-fresh-vendor-roster.yml','--json','databaseId,conclusion','--limit','12']))
+          for entry in runs:
+              if entry['conclusion']!='success': continue
+              rid=entry['databaseId']
+              dest=Path('previous')
+              download=subprocess.run(['gh','run','download',str(rid),'-n',f'p1-fresh-roster-{rid}','-D',str(dest)],capture_output=True,text=True)
+              if download.returncode!=0: continue
+              candidates=list(dest.rglob('ledger.json'))
+              if not candidates:continue
+              try:
+                  ledger=json.loads(candidates[0].read_text())
+                  if ledger['source_sha256']==p['source_sha256'] and ledger['shard_count']==p['shard_count']:
+                      Path('evidence/prior_ledger.json').write_text(json.dumps(ledger))
+                      print('Recovered same-roster ledger from run',rid)
+                      break
+              except (ValueError,KeyError,TypeError):pass
+          PY
       - name: Choose two bounded shards (manual first pair, scheduled rotating pair)
         id: pick
         run: |
@@ -72,6 +98,11 @@ jobs:
           q=json.loads(Path('evidence/shards/plan.json').read_text())
           pair_count=(q['shard_count']+1)//2
           idx=0 if os.environ.get('GITHUB_EVENT_NAME')!='schedule' else datetime.datetime.now(ZoneInfo('Asia/Shanghai')).date().toordinal()%pair_count
+          prior=Path('evidence/prior_ledger.json')
+          if prior.exists() and os.environ.get('GITHUB_EVENT_NAME')=='schedule':
+              ledger=json.loads(prior.read_text())
+              done={e['index'] for e in ledger['completed']}
+              idx=next((i for i in range(pair_count) if (2*i not in done or (2*i+1<q['shard_count'] and 2*i+1 not in done))),idx)
           first=idx*2
           print(f'first={first:04d}')
           print(f'second={first+1:04d}')
@@ -133,7 +164,9 @@ jobs:
         if: always()
         run: |
           test -f evidence/shards/plan.json
-          python -m collector.p1_shard_ledger --plan evidence/shards/plan.json --receipt "${{ steps.pick.outputs.first == '' && '0' || steps.pick.outputs.first }}:evidence/first_shard/quality.json" ${{ steps.pick.outputs.has_second == 'true' && format('--receipt {0}:evidence/second_shard/quality.json', steps.pick.outputs.second) || '' }} --out evidence/ledger.json
+          PRIOR_ARGS=()
+          if test -f evidence/prior_ledger.json; then PRIOR_ARGS=(--prior evidence/prior_ledger.json); fi
+          python -m collector.p1_shard_ledger --plan evidence/shards/plan.json "${PRIOR_ARGS[@]}" --receipt "${{ steps.pick.outputs.first == '' && '0' || steps.pick.outputs.first }}:evidence/first_shard/quality.json" ${{ steps.pick.outputs.has_second == 'true' && format('--receipt {0}:evidence/second_shard/quality.json', steps.pick.outputs.second) || '' }} --out evidence/ledger.json
           python - <<'PY'
           import json
           from pathlib import Path
