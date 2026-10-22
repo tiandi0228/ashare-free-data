@@ -1,0 +1,50 @@
+name: P3 bounded official SSE availability diagnostic (NO TRADES)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p3-sse-access-diagnostic-once.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p3-sse-access-diagnostic
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Attempt exactly two frozen official SSE URLs, preserve failures
+        run: |
+          timeout 40s python -m collector.sse_official_delist_evidence --out audit || true
+      - name: Fail closed even if network is blocked
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path('audit/quality.json').read_text())
+          assert q['attempted_gets']==2 and len(q['page_events'])==2
+          assert q['trade_gate']=='BLOCKED' and q['orders']==[] and q['executable_candidates']==[]
+          assert q['historical_point_in_time_universe_verified'] is False
+          assert q['source_publisher_digitally_authenticated'] is False
+          assert q['paid_api_calls']==0
+          print('SOURCE_DIAGNOSTIC_STATUS',q['status'])
+          print('PER_URL',[(e['event'],e['status'],e.get('failure_type')) for e in q['page_events']])
+          PY
+      - name: Save source-diagnostic metadata only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p3-sse-two-official-host-access-diagnostic-BLOCKED
+          path: audit/quality.json
+          if-no-files-found: warn
+          retention-days: 14
