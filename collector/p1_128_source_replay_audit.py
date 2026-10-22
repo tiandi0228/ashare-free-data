@@ -5,7 +5,7 @@ from datetime import date
 from pathlib import Path
 
 EXPECTED_MANIFEST_SHA="a369c66bbb8289ed418fdec7fd3cc4e5200ad0214916aea4cfbf46a40af68af0"
-def audit(root):
+def audit(root, expected_manifest_sha=EXPECTED_MANIFEST_SHA):
     root=Path(root)
     docs=list(root.rglob("quality.json"))
     if len(docs)!=16:
@@ -18,7 +18,7 @@ def audit(root):
         if type(batch) is not int or batch not in range(16) or batch in seen_batches:
             raise ValueError("duplicate or invalid batch")
         seen_batches.add(batch)
-        if (q.get("manifest_sha256")!=EXPECTED_MANIFEST_SHA or
+        if (q.get("manifest_sha256")!=expected_manifest_sha or
             q.get("source_status")!="EIGHT_FREE_ISSUER_HISTORIES_OBSERVED_RESEARCH_ONLY" or
             q.get("issuer_count")!=8 or len(q.get("issuer_receipts",[]))!=8 or
             q.get("shard_manifest_count")!=128 or
@@ -79,7 +79,7 @@ def audit(root):
     peer_days={d for d,n in calendars.items() if n>=64}
     missing_peer={code:len(peer_days-days) for code,days in per_issuer.items()}
     report={"phase":"P1_128_LIVE_CROSS_RUN_INDEPENDENT_AUDIT",
-            "manifest_sha256":EXPECTED_MANIFEST_SHA,
+            "manifest_sha256":expected_manifest_sha,
             "verified_batches":len(seen_batches),"verified_unique_issuers":len(seen_issuers),
             "historical_rows":total_rows,
             "distinct_vendor_observed_days":len(calendars),
@@ -97,8 +97,9 @@ def audit(root):
     return report
 def main():
     p=argparse.ArgumentParser();p.add_argument("--input",required=True);p.add_argument("--out",required=True)
+    p.add_argument("--manifest-sha",default=EXPECTED_MANIFEST_SHA)
     args=p.parse_args()
-    result=audit(args.input)
+    result=audit(args.input,expected_manifest_sha=args.manifest_sha)
     out=Path(args.out);out.parent.mkdir(parents=True,exist_ok=True)
     out.write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
     print(json.dumps(result,ensure_ascii=False))
