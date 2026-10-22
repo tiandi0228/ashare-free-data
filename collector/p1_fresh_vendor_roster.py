@@ -39,7 +39,7 @@ def capture(out, provider, day):
         if logged:
             try: provider.logout()
             except Exception: report["logout_error"]=True
-        (path/"quality.json").write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\\n")
+        (path/"quality.json").write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\n")
     print(json.dumps(report,ensure_ascii=False))
     return 0 if report["status"]=="OBSERVED_UNVERIFIED" else 2
 
