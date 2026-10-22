@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'collector/pit_acceptance_gate.py'
+      - 'collector/p4_real_source_readiness.py'
+      - 'tests/test_p4_real_source_readiness.py'
       - 'tests/test_pit_acceptance_gate.py'
       - 'reports/p1_vendor_lifecycle_20261021.json'
       - 'reports/p1_pilot_16_source_digests_20261021.json'
@@ -52,6 +54,20 @@ jobs:
               assert x["p4_out_of_sample_certified"] is False
               assert x["original_source_reverified_in_this_run"] is False
           print("PASS: Actual source digests audited; historical PIT and trading remain BLOCKED.")
+          PY
+      - name: Independently assess P4 real source readiness
+        run: |
+          python -m collector.p4_real_source_readiness --out audit/p4_real_source_readiness.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path('audit/p4_real_source_readiness.json').read_text())
+          assert x['required_conditions']==6
+          assert x['verified_conditions']<6
+          assert x['trade_gate']=='BLOCKED'
+          assert x['orders']==[] and x['executable_candidates']==[]
+          assert x['full_market_backtest_performed_in_this_audit'] is False
+          print('PASS: actual P4 source prerequisites independently checked; trading blocked')
           PY
       - name: Preserve only non-reconstructible gate audit receipt
         if: always()
