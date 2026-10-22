@@ -256,7 +256,7 @@ jobs:
                 dates=list(dict.fromkeys(re.findall(r"20[0-9]{2}年[0-9]{1,2}月[0-9]{1,2}日",text)))[:8]
                 # Distinguish candidate date contexts; no effective state is asserted.
                 context_patterns={
-                  "possible_effective":r"(?:自|于|从)\\s*(20[0-9]{2}年[0-9]{1,2}月[0-9]{1,2}日).{0,24}(?:起|开始|终止上市|停牌|复牌)",
+                  "possible_effective":r"(?:自|于|从)\s*(20[0-9]{2}年[0-9]{1,2}月[0-9]{1,2}日).{0,24}(?:起|开始|终止上市|停牌|复牌)",
                   "board_decision":r"(?:董事会|决议|审议通过).{0,100}?(20[0-9]{2}年[0-9]{1,2}月[0-9]{1,2}日)",
                 }
                 context_hints={k:list(dict.fromkeys(re.findall(p,text)))[:5] for k,p in context_patterns.items()}
