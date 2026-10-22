@@ -179,6 +179,42 @@ jobs:
           (root/"cninfo_announcements.json").write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\\n")
           print(json.dumps({k:result[k] for k in ("status","reported_total","raw_rows_seen","unique_raw_announcement_ids","mainboard_record_count","pagination_complete","trade_gate")}))
           PY
+      - name: Triage candidate risk notices without certifying issuer state
+        run: |
+          python - <<'PY'
+          import json,re
+          from collections import Counter
+          from pathlib import Path
+          p=Path("audit/cninfo_announcements.json")
+          data=json.loads(p.read_text())
+          rules={
+            "risk_warning":r"(?:撤销|实施|终止|申请|继续).*风险警示|风险警示|\\*ST|退市风险",
+            "trading_halt":r"停牌|复牌|暂停交易",
+            "delisting":r"终止上市|退市整理|摘牌|主动退市",
+          }
+          counts=Counter()
+          matches=[]
+          for item in data.get("mainboard_records",[]):
+            title=item.get("title","")
+            kinds=[k for k,pattern in rules.items() if re.search(pattern,title,re.I)]
+            if not kinds:continue
+            for k in kinds:counts[k]+=1
+            matches.append({k:item[k] for k in ("announcement_id","code","market","title","pdf_url")})
+            matches[-1]["candidate_categories"]=kinds
+          report={"phase":"P3_TITLE_ONLY_RISK_CANDIDATE_TRIAGE",
+            "source_pagination_complete":data.get("pagination_complete") is True,
+            "candidate_count":len(matches),"category_hit_counts":dict(counts),
+            "candidates":matches,
+            "classification_only_not_legal_effect":True,
+            "official_pdf_bytes_verified":False,
+            "historical_effective_date_verified":False,
+            "historical_asof_verified":False,
+            "trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
+          Path("audit/p3_title_risk_candidates.json").write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\\n")
+          print(json.dumps({"candidate_count":len(matches),"category_hit_counts":dict(counts),
+                            "source_pagination_complete":report["source_pagination_complete"],
+                            "trade_gate":"BLOCKED"},ensure_ascii=False))
+          PY
       - name: Preserve timestamped metadata without republishing originals
         if: always()
         uses: actions/upload-artifact@v4
