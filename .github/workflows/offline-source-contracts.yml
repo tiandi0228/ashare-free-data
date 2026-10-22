@@ -40,6 +40,8 @@ on:
       - 'collector/p4_prospective_handoff.py'
       - 'collector/p3_typed_event_research_ledger.py'
       - 'collector/p3_multi_issuer_research_events.py'
+      - 'collector/p3_exchange_notice_event_reconciliation.py'
+      - 'tests/test_p3_exchange_notice_event_reconciliation.py'
       - 'tests/test_p3_multi_issuer_research_events.py'
       - 'tests/test_p3_typed_event_research_ledger.py'
       - 'tests/test_p4_prospective_handoff.py'
@@ -126,6 +128,18 @@ jobs:
           assert q['row_count']==3 and q['confirmed_exchange_effective_event_count']==0
           assert all(x['confirmed_effective_date'] is None for x in q['rows'])
           assert q['trade_gate']=='BLOCKED' and q['orders']==[]
+          PY
+      - name: Reconcile authentic SSE delisting effective-date notice
+        run: |
+          python -m collector.p3_exchange_notice_event_reconciliation --out audit/p3_sse_delist_effective_date_research.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path("audit/p3_sse_delist_effective_date_research.json").read_text())
+          assert x["observed_official_notice_event_count"]==1
+          assert x["historical_point_in_time_issuer_state_count"]==0
+          assert x["rows"][0]["effective_date_as_stated_in_observed_official_notice"]=="2026-06-26"
+          assert x["trade_gate"]=="BLOCKED" and x["orders"]==[]
           PY
       - name: P4 readiness from real evidence, not fictional backtest
         run: |
