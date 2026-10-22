@@ -2,7 +2,7 @@
 
 Never infer trade eligibility or complete risk history from event intervals.
 """
-import argparse,csv,json
+import argparse,csv,json,hashlib
 from collections import defaultdict,Counter
 from datetime import date
 from pathlib import Path
@@ -29,6 +29,14 @@ def join(root, inventory):
             e.get("official_content_verified") is not True or
             e.get("issuer_day_state_PIT_eligible") is not False):
             raise ValueError("invalid provenance or PIT elevation")
+        if e.get("kind") not in ("IPO_LISTING","DELIST_EFFECTIVE"):
+            raise ValueError("unsupported official event kind")
+        if e.get("issuer") not in ("sh.603014","sh.600421"):
+            raise ValueError("unexpected source issuer")
+        if not isinstance(e.get("original_sha256"),str) or len(e["original_sha256"])!=64:
+            raise ValueError("missing source SHA256 identity")
+        if not isinstance(e.get("source_url"),str) or not e["source_url"].startswith("https://"):
+            raise ValueError("missing official source URL")
         date.fromisoformat(e["effective_date_as_stated"])
         by_issuer[e["issuer"]].append(e)
     counts=Counter();present=set();source_rows=0;date_spans={}
@@ -38,6 +46,9 @@ def join(root, inventory):
             code=entry["code"];present.add(code)
             with (receipt.parent/(code.replace(".","_")+".csv")).open(newline="") as fh:
                 rows=list(csv.DictReader(fh))
+            raw=(receipt.parent/(code.replace(".","_")+".csv")).read_bytes()
+            if hashlib.sha256(raw).hexdigest()!=entry["sha256"]:
+                raise ValueError("source SHA256 mismatch during event join")
             source_rows+=len(rows)
             if rows:
                 dates=[r["date"] for r in rows]
