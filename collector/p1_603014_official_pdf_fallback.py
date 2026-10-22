@@ -16,7 +16,8 @@ SOURCES=[
 def capture_one(source,out):
     result={"source_id":source["id"],"url":source["url"],"published_day":source["published_day"],
             "source_status":"UNVERIFIED","original_bytes_verified":False,
-            "listing_day_text_verified":False,"historic_PIT_publication_verified":False}
+            "listing_day_text_verified":False,"historic_PIT_publication_verified":False,
+            "historical_ipo_notice_verified":False}
     try:
         req=Request(source["url"],headers={"User-Agent":"Mozilla/5.0","Accept":"application/pdf"})
         with urlopen(req,timeout=25) as response:
@@ -33,10 +34,15 @@ def capture_one(source,out):
             reader=PdfReader(str(dest))
             page_text="".join(page.extract_text() or "" for page in reader.pages[:100])
             compact=re.sub(r"\\s+","",page_text)
-            if "603014" in compact and ("2025年5月19日" in compact or "2025-05-19" in compact):
+            has_code="603014" in compact
+            has_date=any(s in compact for s in ("2025年5月19日","2025-05-19","2025/5/19","2025.5.19"))
+            result["extracted_page_count"]=min(len(reader.pages),100)
+            result["code_text_observed"]=has_code
+            result["date_text_observed"]=has_date
+            if has_code and has_date:
                 result.update(listing_day_text_verified=True,source_status="RETROSPECTIVE_PDF_LISTING_DAY_TEXT_OBSERVED")
             else:
-                result["parse_diagnostic"]="listing date and identifier were not both extractable"
+                result["parse_diagnostic"]="extracted text does not establish both issuer and listing date"
         except Exception as exc:
             result["parse_diagnostic"]=type(exc).__name__
     except (HTTPError,URLError,ValueError,TimeoutError) as exc:
