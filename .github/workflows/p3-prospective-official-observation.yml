@@ -260,9 +260,17 @@ jobs:
                   "board_decision":r"(?:董事会|决议|审议通过).{0,100}?(20[0-9]{2}年[0-9]{1,2}月[0-9]{1,2}日)",
                 }
                 context_hints={k:list(dict.fromkeys(re.findall(p,text)))[:5] for k,p in context_patterns.items()}
+                # Bounded excerpts around real date occurrences for review.
+                # Dates and surrounding text remain UNVERIFIED; do not persist full PDF text.
+                date_fragments=[]
+                for match in re.finditer(r"20[0-9]{2}\\s*年\\s*[0-9]{1,2}\\s*月\\s*[0-9]{1,2}\\s*日",text):
+                  fragment=" ".join(text[max(0,match.start()-35):min(len(text),match.end()+45)].split())
+                  if fragment not in date_fragments:date_fragments.append(fragment[:130])
+                  if len(date_fragments)>=6:break
                 out.update(pdf_pages=len(reader.pages),text_chars=len(text),
                            body_keyword_signals=signals,date_mentions_unverified=dates,
                            date_context_hints_unverified=context_hints,
+                           date_context_snippets_unverified=date_fragments,
                            text_extraction_status="TEXT_OBSERVED_NOT_LEGALLY_CLASSIFIED" if text else "NO_EXTRACTABLE_TEXT")
               except Exception as parse_exc:
                 out["text_extraction_status"]="FAILED_"+type(parse_exc).__name__
@@ -287,7 +295,7 @@ jobs:
           result["date_hint_reconciliation_required"]=True
           result["effective_dates_legally_verified"]=0
           (root/"p3_risk_pdf_hash_receipts.json").write_text(json.dumps(result,indent=2)+"\n")
-          print(json.dumps({"attempted":result["attempted"],"successful":result["successful"],"text_extracted_count":result["text_extracted_count"],"no_text_count":result["no_text_count"],"text_extraction_failed_count":result["text_extraction_failed_count"],"body_signal_counts":result["body_signal_counts"],"date_context_hint_counts":result["date_context_hint_counts"],"date_context_documents":result["date_context_documents"],"effective_dates_legally_verified":0,"trade_gate":"BLOCKED"}))
+          print(json.dumps({"attempted":result["attempted"],"successful":result["successful"],"text_extracted_count":result["text_extracted_count"],"no_text_count":result["no_text_count"],"text_extraction_failed_count":result["text_extraction_failed_count"],"body_signal_counts":result["body_signal_counts"],"date_context_hint_counts":result["date_context_hint_counts"],"date_snippet_counts":[len(x.get("date_context_snippets_unverified",[])) for x in rows],"date_context_documents":result["date_context_documents"],"effective_dates_legally_verified":0,"trade_gate":"BLOCKED"}))
           PY
       - name: Preserve timestamped metadata without republishing originals
         if: always()
