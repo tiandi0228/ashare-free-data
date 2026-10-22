@@ -57,6 +57,17 @@ class OriginalActionDateProximityTests(unittest.TestCase):
         self.assertEqual(q["dates_with_nearby_actions"], 6)
         self.assertEqual(q["candidates"][0]["nearby_action_labels"], ["RESUME"])
 
+    def test_literal_n_in_english_word_is_not_sentence_boundary(self):
+        sample = "announcement日期2026年1月5日起复牌"
+        q = extract(report(sample))
+        self.assertEqual(q["dates_with_nearby_actions"], 6)
+        self.assertEqual(q["candidates"][0]["nearby_action_labels"], ["RESUME"])
+
+    def test_actual_newline_is_sentence_boundary(self):
+        sample = "公告日期2026年1月5日\\n公司股票复牌".replace("\\\\n", "\\n")
+        q = extract(report(sample))
+        self.assertEqual(q["dates_with_nearby_actions"], 0)
+
     def test_duplicate_source_id_rejected(self):
         q = report("公司股票2026年1月5日起复牌")
         q["results"][1]["source_id"] = q["results"][0]["source_id"]
