@@ -3,6 +3,7 @@ import argparse,hashlib,json,re
 from datetime import datetime,timezone
 from pathlib import Path
 from urllib.request import Request,urlopen
+from urllib.error import HTTPError,URLError
 from collector.p1_603014_official_ipo_gap_reconcile import OFFICIAL
 
 def capture(raw):
