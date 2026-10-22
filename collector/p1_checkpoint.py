@@ -16,6 +16,8 @@ def validate(ledger):
     done=ledger.get("completed",[])
     if len(done)!=ledger.get("completed_shards") or sum(x["issuer_count"] for x in done)!=ledger.get("completed_issuers"):
         raise ValueError("inconsistent checkpoint counts")
+    if any(type(x.get("index")) is not int or type(x.get("issuer_count")) is not int or x["issuer_count"]<1 or len(x.get("receipt_sha256",""))!=64 for x in done):
+        raise ValueError("invalid checkpoint entries")
     if len({x["index"] for x in done})!=len(done):
         raise ValueError("duplicated checkpoint shards")
     return ledger
@@ -40,6 +42,10 @@ def merge(candidate,previous):
         raise ValueError("refusing to overwrite different frozen roster epoch")
     if candidate["completed_issuers"]<previous["completed_issuers"]:
         return previous
+    old={x["index"]:x for x in previous["completed"]}
+    new={x["index"]:x for x in candidate["completed"]}
+    if any(index not in new or new[index]!=item for index,item in old.items()):
+        raise ValueError("checkpoint would replace or drop historical verified shard evidence")
     return candidate
 
 def main():
