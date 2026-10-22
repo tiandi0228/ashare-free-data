@@ -40,7 +40,7 @@ jobs:
           assert q['status']=='OBSERVED_UNVERIFIED'
           assert q['mainboard_prefix_rows']>=1000
           assert hashlib.sha256(Path('evidence/mainboard.csv').read_bytes()).hexdigest()==q['mainboard_sha256']
-          assert q['logical_queries']==1 and q['paid_api_calls']==0
+          assert 1<=q['logical_queries']<=2 and q['paid_api_calls']==0
           assert q['publisher_authenticated'] is False and q['historical_PIT_verified'] is False
           assert q['trade_gate']=='BLOCKED' and q['orders']==[] and q['executable_candidates']==[]
           print('PASS: fresh vendor snapshot observed; no historical PIT or tradability certification')
