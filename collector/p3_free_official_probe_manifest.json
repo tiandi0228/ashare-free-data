@@ -16,5 +16,45 @@
     "required_text": [
       "2026年6月22日"
     ]
+  },
+  {
+    "id": "cninfo_603559_st_change_20250703",
+    "url": "https://static.cninfo.com.cn/finalpage/2025-07-03/1224068493.PDF",
+    "kind": "ST_CHANGE",
+    "issuer": "sh.603559",
+    "required_text": [
+      "2025年7月4日",
+      "603559"
+    ]
+  },
+  {
+    "id": "cninfo_603398_st_added_20250827",
+    "url": "https://static.cninfo.com.cn/finalpage/2025-08-27/1224579817.PDF",
+    "kind": "ST_CHANGE",
+    "issuer": "sh.603398",
+    "required_text": [
+      "2025年8月27日",
+      "603398"
+    ]
+  },
+  {
+    "id": "cninfo_000691_halt_resume_20251227",
+    "url": "https://static.cninfo.com.cn/finalpage/2025-12-27/1224902023.PDF",
+    "kind": "TRADING_HALT",
+    "issuer": "sz.000691",
+    "required_text": [
+      "2025年12月31日",
+      "2026年1月5日"
+    ]
+  },
+  {
+    "id": "cninfo_002005_st_continue_20250429",
+    "url": "https://static.cninfo.com.cn/finalpage/2025-04-29/1223379209.PDF",
+    "kind": "ST_CHANGE",
+    "issuer": "sz.002005",
+    "required_text": [
+      "2025年4月29日",
+      "002005"
+    ]
   }
 ]
