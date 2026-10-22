@@ -32,6 +32,9 @@ on:
       - 'tests/test_p3_evidence_gap_report.py'
       - 'collector/p3_real_receipt_gap.py'
       - 'tests/test_p3_real_receipt_gap.py'
+      - 'collector/p3_sse_official_receipt_gap.py'
+      - 'tests/test_p3_sse_official_receipt_gap.py'
+      - 'reports/p3_sse_two_official_original_sha_observed_20261022.json'
       - 'reports/p1_early_only_8_historical_research_20261022.json'
       - 'collector/audit_dated_rosters.py'
       - 'tests/test_audit_dated_rosters.py'
@@ -74,6 +77,18 @@ jobs:
           assert q['missing_evidence_cells']==28 and q['issuer_documents_observed']==2
           assert q['trade_gate']=='BLOCKED' and q['orders']==[]
           print('PASS: two authentic issuer capture receipts; zero independently official PIT-complete cells')
+          PY
+      - name: Reconcile real SSE official page receipt without promoting PIT
+        run: |
+          python -m collector.p3_sse_official_receipt_gap --out audit/p3_sse_official_600421_gap.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path('audit/p3_sse_official_600421_gap.json').read_text())
+          assert q['official_host_pages_observed']==2
+          assert q['verified_evidence_cells']==0 and q['missing_evidence_cells']==28
+          assert q['trade_gate']=='BLOCKED' and q['orders']==[]
+          print('PASS: official SSE source verified as observed; full historical PIT still blocked')
           PY
       - name: Aggregate 24 independently replayed research issuer SHA receipts only
         run: |
