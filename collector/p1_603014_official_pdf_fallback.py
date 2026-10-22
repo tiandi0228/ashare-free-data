@@ -34,7 +34,7 @@ def capture_one(source,out):
             from pypdf import PdfReader
             reader=PdfReader(str(dest))
             page_text="".join(page.extract_text() or "" for page in reader.pages[:100])
-            compact=re.sub(r"\\s+","",page_text)
+            compact="".join(page_text.split())
             has_code="603014" in compact
             has_date=any(s in compact for s in ("2025年5月19日","2025-05-19","2025/5/19","2025.5.19"))
             result["extracted_page_count"]=min(len(reader.pages),100)
