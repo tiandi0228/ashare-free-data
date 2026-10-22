@@ -25,7 +25,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Capture two official public notice indexes, bounded, metadata only
+      - name: Capture exchange indexes and free CNINFO fallback, bounded metadata only
         run: |
           python - <<'PY'
           import datetime,hashlib,json,pathlib,urllib.request
@@ -35,6 +35,7 @@ jobs:
           targets=[
             ("SSE","https://www.sse.com.cn/disclosure/listedinfo/announcement/index.shtml"),
             ("SZSE","https://www.szse.cn/disclosure/notice/company/index.html"),
+            ("CNINFO_FALLBACK","https://www.cninfo.com.cn/new/index"),
           ]
           rows=[]
           for publisher,url in targets:
@@ -50,11 +51,16 @@ jobs:
             except Exception as exc:
               row["failure_type"]=type(exc).__name__
             rows.append(row)
+          observed=[r for r in rows if r["status"]=="OBSERVED_HTML_ONLY"]
           report={
             "phase":"P3_PROSPECTIVE_OFFICIAL_SOURCE_INDEX_OBSERVATION",
             "captured_at_utc":now.isoformat(),
             "china_calendar_date":china.date().isoformat(),
             "observations":rows,
+            "index_pages_observed":len(observed),
+            "source_reachability_status":"INDEX_REACHABLE_RESEARCH_ONLY" if observed else "NO_SOURCE_REACHABLE",
+            "szse_exchange_host_access_verified":any(r["publisher"]=="SZSE" for r in observed),
+            "cninfo_is_not_szse_exchange_authentication":True,
             "prospective_index_page_is_historical_issuer_state":False,
             "full_historical_ST_halt_delist_verified":False,
             "official_intraday_publication_certified":False,
@@ -64,7 +70,9 @@ jobs:
           p=pathlib.Path("audit");p.mkdir(exist_ok=True)
           (p/"official_index_capture.json").write_text(json.dumps(report,indent=2)+"\n")
           print(json.dumps(report))
-          assert len(rows)==2 and report["trade_gate"]=="BLOCKED"
+          assert len(rows)==3 and report["trade_gate"]=="BLOCKED"
+          if not observed:
+            raise SystemExit("NO_SOURCE_REACHABLE: all free official/public disclosure indexes failed")
           PY
       - name: Preserve timestamped metadata without republishing originals
         if: always()
