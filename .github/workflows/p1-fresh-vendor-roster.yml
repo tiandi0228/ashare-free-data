@@ -60,6 +60,34 @@ jobs:
           assert p['historical_PIT_verified'] is False and p['trade_gate']=='BLOCKED'
           print('PASS: fresh vendor roster mapped to deterministic research shards; no historical PIT certification')
           PY
+      - name: Fetch first real roster shard historical bars (bounded 8 only)
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('evidence/shards/plan.json').read_text())
+          assert p['shard_count']>=1 and p['shards'][0]['count']==8
+          print('Real roster shard 0 SHA:',p['shards'][0]['sha256'])
+          PY
+          timeout 150s python -m collector.baostock_batch --manifest evidence/shards/shard_0000.txt --batch-index 0 --out evidence/first_shard
+      - name: Verify real roster-to-bars linkage and SHA receipts
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          p=json.loads(Path('evidence/shards/plan.json').read_text())
+          s=json.loads(Path('evidence/first_shard/quality.json').read_text())
+          assert s['manifest_sha256']==p['shards'][0]['sha256']
+          assert s['issuer_count']==8 and s['query_attempts']==8
+          assert s['status']=='OBSERVED_SUBSET_UNVERIFIED'
+          assert s['trade_gate']=='BLOCKED' and not s['orders']
+          for item in s['results']:
+              assert item['status']=='OBSERVED_UNVERIFIED'
+              raw=Path('evidence/first_shard',item['code'].replace('.','_')+'.csv').read_bytes()
+              assert hashlib.sha256(raw).hexdigest()==item['sha256']
+          print('PASS: eight real roster-derived bars audited, NOT historical PIT-certified')
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
