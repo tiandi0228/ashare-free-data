@@ -1,0 +1,57 @@
+name: P3 real original batch temporal audit (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p3-real-original-batch-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify fail-closed batch audit unit tests
+        run: python -m unittest tests.test_p3_batch_temporal_evidence_audit tests.test_p3_original_temporal_signal_gate -v
+      - name: Download real 2025 CNINFO original provenance receipts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 39740152424 --dir evidence
+      - name: Build multi-signal input from genuine saved source receipt
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          src=next(Path("evidence").rglob("fallback_quality.json"))
+          sources=json.loads(src.read_text())["sources"]
+          requests=[{"issuer":"sh.603014","signal_date":date,"sources":sources}
+                    for date in ("2025-05-19","2025-06-30","2026-10-21")]
+          Path("input.json").write_text(json.dumps(requests))
+          PY
+      - name: Reconcile multiple point-in-time scenarios without look-ahead
+        run: |
+          python -m collector.p3_batch_temporal_evidence_audit --input input.json --out audit/real_batch_temporal.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("audit/real_batch_temporal.json").read_text())
+          assert r["issuer_day_requests"]==3
+          assert r["totals"]["eligible_sources"]==0
+          assert r["totals"]["ineligible_sources"]==9
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          assert r["official_full_market_PIT_universe_verified"] is False
+          print("PASS: 3 historical signal dates x 3 genuine official receipts; no PIT leakage")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p3-batch-temporal-evidence-${{ github.run_id }}
+          path: audit/
+          retention-days: 30
+          if-no-files-found: warn
