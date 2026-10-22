@@ -1,0 +1,69 @@
+name: P3 SSE two-page independent original SHA replay (NO TRADES)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p3-sse-independent-replay-once.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p3-sse-independent-original-replay
+  cancel-in-progress: false
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Re-fetch exactly two source pages from SSE and check frozen original hashes
+        run: |
+          python - <<'PY'
+          import hashlib, json, urllib.request
+          from pathlib import Path
+          receipt=json.loads(Path("reports/p3_sse_two_official_original_sha_observed_20261022.json").read_text())
+          assert receipt["trade_gate"]=="BLOCKED" and receipt["source_run_id"]==39704160169
+          results=[]
+          for page in receipt["pages"]:
+              u=page["url"]
+              assert u.startswith("https://www.sse.com.cn/disclosure/announcement/listing/stock/c/")
+              entry={"source_url":u,"original_sha256":page["sha256"],"observed_sha256":None,
+                     "status":"FETCH_FAILED","attempts":1}
+              try:
+                  req=urllib.request.Request(u,headers={"User-Agent":"ashare-free-data-research-source-audit/1.0","Accept-Encoding":"identity"})
+                  with urllib.request.urlopen(req,timeout=12) as resp:
+                      if resp.geturl()!=u:raise ValueError("redirect")
+                      raw=resp.read(750001)
+                  if not raw or len(raw)>750000: raise ValueError("bounded payload invalid")
+                  entry["observed_sha256"]=hashlib.sha256(raw).hexdigest()
+                  entry["observed_bytes"]=len(raw)
+                  entry["status"]="MATCH" if entry["observed_sha256"]==page["sha256"] and len(raw)==page["bytes"] else "SOURCE_DRIFT"
+              except Exception as err:
+                  entry["failure_type"]=type(err).__name__
+              results.append(entry)
+          out={"phase":"P3_SSE_INDEPENDENT_TWO_PAGE_SHA_REPLAY","original_capture_run_id":39704160169,
+               "second_capture_run_id":int(__import__("os").environ["GITHUB_RUN_ID"]),
+               "results":results,"full_historical_PIT_coverage_verified":False,
+               "publisher_historical_publication_instant_verified":False,
+               "original_html_archived_for_permanent_replay":False,
+               "trade_gate":"BLOCKED","orders":[],"executable_candidates":[],"paid_api_calls":0}
+          Path("audit").mkdir(exist_ok=True)
+          Path("audit/sse_independent_replay.json").write_text(json.dumps(out,indent=2)+"\n")
+          print(json.dumps(out))
+          assert all(r["status"]=="MATCH" for r in results), "Original HTML differs or could not be reacquired"
+          PY
+      - name: Preserve receipts only, no official HTML redistribution
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p3-sse-independent-replay-SHA-only-BLOCKED
+          path: audit/sse_independent_replay.json
+          retention-days: 14
+          if-no-files-found: warn
