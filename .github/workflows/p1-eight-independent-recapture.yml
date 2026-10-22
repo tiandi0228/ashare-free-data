@@ -1,10 +1,6 @@
 name: P1 eight issuer independent SHA recapture (RESEARCH ONLY)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/p1-eight-independent-recapture.yml'
   workflow_dispatch:
 
 permissions:
