@@ -41,6 +41,8 @@ on:
       - 'collector/p3_typed_event_research_ledger.py'
       - 'collector/p3_multi_issuer_research_events.py'
       - 'collector/p3_exchange_notice_event_reconciliation.py'
+      - 'collector/p3_exchange_research_handoff.py'
+      - 'tests/test_p3_exchange_research_handoff.py'
       - 'tests/test_p3_exchange_notice_event_reconciliation.py'
       - 'tests/test_p3_multi_issuer_research_events.py'
       - 'tests/test_p3_typed_event_research_ledger.py'
@@ -140,6 +142,18 @@ jobs:
           assert x["historical_point_in_time_issuer_state_count"]==0
           assert x["rows"][0]["effective_date_as_stated_in_observed_official_notice"]=="2026-06-26"
           assert x["trade_gate"]=="BLOCKED" and x["orders"]==[]
+          PY
+      - name: Reconcile SSE notice and typed issuer ledger as research only
+        run: |
+          python -m collector.p3_exchange_research_handoff --out audit/p3_exchange_research_handoff.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('audit/p3_exchange_research_handoff.json').read_text())
+          assert r['observed_exchange_effective_date_notices']==1
+          assert r['historically_authenticated_effective_dates']==0
+          assert r['historical_PIT_state_eligible'] is False
+          assert r['trade_gate']=='BLOCKED' and r['orders']==[]
           PY
       - name: P4 readiness from real evidence, not fictional backtest
         run: |
