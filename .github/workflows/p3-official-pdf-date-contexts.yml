@@ -1,0 +1,44 @@
+name: P3 inspect original six issuer PDF date surrounding text (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/p3-official-pdf-date-contexts.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'pypdf>=5,<7'
+      - name: Replay six archived real official PDF originals and receipts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 39747775798 --dir originals
+      - name: Extract contextual date text and independently check every SHA
+        run: |
+          python -m collector.p3_official_pdf_date_contexts --root originals --manifest collector/p3_free_official_probe_manifest.json --out audit/date_contexts.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path("audit/date_contexts.json").read_text())
+          assert q["verified_originals"]==6
+          assert q["dates_with_context"]==7
+          assert q["effective_date_certified_count"]==0 and q["PIT_eligible_events"]==0
+          assert all(x["date_contexts"] for x in q["results"])
+          assert q["trade_gate"]=="BLOCKED" and q["orders"]==[]
+          print("PASS: replayed all six archived originals, 7 genuine PDF date contexts, no fabricated event effectiveness")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p3-real-six-date-neighbor-text-${{ github.run_id }}
+          path: audit/
+          retention-days: 30
+          if-no-files-found: warn
