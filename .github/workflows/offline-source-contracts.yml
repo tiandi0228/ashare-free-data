@@ -38,6 +38,8 @@ on:
       - 'tests/test_p3_cross_publisher_replay.py'
       - 'collector/p4_real_source_readiness.py'
       - 'tests/test_p4_real_source_readiness.py'
+      - 'collector/p3_capture_temporal_boundary.py'
+      - 'tests/test_p3_capture_temporal_boundary.py'
       - 'reports/p3_sse_independent_two_originals_verified_20261022.json'
       - 'reports/p3_cninfo_two_pdf_independent_sha_recapture_20261022.json'
       - 'reports/p3_sse_two_official_original_sha_observed_20261022.json'
@@ -119,6 +121,22 @@ jobs:
           assert q['status']=='NOT_READY_RESEARCH_ONLY'
           assert q['trade_gate']=='BLOCKED' and q['orders']==[]
           print('PASS: real provenance present but P4 not ready for OOS/backtest/trading')
+          PY
+      - name: Verify actual capture observation time is not backdated as PIT
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from collector.p3_capture_temporal_boundary import observe
+          root=Path("reports")
+          q=observe(
+            json.loads((root/"p3_cninfo_two_pdf_independent_sha_recapture_20261022.json").read_text()),
+            json.loads((root/"p3_sse_two_official_original_sha_observed_20261022.json").read_text()))
+          assert q["document_count"]==4 and q["historical_availability_verified"] is False
+          assert q["trade_gate"]=="BLOCKED" and q["orders"]==[]
+          Path("audit").mkdir(exist_ok=True)
+          (Path("audit")/"p3_observed_capture_temporal_boundary.json").write_text(json.dumps(q,indent=2)+"\\n")
+          print("PASS: all four original receipts observed in October, not authenticated as of prior decision days")
           PY
       - name: Aggregate 24 independently replayed research issuer SHA receipts only
         run: |
