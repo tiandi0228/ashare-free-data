@@ -1,0 +1,43 @@
+name: P3 actual official multi-issuer typed research evidence ledger (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/p3-free-typed-event-ledger.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve real original two issuer PDF source receipts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 39744593767 --dir evidence
+      - name: Normalize evidence type with strict provenance levels
+        run: |
+          INPUT="$(find evidence -name quality.json -print -quit)"
+          test -n "$INPUT"
+          python -m collector.p3_free_multi_issuer_evidence_ledger --input "$INPUT" --out audit/typed_official_event_ledger.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path("audit/typed_official_event_ledger.json").read_text())
+          assert q["source_count"]==2 and q["retrospective_content_verified"]==2
+          assert q["event_type_counts"]=={"DELIST_RISK_ISSUER_FORECAST":1,"IPO_LISTING":1}
+          assert q["historically_eligible_event_count"]==0
+          assert all(not e["event_effective_date_certified"] for e in q["events"])
+          assert all(not e["historical_ST_halt_delist_coverage_certified"] for e in q["events"])
+          assert q["trade_gate"]=="BLOCKED" and q["orders"]==[]
+          print("PASS: two real multi-issuer originals typed; no unsupported ST, halt or official delist assertions")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p3-real-typed-event-ledger-${{ github.run_id }}
+          path: audit/
+          retention-days: 30
+          if-no-files-found: warn
