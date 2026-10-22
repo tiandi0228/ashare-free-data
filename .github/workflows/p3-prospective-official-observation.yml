@@ -33,8 +33,8 @@ jobs:
           now=datetime.datetime.now(datetime.timezone.utc)
           china=now.astimezone(ZoneInfo("Asia/Shanghai"))
           targets=[
-            ("SSE","https://www.sse.com.cn/disclosure/announcement/listing/stock/"),
-            ("SZSE","https://www.szse.cn/disclosure/listed/notice/"),
+            ("SSE","https://www.sse.com.cn/disclosure/listedinfo/announcement/index.shtml"),
+            ("SZSE","https://www.szse.cn/disclosure/notice/company/index.html"),
           ]
           rows=[]
           for publisher,url in targets:
