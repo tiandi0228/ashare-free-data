@@ -32,7 +32,7 @@ def extract(report):
                 if d["date_text"] not in sample:
                     raise ValueError("date/context mismatched")
                 # Never join a date and an event verb across sentence or clause boundaries.
-                for clause in re.split(r"[。！？；;\\n]",sample):
+                for clause in re.split(r"[。！？；;\n]",sample):
                     positions=[m.start() for m in re.finditer(re.escape(d["date_text"]),clause)]
                     if not positions:
                         continue
