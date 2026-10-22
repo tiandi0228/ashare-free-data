@@ -7,7 +7,7 @@ from urllib.request import Request,urlopen
 from urllib.error import HTTPError,URLError
 
 ALLOWED={"static.cninfo.com.cn","static.sse.com.cn","big5.sse.com.cn"}
-KINDS={"IPO_LISTING","DELIST_EFFECTIVE","ST_CHANGE","TRADING_HALT","TRADING_RESUME"}
+KINDS={"IPO_LISTING","DELIST_EFFECTIVE","DELIST_RISK_ISSUER_FORECAST","ST_CHANGE","TRADING_HALT","TRADING_RESUME"}
 def capture(specs,out):
     if not isinstance(specs,list) or not 1<=len(specs)<=12:
         raise ValueError("source count outside 1..12")
