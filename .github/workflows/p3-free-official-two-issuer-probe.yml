@@ -1,4 +1,4 @@
-name: P3 free official two issuer source probe (NO TRADES)
+name: P3 corrected official two issuer free probe (NO TRADES)
 on:
   push:
     branches: [main]
