@@ -302,7 +302,17 @@ jobs:
                                   "status":"AMBIGUOUS_OR_NEGATED" if ambiguous else "UNVERIFIED_DIRECTION_LEAD",
                                   "context_unverified":context})
                   if len(leads)>=12:break
-                out.update(event_date_proximity_leads_unverified=leads,date_format_counts=diagnostic_counts,pdf_pages=len(reader.pages),text_chars=len(text),
+                # Document-level issuer identity check is only supporting evidence.
+                header=text[:1200]
+                issuer_header_code=bool(re.search(r"(?<![0-9])"+re.escape(item["code"])+r"(?![0-9])",header))
+                issuer_name_labels=bool(re.search(r"证券简称|股票简称|证券代码|股票代码",header))
+                other_codes=list(dict.fromkeys(re.findall(r"(?<![0-9])[036][0-9]{5}(?![0-9])",header)))
+                other_codes=[x for x in other_codes if x!=item["code"]][:6]
+                out.update(issuer_header_code_observed=issuer_header_code,
+                           issuer_header_identity_labels_observed=issuer_name_labels,
+                           other_stock_codes_in_header=other_codes,
+                           issuer_identity_authenticated=False,
+                           event_date_proximity_leads_unverified=leads,date_format_counts=diagnostic_counts,pdf_pages=len(reader.pages),text_chars=len(text),
                            body_keyword_signals=signals,date_mentions_unverified=dates,
                            date_context_hints_unverified=context_hints,
                            date_context_snippets_unverified=date_fragments,
@@ -335,9 +345,11 @@ jobs:
           result["unverified_direction_leads"]=sum(x.get("status")=="UNVERIFIED_DIRECTION_LEAD" for row in rows for x in row.get("event_date_proximity_leads_unverified",[]))
           result["issuer_code_nearby_leads"]=sum(x.get("issuer_code_nearby") is True for row in rows for x in row.get("event_date_proximity_leads_unverified",[]))
           result["issuer_ownership_unverified_leads"]=result["event_date_proximity_leads_count"]-result["issuer_code_nearby_leads"]
+          result["issuer_header_code_documents"]=sum(x.get("issuer_header_code_observed") is True for x in rows)
+          result["issuer_header_label_documents"]=sum(x.get("issuer_header_identity_labels_observed") is True for x in rows)
           result["effective_dates_legally_verified"]=0
           (root/"p3_risk_pdf_hash_receipts.json").write_text(json.dumps(result,indent=2)+"\n")
-          print(json.dumps({"attempted":result["attempted"],"successful":result["successful"],"text_extracted_count":result["text_extracted_count"],"no_text_count":result["no_text_count"],"text_extraction_failed_count":result["text_extraction_failed_count"],"body_signal_counts":result["body_signal_counts"],"date_context_hint_counts":result["date_context_hint_counts"],"date_snippet_counts":[len(x.get("date_context_snippets_unverified",[])) for x in rows],"date_format_counts":result["date_format_counts"],"event_date_proximity_leads_count":result["event_date_proximity_leads_count"],"event_date_documents":result["event_date_documents"],"ambiguous_or_negated_leads":result["ambiguous_or_negated_leads"],"unverified_direction_leads":result["unverified_direction_leads"],"issuer_code_nearby_leads":result["issuer_code_nearby_leads"],"issuer_ownership_unverified_leads":result["issuer_ownership_unverified_leads"],"date_context_documents":result["date_context_documents"],"effective_dates_legally_verified":0,"trade_gate":"BLOCKED"}))
+          print(json.dumps({"attempted":result["attempted"],"successful":result["successful"],"text_extracted_count":result["text_extracted_count"],"no_text_count":result["no_text_count"],"text_extraction_failed_count":result["text_extraction_failed_count"],"body_signal_counts":result["body_signal_counts"],"date_context_hint_counts":result["date_context_hint_counts"],"date_snippet_counts":[len(x.get("date_context_snippets_unverified",[])) for x in rows],"date_format_counts":result["date_format_counts"],"event_date_proximity_leads_count":result["event_date_proximity_leads_count"],"event_date_documents":result["event_date_documents"],"ambiguous_or_negated_leads":result["ambiguous_or_negated_leads"],"unverified_direction_leads":result["unverified_direction_leads"],"issuer_code_nearby_leads":result["issuer_code_nearby_leads"],"issuer_ownership_unverified_leads":result["issuer_ownership_unverified_leads"],"issuer_header_code_documents":result["issuer_header_code_documents"],"issuer_header_label_documents":result["issuer_header_label_documents"],"date_context_documents":result["date_context_documents"],"effective_dates_legally_verified":0,"trade_gate":"BLOCKED"}))
           PY
       - name: Preserve timestamped metadata without republishing originals
         if: always()
