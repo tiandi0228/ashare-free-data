@@ -7,7 +7,7 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 import re
 
-CODE = re.compile(r"(?:sh\.6|sz\.(?:0|3))[0-9]{5}\Z")
+CODE = re.compile(r"(?:sh\.(?:600|601|603|605)|sz\.(?:000|001|002|003))[0-9]{3}\Z")
 
 def verified_before_decision(observation):
     raw = observation.get('publication_instant_utc')
