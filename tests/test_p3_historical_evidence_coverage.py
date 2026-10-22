@@ -19,7 +19,9 @@ class CoverageTests(unittest.TestCase):
         self.assertFalse(r["complete"]);self.assertEqual(r["trade_gate"],"BLOCKED")
     def test_all_four_synthetic_complete_still_no_orders(self):
         r=audit_coverage(["sh.600421"],["2026-06-22"],[item(kind=k) for k in ("listing","st","halt","delisting")])
-        self.assertTrue(r["complete"]);self.assertEqual(r["orders"],[])
+        self.assertTrue(r["self_reported_cell_claims_complete"])
+        self.assertFalse(r["independent_source_authentication_performed"])
+        self.assertFalse(r["complete"]);self.assertEqual(r["orders"],[])
         self.assertEqual(r["trade_gate"],"BLOCKED")
     def test_vendor_does_not_authenticate(self):
         r=audit_coverage(["sh.600421"],["2026-06-22"],[item(official_exchange_source_verified=False)])
