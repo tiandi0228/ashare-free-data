@@ -1,0 +1,49 @@
+name: P3 actual official events joined to frozen research bar days (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/p3-real-event-bar-join.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  join:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Download original sixteen real stratified source shards
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p bars/first bars/rest inventory
+          gh run download 39733363864 --dir bars/first
+          gh run download 39733885012 --dir bars/rest
+          gh run download 39742487983 --dir inventory
+      - name: Audit original events against actual historical issuer-date samples
+        run: |
+          INVENTORY="$(find inventory -name p3_official_two_issuer_inventory.json -print -quit)"
+          test -n "$INVENTORY"
+          python -m collector.p3_real_event_bar_join --bars bars --inventory "$INVENTORY" --out audit/p3_event_bar_join.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("audit/p3_event_bar_join.json").read_text())
+          assert r["sample_source_rows"]==61941 and r["sample_issuer_count"]==128
+          assert r["official_verified_event_count"]==2
+          assert len(r["joined_events"])+len(r["events_not_in_sample"])==2
+          assert r["historical_point_in_time_risk_coverage_rows"]==0
+          assert r["trade_gate"]=="BLOCKED" and not r["orders"]
+          print("PASS: official event-to-real-bar reconciliation kept PIT risk gate closed")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p3-real-event-bar-join-${{ github.run_id }}
+          path: audit/
+          retention-days: 30
+          if-no-files-found: warn
