@@ -52,6 +52,19 @@ class CoverageTests(unittest.TestCase):
         self.assertEqual(r["self_reported_plausible_cells"],1)
         self.assertEqual(r["verified_evidence_cells"],0)
         self.assertEqual(r["trade_gate"],"BLOCKED")
+    def test_local_publication_day_not_utc_day(self):
+        r=audit_coverage(["sh.600421"],["2026-06-23"],
+            [item(decision_date="2026-06-23",publication_day="2026-06-22",
+                  publication_instant_utc="2026-06-21T17:30:00Z")])
+        self.assertEqual(r["self_reported_plausible_cells"],1)
+        self.assertEqual(r["verified_evidence_cells"],0)
+
+    def test_utc_date_matching_but_local_date_mismatching_is_rejected(self):
+        r=audit_coverage(["sh.600421"],["2026-06-23"],
+            [item(decision_date="2026-06-23",publication_day="2026-06-21",
+                  publication_instant_utc="2026-06-21T17:30:00Z")])
+        self.assertEqual(r["rejected_evidence_records"],1)
+
     def test_malformed_timestamp_fails_closed(self):
         r=audit_coverage(["sh.600421"],["2026-06-22"],[item(publication_instant_utc="unknown")])
         self.assertFalse(r["complete"])
