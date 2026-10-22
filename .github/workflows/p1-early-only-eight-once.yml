@@ -1,0 +1,94 @@
+name: P1 FREE one-shot early-only cohort history probe (NO TRADES)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p1-early-only-eight-once.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: p1-early-only-no-retries
+  cancel-in-progress: false
+
+jobs:
+  historical_early_only_research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline contracts (no market access)
+        run: |
+          python -m py_compile collector/p1_early_only_recovery.py
+          python -m unittest discover -s tests -v
+      - name: Retrieve EXACT already-SHA-audited original rosters, no provider request
+        run: |
+          gh run download 39613467121 --repo "$GITHUB_REPOSITORY" \
+            --name ashare-BAOSTOCK-two-dated-rosters-PIT-UNVERIFIED \
+            --dir originals
+      - name: Refuse unexpected original files and prepare bounded local-only ZIP
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile,ZIP_STORED
+          root=Path("originals")
+          names={"quality.json"}|{
+            f"{prefix}{day}.csv"
+            for prefix in ("all_securities_","mainboard_prefix_")
+            for day in ("2025-05-26","2026-10-20")
+          }
+          files=list(root.iterdir())
+          assert set(p.name for p in files)==names
+          assert all(p.is_file() and 0<p.stat().st_size<=2_000_000 for p in files)
+          with ZipFile("original_rosters_only_in_runner.zip","w",compression=ZIP_STORED) as f:
+              for p in sorted(files):f.write(p,arcname=p.name)
+          print("Original roster files bounded; no raw data will be uploaded back")
+          PY
+      - name: Install known free vendor client
+        run: python -m pip install 'baostock>=0.8,<1'
+      - name: Replay dated roster SHA, pick max eight early-only codes, query once
+        run: |
+          timeout 165s python -m collector.p1_early_only_recovery \
+            --artifact original_rosters_only_in_runner.zip \
+            --out audit/eight_early_only_issuer_research_metadata.json
+      - name: Enforce non-PIT research-only receipt even on source failure
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          path=Path("audit/eight_early_only_issuer_research_metadata.json")
+          assert path.exists(), "Original roster source not authenticated or client failed to start"
+          q=json.loads(path.read_text(encoding="utf-8"))
+          assert q["phase"]=="P1_BOUNDED_VENDOR_EARLY_ONLY_HINDSIGHT_RESEARCH_HISTORY"
+          assert q["issuer_count"]==8 and q["logical_source_queries"]<=8
+          assert q["source_raw_bar_bytes_published"] is False
+          assert q["source_original_bytes_durably_archived"] is False
+          assert q["retrospective_selection_uses_future_information"] is True
+          assert q["valid_for_backtest_membership_asof_early_day"] is False
+          assert q["official_historical_PIT_universe_verified"] is False
+          assert q["official_delisting_state_verified"] is False
+          assert q["trade_gate"]=="BLOCKED" and q["orders"]==[]
+          assert q["candidate_universe"]==[] and q["executable_candidates"]==[]
+          assert q["paid_api_calls"]==0
+          print("Quality result",q["status"],"observed",q["source_observed_issuers"],"/8")
+          assert q["status"]=="EIGHT_HISTORICAL_EARLY_ONLY_VENDOR_SAMPLES_OBSERVED_PIT_BLOCKED"
+          print("PASS: eight bounded historic coverage candidates, official PIT blocked")
+          PY
+      - name: Retain only SHA/count and sanitized metadata, not raw vendor records
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-eight-early-only-research-no-raw-pit-blocked
+          path: audit/
+          if-no-files-found: warn
+          retention-days: 14
