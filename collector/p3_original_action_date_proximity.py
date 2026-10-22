@@ -20,11 +20,11 @@ def extract(report):
             if not samples:raise ValueError("original context missing")
             hits=[]
             for sample in samples:
-                position=sample.find(d["date_text"])
-                if position<0:raise ValueError("date/context mismatched")
+                positions=[m.start() for m in re.finditer(re.escape(d["date_text"]),sample)]
+                if not positions:raise ValueError("date/context mismatched")
                 for label,word in actions.items():
                     for m in re.finditer(re.escape(word),sample):
-                        gap=min(abs(m.start()-position),abs(m.end()-position))
+                        gap=min(min(abs(m.start()-position),abs(m.end()-position)) for position in positions)
                         if gap<=80:
                             hits.append({"action":label,"phrase":word,"character_gap":gap})
             labels=sorted(set(x["action"] for x in hits))
