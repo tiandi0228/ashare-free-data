@@ -394,7 +394,18 @@ jobs:
           print(json.dumps({"attempted":result["attempted"],"successful":result["successful"],"text_extracted_count":result["text_extracted_count"],"no_text_count":result["no_text_count"],"text_extraction_failed_count":result["text_extraction_failed_count"],"body_signal_counts":result["body_signal_counts"],"date_context_hint_counts":result["date_context_hint_counts"],"date_snippet_counts":[len(x.get("date_context_snippets_unverified",[])) for x in rows],"date_format_counts":result["date_format_counts"],"event_date_proximity_leads_count":result["event_date_proximity_leads_count"],"event_date_documents":result["event_date_documents"],"ambiguous_or_negated_leads":result["ambiguous_or_negated_leads"],"unverified_direction_leads":result["unverified_direction_leads"],"issuer_code_nearby_leads":result["issuer_code_nearby_leads"],"issuer_ownership_unverified_leads":result["issuer_ownership_unverified_leads"],"issuer_header_code_documents":result["issuer_header_code_documents"],"issuer_header_label_documents":result["issuer_header_label_documents"],"date_context_documents":result["date_context_documents"],"effective_dates_legally_verified":0,"trade_gate":"BLOCKED"}))
           PY
       - name: Normalize live PDF cues into multi-issuer research-only events
-        run: python -m collector.p3_live_multi_issuer_adapter
+        run: |
+          python -m collector.p3_live_multi_issuer_adapter
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("audit/p3_live_multi_issuer_research.json").read_text())
+          assert r["trade_gate"]=="BLOCKED" and r["confirmed_effective_event_count"]==0
+          assert all(x["source_announcement_id"] and len(x["source_sha256_receipts"][0])==64
+                     and x["source_retrieved_at_utc"] and x["source_pdf_url"]
+                     for x in r["rows"])
+          print("PASS: all live research cues trace to original announcement, PDF SHA, and observation UTC")
+          PY
       - name: Synthesize fail-closed P3 to P4 prospective research handoff
         run: python -m collector.p4_prospective_handoff --audit-dir audit
       - name: Preserve timestamped metadata without republishing originals
