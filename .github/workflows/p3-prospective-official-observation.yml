@@ -67,6 +67,7 @@ jobs:
                 host=urllib.parse.urlparse(href).hostname or ""
                 if (host in ("www.sse.com.cn","www.szse.cn","www.cninfo.com.cn","static.cninfo.com.cn")
                     and ("/finalpage/" in href or "/disclosure/announcement/" in href)
+                    and urllib.parse.urlparse(href).path.lower().endswith((".pdf",".shtml",".html"))
                     and href not in announcement_links):
                   announcement_links.append(href)
                 if len(announcement_links)>=20:break
