@@ -45,13 +45,13 @@ class FreshRosterTests(unittest.TestCase):
             def query_all_stock(self,day):
                 self.queries+=1
                 count=50 if self.queries==1 else 3000
-                return Result([[f"sh.{600000+i}","1",f"issuer{i}"] for i in range(count)])
+                return Result([[f"sh.{[600,601,603][i//1000]*1000+i%1000}","1",f"issuer{i}"] for i in range(count)])
         with tempfile.TemporaryDirectory() as tmp:
             api=TruncatedOnce()
             self.assertEqual(capture(tmp,api,"2026-10-22"),0)
             q=json.loads((Path(tmp)/"quality.json").read_text())
             self.assertEqual(q["logical_queries"],2)
-            self.assertEqual(q["mainboard_prefix_rows"],1000)
+            self.assertEqual(q["mainboard_prefix_rows"],3000)
             self.assertEqual(q["trade_gate"],"BLOCKED")
     def test_implausibly_small_roster_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
