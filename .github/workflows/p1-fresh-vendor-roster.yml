@@ -19,7 +19,7 @@ permissions:
 jobs:
   roster:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -30,7 +30,7 @@ jobs:
       - name: Install free Baostock
         run: python -m pip install 'baostock>=0.8,<1'
       - name: Observe current Beijing-date mainboard roster from free provider
-        run: timeout 90s python -m collector.p1_fresh_vendor_roster --out evidence
+        run: timeout 210s python -m collector.p1_fresh_vendor_roster --out evidence
       - name: Verify bounded original roster receipt
         run: |
           python - <<'PY'
