@@ -1,4 +1,4 @@
-name: P3 official event research-window classification (NO TRADES)
+name: P3 original event and OHLC digest validation (NO TRADES)
 on:
   push:
     branches: [main]
