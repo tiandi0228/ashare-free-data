@@ -1,0 +1,48 @@
+name: P3 real 128 issuer-day historical risk coverage (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/p3-real-issuer-day-pit-coverage.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  count:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Download only the genuine frozen stratified sample source files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p replay/first replay/rest
+          gh run download 39733363864 --dir replay/first
+          gh run download 39733885012 --dir replay/rest
+      - name: Compute 128-source issuer-day denominator and proven state coverage
+        run: |
+          python -m collector.p3_real_issuer_day_pit_coverage --input replay --out audit/p3_real_pit_coverage.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("audit/p3_real_pit_coverage.json").read_text())
+          assert r["source_issuer_days"]==61941
+          assert r["source_issuer_count"]==128
+          assert r["vendor_active_rows_unverified"]==61810
+          assert r["vendor_suspended_rows_unverified"]==131
+          assert r["complete_PIT_trade_eligible_issuer_days"]==0
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("PASS: observed source rows counted; unproven historical risk never certified")
+          PY
+      - name: Preserve compact gap and coverage evidence only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p3-real-128-issuer-day-coverage-${{ github.run_id }}
+          path: audit/
+          retention-days: 30
+          if-no-files-found: warn
