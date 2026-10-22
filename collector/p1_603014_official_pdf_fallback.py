@@ -10,6 +10,7 @@ from urllib.request import Request,urlopen
 from urllib.error import HTTPError,URLError
 
 SOURCES=[
+ {"id":"cninfo_2025_ipo_original","url":"https://static.cninfo.com.cn/finalpage/2025-05-16/1223557376.PDF","published_day":"2025-05-16"},
  {"id":"sse_2025_official_report","url":"https://big5.sse.com.cn/disclosure/listedinfo/announcement/c/new/2025-11-01/603014_20251101_6P01.pdf","published_day":"2025-11-01"},
  {"id":"sse_2026_official_report","url":"https://static.sse.com.cn/stock/disclosure/announcement/c/202603/603014_20260311_U7PK.pdf","published_day":"2026-03-11"}
 ]
