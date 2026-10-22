@@ -50,7 +50,9 @@ def audit_coverage(codes, days, observations):
     for o in observations:
         if not isinstance(o, dict):
             raise ValueError("invalid observation")
-        key = (o.get("code"), o.get("decision_date"), o.get("kind"))
+        if any(not isinstance(o.get(field), str) for field in ("code", "decision_date", "kind")):
+            raise ValueError("invalid evidence identifier")
+        key = (o["code"], o["decision_date"], o["kind"])
         if key not in expected:
             raise ValueError("evidence outside frozen scope")
         if key in seen:
