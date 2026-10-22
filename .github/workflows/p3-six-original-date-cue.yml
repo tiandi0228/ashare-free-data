@@ -1,0 +1,45 @@
+name: P3 verified six source date cues without effective day promotion (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/p3-six-original-date-cue.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve six genuine source receipts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 39747775798 --dir evidence
+      - name: Reconcile date text while rejecting implied effective dates
+        run: |
+          INPUT="$(find evidence -name quality.json -print -quit)"
+          test -n "$INPUT"
+          python -m collector.p3_six_original_date_cue_reconciliation --receipt "$INPUT" --manifest collector/p3_free_official_probe_manifest.json --out audit/original_date_cues.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path("audit/original_date_cues.json").read_text())
+          assert q["source_count"]==6
+          assert q["sources_with_validated_date_text_cues"]==6
+          assert q["individual_date_text_cues"]==7
+          assert q["confirmed_historical_effective_date_events"]==0
+          assert q["PIT_eligible_event_count"]==0
+          assert all(e["original_pdf_text_checks_passed"] for e in q["events"])
+          assert all(not e["event_transition_certified"] for e in q["events"])
+          assert q["trade_gate"]=="BLOCKED" and q["orders"]==[]
+          print("PASS: six genuine original PDF date cues verified without false event effective status")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p3-six-real-original-date-cues-${{ github.run_id }}
+          path: audit/
+          retention-days: 30
+          if-no-files-found: warn
