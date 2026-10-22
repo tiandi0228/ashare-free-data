@@ -31,10 +31,10 @@ def check_daily_bars(rows):
 
 def manifest(path):
     raw=Path(path).read_bytes()
-    if len(raw)>8192: raise ValueError("Manifest oversized")
+    if len(raw)>32768: raise ValueError("Manifest oversized")
     codes=[x.strip() for x in raw.decode("utf-8-sig").splitlines() if x.strip() and not x.lstrip().startswith("#")]
-    if not 1<=len(codes)<=32 or len(codes)!=len(set(codes)) or any(not PATTERN.fullmatch(x) for x in codes):
-        raise ValueError("Manifest must contain 1-32 unique mainboard identifiers")
+    if not 1<=len(codes)<=128 or len(codes)!=len(set(codes)) or any(not PATTERN.fullmatch(x) for x in codes):
+        raise ValueError("Manifest must contain 1-128 unique mainboard identifiers")
     return codes,hashlib.sha256(raw).hexdigest()
 
 def run(path,index,dest,bs):
