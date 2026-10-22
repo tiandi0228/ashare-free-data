@@ -9,6 +9,7 @@ on:
       - 'collector/p1_fresh_shard_plan.py'
       - 'tests/test_p1_fresh_shard_plan.py'
       - 'collector/p1_shard_ledger.py'
+      - 'collector/p1_checkpoint.py'
       - 'tests/test_p1_shard_ledger.py'
   schedule:
     - cron: '10 1 * * 1-5' # 09:10 Beijing
@@ -17,7 +18,7 @@ on:
     - cron: '10 13 * * 1-5' # 21:10 Beijing
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
   actions: read
 concurrency:
   group: p1-fresh-mainboard-roster-serial
@@ -106,6 +107,24 @@ jobs:
           assert p['historical_PIT_verified'] is False and p['trade_gate']=='BLOCKED'
           print('PASS: fresh vendor roster mapped to deterministic research shards; no historical PIT certification')
           PY
+      - name: Recover durable same-version GitHub checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m collector.p1_checkpoint --mode read --out evidence/durable_ledger.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('evidence/durable_ledger.json')
+          if p.exists():
+              q=json.loads(Path('evidence/shards/plan.json').read_text())
+              r=json.loads(p.read_text())
+              if (r['source_sha256'],r['shard_count'])==(q['source_sha256'],q['shard_count']):
+                  Path('evidence/prior_ledger.json').write_text(json.dumps(r))
+                  print('Matching durable frozen roster checkpoint recovered')
+              else:
+                  print('Durable checkpoint is for another roster, not reusable')
+          PY
       - name: Recover prior successful ledger only for identical roster SHA
         env:
           GH_TOKEN: ${{ github.token }}
@@ -117,6 +136,11 @@ jobs:
           runs=json.loads(subprocess.check_output(['gh','run','list','--workflow','p1-fresh-vendor-roster.yml','--json','databaseId,conclusion','--limit','12']))
           best=None
           best_count=-1
+          durable=Path('evidence/prior_ledger.json')
+          if durable.exists():
+              item=json.loads(durable.read_text())
+              best=(item,'durable-checkpoint')
+              best_count=item['completed_issuers']
           for entry in runs:
               if entry['conclusion']!='success': continue
               rid=entry['databaseId']
@@ -222,6 +246,10 @@ jobs:
           assert x['completed_issuers']<=json.loads(Path('evidence/shards/plan.json').read_text())['issuer_count']
           print('AUDIT: source-bound completed issuers',x['completed_issuers'])
           PY
+      - name: Persist durable no-trade checkpoint in repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -m collector.p1_checkpoint --mode write --in-file evidence/ledger.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
