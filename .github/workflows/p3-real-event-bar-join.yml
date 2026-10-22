@@ -1,4 +1,4 @@
-name: P3 actual official events joined to frozen research bar days (NO TRADES)
+name: P3 official event research-window classification (NO TRADES)
 on:
   push:
     branches: [main]
@@ -36,6 +36,12 @@ jobs:
           assert r["sample_source_rows"]==61941 and r["sample_issuer_count"]==128
           assert r["official_verified_event_count"]==2
           assert len(r["joined_events"])+len(r["events_not_in_sample"])==2
+          assert r["event_sample_disposition_counts"]=={
+              "IN_SAMPLE_WITH_BARS":1,"OUTSIDE_FROZEN_SAMPLE":1,"IN_SAMPLE_NO_BARS":0}
+          assert r["joined_events"][0]["effective_date_relation_to_source_window"]=="WITHIN_SOURCE_WINDOW"
+          assert r["joined_events"][0]["before_effective_source_rows"]==0
+          assert r["joined_events"][0]["on_or_after_effective_source_rows"]==346
+          assert r["frozen_sample_scope_only"] is True
           assert r["historical_point_in_time_risk_coverage_rows"]==0
           assert r["trade_gate"]=="BLOCKED" and not r["orders"]
           print("PASS: official event-to-real-bar reconciliation kept PIT risk gate closed")
