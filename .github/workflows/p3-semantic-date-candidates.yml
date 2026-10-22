@@ -1,0 +1,42 @@
+name: P3 real original dated announcement semantic research cues (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/p3-semantic-date-candidates.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve earlier independently SHA-replayed original date contexts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 39754510346 --dir contexts
+      - name: Classify keyword context without elevating event-state confidence
+        run: |
+          INPUT="$(find contexts -name date_contexts.json -print -quit)"
+          test -n "$INPUT"
+          python -m collector.p3_original_semantic_date_candidates --input "$INPUT" --out audit/semantic_candidates.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path("audit/semantic_candidates.json").read_text())
+          assert q["source_documents"]==6
+          assert q["dated_contexts"]==7
+          assert q["effective_events_certified"]==0 and q["historical_PIT_eligible_events"]==0
+          assert all(x["exact_effective_date_established"] is False for x in q["candidates"])
+          assert q["trade_gate"]=="BLOCKED" and q["orders"]==[]
+          print("PASS: genuine six-document date contexts classified without false PIT events")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p3-original-semantic-contexts-${{ github.run_id }}
+          path: audit/
+          retention-days: 30
+          if-no-files-found: warn
