@@ -4,12 +4,13 @@ A vendor bar or undated web link never proves historical ST, halt or delist
 status. Missing issuer/date/event evidence fails closed. Offline only.
 """
 from __future__ import annotations
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 import re
 
 CODE = re.compile(r"(?:sh\.(?:600|601|603|605)|sz\.(?:000|001|002|003))[0-9]{3}\Z")
 
 def verified_before_decision(observation):
+    # Decision dates follow Shanghai/Shenzhen exchange time (UTC+08), not UTC.
     raw = observation.get('publication_instant_utc')
     if not isinstance(raw, str) or not raw.endswith('Z'):
         return False
@@ -19,7 +20,7 @@ def verified_before_decision(observation):
         published_day = date.fromisoformat(observation['publication_day'])
         return (instant.tzinfo is not None and
                 instant.astimezone(timezone.utc).date() == published_day and
-                published_day < day)
+                instant.astimezone(timezone(timedelta(hours=8))).date() < day)
     except (ValueError, TypeError, KeyError):
         return False
 
