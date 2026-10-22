@@ -22,7 +22,7 @@ def snapshot_age(as_of_date):
     today=date.fromisoformat(as_of_date)
     days=[]
     for name in FILENAMES:
-        match=re.search(r"_(\\d{8})\\.json$", name)
+        match=re.search(r"_(\d{8})\.json$", name)
         if not match:
             raise ValueError("missing snapshot filename date")
         stamp=match.group(1)
