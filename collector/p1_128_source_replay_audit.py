@@ -1,0 +1,72 @@
+"""Independent cross-run audit of the 16 real free-Baostock shard artifacts."""
+import argparse,csv,hashlib,json
+from pathlib import Path
+
+EXPECTED_MANIFEST_SHA="a369c66bbb8289ed418fdec7fd3cc4e5200ad0214916aea4cfbf46a40af68af0"
+def audit(root):
+    root=Path(root)
+    docs=list(root.rglob("quality.json"))
+    if len(docs)!=16:
+        raise ValueError(f"expected 16 actual source receipts; got {len(docs)}")
+    seen_batches=set();seen_issuers=set();total_rows=0;active=0;halted=0
+    for file in docs:
+        q=json.loads(file.read_text())
+        batch=q.get("batch_index",0)
+        if type(batch) is not int or batch not in range(16) or batch in seen_batches:
+            raise ValueError("duplicate or invalid batch")
+        seen_batches.add(batch)
+        if (q.get("manifest_sha256")!=EXPECTED_MANIFEST_SHA or
+            q.get("source_status")!="EIGHT_FREE_ISSUER_HISTORIES_OBSERVED_RESEARCH_ONLY" or
+            q.get("issuer_count")!=8 or len(q.get("issuer_receipts",[]))!=8 or
+            q.get("shard_manifest_count")!=128 or
+            q.get("trade_gate")!="BLOCKED" or q.get("orders")!=[] or
+            q.get("executable_candidates")!=[] or
+            q.get("historical_PIT_verified") is not False):
+            raise ValueError("source receipt contract mismatch")
+        manifest=file.parent/"manifest.txt"
+        raw_manifest=manifest.read_bytes()
+        if hashlib.sha256(raw_manifest).hexdigest()!=EXPECTED_MANIFEST_SHA:
+            raise ValueError("manifest byte hash mismatch")
+        codes=raw_manifest.decode().splitlines()
+        if len(codes)!=128 or len(set(codes))!=128:
+            raise ValueError("invalid frozen manifest")
+        intended=codes[batch*8:(batch+1)*8]
+        actual=[e.get("code") for e in q["issuer_receipts"]]
+        if actual!=intended:
+            raise ValueError("issuer missing or moved between batches")
+        for entry in q["issuer_receipts"]:
+            code=entry["code"]
+            if code in seen_issuers:
+                raise ValueError("duplicate issuer across batches")
+            seen_issuers.add(code)
+            raw=(file.parent/(code.replace(".","_")+".csv")).read_bytes()
+            if hashlib.sha256(raw).hexdigest()!=entry.get("sha256"):
+                raise ValueError("source CSV SHA mismatch")
+            records=list(csv.reader(raw.decode().splitlines()))
+            if len(records)-1!=entry["rows"]:
+                raise ValueError("source CSV row count mismatch")
+            trade=sum(r[9]=="1" for r in records[1:])
+            suspend=sum(r[9]=="0" for r in records[1:])
+            if trade!=entry["valid_active_bars"] or suspend!=entry["suspended_placeholder_rows"]:
+                raise ValueError("source status count mismatch")
+            total_rows+=len(records)-1;active+=trade;halted+=suspend
+    report={"phase":"P1_128_LIVE_CROSS_RUN_INDEPENDENT_AUDIT",
+            "manifest_sha256":EXPECTED_MANIFEST_SHA,
+            "verified_batches":len(seen_batches),"verified_unique_issuers":len(seen_issuers),
+            "historical_rows":total_rows,"active_status_rows":active,
+            "suspended_status_rows":halted,
+            "complete_128_research_source_replay":len(seen_issuers)==128,
+            "official_PIT_universe_verified":False,
+            "historical_ST_halt_delist_complete":False,
+            "trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
+    if seen_batches!=set(range(16)) or active+halted!=total_rows:
+        raise ValueError("coverage/accounting incomplete")
+    return report
+def main():
+    p=argparse.ArgumentParser();p.add_argument("--input",required=True);p.add_argument("--out",required=True)
+    args=p.parse_args()
+    result=audit(args.input)
+    out=Path(args.out);out.parent.mkdir(parents=True,exist_ok=True)
+    out.write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
+    print(json.dumps(result,ensure_ascii=False))
+if __name__=="__main__":main()
