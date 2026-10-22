@@ -28,7 +28,7 @@ jobs:
       - name: Capture exchange indexes and free CNINFO fallback, bounded metadata only
         run: |
           python - <<'PY'
-          import datetime,hashlib,json,pathlib,urllib.request
+          import datetime,hashlib,json,pathlib,re,urllib.request
           from zoneinfo import ZoneInfo
           now=datetime.datetime.now(datetime.timezone.utc)
           china=now.astimezone(ZoneInfo("Asia/Shanghai"))
@@ -51,6 +51,26 @@ jobs:
             except Exception as exc:
               row["failure_type"]=type(exc).__name__
             rows.append(row)
+          # Extract only real links explicitly present in the fetched document.
+          # A landing page with no links is not an announcement feed.
+          import urllib.parse
+          announcement_links=[]
+          for row in rows:
+            if row["status"]!="OBSERVED_HTML_ONLY":continue
+            url=row["url"]
+            try:
+              req=urllib.request.Request(url,headers={"User-Agent":"ashare-free-data-research/1.0","Accept-Encoding":"identity"})
+              with urllib.request.urlopen(req,timeout=12) as resp:
+                body=resp.read(500001).decode("utf-8","replace")
+              for match in re.finditer(r'href=["\\\']([^"\\\']+)["\\\']',body,re.I):
+                href=urllib.parse.urljoin(url,match.group(1))
+                host=urllib.parse.urlparse(href).hostname or ""
+                if (host in ("www.sse.com.cn","www.szse.cn","www.cninfo.com.cn","static.cninfo.com.cn")
+                    and ("/finalpage/" in href or "/disclosure/announcement/" in href)
+                    and href not in announcement_links):
+                  announcement_links.append(href)
+                if len(announcement_links)>=20:break
+            except Exception:pass
           observed=[r for r in rows if r["status"]=="OBSERVED_HTML_ONLY"]
           report={
             "phase":"P3_PROSPECTIVE_OFFICIAL_SOURCE_INDEX_OBSERVATION",
@@ -58,6 +78,9 @@ jobs:
             "china_calendar_date":china.date().isoformat(),
             "observations":rows,
             "index_pages_observed":len(observed),
+            "announcement_links_observed":len(announcement_links),
+            "announcement_link_examples":announcement_links[:10],
+            "individual_announcements_authenticated":False,
             "source_reachability_status":"INDEX_REACHABLE_RESEARCH_ONLY" if observed else "NO_SOURCE_REACHABLE",
             "szse_exchange_host_access_verified":any(r["publisher"]=="SZSE" for r in observed),
             "cninfo_is_not_szse_exchange_authentication":True,
