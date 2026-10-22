@@ -162,10 +162,34 @@ jobs:
               result.update(status="PARTIAL_OR_FAILED",pagination_complete=False,
                             record_count=len(result["records"]),failure_type=type(exc).__name__)
             output.append(result)
+          # Identical response page hashes across requested columns prove that
+          # the server did not provide distinct market-specific page results.
+          fingerprints=[tuple(p["sha256"] for p in x["pages"]) for x in output]
+          same_pages=bool(fingerprints[0]) and fingerprints[0]==fingerprints[1]
+          if same_pages:
+            for entry in output:
+              entry["exchange_column_isolation_verified"]=False
+              entry["status"]="CROSS_COLUMN_IDENTICAL_PAGES_NOT_EXCHANGE_SCOPED"
+              entry["pagination_complete"]=False
+          else:
+            for entry in output:
+              # Different pages alone do not independently certify a market filter.
+              entry["exchange_column_isolation_verified"]=False
+          unique_ids=set()
+          duplicates_between_columns=0
+          for entry in output:
+            for record in entry["records"]:
+              ident=record["announcement_id"]
+              if ident in unique_ids:duplicates_between_columns+=1
+              unique_ids.add(ident)
           receipt={"phase":"P3_CNINFO_BOUNDED_PROSPECTIVE_INDEX",
                    "observed_at_utc":now.isoformat(),"columns":output,
                    "page_cap_per_column":3,"page_size":30,
                    "all_columns_complete":all(x["pagination_complete"] for x in output),
+                   "cross_column_identical_page_responses":same_pages,
+                   "duplicate_announcements_between_columns":duplicates_between_columns,
+                   "deduplicated_announcement_count":len(unique_ids),
+                   "market_column_isolation_verified":False,
                    "historical_publication_instant_authenticated":False,
                    "not_complete_market_disclosure":True,"paid_api_calls":0,
                    "trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
