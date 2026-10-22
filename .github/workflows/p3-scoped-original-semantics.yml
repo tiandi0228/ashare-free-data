@@ -1,0 +1,42 @@
+name: P3 original announcement scoped risk phrase audit (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/p3-scoped-original-semantics.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve independently verified six original PDF context results
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 39754510346 --dir evidence
+      - name: Inspect dated ST subtype, halt and listing phrases
+        run: |
+          INPUT="$(find evidence -name date_contexts.json -print -quit)"
+          test -n "$INPUT"
+          python -m collector.p3_scoped_original_semantics --input "$INPUT" --out audit/scoped_event_semantics.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path("audit/scoped_event_semantics.json").read_text())
+          assert q["original_issuer_documents"]==6
+          assert q["date_contexts"]==7
+          assert q["effective_events_certified"]==0 and q["historical_PIT_eligible"]==0
+          assert all(r["date_to_clause_binding_certified"] is False for r in q["review"])
+          assert q["trade_gate"]=="BLOCKED" and q["orders"]==[]
+          print("PASS: examined anchored risk phrases in real archived date contexts without asserting precise effective date")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p3-scoped-original-risk-phrase-audit-${{ github.run_id }}
+          path: audit/
+          retention-days: 30
+          if-no-files-found: warn
