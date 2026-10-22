@@ -50,6 +50,17 @@ class CoverageTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"duplicate evidence"):
             audit_coverage(["sh.600421"],["2026-06-22"],[bad,bad])
 
+    def test_chinext_and_star_are_not_mainboard(self):
+        for code in ("sz.300750","sz.301001","sh.688981","sh.689009"):
+            with self.subTest(code=code), self.assertRaisesRegex(ValueError,"invalid issuer id"):
+                audit_coverage([code],["2026-06-22"],[])
+    def test_mainboard_prefixes_are_allowed(self):
+        for code in ("sh.600421","sh.601228","sh.603259","sh.605001",
+                     "sz.000651","sz.001696","sz.002204","sz.003000"):
+            with self.subTest(code=code):
+                r=audit_coverage([code],["2026-06-22"],[])
+                self.assertEqual(r["required_evidence_cells"],4)
+                self.assertEqual(r["trade_gate"],"BLOCKED")
     def test_scope_rejected(self):
         with self.assertRaisesRegex(ValueError,"outside"):
             audit_coverage(["sh.600421"],["2026-06-22"],[item(code="sh.600608")])
