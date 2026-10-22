@@ -1,0 +1,34 @@
+{
+  "phase": "P3_SSE_TWO_OFFICIAL_HOST_DOCUMENTS_OBSERVED",
+  "source_run_id": 39704160169,
+  "source_job_id": 119580127889,
+  "captured_at_utc": "2026-10-22T01:10:51Z",
+  "status": "TWO_OFFICIAL_HOST_DOCUMENTS_OBSERVED_NO_PIT_CERTIFICATION",
+  "issuer": "sh.600421",
+  "pages": [
+    {
+      "event": "DELIST_DECISION_ONLY",
+      "url": "https://www.sse.com.cn/disclosure/announcement/listing/stock/c/c_20260522_10819392.shtml",
+      "document_date": "2026-05-22",
+      "sha256": "87406ff9a1bac59c856612fbb8da947593cc4ab779401c6d656dc1399790fa4c",
+      "bytes": 27955,
+      "effective_delist_date": null
+    },
+    {
+      "event": "DELIST_EFFECTIVE_DATE_ANNOUNCED",
+      "url": "https://www.sse.com.cn/disclosure/announcement/listing/stock/c/c_20260622_10823158.shtml",
+      "document_date": "2026-06-22",
+      "sha256": "d5c80ca0800759ec3f0ffafdf6643dada32bee8a4b4be7bff30cd133887784e8",
+      "bytes": 26422,
+      "effective_delist_date": "2026-06-26"
+    }
+  ],
+  "raw_original_html_durably_archived": false,
+  "publisher_digital_signature_verified": false,
+  "historical_intraday_publication_verified": false,
+  "full_market_PIT_ST_halt_delist_complete": false,
+  "trade_gate": "BLOCKED",
+  "orders": [],
+  "executable_candidates": [],
+  "paid_api_calls": 0
+}
