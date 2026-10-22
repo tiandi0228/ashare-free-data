@@ -1,0 +1,48 @@
+name: P3 historical announcement temporal leakage audit (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/p3-original-temporal-signal-gate.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify temporal leak tests
+        run: python -m unittest tests.test_p3_original_temporal_signal_gate -v
+      - name: Download real previously captured 2025 CNINFO IPO original receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p evidence
+          gh run download 39740152424 --dir evidence
+      - name: Test that recovered historical original cannot be time-traveled into an earlier trade signal
+        run: |
+          RECEIPT="$(find evidence -name fallback_quality.json -print -quit)"
+          test -n "$RECEIPT"
+          python -m collector.p3_original_temporal_signal_gate --receipt "$RECEIPT" --signal-date 2025-05-19 --out audit/real_temporal_gate.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('audit/real_temporal_gate.json').read_text())
+          assert r["evaluated_sources"]==3
+          assert len(r["eligible_sources"])==0
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          assert any("ACQUIRED_AFTER_SIGNAL_DAY" in s["reasons"] for s in r["ineligible_sources"])
+          print("PASS: true downloaded 2025 IPO PDF evidence is NOT a historical as-of 2025 signal")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p3-real-original-temporal-gate-${{ github.run_id }}
+          path: audit/
+          retention-days: 30
+          if-no-files-found: warn
