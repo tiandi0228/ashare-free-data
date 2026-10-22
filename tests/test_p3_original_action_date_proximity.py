@@ -45,6 +45,18 @@ class OriginalActionDateProximityTests(unittest.TestCase):
         self.assertEqual(q["certified_effective_state_transitions"], 0)
         self.assertEqual(q["trade_gate"], "BLOCKED")
 
+    def test_action_in_next_sentence_is_not_bound_to_previous_date(self):
+        sample = "公司公告日期2026年1月5日。公司股票复牌"
+        q = extract(report(sample))
+        self.assertEqual(q["dates_with_nearby_actions"], 0)
+        self.assertEqual(q["certified_effective_state_transitions"], 0)
+        self.assertEqual(q["trade_gate"], "BLOCKED")
+
+    def test_action_in_same_clause_is_still_captured(self):
+        q = extract(report("公司股票自2026年1月5日起复牌。其他公告信息"))
+        self.assertEqual(q["dates_with_nearby_actions"], 6)
+        self.assertEqual(q["candidates"][0]["nearby_action_labels"], ["RESUME"])
+
     def test_duplicate_source_id_rejected(self):
         q = report("公司股票2026年1月5日起复牌")
         q["results"][1]["source_id"] = q["results"][0]["source_id"]
