@@ -19,15 +19,24 @@ def capture(out, provider, day):
         if login.error_code!="0":
             raise ValueError("login failed")
         logged=True
-        report["logical_queries"]=1
-        q=provider.query_all_stock(day=day)
-        if q.error_code!="0" or tuple(q.fields)!=FIELDS:
-            raise ValueError("roster schema")
-        rows=[]
-        while q.next():
-            rows.append(q.get_row_data())
-            if len(rows)>10000:raise ValueError("roster excessive")
-        main=inspect_rows(rows)
+        main=None
+        for attempt in range(2):
+            report["logical_queries"]+=1
+            q=provider.query_all_stock(day=day)
+            if q.error_code!="0" or tuple(q.fields)!=FIELDS:
+                raise ValueError("roster schema")
+            rows=[]
+            while q.next():
+                rows.append(q.get_row_data())
+                if len(rows)>10000:raise ValueError("roster excessive")
+            report["last_source_total_rows"]=len(rows)
+            try:
+                main=inspect_rows(rows)
+                break
+            except ValueError as exc:
+                if str(exc)!="Implausibly small mainboard subset" or attempt==1:
+                    raise
+        assert main is not None
         raw=csv_bytes(main)
         (path/"mainboard.csv").write_bytes(raw)
         report.update(status="OBSERVED_UNVERIFIED",source_total_rows=len(rows),
