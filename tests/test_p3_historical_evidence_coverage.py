@@ -82,6 +82,13 @@ class CoverageTests(unittest.TestCase):
     def test_bounded_scope_enforced_at_core_gate(self):
         with self.assertRaisesRegex(ValueError,"bounded P3"):
             audit_coverage(["sh.600421"],[f"2026-01-{i:02d}" for i in range(1,32)]+["2026-02-01"],[])
+    def test_unhashable_evidence_identifier_fails_cleanly(self):
+        for field in ("code","decision_date","kind"):
+            with self.subTest(field=field):
+                bad=item()
+                bad[field]=["malformed"]
+                with self.assertRaisesRegex(ValueError,"invalid evidence identifier"):
+                    audit_coverage(["sh.600421"],["2026-06-22"],[bad])
     def test_scope_rejected(self):
         with self.assertRaisesRegex(ValueError,"outside"):
             audit_coverage(["sh.600421"],["2026-06-22"],[item(code="sh.600608")])
