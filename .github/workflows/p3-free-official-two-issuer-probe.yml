@@ -1,4 +1,4 @@
-name: P3 corrected official two issuer free probe (NO TRADES)
+name: P3 strict multi-issuer free official PDF evidence (NO TRADES)
 on:
   push:
     branches: [main]
