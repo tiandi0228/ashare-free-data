@@ -26,7 +26,8 @@ def gh(*args,input_data=None):
 def remote_read(repo):
     try:
         result=json.loads(gh(f"repos/{repo}/contents/{CHECKPOINT}", "-f", "ref=main", "--method", "GET"))
-        return json.loads(base64.b64decode(result["content"])),result["sha"]
+        raw=base64.b64decode(result["content"]).decode()
+        return json.loads(raw.removesuffix("\\\\n")),result["sha"]
     except subprocess.CalledProcessError as exc:
         if exc.returncode==1: return None,None
         raise
@@ -54,7 +55,7 @@ def main():
         if remote is not None:
             validate(remote)
             dest=Path(a.out);dest.parent.mkdir(parents=True,exist_ok=True)
-            dest.write_text(json.dumps(remote)+"\\n")
+            dest.write_text(json.dumps(remote)+chr(10))
             print("Recovered durable GitHub checkpoint with",remote["completed_issuers"],"issuers")
         else:print("No durable checkpoint yet")
         return
@@ -64,7 +65,7 @@ def main():
     if chosen is remote:
         print("Preserved higher-progress remote checkpoint")
         return
-    data=base64.b64encode((json.dumps(chosen,indent=2,ensure_ascii=False)+"\\n").encode()).decode()
+    data=base64.b64encode((json.dumps(chosen,indent=2,ensure_ascii=False)+chr(10)).encode()).decode()
     params=["-X","PUT",f"repos/{a.repo}/contents/{CHECKPOINT}","-f","message=chore(p1): persist audited no-trade shard checkpoint","-f",f"content={data}","-f","branch=main"]
     if sha:params.extend(["-f",f"sha={sha}"])
     gh(*params)
