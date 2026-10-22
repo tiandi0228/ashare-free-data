@@ -14,7 +14,10 @@ def reconcile(plan, receipts, prior=None):
         if prior.get("source_sha256")!=source or prior.get("shard_count")!=len(shards):
             raise ValueError("ledger belongs to another roster")
         for item in prior.get("completed",[]):
-            completed[item["index"]]=item
+            index=item.get("index")
+            if type(index) is not int or index in completed:
+                raise ValueError("duplicate or invalid prior ledger index")
+            completed[index]=item
     failed=[]
     for index, receipt in receipts:
         if type(index)!=int or not 0<=index<len(shards):
@@ -36,7 +39,7 @@ def reconcile(plan, receipts, prior=None):
             failed.append(index)
     valid=[]
     for i, entry in completed.items():
-        if type(i)!=int or not 0<=i<len(shards) or entry.get("manifest_sha256")!=shards[i]["sha256"] or entry.get("issuer_count")!=shards[i]["count"]:
+        if type(i)!=int or not 0<=i<len(shards) or entry.get("manifest_sha256")!=shards[i]["sha256"] or entry.get("issuer_count")!=shards[i]["count"] or len(entry.get("receipt_sha256",""))!=64:
             raise ValueError("corrupt prior ledger")
         valid.append(entry)
     done={x["index"] for x in valid}
