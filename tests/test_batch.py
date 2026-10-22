@@ -46,6 +46,30 @@ class BatchTests(unittest.TestCase):
             self.assertEqual(q["successful_issuer_count"],1)
             self.assertEqual(q["trade_gate"],"BLOCKED")
 
+    def test_requests_style_connection_error_retried(self):
+        class ConnectionErrorFromSDK(Exception):
+            pass
+        ConnectionErrorFromSDK.__name__ = "ConnectionError"
+        class Provider:
+            def __init__(self):
+                self.calls = 0
+                self.inner = FakeProvider()
+            def stock_zh_a_hist(self, **kwargs):
+                self.calls += 1
+                if self.calls == 1:
+                    raise ConnectionErrorFromSDK("remote disconnected")
+                return self.inner.stock_zh_a_hist(**kwargs)
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            m=root/"m.txt"
+            m.write_text("600000\n")
+            api=Provider()
+            self.assertEqual(capture(m,0,root/"out",api),0)
+            q=json.loads((root/"out/quality.json").read_text())
+            self.assertEqual(api.calls,2)
+            self.assertEqual(q["logical_sdk_calls"],2)
+            self.assertEqual(q["issuers"][0]["attempts"],2)
+
     def test_out_of_range_does_not_query(self):
         with tempfile.TemporaryDirectory() as tmp:
             p=Path(tmp)/"m.txt";p.write_text("600000\n")
