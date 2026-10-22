@@ -176,7 +176,7 @@ jobs:
                   "all_historical_risk_events_complete":False,
                   "paid_api_calls":0,"trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
           root=pathlib.Path("audit");root.mkdir(exist_ok=True)
-          (root/"cninfo_announcements.json").write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\\n")
+          (root/"cninfo_announcements.json").write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
           print(json.dumps({k:result[k] for k in ("status","reported_total","raw_rows_seen","unique_raw_announcement_ids","mainboard_record_count","pagination_complete","trade_gate")}))
           PY
       - name: Triage candidate risk notices without certifying issuer state
@@ -210,7 +210,7 @@ jobs:
             "historical_effective_date_verified":False,
             "historical_asof_verified":False,
             "trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
-          Path("audit/p3_title_risk_candidates.json").write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\\n")
+          Path("audit/p3_title_risk_candidates.json").write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\n")
           print(json.dumps({"candidate_count":len(matches),"category_hit_counts":dict(counts),
                             "source_pagination_complete":report["source_pagination_complete"],
                             "trade_gate":"BLOCKED"},ensure_ascii=False))
