@@ -62,6 +62,10 @@ jobs:
           import json
           from pathlib import Path
           x=json.loads(Path('audit/p4_real_source_readiness.json').read_text())
+          assert x['evidence_mode']=='FROZEN_REPOSITORY_SNAPSHOT'
+          assert x['independent_live_source_reverification_in_this_run'] is False
+          assert x['latest_market_coverage_verified_in_this_run'] is False
+          assert len(x['evidence_report_files'])==4
           assert x['required_conditions']==6
           assert x['verified_conditions']<6
           assert x['trade_gate']=='BLOCKED'
