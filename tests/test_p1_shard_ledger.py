@@ -22,6 +22,16 @@ class LedgerTests(unittest.TestCase):
         a=reconcile(self.plan,[(0,self.receipt(0))])
         changed={**self.plan,"source_sha256":"z"*64}
         with self.assertRaises(ValueError):reconcile(changed,[],a)
+    def test_duplicate_prior_receipt_rejected(self):
+        prior=reconcile(self.plan,[(0,self.receipt(0))])
+        prior["completed"].append(dict(prior["completed"][0]))
+        with self.assertRaises(ValueError):
+            reconcile(self.plan,[],prior)
+    def test_missing_prior_receipt_sha_rejected(self):
+        prior=reconcile(self.plan,[(0,self.receipt(0))])
+        del prior["completed"][0]["receipt_sha256"]
+        with self.assertRaises(ValueError):
+            reconcile(self.plan,[],prior)
     def test_bad_receipt_not_counted(self):
         r=self.receipt(0);r["results"][0]["status"]="ERROR"
         a=reconcile(self.plan,[(0,r)])
