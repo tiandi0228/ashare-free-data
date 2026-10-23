@@ -1,0 +1,40 @@
+name: P4 real holdout exit date availability (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p4_real_exit_availability.py'
+      - 'tests/test_p4_real_exit_availability.py'
+      - '.github/workflows/p4-real-exit-availability.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest tests.test_p4_real_exit_availability -v
+      - run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-research FETCH_HEAD
+          python -m collector.p4_real_exit_availability --root archived-research --out evidence/p4_real_exit.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path("evidence/p4_real_exit.json").read_text())
+          assert x['verified_issuers']>0
+          assert x['active_holdout_entry_dates']==sum(x[k] for k in ('calendar_unavailable','target_vendor_row_missing','target_vendor_suspended','target_vendor_active'))
+          assert x['trade_gate']=='BLOCKED' and x['fills_verified']==0 and x['orders']==[]
+          print('REAL EXIT DATE COVERAGE',x['active_holdout_entry_dates'],x['target_vendor_active'],x['target_vendor_row_missing'],x['target_vendor_suspended'],x['calendar_unavailable'])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p4-real-exit-${{ github.run_id }}
+          path: evidence/p4_real_exit.json
+          retention-days: 14
