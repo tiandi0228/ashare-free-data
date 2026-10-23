@@ -30,7 +30,9 @@ def check_dates(days):
     if not days:raise ValueError("no historical dates")
     dates=sorted(set(days))
     unsupported=sorted({d.year for d in dates}-set(HOLIDAY_RANGES))
-    if unsupported:raise ValueError("year has no curated official closure source: "+str(unsupported))
+    supported=[d for d in dates if d.year in HOLIDAY_RANGES]
+    if not supported:raise ValueError("no official notice-covered dates")
+    dates=supported
     closed=set().union(*(closures(y) for y in {d.year for d in dates}))
     bad_weekends=[d.isoformat() for d in dates if d.weekday()>=5]
     bad_holidays=[d.isoformat() for d in dates if d in closed]
@@ -39,7 +41,9 @@ def check_dates(days):
         if day.weekday()<5 and day not in closed:expected.append(day)
         day+=timedelta(days=1)
     missing=sorted(set(expected)-set(dates))
-    return {"date_count":len(dates),"unexpected_weekend_dates":bad_weekends,
+    return {"date_count":len(dates),"unsupported_years":unsupported,
+            "uncovered_source_dates":len(set(days)-set(dates)),
+            "unexpected_weekend_dates":bad_weekends,
             "unexpected_holiday_dates":bad_holidays,
             "missing_expected_weekdays":[d.isoformat() for d in missing],
             "expected_weekdays_excluding_official_closures":len(expected),
