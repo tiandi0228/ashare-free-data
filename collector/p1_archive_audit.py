@@ -14,12 +14,14 @@ def audit(plan, ledger, root):
     if not observed.issubset({x["index"] for x in ledger["completed"]}):
         raise ValueError("archive references uncompleted shard")
     archived=0
+    legacy_without_receipts=[]
     for idx in sorted(observed):
         part=epoch/f"shard_{idx:04d}"
         expected=plan["shards"][idx]
         manifest=part/"quality.json"
         if not manifest.exists():
-            raise ValueError("missing permanent quality receipt")
+            legacy_without_receipts.append(idx)
+            continue
         receipt=json.loads(manifest.read_text())
         if receipt["manifest_sha256"]!=expected["sha256"] or receipt["status"]!="OBSERVED_SUBSET_UNVERIFIED" or receipt["trade_gate"]!="BLOCKED":
             raise ValueError("invalid permanent quality receipt")
@@ -30,6 +32,7 @@ def audit(plan, ledger, root):
             archived+=1
     result={"archived_issuers":archived,"ledger_issuers":ledger["completed_issuers"],
             "archive_gap_issuers":ledger["completed_issuers"]-archived,"archive_complete":archived==ledger["completed_issuers"],
+            "legacy_shards_without_receipts":legacy_without_receipts,
             "trade_gate":"BLOCKED","historical_PIT_verified":False}
     if result["archive_gap_issuers"]<0:raise ValueError("overreported archive")
     return result
