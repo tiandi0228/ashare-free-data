@@ -32,6 +32,23 @@ jobs:
           python -m collector.p4_real_ma20_forward_observation --root archived-research --cutoff 2025-12-31 --archive-commit "$ARCHIVE_COMMIT" --out evidence/p4_ma20_forward_observation.json
           python -m collector.p4_independent_event_evidence --root archived-research --manifest evidence/p4_ma20_forward_observation.json
           python - <<'PY'
+          import json,os
+          from pathlib import Path
+          source=json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
+          kind=os.environ["GITHUB_EVENT_NAME"]
+          upstream=source.get("workflow_run",{}) if kind=="workflow_run" else {}
+          if kind=="workflow_run":
+              assert upstream["conclusion"]=="success"
+              assert upstream["name"]=="P1 fresh Baostock mainboard roster observation (NO TRADES)"
+          proof={"p4_trigger":kind,
+                 "upstream_p1_run_id":upstream.get("id"),
+                 "upstream_p1_conclusion":upstream.get("conclusion"),
+                 "archive_commit_sha":json.loads(Path("evidence/p4_ma20_forward_observation.json").read_text())["archive_commit_sha"],
+                 "trade_gate":"BLOCKED","orders":[]}
+          Path("evidence/p4_trigger_provenance.json").write_text(json.dumps(proof,indent=2)+"\\n")
+          print("P4_TRIGGER_PROVENANCE",json.dumps(proof))
+          PY
+          python - <<'PY'
           import json
           from pathlib import Path
           r=json.loads(Path('evidence/p4_ma20_forward_observation.json').read_text())
@@ -46,5 +63,7 @@ jobs:
         if: always()
         with:
           name: p4-real-ma20-observation-${{ github.run_id }}
-          path: evidence/p4_ma20_forward_observation.json
+          path: |
+            evidence/p4_ma20_forward_observation.json
+            evidence/p4_trigger_provenance.json
           retention-days: 14
