@@ -14,18 +14,26 @@ def select(root, limit=8):
         verified=json.loads(report.read_text())
         if verified.get("trade_gate")!="BLOCKED" or verified.get("archive_merged") is not False:
             raise ValueError("unsafe archive audit")
+        verified_items={x["code"]:x for x in verified.get("row_date_details",[])}
         for item in json.loads(receipt.read_text()).get("results",[]):
             if item.get("status")!="OBSERVED_RESEARCH_ONLY":continue
             filename=item["code"].replace(".","_")+"_tail.csv"
             if item.get("filename")!=filename:raise ValueError("unsafe archive filename")
             if hashlib.sha256((folder/filename).read_bytes()).hexdigest()!=item["sha256"]:
                 raise ValueError("archive tail hash mismatch")
+            detail=verified_items.get(item["code"])
+            if not detail or detail.get("rows")!=item.get("rows") or detail.get("restored_exit_date_observations",0)<1:
+                raise ValueError("unverified or unmatched archived source tail")
             done.add(item["code"])
     tasks=source["tail_backfill_requests"]
+    task_codes={x["code"] for x in tasks}
+    if not done.issubset(task_codes):raise ValueError("archived issuer missing from current verified baseline")
     pending=[t for t in tasks if t["code"] not in done]
     chosen=pending[:limit]
     return {"phase":"P4_PENDING_SOURCE_TAIL_SELECTOR","issuer_count":len(tasks),
             "archived_issuers":len(done),"remaining_issuers":len(pending),
+            "source_verified_issuers":source["verified_issuers"],
+            "source_missing_exit_observations":source["missing_beyond_source_end"],
             "selected_codes":[x["code"] for x in chosen],
             "selected_issuers":len(chosen),"trade_gate":"BLOCKED"}
 def main():
