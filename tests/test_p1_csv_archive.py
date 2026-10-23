@@ -1,0 +1,25 @@
+import hashlib,json,tempfile,unittest
+from pathlib import Path
+from collector.p1_csv_archive import collect
+
+class CSVArchiveTests(unittest.TestCase):
+    def test_verified_csv_accepted(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)
+            raw=b"date,close\n2026-01-01,1.2\n"
+            (path/"sh_600000.csv").write_bytes(raw)
+            plan={"shards":[{"sha256":"a"*64,"count":1}]}
+            receipt={"manifest_sha256":"a"*64,"issuer_count":1,"status":"OBSERVED_SUBSET_UNVERIFIED",
+                     "trade_gate":"BLOCKED","results":[{"code":"sh.600000","sha256":hashlib.sha256(raw).hexdigest()}]}
+            (path/"quality.json").write_text(json.dumps(receipt))
+            result=collect(plan,[(0,path)])
+            self.assertEqual(len(result),1)
+            (path/"sh_600000.csv").write_text("tampered")
+            with self.assertRaises(ValueError):collect(plan,[(0,path)])
+    def test_blocked_gate_required(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)
+            plan={"shards":[{"sha256":"a"*64,"count":0}]}
+            (path/"quality.json").write_text(json.dumps({"manifest_sha256":"a"*64,"issuer_count":0,"status":"OBSERVED_SUBSET_UNVERIFIED","trade_gate":"OPEN","results":[]}))
+            with self.assertRaises(ValueError):collect(plan,[(0,path)])
+if __name__=="__main__":unittest.main()
