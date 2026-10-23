@@ -4,6 +4,8 @@ on:
     branches: [main]
     paths:
       - 'collector/p4_real_ma20_forward_observation.py'
+      - 'collector/p4_independent_event_evidence.py'
+      - 'tests/test_p4_independent_event_evidence.py'
       - 'tests/test_p4_real_ma20_forward_observation.py'
       - '.github/workflows/p4-real-ma20-forward-observation.yml'
   workflow_dispatch:
@@ -18,11 +20,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest tests.test_p4_real_ma20_forward_observation -v
+      - run: python -m unittest tests.test_p4_real_ma20_forward_observation tests.test_p4_independent_event_evidence -v
       - run: |
           git fetch --depth=1 origin research-csv-archive
           git worktree add --detach archived-research FETCH_HEAD
           python -m collector.p4_real_ma20_forward_observation --root archived-research --cutoff 2025-12-31 --out evidence/p4_ma20_forward_observation.json
+          python -m collector.p4_independent_event_evidence --root archived-research --manifest evidence/p4_ma20_forward_observation.json
           python - <<'PY'
           import json
           from pathlib import Path
