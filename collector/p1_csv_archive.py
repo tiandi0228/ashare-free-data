@@ -47,6 +47,13 @@ def archive(plan, selected, repository):
                 if item.name!=".git":
                     if item.is_dir():shutil.rmtree(item)
                     else:item.unlink()
+        for index,folder in selected:
+            receipt_source=folder/"quality.json"
+            receipt_dest=work/prefix/f"shard_{index:04d}"/"quality.json"
+            receipt_dest.parent.mkdir(parents=True,exist_ok=True)
+            if receipt_dest.exists() and receipt_dest.read_bytes()!=receipt_source.read_bytes():
+                raise ValueError("refuse to overwrite archived receipt")
+            shutil.copyfile(receipt_source,receipt_dest)
         for index,source,digest in entries:
             destination=work/prefix/f"shard_{index:04d}"/source.name
             destination.parent.mkdir(parents=True,exist_ok=True)
