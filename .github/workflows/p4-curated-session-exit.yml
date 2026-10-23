@@ -1,0 +1,30 @@
+name: P4 curated D+3 Friday exit chronology (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p4_curated_session_exit.py'
+      - 'tests/test_p4_curated_session_exit.py'
+      - '.github/workflows/p4-curated-session-exit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest tests.test_p4_curated_session_exit -v
+      - run: |
+          python - <<'PY'
+          import json
+          from collector.p4_curated_session_exit import research_exit
+          cases=['2026-02-26','2026-05-06','2025-09-29']
+          out=[research_exit(day) for day in cases]
+          assert all(x['trade_gate']=='BLOCKED' and x['orders']==[] for x in out)
+          assert all(not x['calendar_is_officially_authenticated'] for x in out)
+          print('CURATED RESEARCH EXITS',json.dumps(out,ensure_ascii=False))
+          PY
