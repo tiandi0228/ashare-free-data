@@ -12,7 +12,7 @@ permissions:
 jobs:
   p2-integrity:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -28,3 +28,31 @@ jobs:
           assert audit_csv(raw,'sh.600000')['active_rows']==1
           print('PASS: vendor-only prices; not official historical PIT or trading permission')
           PY
+      - name: Verify archived real vendor CSV against independent P2 parser
+        run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-research FETCH_HEAD
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from collector.p2_independent_bars import assess
+          root=Path('archived-research')
+          receipts=sorted(root.glob('*/shard_*/quality.json'))
+          if not receipts:
+              raise SystemExit('No permanent receipts available: cannot claim P2 real-source validation')
+          verified=0
+          for receipt in receipts:
+              r=assess(receipt.parent)
+              assert r['trade_gate']=='BLOCKED' and not r['historical_PIT_verified']
+              verified+=r['issuer_count']
+          Path('p2_real_archive_audit.json').write_text(json.dumps({
+              'phase':'P2_REAL_ARCHIVE_REPLAY','verified_issuers':verified,
+              'verified_shards':len(receipts),'historical_PIT_verified':False,
+              'trade_gate':'BLOCKED','orders':[]},indent=2)+'\n')
+          print('P2 REAL ARCHIVE REPLAY PASS:',verified,'issuers across',len(receipts),'shards')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p2-real-archive-audit-${{ github.run_id }}
+          path: p2_real_archive_audit.json
+          retention-days: 14
