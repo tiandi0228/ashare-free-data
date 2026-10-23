@@ -1,0 +1,22 @@
+name: P3 publication as-of risk evidence boundary (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p3_publication_asof_gate.py'
+      - 'tests/test_p3_publication_asof_gate.py'
+      - '.github/workflows/p3-publication-asof.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  historical-publication-boundary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test independent original publication timestamp guard
+        run: python -m unittest tests.test_p3_publication_asof_gate -v
