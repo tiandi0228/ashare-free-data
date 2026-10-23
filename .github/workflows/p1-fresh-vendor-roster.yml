@@ -325,6 +325,20 @@ jobs:
           assert idx not in after['archive_repair_queue']
           print('REPAIR AUDIT PASS: durable verified issuers',after['archived_issuers'],'gap',after['archive_gap_issuers'])
           PY
+      - name: Verify durable repair progress never regresses
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          ledger=json.loads(Path('evidence/ledger.json').read_text())
+          after=json.loads(Path('evidence/archive_audit.json').read_text())
+          before=json.loads(Path('evidence/archive_audit_before_repair.json').read_text())
+          assert after['trade_gate']=='BLOCKED' and after['historical_PIT_verified'] is False
+          assert after['archived_issuers']>=before['archived_issuers']
+          assert after['archived_issuers']<=ledger['completed_issuers']
+          assert after['archive_gap_issuers']==ledger['completed_issuers']-after['archived_issuers']
+          print('P1 PROGRESS ACCEPTED: ledger',ledger['completed_issuers'],'durable',after['archived_issuers'],'gap',after['archive_gap_issuers'])
+          PY
       - name: Persist durable no-trade checkpoint in repository
         env:
           GH_TOKEN: ${{ github.token }}
