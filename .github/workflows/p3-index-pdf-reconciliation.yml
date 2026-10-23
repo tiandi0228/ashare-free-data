@@ -1,0 +1,21 @@
+name: P3 official index-PDF provenance reconciliation (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p3_index_pdf_reconciliation.py'
+      - 'tests/test_p3_index_pdf_reconciliation.py'
+      - '.github/workflows/p3-index-pdf-reconciliation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest tests.test_p3_index_pdf_reconciliation -v
