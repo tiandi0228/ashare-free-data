@@ -8,7 +8,7 @@ class SplitTests(unittest.TestCase):
         from unittest.mock import patch
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
-            raw="date,close\n2025-12-30,10\n2026-01-02,11\n"
+            raw="date,close\n2025-12-30,10\n2026-01-02,11\n2026-01-05,11\n2026-01-06,11\n2026-01-07,11\n2026-01-08,11\n"
             for i in (0,1):
                 d=root/str(i)/"shard_0000"
                 d.mkdir(parents=True)
@@ -18,6 +18,7 @@ class SplitTests(unittest.TestCase):
                 result=audit(root,"2025-12-31")
                 self.assertEqual(result["identical_duplicate_receipts_skipped"],1)
                 self.assertEqual(result["verified_issuers"],1)
+                self.assertEqual(result["issuers_with_5_holdout_rows"],1)
                 (root/"1"/"shard_0000"/"sh_600000.csv").write_text(raw.replace(",11",",12"))
                 with self.assertRaisesRegex(ValueError,"conflicting duplicate"):
                     audit(root,"2025-12-31")

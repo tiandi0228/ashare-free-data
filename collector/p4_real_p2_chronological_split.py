@@ -13,7 +13,7 @@ def audit(root,cutoff,archive_commit=None):
     cutoff=date.fromisoformat(cutoff)
     receipts=sorted(Path(root).glob("*/shard_*/quality.json"))
     if not receipts:raise ValueError("no durable original receipts")
-    counts={"train_rows":0,"holdout_rows":0,"issuers_with_holdout":0,"verified_issuers":0,"issuers_with_both_periods":0}
+    counts={"train_rows":0,"holdout_rows":0,"issuers_with_holdout":0,"verified_issuers":0,"issuers_with_both_periods":0,"issuers_with_5_holdout_rows":0}
     digests=[];seen={};per_issuer=[];identical_duplicate_receipts=0
     for p in receipts:
         verified=assess(p.parent)
@@ -33,12 +33,16 @@ def audit(root,cutoff,archive_commit=None):
             counts["issuers_with_holdout"]+=int(holdout>0)
             counts["verified_issuers"]+=1
             counts["issuers_with_both_periods"]+=int(train>0 and holdout>0)
+            counts["issuers_with_5_holdout_rows"]+=int(train>0 and holdout>=5)
             per_issuer.append({"issuer":code,"train_rows":train,"holdout_rows":holdout,
+                               "has_5_holdout_rows":train>0 and holdout>=5,
                                "train_last":max((d.isoformat() for d in dates if d<=cutoff),default=None),
                                "holdout_first":min((d.isoformat() for d in dates if d>cutoff),default=None)})
     if counts["train_rows"]==0 or counts["holdout_rows"]==0:raise ValueError("both research periods require actual bars")
     if counts["issuers_with_both_periods"]==0:
         raise ValueError("no independently verified issuer crosses research cutoff")
+    if counts["issuers_with_5_holdout_rows"]==0:
+        raise ValueError("no issuer has five recorded holdout sessions for 3-5 day research")
     for row in per_issuer:
         if row["train_last"] is not None and row["holdout_first"] is not None and row["train_last"]>=row["holdout_first"]:
             raise ValueError("issuer time overlap")
