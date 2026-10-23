@@ -1,0 +1,41 @@
+name: P2 P3 P4 independent historical readiness (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p234_historical_readiness.py'
+      - 'tests/test_p234_historical_readiness.py'
+      - '.github/workflows/p234-independent-readiness.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  historical-readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run fail-closed P2/P3/P4 offline tests
+        run: python -m unittest tests.test_p234_historical_readiness -v
+      - name: Produce explicit historical evidence gap report
+        run: |
+          mkdir -p evidence
+          echo '{"trade_gate":"BLOCKED","orders":[]}' > evidence/known_absent_historical_proof.json
+          python -m collector.p234_historical_readiness --evidence evidence/known_absent_historical_proof.json --out evidence/p234_readiness.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path('evidence/p234_readiness.json').read_text())
+          assert not x['requirements_met'] and not x['historical_strategy_validated']
+          assert x['trade_gate']=='BLOCKED' and not x['orders']
+          assert len(x['missing_requirements'])==8
+          print('PASS: P2/P3/P4 independent development gate stays research-only')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p234-historical-readiness-${{ github.run_id }}
+          path: evidence/p234_readiness.json
+          retention-days: 14
