@@ -16,7 +16,8 @@ def capture(fetch=None):
         try:
             raw,final,status=fetch(url)
             if status!=200 or not raw or len(raw)>3_000_000:raise ValueError("invalid bounded response")
-            if "sse.com.cn" not in urllib.request.urlparse(final).hostname.split(".")[-3:]:
+            host=urllib.request.urlparse(final).hostname or ""
+            if host!="sse.com.cn" and not host.endswith(".sse.com.cn"):
                 raise ValueError("unexpected response host")
             item.update(status="FETCHED_OFFICIAL_HOST_UNVERIFIED_CONTENT",
                         final_url=final,byte_count=len(raw),sha256=hashlib.sha256(raw).hexdigest())
