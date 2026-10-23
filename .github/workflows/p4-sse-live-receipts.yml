@@ -1,0 +1,43 @@
+name: P4 live SSE notice source receipts (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p4_sse_live_notice_receipts.py'
+      - 'tests/test_p4_sse_live_notice_receipts.py'
+      - '.github/workflows/p4-sse-live-receipts.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  receipts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest tests.test_p4_sse_live_notice_receipts -v
+      - run: |
+          python -m collector.p4_sse_live_notice_receipts --out evidence/p4_sse_live_notice_receipts.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('evidence/p4_sse_live_notice_receipts.json').read_text())
+          assert p['expected_count']==3
+          assert p['trade_gate']=='BLOCKED' and p['orders']==[]
+          assert p['historical_exchange_calendar_authenticated'] is False
+          for receipt in p['receipts']:
+              if receipt['status']=='FETCHED_OFFICIAL_HOST_UNVERIFIED_CONTENT':
+                  assert len(receipt['sha256'])==64 and receipt['byte_count']>0
+              else:
+                  assert receipt['status']=='SOURCE_UNAVAILABLE'
+          print('OFFICIAL LIVE SOURCE RECEIPTS:',p['fetched_count'],'/',p['expected_count'])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p4-sse-live-receipts-${{ github.run_id }}
+          path: evidence/p4_sse_live_notice_receipts.json
+          retention-days: 14
