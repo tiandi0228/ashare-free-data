@@ -31,9 +31,28 @@ jobs:
           assert r['first_publication_verified'] is False and r['orders']==[]
           print('INDEX EVIDENCE:',r['index_records_found'],'of',r['requested'],'matched; failures:',len(r['unavailable_or_unmatched']))
           PY
+      - name: Capture six original official PDFs and reconcile with live index
+        run: |
+          python -m pip install 'pypdf>=5,<7'
+          python -m collector.p3_free_official_multi_issuer_probe --manifest collector/p3_free_official_probe_manifest.json --out evidence/originals
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from collector.p3_index_pdf_reconciliation import reconcile
+          index=json.loads(Path('evidence/p3_live_index.json').read_text())
+          pdf=json.loads(Path('evidence/originals/quality.json').read_text())
+          report=reconcile(index['linked_index_rows'],pdf)
+          Path('evidence/p3_live_index_pdf_join.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\\n')
+          assert report['trade_gate']=='BLOCKED' and report['historical_PIT_eligible_count']==0
+          assert report['linked_count']<=index['index_records_found']
+          print('LIVE INDEX/PDF JOIN:',report['linked_count'],'of',pdf['source_count'])
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: p3-live-index-evidence-${{ github.run_id }}
-          path: evidence/p3_live_index.json
+          path: |
+            evidence/p3_live_index.json
+            evidence/p3_live_index_pdf_join.json
+            evidence/originals/quality.json
           retention-days: 14
