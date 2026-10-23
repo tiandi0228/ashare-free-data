@@ -1,0 +1,41 @@
+name: P4 real vendor MA20 forward observation (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p4_real_ma20_forward_observation.py'
+      - 'tests/test_p4_real_ma20_forward_observation.py'
+      - '.github/workflows/p4-real-ma20-forward-observation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  observation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest tests.test_p4_real_ma20_forward_observation -v
+      - run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-research FETCH_HEAD
+          python -m collector.p4_real_ma20_forward_observation --root archived-research --cutoff 2025-12-31 --out evidence/p4_ma20_forward_observation.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('evidence/p4_ma20_forward_observation.json').read_text())
+          assert r['independently_p2_checked_issuers']>0
+          assert r['three_following_vendor_tradable_rows']<=r['post_cutoff_ma20_observations']
+          assert r['entry_fills_assumed']==0 and not r['returns_computed']
+          assert not r['historical_PIT_verified'] and not r['historical_OOS_validated']
+          assert r['trade_gate']=='BLOCKED' and r['orders']==[] and r['executable_candidates']==[]
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p4-real-ma20-observation-${{ github.run_id }}
+          path: evidence/p4_ma20_forward_observation.json
+          retention-days: 14
