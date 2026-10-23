@@ -210,7 +210,19 @@ jobs:
           assert p['shard_count']>=1 and p['shards'][int('${{ steps.pick.outputs.first }}')]['count']<=8
           print('Real roster shard 0 SHA:',p['shards'][int('${{ steps.pick.outputs.first }}')]['sha256'])
           PY
-          timeout 150s python -m collector.baostock_batch --manifest evidence/shards/shard_${{ steps.pick.outputs.first }}.txt --batch-index 0 --out evidence/first_shard
+          set +e
+          timeout --signal=TERM --kill-after=5s 150s python -u -m collector.baostock_batch --manifest evidence/shards/shard_${{ steps.pick.outputs.first }}.txt --batch-index 0 --out evidence/first_shard
+          code=$?
+          set -e
+          if [ "$code" -eq 124 ] || [ "$code" -eq 137 ]; then
+            mkdir -p evidence/first_shard
+            python - <<'PY'
+          import json
+          from pathlib import Path
+          Path('evidence/first_shard/runner_timeout.json').write_text(json.dumps({'phase':'P1_RUNNER_TIMEOUT','stage':'first_shard','exit_code':int('${code}'),'trade_gate':'BLOCKED','orders':[]})+'\\n')
+          PY
+          fi
+          exit "$code"
       - name: Fetch next real roster shard historical bars (bounded 8 only)
         if: steps.pick.outputs.has_second == 'true'
         run: |
@@ -221,7 +233,19 @@ jobs:
           assert p['shard_count']>=2 and p['shards'][int('${{ steps.pick.outputs.second }}')]['count']<=8
           print('Real roster shard 1 SHA:',p['shards'][int('${{ steps.pick.outputs.second }}')]['sha256'])
           PY
-          timeout 150s python -m collector.baostock_batch --manifest evidence/shards/shard_${{ steps.pick.outputs.second }}.txt --batch-index 0 --out evidence/second_shard
+          set +e
+          timeout --signal=TERM --kill-after=5s 150s python -u -m collector.baostock_batch --manifest evidence/shards/shard_${{ steps.pick.outputs.second }}.txt --batch-index 0 --out evidence/second_shard
+          code=$?
+          set -e
+          if [ "$code" -eq 124 ] || [ "$code" -eq 137 ]; then
+            mkdir -p evidence/second_shard
+            python - <<'PY'
+          import json
+          from pathlib import Path
+          Path('evidence/second_shard/runner_timeout.json').write_text(json.dumps({'phase':'P1_RUNNER_TIMEOUT','stage':'second_shard','exit_code':int('${code}'),'trade_gate':'BLOCKED','orders':[]})+'\\n')
+          PY
+          fi
+          exit "$code"
       - name: Verify real roster-to-bars linkage and SHA receipts
         run: |
           python - <<'PY'
@@ -305,7 +329,19 @@ jobs:
       - name: Reacquire one missing archived research shard (bounded 8)
         if: steps.repair.outputs.needed == 'true'
         run: |
-          timeout 150s python -m collector.baostock_batch --manifest evidence/shards/shard_${{ steps.repair.outputs.index }}.txt --batch-index 0 --out evidence/repair_shard
+          set +e
+          timeout --signal=TERM --kill-after=5s 150s python -u -m collector.baostock_batch --manifest evidence/shards/shard_${{ steps.repair.outputs.index }}.txt --batch-index 0 --out evidence/repair_shard
+          code=$?
+          set -e
+          if [ "$code" -eq 124 ] || [ "$code" -eq 137 ]; then
+            mkdir -p evidence/repair_shard
+            python - <<'PY'
+          import json
+          from pathlib import Path
+          Path('evidence/repair_shard/runner_timeout.json').write_text(json.dumps({'phase':'P1_RUNNER_TIMEOUT','stage':'repair_shard','exit_code':int('${code}'),'trade_gate':'BLOCKED','orders':[]})+'\\n')
+          PY
+          fi
+          exit "$code"
       - name: Archive recovered historical CSV with its original receipt
         if: steps.repair.outputs.needed == 'true'
         env:
