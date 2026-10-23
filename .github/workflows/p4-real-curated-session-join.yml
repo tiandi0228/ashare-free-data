@@ -1,0 +1,41 @@
+name: P4 real vendor curated session join (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p4_real_curated_session_join.py'
+      - 'tests/test_p4_real_curated_session_join.py'
+      - '.github/workflows/p4-real-curated-session-join.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest tests.test_p4_real_curated_session_join -v
+      - run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-research FETCH_HEAD
+          python -m collector.p4_real_curated_session_join --root archived-research --out evidence/p4_session_join.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('evidence/p4_session_join.json').read_text())
+          assert r['verified_issuers']>0
+          assert r['holdout_active_rows']==r['last_vendor_row_no_successor']+r['vendor_next_row_present']
+          assert r['vendor_next_row_present']==r['next_row_is_next_curated_session']+r['vendor_row_skips_curated_sessions']
+          assert r['trade_gate']=='BLOCKED' and not r['szse_calendar_authenticated']
+          print('REAL SESSION JOIN:',r['verified_issuers'],'issuers;',r['vendor_row_skips_curated_sessions'],'gaps')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p4-real-session-join-${{ github.run_id }}
+          path: evidence/p4_session_join.json
+          retention-days: 14
