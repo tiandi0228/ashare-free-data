@@ -30,9 +30,14 @@ def audit(plan, ledger, root):
             data=(part/(row["code"].replace(".","_")+".csv")).read_bytes()
             if hashlib.sha256(data).hexdigest()!=row["sha256"]:raise ValueError("archive CSV hash mismatch")
             archived+=1
+    completed={x["index"] for x in ledger["completed"]}
+    missing_shards=sorted(completed-observed)
+    repair_shards=sorted(set(missing_shards)|set(legacy_without_receipts))
     result={"archived_issuers":archived,"ledger_issuers":ledger["completed_issuers"],
             "archive_gap_issuers":ledger["completed_issuers"]-archived,"archive_complete":archived==ledger["completed_issuers"],
             "legacy_shards_without_receipts":legacy_without_receipts,
+            "unarchived_shards":missing_shards,"archive_repair_queue":repair_shards,
+            "repair_shard_count":len(repair_shards),
             "trade_gate":"BLOCKED","historical_PIT_verified":False}
     if result["archive_gap_issuers"]<0:raise ValueError("overreported archive")
     return result
