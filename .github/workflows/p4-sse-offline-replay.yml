@@ -1,0 +1,46 @@
+name: P4 offline SSE original replay (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p4_sse_offline_replay.py'
+      - 'tests/test_p4_sse_offline_replay.py'
+      - '.github/workflows/p4-sse-offline-replay.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest tests.test_p4_sse_offline_replay -v
+      - name: Download prior actual official originals, no network SSE dependency
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p frozen-sse
+          gh run download 39899749620 -n p4-sse-originals-39899749620 -D frozen-sse
+          test -f frozen-sse/manifest.json
+      - name: Verify original byte hashes and replay closure text offline
+        run: |
+          python -m collector.p4_sse_offline_replay --root frozen-sse --out evidence/sse_offline.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('evidence/sse_offline.json').read_text())
+          assert r['source_years']==3 and r['range_date_presence_complete']
+          assert r['trade_gate']=='BLOCKED' and not r['historical_exchange_calendar_authenticated']
+          print('OFFLINE ORIGINAL AUDIT:',[(i['year'],len(i['unpaired_ranges'])) for i in r['records']])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p4-sse-offline-audit-${{ github.run_id }}
+          path: evidence/sse_offline.json
+          retention-days: 14
