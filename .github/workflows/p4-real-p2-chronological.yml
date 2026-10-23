@@ -27,7 +27,12 @@ jobs:
           import json
           from pathlib import Path
           r=json.loads(Path('evidence/p4_chronological_split.json').read_text())
-          assert r['verified_issuers']>0 and r['holdout_rows']>0
+          assert r['verified_issuers']>0 and r['holdout_rows']>0 and r['train_rows']>0
+          assert r['issuer_level_overlap_count']==0
+          assert len(r['per_issuer_split'])==r['verified_issuers']
+          for issuer in r['per_issuer_split']:
+              if issuer['train_last'] and issuer['holdout_first']:
+                  assert issuer['train_last']<issuer['holdout_first']
           assert not r['out_of_sample_performance_validated'] and not r['historical_PIT_verified']
           assert r['trade_gate']=='BLOCKED' and r['orders']==[]
           print('P4 SOURCE SPLIT ACCEPTED:',r['verified_issuers'],'issuers, holdout rows',r['holdout_rows'])
