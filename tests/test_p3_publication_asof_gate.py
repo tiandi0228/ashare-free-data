@@ -15,6 +15,16 @@ class PublicationAsOfTests(unittest.TestCase):
         self.assertEqual(r["known_event_count"],1)
         self.assertTrue(r["events"][0]["effective_by_decision_date"])
         self.assertFalse(r["complete_historical_risk_state"])
+    def test_effective_date_uses_exchange_local_day(self):
+        a=self.sample()
+        a["effective_date"]="2026-10-20"
+        a["authenticated_first_published_at"]="2026-10-19T10:00:00+08:00"
+        r=assess([a],"2026-10-20T00:30:00+08:00")
+        self.assertTrue(r["events"][0]["effective_by_decision_date"])
+        self.assertEqual(r["decision_instant_utc"],"2026-10-19T16:30:00+00:00")
+        before=assess([a],"2026-10-19T23:30:00+08:00")
+        self.assertFalse(before["events"][0]["effective_by_decision_date"])
+
     def test_future_publication_cannot_look_back(self):
         a=self.sample()
         a["authenticated_first_published_at"]="2026-10-20T17:00:00+08:00"
