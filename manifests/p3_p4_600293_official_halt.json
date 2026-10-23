@@ -1,0 +1,13 @@
+[
+  {
+    "id": "cninfo_600293_halt_20260929",
+    "url": "https://static.cninfo.com.cn/finalpage/2026-09-29/1225586063.PDF",
+    "kind": "TRADING_HALT",
+    "issuer": "sh.600293",
+    "required_text": [
+      "600293",
+      "2026年9月29日",
+      "停牌"
+    ]
+  }
+]
