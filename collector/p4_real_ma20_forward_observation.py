@@ -15,6 +15,7 @@ def audit(root,cutoff="2025-12-31"):
     if not receipts:raise ValueError("missing P2 originals")
     seen={}
     issuer_count=signals=forward_ready=0
+    signal_issuers=set();forward_issuers=set();censored_end=0;blocked_vendor_status=0
     for p in receipts:
         receipt=assess(p.parent)
         for item in receipt["details"]:
@@ -36,13 +37,23 @@ def audit(root,cutoff="2025-12-31"):
                 # Signal formed after this day's close, never at the open.
                 if prior[-1]<=sum(prior[-20:])/20:continue
                 signals+=1
+                signal_issuers.add(code)
                 # The following three *observed* vendor rows must all be tradable.
                 future=rows[i+1:i+4]
-                if len(future)==3 and all(x["tradestatus"]=="1" for x in future):
+                if len(future)<3:
+                    censored_end+=1
+                elif not all(x["tradestatus"]=="1" for x in future):
+                    blocked_vendor_status+=1
+                else:
                     forward_ready+=1
+                    forward_issuers.add(code)
     return {"phase":"P4_REAL_VENDOR_MA20_FORWARD_OBSERVATION",
             "cutoff_inclusive":boundary.isoformat(),"independently_p2_checked_issuers":issuer_count,
             "post_cutoff_ma20_observations":signals,
+            "issuers_with_ma20_observations":len(signal_issuers),
+            "issuers_with_three_following_vendor_tradable_rows":len(forward_issuers),
+            "observations_censored_at_archive_end":censored_end,
+            "observations_blocked_by_vendor_status":blocked_vendor_status,
             "three_following_vendor_tradable_rows":forward_ready,
             "entry_fills_assumed":0,"returns_computed":False,
             "historical_PIT_verified":False,"historical_OOS_validated":False,
