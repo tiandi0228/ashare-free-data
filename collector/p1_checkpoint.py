@@ -8,6 +8,11 @@ from pathlib import Path
 
 CHECKPOINT="evidence/p1_checkpoint.json"
 
+def epoch_path(sha):
+    if not isinstance(sha,str) or len(sha)!=64 or any(c not in "0123456789abcdef" for c in sha):
+        raise ValueError("invalid source SHA256 for checkpoint epoch")
+    return "evidence/checkpoints/"+sha+".json"
+
 def validate(ledger):
     if ledger.get("phase")!="P1_ROSTER_SHARD_LEDGER" or ledger.get("trade_gate")!="BLOCKED" or ledger.get("historical_PIT_verified") is not False:
         raise ValueError("unsafe checkpoint")
@@ -25,9 +30,9 @@ def validate(ledger):
 def gh(*args,input_data=None):
     return subprocess.check_output(["gh","api",*args],input=input_data,text=True)
 
-def remote_read(repo):
+def remote_read(repo,path=CHECKPOINT):
     try:
-        result=json.loads(gh(f"repos/{repo}/contents/{CHECKPOINT}", "-f", "ref=main", "--method", "GET"))
+        result=json.loads(gh(f"repos/{repo}/contents/{path}", "-f", "ref=main", "--method", "GET"))
         raw=base64.b64decode(result["content"]).decode()
         return json.loads(raw.removesuffix(chr(92)+"n")),result["sha"]
     except subprocess.CalledProcessError as exc:
@@ -53,10 +58,16 @@ def main():
     p.add_argument("--mode",choices=["read","write"],required=True)
     p.add_argument("--repo",default=os.environ.get("GITHUB_REPOSITORY"))
     p.add_argument("--in-file")
+    p.add_argument("--source-sha")
     p.add_argument("--out",default="evidence/prior_ledger.json")
     a=p.parse_args()
     if not a.repo:raise ValueError("repo required")
-    remote,sha=remote_read(a.repo)
+    checkpoint=epoch_path(a.source_sha) if a.source_sha else CHECKPOINT
+    remote,sha=remote_read(a.repo,checkpoint)
+    if a.mode=="read" and remote is None and a.source_sha:
+        legacy,_=remote_read(a.repo,CHECKPOINT)
+        if legacy is not None and legacy.get("source_sha256")==a.source_sha:
+            remote=legacy
     if a.mode=="read":
         if remote is not None:
             validate(remote)
@@ -67,12 +78,14 @@ def main():
         return
     if not a.in_file:raise ValueError("input file required")
     candidate=json.loads(Path(a.in_file).read_text())
+    if a.source_sha and candidate.get("source_sha256")!=a.source_sha:
+        raise ValueError("checkpoint source SHA mismatch")
     chosen=merge(candidate,remote)
     if chosen is remote:
         print("Preserved higher-progress remote checkpoint")
         return
     data=base64.b64encode((json.dumps(chosen,indent=2,ensure_ascii=False)+chr(10)).encode()).decode()
-    params=["-X","PUT",f"repos/{a.repo}/contents/{CHECKPOINT}","-f","message=chore(p1): persist audited no-trade shard checkpoint","-f",f"content={data}","-f","branch=main"]
+    params=["-X","PUT",f"repos/{a.repo}/contents/{checkpoint}","-f","message=chore(p1): persist audited no-trade shard checkpoint","-f",f"content={data}","-f","branch=main"]
     if sha:params.extend(["-f",f"sha={sha}"])
     gh(*params)
     print("Saved durable checkpoint, completed issuers",chosen["completed_issuers"])
