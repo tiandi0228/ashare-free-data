@@ -8,11 +8,15 @@ on:
       - 'tests/test_p4_independent_event_evidence.py'
       - 'tests/test_p4_real_ma20_forward_observation.py'
       - '.github/workflows/p4-real-ma20-forward-observation.yml'
+  workflow_run:
+    workflows: ["P1 fresh Baostock mainboard roster observation (NO TRADES)"]
+    types: [completed]
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   observation:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
