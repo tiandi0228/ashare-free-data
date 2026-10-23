@@ -41,8 +41,11 @@ def fetch_one(entry):
 def probe(manifest):
     out=[];errors=[]
     for entry in manifest:
-        try:out.extend(fetch_one(entry))
-        except Exception as ex:errors.append({"source_id":entry["id"],"failure_type":type(ex).__name__})
+        try:
+            found=fetch_one(entry)
+            if found:out.extend(found)
+            else:errors.append({"source_id":entry["id"],"failure_type":"INDEX_RECORD_NOT_FOUND"})
+        except Exception as ex:errors.append({"source_id":entry["id"],"failure_type":type(ex).__name__,"failure_detail":str(ex)[:180]})
     return {"phase":"P3_CNINFO_LIVE_INDEX_PROBE","requested":len(manifest),"linked_index_rows":out,
             "index_records_found":len(out),"unavailable_or_unmatched":errors,
             "first_publication_verified":False,"historical_PIT_eligible":0,
