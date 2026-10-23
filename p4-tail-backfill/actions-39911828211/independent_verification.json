@@ -1,0 +1,104 @@
+{
+  "archive_merged": false,
+  "fills_verified": 0,
+  "historical_PIT_verified": false,
+  "orders": [],
+  "phase": "P4_INDEPENDENT_TAIL_RECOVERY_AUDIT",
+  "remaining_exit_date_observations": 558,
+  "restored_exit_date_observations": 16,
+  "row_date_details": [
+    {
+      "code": "sh.600281",
+      "missing_exit_observations": 3,
+      "recovered_dates": [
+        "2026-10-21",
+        "2026-10-22"
+      ],
+      "restored_exit_date_observations": 2,
+      "restored_vendor_active_observations": 2,
+      "rows": 2
+    },
+    {
+      "code": "sh.600282",
+      "missing_exit_observations": 3,
+      "recovered_dates": [
+        "2026-10-21",
+        "2026-10-22"
+      ],
+      "restored_exit_date_observations": 2,
+      "restored_vendor_active_observations": 2,
+      "rows": 2
+    },
+    {
+      "code": "sh.600283",
+      "missing_exit_observations": 3,
+      "recovered_dates": [
+        "2026-10-21",
+        "2026-10-22"
+      ],
+      "restored_exit_date_observations": 2,
+      "restored_vendor_active_observations": 2,
+      "rows": 2
+    },
+    {
+      "code": "sh.600284",
+      "missing_exit_observations": 3,
+      "recovered_dates": [
+        "2026-10-21",
+        "2026-10-22"
+      ],
+      "restored_exit_date_observations": 2,
+      "restored_vendor_active_observations": 2,
+      "rows": 2
+    },
+    {
+      "code": "sh.600285",
+      "missing_exit_observations": 3,
+      "recovered_dates": [
+        "2026-10-21",
+        "2026-10-22"
+      ],
+      "restored_exit_date_observations": 2,
+      "restored_vendor_active_observations": 2,
+      "rows": 2
+    },
+    {
+      "code": "sh.600287",
+      "missing_exit_observations": 3,
+      "recovered_dates": [
+        "2026-10-21",
+        "2026-10-22"
+      ],
+      "restored_exit_date_observations": 2,
+      "restored_vendor_active_observations": 2,
+      "rows": 2
+    },
+    {
+      "code": "sh.600288",
+      "missing_exit_observations": 3,
+      "recovered_dates": [
+        "2026-10-21",
+        "2026-10-22"
+      ],
+      "restored_exit_date_observations": 2,
+      "restored_vendor_active_observations": 2,
+      "rows": 2
+    },
+    {
+      "code": "sh.600289",
+      "missing_exit_observations": 3,
+      "recovered_dates": [
+        "2026-10-21",
+        "2026-10-22"
+      ],
+      "restored_exit_date_observations": 2,
+      "restored_vendor_active_observations": 2,
+      "rows": 2
+    }
+  ],
+  "source_tail_date_coverage_only": true,
+  "specific_exit_observations_proven_recovered": true,
+  "trade_gate": "BLOCKED",
+  "verified_source_issuers": 8,
+  "verified_source_rows": 16
+}
