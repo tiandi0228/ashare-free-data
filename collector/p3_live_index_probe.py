@@ -33,15 +33,24 @@ def fetch_one(entry):
     if not match:raise ValueError("invalid PDF URL")
     identifier=match.group(1)
     code=entry["issuer"][-6:]
+    day=url.split("/finalpage/")[1][:10]
     data=urlencode({"pageNum":1,"pageSize":30,"tabName":"fulltext","searchkey":code,
-                    "seDate":url.split("/finalpage/")[1][:10]+"~"+url.split("/finalpage/")[1][:10]}).encode()
+                    "seDate":day+"~"+day}).encode()
     req=Request(ENDPOINT,data=data,headers={"User-Agent":"Mozilla/5.0","Referer":"https://www.cninfo.com.cn/","Content-Type":"application/x-www-form-urlencoded"},method="POST")
     with urlopen(req,timeout=18) as response:
         if response.geturl()!=ENDPOINT:raise ValueError("unexpected index redirect")
         content=response.read(2000001)
     if len(content)>2000000:raise ValueError("index response too large")
     payload=json.loads(content)
-    return normalize(payload,identifier)
+    try:
+        return normalize(payload,identifier)
+    except ValueError as exc:
+        if "missing announcements list" not in str(exc):raise
+        # Save schema-only diagnostics, never silently treat a malformed payload as an empty page.
+        shape={"response_keys":sorted(str(k)[:60] for k in payload) if isinstance(payload,dict) else [],
+               "totalAnnouncement":payload.get("totalAnnouncement") if isinstance(payload,dict) else None,
+               "has_announcements":isinstance(payload.get("announcements"),list) if isinstance(payload,dict) else False}
+        raise ValueError("INDEX_RESPONSE_SCHEMA:"+json.dumps(shape,ensure_ascii=False)) from exc
 def probe(manifest):
     out=[];errors=[]
     for entry in manifest:
