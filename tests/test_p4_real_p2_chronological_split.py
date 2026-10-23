@@ -26,6 +26,12 @@ class SplitTests(unittest.TestCase):
         import tempfile
         with tempfile.TemporaryDirectory() as path:
             with self.assertRaises(ValueError):audit(path,"2025-12-31")
+    def test_invalid_archive_commit_rejected(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as path:
+            with self.assertRaisesRegex(ValueError,"archive commit"):
+                audit(path,"2025-12-31",archive_commit="mutable-main")
+
     def test_invalid_cutoff_fails(self):
         import tempfile
         with tempfile.TemporaryDirectory() as path:
