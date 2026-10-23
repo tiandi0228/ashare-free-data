@@ -14,6 +14,8 @@ on:
       - 'collector/p1_csv_archive.py'
       - 'collector/p1_archive_audit.py'
       - 'tests/test_p1_archive_audit.py'
+      - 'collector/p1_coverage_gap_diagnosis.py'
+      - 'tests/test_p1_coverage_gap_diagnosis.py'
       - 'collector/p1_repair_pick.py'
       - 'tests/test_p1_repair_pick.py'
       - 'tests/test_p1_csv_archive.py'
@@ -46,7 +48,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline source tests
-        run: python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick -v
+        run: python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick tests.test_p1_coverage_gap_diagnosis -v
       - name: Install free Baostock
         run: python -m pip install 'baostock>=0.8,<1'
       - name: Observe current Beijing-date mainboard roster from free provider
@@ -391,6 +393,9 @@ jobs:
           assert after['archive_gap_issuers']==ledger['completed_issuers']-after['archived_issuers']
           print('P1 PROGRESS ACCEPTED: ledger',ledger['completed_issuers'],'durable',after['archived_issuers'],'gap',after['archive_gap_issuers'])
           PY
+      - name: Independently classify P1 coverage and archive gaps
+        run: |
+          python -m collector.p1_coverage_gap_diagnosis --plan evidence/shards/plan.json --ledger evidence/ledger.json --archive evidence/archive_audit.json --out evidence/coverage_gap_diagnosis.json
       - name: Persist durable no-trade checkpoint in repository
         env:
           GH_TOKEN: ${{ github.token }}
