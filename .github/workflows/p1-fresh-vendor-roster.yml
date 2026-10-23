@@ -131,7 +131,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          python -m collector.p1_checkpoint --mode read --out evidence/durable_ledger.json
+          python -m collector.p1_checkpoint --mode read --source-sha "$(python -c "import json;print(json.load(open('evidence/shards/plan.json'))['source_sha256'])")" --out evidence/durable_ledger.json
           python - <<'PY'
           import json
           from pathlib import Path
@@ -390,7 +390,7 @@ jobs:
       - name: Persist durable no-trade checkpoint in repository
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python -m collector.p1_checkpoint --mode write --in-file evidence/ledger.json
+        run: python -m collector.p1_checkpoint --mode write --source-sha "$(python -c "import json;print(json.load(open('evidence/ledger.json'))['source_sha256'])")" --in-file evidence/ledger.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
