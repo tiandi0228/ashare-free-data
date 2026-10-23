@@ -7,6 +7,7 @@ on:
       - 'collector/p4_pending_tail_selector.py'
       - 'collector/p4_free_tail_backfill.py'
       - 'tests/test_p4_pending_tail_selector.py'
+      - 'collector/p4_cumulative_tail_reconcile.py'
   workflow_dispatch:
   schedule:
     - cron: '20 8 * * 1-5'
@@ -54,6 +55,24 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python -m collector.p4_tail_permanent_archive --archive archived-research --tail evidence/tail_auto --source-run ${{ github.run_id }}
+      - name: Refetch permanent archive and independently reconcile cumulative exact exits
+        if: hashFiles('evidence/verified_auto.json') != ''
+        run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-updated FETCH_HEAD
+          python -m collector.p4_cumulative_tail_reconcile --root archived-updated --out evidence/cumulative_after.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          before=json.loads(Path('batch.json').read_text())
+          verified=json.loads(Path('evidence/verified_auto.json').read_text())
+          after=json.loads(Path('evidence/cumulative_after.json').read_text())
+          assert after['restored_exit_observations']+after['remaining_exit_observations']==after['baseline_missing_exit_observations']
+          assert after['trade_gate']=='BLOCKED' and after['fills_verified']==0
+          assert after['restored_exit_observations']>=verified['restored_exit_date_observations']
+          assert after['baseline_missing_exit_observations']==before['source_missing_exit_observations']
+          print('POST ARCHIVE CUMULATIVE',after['restored_exit_observations'],'/',after['baseline_missing_exit_observations'])
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -62,4 +81,5 @@ jobs:
             batch.json
             evidence/tail_auto/
             evidence/verified_auto.json
+            evidence/cumulative_after.json
           retention-days: 14
