@@ -8,7 +8,10 @@ ENDPOINT="https://www.cninfo.com.cn/new/hisAnnouncement/query"
 def normalize(payload, expected_id):
     if not isinstance(payload,dict):raise ValueError("index JSON not an object")
     entries=payload.get("announcements")
-    if not isinstance(entries,list):raise ValueError("missing announcements list")
+    if not isinstance(entries,list):
+        if payload.get("announcements") is None and payload.get("totalAnnouncement",0)==0:
+            return []
+        raise ValueError("missing announcements list")
     matches=[]
     for x in entries:
         if str(x.get("announcementId"))!=expected_id:continue
@@ -37,7 +40,8 @@ def fetch_one(entry):
         if response.geturl()!=ENDPOINT:raise ValueError("unexpected index redirect")
         content=response.read(2000001)
     if len(content)>2000000:raise ValueError("index response too large")
-    return normalize(json.loads(content),identifier)
+    payload=json.loads(content)
+    return normalize(payload,identifier)
 def probe(manifest):
     out=[];errors=[]
     for entry in manifest:
