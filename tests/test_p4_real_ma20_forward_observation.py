@@ -31,6 +31,9 @@ class ForwardObservationTests(unittest.TestCase):
             self.assertEqual(result["post_cutoff_ma20_observations"],result["three_following_vendor_tradable_rows"]+result["observations_censored_at_archive_end"]+result["observations_blocked_by_vendor_status"])
             self.assertEqual(result["issuers_with_ma20_observations"],1)
             self.assertEqual(result["issuers_with_three_following_vendor_tradable_rows"],1)
+            self.assertEqual(len(result["nonoverlapping_event_evidence"]),result["nonoverlapping_three_observation_crossing_events"])
+            self.assertEqual(sum(x["three_future_vendor_tradable"] for x in result["nonoverlapping_event_evidence"]),result["nonoverlapping_crossings_with_three_following_vendor_tradable_rows"])
+            self.assertTrue(all(x["fill_assumed"] is False for x in result["nonoverlapping_event_evidence"]))
             self.assertFalse(result["returns_computed"])
             self.assertEqual(result["trade_gate"],"BLOCKED")
 
