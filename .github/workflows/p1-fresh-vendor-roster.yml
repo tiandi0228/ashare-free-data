@@ -14,6 +14,8 @@ on:
       - 'collector/p1_csv_archive.py'
       - 'collector/p1_archive_audit.py'
       - 'tests/test_p1_archive_audit.py'
+      - 'collector/p1_repair_pick.py'
+      - 'tests/test_p1_repair_pick.py'
       - 'tests/test_p1_csv_archive.py'
       - 'tests/test_p1_shard_ledger.py'
   schedule:
@@ -38,7 +40,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline source tests
-        run: python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit -v
+        run: python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick -v
       - name: Install free Baostock
         run: python -m pip install 'baostock>=0.8,<1'
       - name: Observe current Beijing-date mainboard roster from free provider
@@ -274,6 +276,40 @@ jobs:
           assert q['archived_issuers']<=q['ledger_issuers']
           print('ARCHIVE AUDIT: permanently verified',q['archived_issuers'],'of',q['ledger_issuers'])
           PY
+      - name: Pick one bounded previous archive gap
+        id: repair
+        run: |
+          python -m collector.p1_repair_pick --audit evidence/archive_audit.json --ledger evidence/ledger.json --out evidence/repair_pick.json
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          item=json.loads(Path('evidence/repair_pick.json').read_text())['repair_shard']
+          print('needed='+str(item is not None).lower())
+          if item is not None:print('index='+f'{item:04d}')
+          PY
+      - name: Reacquire one missing archived research shard (bounded 8)
+        if: steps.repair.outputs.needed == 'true'
+        run: |
+          timeout 150s python -m collector.baostock_batch --manifest evidence/shards/shard_${{ steps.repair.outputs.index }}.txt --batch-index 0 --out evidence/repair_shard
+      - name: Archive recovered historical CSV with its original receipt
+        if: steps.repair.outputs.needed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh auth setup-git
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from collector.p1_csv_archive import archive
+          plan=json.loads(Path('evidence/shards/plan.json').read_text())
+          archive(plan,[(int('${{ steps.repair.outputs.index }}'),Path('evidence/repair_shard'))],'${{ github.repository }}')
+          PY
+      - name: Reaudit archive after bounded repair
+        if: steps.repair.outputs.needed == 'true'
+        run: |
+          git -C archived-research fetch --depth=1 origin research-csv-archive
+          git -C archived-research checkout --detach FETCH_HEAD
+          python -m collector.p1_archive_audit --plan evidence/shards/plan.json --ledger evidence/ledger.json --root archived-research --out evidence/archive_audit.json
       - name: Persist durable no-trade checkpoint in repository
         env:
           GH_TOKEN: ${{ github.token }}
