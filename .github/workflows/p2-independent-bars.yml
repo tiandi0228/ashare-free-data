@@ -6,6 +6,8 @@ on:
       - 'collector/p2_independent_bars.py'
       - 'tests/test_p2_independent_bars.py'
       - '.github/workflows/p2-independent-bars.yml'
+  schedule:
+    - cron: '30 4 * * 1-5' # 12:30 Beijing, independent P1 archive replay
   workflow_dispatch:
 permissions:
   contents: read
