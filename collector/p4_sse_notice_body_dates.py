@@ -21,11 +21,11 @@ def inspect(year,raw):
             # Must occur as a single local span, not scattered elsewhere on page.
             # Exchange notices insert weekday annotations between date and "至".
             # Keep spans bounded; require the closure term after the end date.
-            middle=r"(?:[^年月日]{0,30})"
+            middle=r"(?:[^。；;]{0,38}?)"
             right_expr=re.escape(right)
             if start[:7]==end[:7]:
                 right_expr=r"(?:"+right_expr+r"|"+re.escape(str(int(end[-2:]))+"日") +r")"
-            pair=re.search(re.escape(left)+middle+r"(?:至|到|—|－|–|~|～|[-])"+middle+right_expr+r"[^。；;]{0,45}休市",text)
+            pair=re.search(re.escape(left)+middle+r"(?:至|到|—|－|–|~|～|[-])"+middle+right_expr+r"[^。；;]{0,80}休市",text)
             if start==end:
                 pair=re.search(re.escape(left)+r"[^。；;]{0,45}休市",text)
             if pair is None:unpaired.append([start,end])
