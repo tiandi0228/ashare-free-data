@@ -3,6 +3,7 @@
 Next vendor row is not proof of an official exchange session or tradability.
 """
 import argparse,csv,json
+from collections import Counter
 from datetime import date
 from pathlib import Path
 from collector.p2_independent_bars import assess
@@ -13,6 +14,7 @@ def replay(root,cutoff="2025-12-31"):
     counts={"verified_issuers":0,"after_close_ma20_observations":0,
             "next_vendor_row_present":0,"next_vendor_row_active":0,
             "next_vendor_row_suspended":0,"no_next_vendor_row":0}
+    calendar_gaps=Counter()
     for receipt in receipts:
         source=assess(receipt.parent)
         for detail in source["details"]:
@@ -28,7 +30,9 @@ def replay(root,cutoff="2025-12-31"):
                 if i+1==len(rows):
                     counts["no_next_vendor_row"]+=1;continue
                 following=rows[i+1]
-                if date.fromisoformat(following["date"])<=day:raise ValueError("non-increasing vendor dates")
+                next_day=date.fromisoformat(following["date"])
+                if next_day<=day:raise ValueError("non-increasing vendor dates")
+                calendar_gaps[(next_day-day).days]+=1
                 counts["next_vendor_row_present"]+=1
                 if following["tradestatus"]=="1":counts["next_vendor_row_active"]+=1
                 else:counts["next_vendor_row_suspended"]+=1
@@ -36,7 +40,12 @@ def replay(root,cutoff="2025-12-31"):
         raise ValueError("chronological accounting mismatch")
     if counts["next_vendor_row_present"]!=counts["next_vendor_row_active"]+counts["next_vendor_row_suspended"]:
         raise ValueError("vendor status accounting mismatch")
+    if sum(calendar_gaps.values())!=counts["next_vendor_row_present"]:
+        raise ValueError("following-row gap accounting mismatch")
     return {"phase":"P4_REAL_NEXT_ROW_RESEARCH_ELIGIBILITY",**counts,
+            "calendar_day_gap_histogram":{str(k):v for k,v in sorted(calendar_gaps.items())},
+            "official_exchange_calendar_joined":False,
+            "same_session_fill_claims":0,
             "next_vendor_row_is_official_trading_calendar":False,
             "vendor_status_is_official_halt_certification":False,
             "orders_simulated":0,"fills_verified":0,"returns_computed":False,
