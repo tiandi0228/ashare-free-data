@@ -30,6 +30,9 @@ jobs:
           assert r['verified_issuers']>0 and r['after_close_ma20_observations']>0
           assert r['next_vendor_row_present']+r['no_next_vendor_row']==r['after_close_ma20_observations']
           assert not r['next_vendor_row_is_official_trading_calendar']
+          assert r['official_exchange_calendar_joined'] is False
+          assert r['same_session_fill_claims']==0
+          assert sum(r['calendar_day_gap_histogram'].values())==r['next_vendor_row_present']
           assert r['trade_gate']=='BLOCKED' and r['fills_verified']==0 and r['orders']==[]
           print('P4 NEXT-ROW ACCEPTED:',r['verified_issuers'],'issuers,',r['next_vendor_row_present'],'following vendor rows')
           PY
