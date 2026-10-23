@@ -7,7 +7,7 @@ class IndependentEvents(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
             folder=root/"epoch"/"shard_0000";folder.mkdir(parents=True)
-            raw=b"date,tradestatus\\n2026-01-05,1\\n2026-01-06,1\\n2026-01-07,1\\n2026-01-08,1\\n"
+            raw=b"date,tradestatus\n2026-01-05,1\n2026-01-06,1\n2026-01-07,1\n2026-01-08,1\n"
             digest=hashlib.sha256(raw).hexdigest()
             (folder/"sh_600000.csv").write_bytes(raw)
             (folder/"quality.json").write_text(json.dumps({"results":[{"code":"sh.600000","sha256":digest}]}))
