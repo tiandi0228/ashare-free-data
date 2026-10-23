@@ -1,0 +1,79 @@
+name: P4 automatic free tail capture verify archive (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p4-auto-tail-pipeline.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '20 8 * * 1-5'
+permissions:
+  contents: write
+concurrency:
+  group: p4-tail-permanent-archive
+  cancel-in-progress: false
+jobs:
+  batch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'baostock>=0.8,<1'
+      - name: Read trusted source archive and calculate next batch
+        run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-research FETCH_HEAD
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from collector.p4_real_exit_availability import audit
+          source=audit('archived-research')
+          base=Path('archived-research/p4-tail-backfill')
+          done=set()
+          for path in base.glob('actions-*/backfill_attempt.json'):
+              m=json.loads(path.read_text())
+              for item in m.get('results',[]):
+                  if item.get('status')=='OBSERVED_RESEARCH_ONLY':
+                      done.add(item['code'])
+          tasks=source['tail_backfill_requests']
+          offsets=list(range(0,len(tasks),8))
+          pending=next((i for i in offsets if any(t['code'] not in done for t in tasks[i:i+8])),None)
+          # Never recapture an already archived success: skip completed rows by
+          # checking after capture, before permanent write.
+          Path('batch.json').write_text(json.dumps({'offset':pending,'prior_success_issuers':len(done)}))
+          print('NEXT BATCH',pending,'PRIOR ARCHIVED ISSUERS',len(done))
+          PY
+      - name: Bounded free vendor capture
+        run: |
+          OFFSET=$(python -c "import json;print(json.load(open('batch.json'))['offset'])")
+          if [ "$OFFSET" = None ]; then echo 'All tails archived'; exit 0; fi
+          timeout 280s python -m collector.p4_free_tail_backfill --root archived-research --out evidence/tail_auto --limit 8 --offset "$OFFSET"
+      - name: Independently validate actual missing target dates
+        if: hashFiles('evidence/tail_auto/backfill_attempt.json') != ''
+        run: |
+          python -m collector.p4_tail_independent_verify --archive archived-research --tail evidence/tail_auto --out evidence/verified_auto.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('evidence/verified_auto.json').read_text())
+          assert r['trade_gate']=='BLOCKED' and r['verified_source_issuers']>0
+          assert r['restored_exit_date_observations']>0
+          print('AUTO TAIL VERIFIED',r['verified_source_issuers'],r['restored_exit_date_observations'])
+          PY
+      - name: Persist verified raw bytes to permanent research branch
+        if: hashFiles('evidence/verified_auto.json') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -m collector.p4_tail_permanent_archive --archive archived-research --tail evidence/tail_auto --source-run ${{ github.run_id }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p4-auto-tail-${{ github.run_id }}
+          path: |
+            batch.json
+            evidence/tail_auto/
+            evidence/verified_auto.json
+          retention-days: 14
