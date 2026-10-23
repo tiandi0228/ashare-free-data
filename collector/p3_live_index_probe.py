@@ -34,8 +34,19 @@ def fetch_one(entry):
     identifier=match.group(1)
     code=entry["issuer"][-6:]
     day=url.split("/finalpage/")[1][:10]
-    data=urlencode({"pageNum":1,"pageSize":30,"tabName":"fulltext","searchkey":code,
-                    "seDate":day+"~"+day}).encode()
+    variants=[{"pageNum":1,"pageSize":30,"tabName":"fulltext","searchkey":code,"seDate":day+"~"+day},
+              {"pageNum":1,"pageSize":30,"tabName":"fulltext","searchkey":identifier,"seDate":day+"~"+day},
+              {"pageNum":1,"pageSize":30,"tabName":"fulltext","searchkey":code,"seDate":day+"~"+day,"plate":"sh"}]
+    return _fetch_variants(variants,identifier)
+
+def _fetch_variants(variants,identifier):
+    for params in variants:
+        result=_fetch_query(params,identifier)
+        if result:return result
+    return []
+
+def _fetch_query(params,identifier):
+    data=urlencode(params).encode()
     req=Request(ENDPOINT,data=data,headers={"User-Agent":"Mozilla/5.0","Referer":"https://www.cninfo.com.cn/","Content-Type":"application/x-www-form-urlencoded"},method="POST")
     with urlopen(req,timeout=18) as response:
         if response.geturl()!=ENDPOINT:raise ValueError("unexpected index redirect")
