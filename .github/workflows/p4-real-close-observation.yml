@@ -1,0 +1,40 @@
+name: P4 real post-close observations (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p4_real_close_observation.py'
+      - 'tests/test_p4_real_close_observation.py'
+      - '.github/workflows/p4-real-close-observation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest tests.test_p4_real_close_observation -v
+      - run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-research FETCH_HEAD
+          python -m collector.p4_real_close_observation --root archived-research --cutoff 2025-12-31 --out evidence/p4_close_only.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path('evidence/p4_close_only.json').read_text())
+          assert q['verified_issuers']>0 and q['holdout_observations']>0
+          assert not q['same_session_execution_permitted'] and not q['returns_computed']
+          assert q['trade_gate']=='BLOCKED' and q['orders']==[]
+          print('REAL CLOSE-ONLY ACCEPTED:',q['verified_issuers'],'issuers,',q['holdout_observations'],'observations')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p4-real-close-observations-${{ github.run_id }}
+          path: evidence/p4_close_only.json
+          retention-days: 14
