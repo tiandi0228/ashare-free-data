@@ -25,6 +25,11 @@ class PublicationAsOfTests(unittest.TestCase):
         before=assess([a],"2026-10-19T23:30:00+08:00")
         self.assertFalse(before["events"][0]["effective_by_decision_date"])
 
+    def test_executable_candidate_cannot_pass_event_gate(self):
+        a=self.sample();a["executable_candidates"]=[{"code":"sh.600421"}]
+        with self.assertRaisesRegex(ValueError,"risk boundary"):
+            assess([a],"2026-10-20T09:30:00+08:00")
+
     def test_future_publication_cannot_look_back(self):
         a=self.sample()
         a["authenticated_first_published_at"]="2026-10-20T17:00:00+08:00"
