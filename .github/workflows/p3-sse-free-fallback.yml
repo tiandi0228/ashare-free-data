@@ -51,6 +51,7 @@ jobs:
           assert not r['historical_first_publication_authenticated']
           print('INDEPENDENT FALLBACK EVIDENCE',r['sse_official_host_events_observed'])
           print('CNINFO INDEX MISSING',r['cninfo_index_missing'])
+          assert r['sse_official_host_events_observed']==2, 'Official SSE source observation unavailable: no source-ready status'
           PY
       - uses: actions/upload-artifact@v4
         if: always()
