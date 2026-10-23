@@ -20,6 +20,7 @@ class SplitTests(unittest.TestCase):
                 self.assertEqual(result["verified_issuers"],1)
                 self.assertEqual(result["issuers_with_5_holdout_rows"],1)
                 self.assertEqual(result["issuers_with_5_vendor_tradable_holdout_rows"],1)
+                self.assertEqual(result["issuers_with_5_consecutive_vendor_tradable_holdout_rows"],1)
                 for i in (0,1):
                     (root/str(i)/"shard_0000"/"sh_600000.csv").write_text(raw.replace("11,1","11,0"))
                 with self.assertRaisesRegex(ValueError,"vendor-tradable"):
