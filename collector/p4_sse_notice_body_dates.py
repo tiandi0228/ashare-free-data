@@ -19,9 +19,12 @@ def inspect(year,raw):
         else:
             left=md(start);right=md(end)
             # Must occur as a single local span, not scattered elsewhere on page.
-            pair=re.search(re.escape(left)+r"(?:至|到|—|－|–|~|～|\u2014|[-])"+re.escape(right),text)
+            # Exchange notices insert weekday annotations between date and "至".
+            # Keep spans bounded; require the closure term after the end date.
+            middle=r"(?:[^年月日]{0,30})"
+            pair=re.search(re.escape(left)+middle+r"(?:至|到|—|－|–|~|～|[-])"+middle+re.escape(right)+r"[^。；;]{0,45}休市",text)
             if start==end:
-                pair=re.search(re.escape(left)+r"(?:休市|放假)",text)
+                pair=re.search(re.escape(left)+r"[^。；;]{0,45}休市",text)
             if pair is None:unpaired.append([start,end])
     return {"year":year,"ranges_expected":len(HOLIDAY_RANGES[year]),
             "ranges_missing_textual_dates":misses,
