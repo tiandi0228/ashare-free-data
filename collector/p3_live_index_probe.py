@@ -9,7 +9,7 @@ def normalize(payload, expected_id):
     if not isinstance(payload,dict):raise ValueError("index JSON not an object")
     entries=payload.get("announcements")
     if not isinstance(entries,list):
-        if payload.get("announcements") is None and payload.get("totalAnnouncement",0)==0:
+        if "totalAnnouncement" in payload and payload.get("announcements") is None and payload["totalAnnouncement"]==0:
             return []
         raise ValueError("missing announcements list")
     matches=[]
