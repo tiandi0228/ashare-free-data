@@ -45,7 +45,7 @@ jobs:
                  "upstream_p1_conclusion":upstream.get("conclusion"),
                  "archive_commit_sha":json.loads(Path("evidence/p4_ma20_forward_observation.json").read_text())["archive_commit_sha"],
                  "trade_gate":"BLOCKED","orders":[]}
-          Path("evidence/p4_trigger_provenance.json").write_text(json.dumps(proof,indent=2)+"\\n")
+          Path("evidence/p4_trigger_provenance.json").write_text(json.dumps(proof,indent=2)+"\n")
           print("P4_TRIGGER_PROVENANCE",json.dumps(proof))
           PY
           python - <<'PY'
