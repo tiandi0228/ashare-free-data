@@ -1,0 +1,48 @@
+name: P4 independent recovered tail audit (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p4_tail_independent_verify.py'
+      - '.github/workflows/p4-tail-independent-verify.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-research FETCH_HEAD
+      - name: Download actual prior free provider raw captures
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p evidence/tail_pilot
+          gh run download 39905582685 -n p4-free-tail-pilot-39905582685 -D evidence/tail_pilot
+          test -f evidence/tail_pilot/backfill_attempt.json
+      - name: Independent SHA P2 schema and range verification
+        run: |
+          python -m collector.p4_tail_independent_verify --archive archived-research --tail evidence/tail_pilot --out evidence/verified_tails.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("evidence/verified_tails.json").read_text())
+          assert r["verified_source_issuers"]==8 and r["verified_source_rows"]==16
+          assert not r["archive_merged"] and not r["specific_exit_observations_proven_recovered"]
+          assert r["trade_gate"]=="BLOCKED" and r["fills_verified"]==0
+          print("INDEPENDENT TAIL VERIFIED",r["verified_source_issuers"],r["verified_source_rows"])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p4-tail-independently-verified-${{ github.run_id }}
+          path: evidence/verified_tails.json
+          retention-days: 30
