@@ -20,7 +20,7 @@ class SplitTests(unittest.TestCase):
                 d=base/str(i)/"shard_0000"
                 d.mkdir(parents=True)
                 (d/"quality.json").write_text("{}")
-                (d/(code.replace(".","_")+".csv")).write_text("date,close\\n"+day+",10\\n")
+                (d/(code.replace(".","_")+".csv")).write_text("date,close\n"+day+",10\n")
             def valid(path):
                 code="sh.600000" if path.parent.name=="0" else "sh.600001"
                 return {"details":[{"code":code}]}
