@@ -12,6 +12,7 @@ on:
       - 'collector/p1_checkpoint.py'
       - 'tests/test_p1_checkpoint.py'
       - 'collector/p1_csv_archive.py'
+      - 'collector/p1_archive_audit.py'
       - 'tests/test_p1_csv_archive.py'
       - 'tests/test_p1_shard_ledger.py'
   schedule:
@@ -259,6 +260,19 @@ jobs:
             SECOND=(--second "${{ steps.pick.outputs.second }}")
           fi
           python -m collector.p1_csv_archive --plan evidence/shards/plan.json --first "${{ steps.pick.outputs.first }}" "${SECOND[@]}"
+      - name: Audit permanent research CSV archive against recovered ledger
+        run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-research FETCH_HEAD
+          python -m collector.p1_archive_audit --plan evidence/shards/plan.json --ledger evidence/ledger.json --root archived-research --out evidence/archive_audit.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path('evidence/archive_audit.json').read_text())
+          assert q['trade_gate']=='BLOCKED' and q['historical_PIT_verified'] is False
+          assert q['archived_issuers']<=q['ledger_issuers']
+          print('ARCHIVE AUDIT: permanently verified',q['archived_issuers'],'of',q['ledger_issuers'])
+          PY
       - name: Persist durable no-trade checkpoint in repository
         env:
           GH_TOKEN: ${{ github.token }}
