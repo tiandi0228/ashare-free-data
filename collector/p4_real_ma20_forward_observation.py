@@ -14,6 +14,7 @@ def audit(root,cutoff="2025-12-31"):
     receipts=sorted(Path(root).glob("*/shard_*/quality.json"))
     if not receipts:raise ValueError("missing P2 originals")
     seen={}
+    event_manifest=[]
     issuer_count=signals=forward_ready=0
     crossing_events=0;crossing_forward_ready=0;crossing_issuers=set()
     nonoverlap_crossings=0;nonoverlap_forward_ready=0
@@ -55,6 +56,12 @@ def audit(root,cutoff="2025-12-31"):
                 signal_issuers.add(code)
                 # The following three *observed* vendor rows must all be tradable.
                 future=rows[i+1:i+4]
+                if nonoverlap_crossing:
+                    event_manifest.append({"issuer":code,"source_csv_sha256":digest,
+                                           "signal_completed_date":row["date"],
+                                           "three_future_observed_dates":[x["date"] for x in future],
+                                           "three_future_vendor_tradable":len(future)==3 and all(x["tradestatus"]=="1" for x in future),
+                                           "fill_assumed":False})
                 if len(future)<3:
                     censored_end+=1
                 elif not all(x["tradestatus"]=="1" for x in future):
@@ -64,11 +71,17 @@ def audit(root,cutoff="2025-12-31"):
                     forward_issuers.add(code)
                     if crossing:crossing_forward_ready+=1
                     if nonoverlap_crossing:nonoverlap_forward_ready+=1
+    event_manifest.sort(key=lambda e:(e["issuer"],e["signal_completed_date"]))
+    if len(event_manifest)!=nonoverlap_crossings:
+        raise ValueError("nonoverlapping event manifest count mismatch")
+    if sum(e["three_future_vendor_tradable"] for e in event_manifest)!=nonoverlap_forward_ready:
+        raise ValueError("nonoverlapping forward evidence count mismatch")
     return {"phase":"P4_REAL_VENDOR_MA20_FORWARD_OBSERVATION",
             "cutoff_inclusive":boundary.isoformat(),"independently_p2_checked_issuers":issuer_count,
             "post_cutoff_ma20_observations":signals,
             "fresh_ma20_crossing_events":crossing_events,
             "nonoverlapping_three_observation_crossing_events":nonoverlap_crossings,
+            "nonoverlapping_event_evidence":event_manifest,
             "nonoverlapping_crossings_with_three_following_vendor_tradable_rows":nonoverlap_forward_ready,
             "issuers_with_fresh_crossing_events":len(crossing_issuers),
             "fresh_crossing_events_with_three_following_vendor_tradable_rows":crossing_forward_ready,
