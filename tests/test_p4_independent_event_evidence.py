@@ -15,7 +15,7 @@ class IndependentEvents(unittest.TestCase):
             digest=hashlib.sha256(raw).hexdigest()
             (folder/"sh_600000.csv").write_bytes(raw)
             (folder/"quality.json").write_text(json.dumps({"results":[{"code":"sh.600000","sha256":digest}]}))
-            report={"trade_gate":"BLOCKED","orders":[],"executable_candidates":[],
+            report={"cutoff_inclusive":"2025-12-31","trade_gate":"BLOCKED","orders":[],"executable_candidates":[],
                     "returns_computed":False,"historical_OOS_validated":False,
                     "nonoverlapping_three_observation_crossing_events":1,
                     "nonoverlapping_crossings_with_three_following_vendor_tradable_rows":1,
@@ -26,6 +26,11 @@ class IndependentEvents(unittest.TestCase):
             path=root/"manifest.json";path.write_text(json.dumps(report))
             with patch("collector.p4_independent_event_evidence.assess",return_value={"details":[{"code":"sh.600000"}]}):
                 self.assertEqual(verify(root,path)["independently_verified_events"],1)
+            report["cutoff_inclusive"]="2026-01-15"
+            path.write_text(json.dumps(report))
+            with patch("collector.p4_independent_event_evidence.assess",return_value={"details":[{"code":"sh.600000"}]}):
+                with self.assertRaisesRegex(ValueError,"training holdout boundary"):verify(root,path)
+            report["cutoff_inclusive"]="2025-12-31"
             report["nonoverlapping_event_evidence"][0]["signal_completed_date"]=dates[21]
             path.write_text(json.dumps(report))
             with patch("collector.p4_independent_event_evidence.assess",return_value={"details":[{"code":"sh.600000"}]}):
