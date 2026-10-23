@@ -5,6 +5,7 @@ Require independently authenticated first-publication instant, not scrape time.
 """
 from datetime import datetime,date,timezone
 import re
+from zoneinfo import ZoneInfo
 
 SHA=re.compile(r"[0-9a-f]{64}\Z")
 
@@ -34,7 +35,7 @@ def assess(events, decision_instant):
         if attested and published is None:raise ValueError("authenticated publication missing")
         published_at=instant(published) if published is not None else None
         known=bool(attested and published_at<=asof)
-        effective_at_asof=bool(known and effective<=asof.date())
+        effective_at_asof=bool(known and effective<=asof.astimezone(ZoneInfo('Asia/Shanghai')).date())
         results.append({"issuer":e["issuer"],"kind":e["kind"],
                         "effective_date":effective.isoformat(),
                         "known_before_decision":known,
