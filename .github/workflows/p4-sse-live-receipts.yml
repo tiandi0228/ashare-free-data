@@ -34,6 +34,7 @@ jobs:
               else:
                   assert receipt['status']=='SOURCE_UNAVAILABLE'
           print('OFFICIAL LIVE SOURCE RECEIPTS:',p['fetched_count'],'/',p['expected_count'])
+          assert p['fetched_count']==p['expected_count'], 'Source readiness BLOCKED: missing original SSE notice receipts'
           PY
       - uses: actions/upload-artifact@v4
         if: always()
