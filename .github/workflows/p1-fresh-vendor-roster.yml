@@ -57,7 +57,7 @@ jobs:
           for run in runs:
               if run['conclusion']!='success':continue
               rid=run['databaseId']
-              dest=Path('frozen_previous')
+              dest=Path('frozen_previous')/str(rid)
               result=subprocess.run(['gh','run','download',str(rid),'-n',f'p1-fresh-roster-{rid}','-D',str(dest)],capture_output=True,text=True)
               if result.returncode:continue
               qfile=dest/'quality.json'; csvfile=dest/'mainboard.csv'
