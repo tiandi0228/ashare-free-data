@@ -16,6 +16,7 @@ def audit(root,cutoff="2025-12-31"):
             p=receipt.parent/(item["code"].replace(".","_")+".csv")
             rows=list(csv.DictReader(p.read_text(encoding="utf-8-sig").splitlines()))
             dates={x["date"]:x for x in rows}
+            last_vendor_date=rows[-1]["date"]
             for row in rows:
                 day=row["date"]
                 if day<=cutoff or row["tradestatus"]!="1":continue
@@ -27,16 +28,19 @@ def audit(root,cutoff="2025-12-31"):
                 next_row=dates.get(target)
                 if next_row is None:
                     counts["target_vendor_row_missing"]+=1
-                    if len(examples)<20:examples.append({"code":item["code"],"entry":day,"target":target,"reason":"MISSING"})
+                    kind="BEYOND_SOURCE_END" if target>last_vendor_date else "INTERNAL_MISSING_DATE"
+                    counts["missing_"+kind.lower()]+=1
+                    if len(examples)<20:examples.append({"code":item["code"],"entry":day,"target":target,"reason":kind})
                 elif next_row["tradestatus"]=="0":
                     counts["target_vendor_suspended"]+=1
                     if len(examples)<20:examples.append({"code":item["code"],"entry":day,"target":target,"reason":"VENDOR_SUSPENDED"})
                 elif next_row["tradestatus"]=="1":
                     counts["target_vendor_active"]+=1
                 else:raise ValueError("unrecognized vendor trade status")
-    keys=("verified_issuers","active_holdout_entry_dates","calendar_unavailable","target_vendor_row_missing","target_vendor_suspended","target_vendor_active")
+    keys=("verified_issuers","active_holdout_entry_dates","calendar_unavailable","target_vendor_row_missing","target_vendor_suspended","target_vendor_active","missing_beyond_source_end","missing_internal_missing_date")
     for key in keys:counts[key]+=0
-    assert counts["active_holdout_entry_dates"]==sum(counts[k] for k in keys[2:])
+    assert counts["active_holdout_entry_dates"]==sum(counts[k] for k in ("calendar_unavailable","target_vendor_row_missing","target_vendor_suspended","target_vendor_active"))
+    assert counts["target_vendor_row_missing"]==counts["missing_beyond_source_end"]+counts["missing_internal_missing_date"]
     return {"phase":"P4_REAL_HOLDOUT_EXIT_DATE_ROW_AVAILABILITY",**counts,
             "exceptions_sample":examples,
             "entry_dates_are_not_filled_orders":True,
