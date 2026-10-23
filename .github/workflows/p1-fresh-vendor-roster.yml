@@ -101,13 +101,24 @@ jobs:
           PY
       - name: Build deterministic eight-issuer research batches from real roster
         run: |
-          python -m collector.p1_fresh_shard_plan --source evidence/mainboard.csv --out evidence/shards --requested-day "$(TZ=Asia/Shanghai date +%F)"
+          # Use the actual vendor observation date, including when recovery reused a frozen snapshot.
+          SOURCE_DAY=$(python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path('evidence/quality.json').read_text())
+          day=q['requested_day']
+          assert isinstance(day,str) and len(day)==10 and day[4]=='-' and day[7]=='-'
+          print(day)
+          PY
+          )
+          python -m collector.p1_fresh_shard_plan --source evidence/mainboard.csv --out evidence/shards --requested-day "$SOURCE_DAY"
           python - <<'PY'
           import json,hashlib,math
           from pathlib import Path
           q=json.loads(Path('evidence/quality.json').read_text())
           p=json.loads(Path('evidence/shards/plan.json').read_text())
           assert p['source_sha256']==q['mainboard_sha256']
+          assert p['requested_day']==q['requested_day'], 'source date must not be rewritten on stale fallback'
           assert p['issuer_count']==q['mainboard_prefix_rows']
           assert p['shard_count']==math.ceil(q['mainboard_prefix_rows']/8)
           assert sum(s['count'] for s in p['shards'])==q['mainboard_prefix_rows']
