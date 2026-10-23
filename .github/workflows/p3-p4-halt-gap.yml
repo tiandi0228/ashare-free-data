@@ -30,6 +30,8 @@ jobs:
           assert all(not r['official_effective_date_authenticated'] and r['risk_state']=='UNVERIFIED' for r in x['pending_official_evidence'])
           assert x['officially_certified_halt_dates']==0 and x['trade_gate']=='BLOCKED'
           print('OFFICIAL HALT GAPS',x['vendor_suspended_exit_observations'],'observations',x['distinct_issuer_halt_dates'],'issuer dates')
+          for item in x['pending_official_evidence']:
+              print('P3_HALT_TARGET',item['code'],item['target_date'],','.join(item['affected_entry_dates']))
           PY
       - uses: actions/upload-artifact@v4
         with:
