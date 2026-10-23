@@ -11,6 +11,25 @@ class CheckpointTests(unittest.TestCase):
     def test_epoch_checkpoint_is_content_addressed(self):
         self.assertEqual(epoch_path("a"*64),"evidence/checkpoints/"+"a"*64+".json")
         with self.assertRaises(ValueError):epoch_path("../invalid")
+    def test_versioned_read_never_uses_other_epoch(self):
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from collector import p1_checkpoint
+        a=self.ledger(1)
+        calls=[]
+        def fake_read(repo,path=p1_checkpoint.CHECKPOINT):
+            calls.append(path)
+            if path==p1_checkpoint.CHECKPOINT:
+                return a,"legacy_sha"
+            return None,None
+        with patch.object(p1_checkpoint,"remote_read",side_effect=fake_read):
+            with tempfile.TemporaryDirectory() as d:
+                with patch("sys.argv",["p1_checkpoint","--mode","read","--repo","test/repo","--source-sha","b"*64,"--out",str(Path(d)/"not_written.json")]):
+                    p1_checkpoint.main()
+                self.assertFalse((Path(d)/"not_written.json").exists())
+        self.assertEqual(calls,[p1_checkpoint.epoch_path("b"*64),p1_checkpoint.CHECKPOINT])
+
     def test_higher_progress_is_preserved(self):
         self.assertEqual(merge(self.ledger(0),self.ledger(1))["completed_issuers"],8)
     def test_new_progress_wins(self):
