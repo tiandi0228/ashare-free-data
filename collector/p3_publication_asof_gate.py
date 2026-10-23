@@ -20,7 +20,7 @@ def assess(events, decision_instant):
     if not isinstance(events,list):raise ValueError("event inventory missing")
     results=[];seen=set()
     for e in events:
-        if e.get("trade_gate")!="BLOCKED" or e.get("orders")!=[]:
+        if e.get("trade_gate")!="BLOCKED" or e.get("orders")!=[] or e.get("executable_candidates",[])!=[]:
             raise ValueError("upstream risk boundary violated")
         key=(e.get("issuer"),e.get("kind"),e.get("original_sha256"))
         if key in seen:raise ValueError("duplicate event provenance")
