@@ -276,6 +276,8 @@ jobs:
           assert q['archived_issuers']<=q['ledger_issuers']
           print('ARCHIVE AUDIT: permanently verified',q['archived_issuers'],'of',q['ledger_issuers'])
           PY
+      - name: Preserve pre-repair archive audit
+        run: cp evidence/archive_audit.json evidence/archive_audit_before_repair.json
       - name: Pick one bounded previous archive gap
         id: repair
         run: |
@@ -310,6 +312,18 @@ jobs:
           git -C archived-research fetch --depth=1 origin research-csv-archive
           git -C archived-research checkout --detach FETCH_HEAD
           python -m collector.p1_archive_audit --plan evidence/shards/plan.json --ledger evidence/ledger.json --root archived-research --out evidence/archive_audit.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          before=json.loads(Path('evidence/archive_audit_before_repair.json').read_text())
+          after=json.loads(Path('evidence/archive_audit.json').read_text())
+          idx=int('${{ steps.repair.outputs.index }}')
+          count=json.loads(Path('evidence/shards/plan.json').read_text())['shards'][idx]['count']
+          assert after['trade_gate']=='BLOCKED' and after['historical_PIT_verified'] is False
+          assert after['archived_issuers']==before['archived_issuers']+count
+          assert idx not in after['archive_repair_queue']
+          print('REPAIR AUDIT PASS: durable verified issuers',after['archived_issuers'],'gap',after['archive_gap_issuers'])
+          PY
       - name: Persist durable no-trade checkpoint in repository
         env:
           GH_TOKEN: ${{ github.token }}
