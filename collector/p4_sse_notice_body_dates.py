@@ -8,7 +8,7 @@ def inspect(year,raw):
     text=re.sub(r"(?is)<script.*?</script>|<style.*?</style>"," ",text)
     text=re.sub(r"(?s)<[^>]*>"," ",text)
     text=re.sub(r"\s+","",text)
-    misses=[]
+    misses=[];unpaired=[]
     for start,end in HOLIDAY_RANGES[year]:
         # A notice may state holidays in Chinese date notation; this is a conservative
         # presence-only check, never an exact semantic interpretation of opening days.
@@ -16,8 +16,17 @@ def inspect(year,raw):
             y,m,d=map(int,s.split("-"))
             return f"{m}月{d}日"
         if md(start) not in text or md(end) not in text:misses.append([start,end])
+        else:
+            left=md(start);right=md(end)
+            # Must occur as a single local span, not scattered elsewhere on page.
+            pair=re.search(re.escape(left)+r"(?:至|到|—|－|–|~|～|\u2014|[-])"+re.escape(right),text)
+            if start==end:
+                pair=re.search(re.escape(left)+r"(?:休市|放假)",text)
+            if pair is None:unpaired.append([start,end])
     return {"year":year,"ranges_expected":len(HOLIDAY_RANGES[year]),
             "ranges_missing_textual_dates":misses,
+            "ranges_without_adjacent_closure_phrase":unpaired,
+            "adjacent_phrase_check_passed":not misses and not unpaired,
             "body_text_nonempty":bool(text),"body_semantically_authenticated":False}
 def capture():
     result=[]
