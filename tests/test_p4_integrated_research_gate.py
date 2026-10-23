@@ -14,6 +14,11 @@ class IntegratedTests(unittest.TestCase):
         self.assertFalse(result["strategy_backtest_completed"])
         self.assertFalse(result["historical_OOS_validated"])
         self.assertEqual(result["trade_gate"],"BLOCKED")
+    def test_upstream_executable_candidate_fails_closed(self):
+        f=fixture();f["executable_candidates"]=[{"code":"sh.600000"}]
+        with self.assertRaisesRegex(ValueError,"upstream"):
+            verify(f)
+
     def test_bad_time_fails_pipeline(self):
         f=fixture();f["signals"][0]["source_observed_at"]="2026-10-20T07:02:00+00:00"
         with self.assertRaises(ValueError):verify(f)
