@@ -3,10 +3,17 @@ import argparse,hashlib,json,re
 from datetime import datetime,timezone
 from pathlib import Path
 from urllib.parse import urlparse
-from urllib.request import Request,urlopen
+from urllib.request import Request,build_opener,HTTPRedirectHandler
 from urllib.error import HTTPError,URLError
 
 ALLOWED={"static.cninfo.com.cn","static.sse.com.cn","big5.sse.com.cn"}
+class OfficialRedirects(HTTPRedirectHandler):
+    def redirect_request(self,req,fp,code,msg,headers,newurl):
+        target=urlparse(newurl)
+        if target.scheme!="https" or target.hostname not in ALLOWED:
+            raise ValueError("redirect outside allowlisted HTTPS official hosts")
+        return super().redirect_request(req,fp,code,msg,headers,newurl)
+
 KINDS={"IPO_LISTING","DELIST_EFFECTIVE","DELIST_RISK_ISSUER_FORECAST","ST_CHANGE","TRADING_HALT","TRADING_RESUME"}
 def capture(specs,out):
     if not isinstance(specs,list) or not 1<=len(specs)<=12:
@@ -23,7 +30,7 @@ def capture(specs,out):
            "source_status":"UNVERIFIED","original_bytes_verified":False,
            "event_contents_certified":False,"PIT_publication_verified":False}
         try:
-            with urlopen(Request(url,headers={"User-Agent":"Mozilla/5.0","Accept":"application/pdf"}),timeout=25) as resp:
+            with build_opener(OfficialRedirects).open(Request(url,headers={"User-Agent":"Mozilla/5.0","Accept":"application/pdf"}),timeout=25) as resp:
                 raw=resp.read(12000001)
             if len(raw)<3000 or len(raw)>12000000 or not raw.startswith(b"%PDF-"):
                 raise ValueError("PDF byte contract mismatch")
