@@ -11,13 +11,17 @@ def replay(*,buy_price,sell_price,shares,buy_day,sell_day,commission_rate="0.000
         raise ValueError("A-share mainboard purchase lot must be positive and divisible by 100")
     bd=date.fromisoformat(buy_day);sd=date.fromisoformat(sell_day)
     if sd<=bd:raise ValueError("T+1 forbids a same-day or earlier exit")
-    bp=D(str(buy_price))+D(str(slippage_buy))
-    sp=D(str(sell_price))-D(str(slippage_sell))
+    buy_slippage=D(str(slippage_buy));sell_slippage=D(str(slippage_sell))
+    if not all(v.is_finite() for v in (D(str(buy_price)),D(str(sell_price)),buy_slippage,sell_slippage)):
+        raise ValueError("nonfinite prices or slippage")
+    if buy_slippage<0 or sell_slippage<0:raise ValueError("negative slippage would create fictional improvement")
+    bp=D(str(buy_price))+buy_slippage
+    sp=D(str(sell_price))-sell_slippage
     if min(bp,sp)<=0:raise ValueError("prices after slippage must be positive")
     rate=D(str(commission_rate));floor=D(str(commission_min))
     tax=D(str(stamp_tax_rate));transfer=D(str(transfer_rate))
     budget=D(str(risk_budget_fraction))
-    if any(x<0 for x in (rate,floor,tax,transfer)) or not D("0")<budget<=D("0.03"):
+    if not all(v.is_finite() for v in (rate,floor,tax,transfer,budget)) or any(x<0 for x in (rate,floor,tax,transfer)) or not D("0")<budget<=D("0.03"):
         raise ValueError("invalid cost or risk assumptions")
     gross_buy=bp*shares;gross_sell=sp*shares
     bc=money(max(floor,gross_buy*rate));sc=money(max(floor,gross_sell*rate))
