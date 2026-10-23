@@ -44,6 +44,16 @@ class CheckpointTests(unittest.TestCase):
         with self.assertRaises(ValueError):merge(newer,older)
     def test_added_shard_preserves_old_evidence(self):
         self.assertEqual(merge(self.ledger(2),self.ledger(1))["completed_issuers"],16)
+    def test_out_of_range_shard_rejected(self):
+        record=self.ledger(1)
+        record["completed"][0]["index"]=record["shard_count"]
+        with self.assertRaises(ValueError):validate(record)
+
+    def test_wrong_source_hash_rejected(self):
+        record=self.ledger(1)
+        record["source_sha256"]="not_a_sha"
+        with self.assertRaises(ValueError):validate(record)
+
     def test_orders_rejected(self):
         candidate=self.ledger(0);candidate["orders"]=[{"buy":"SH"}]
         with self.assertRaises(ValueError):validate(candidate)
