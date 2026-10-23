@@ -2,6 +2,7 @@
 Research integrity only; no fills, orders, returns, or PIT certification.
 """
 import argparse,csv,hashlib,json
+from decimal import Decimal
 from pathlib import Path
 
 def verify(root,manifest):
@@ -38,6 +39,15 @@ def verify(root,manifest):
         if dates.count(day)!=1:raise ValueError("missing or repeated signal date")
         index=dates.index(day)
         if rows[index]["tradestatus"]!="1":raise ValueError("signal date is not vendor tradable")
+        # Verify the crossing independently of the event generator.
+        if index==0 or rows[index-1]["tradestatus"]!="1":
+            raise ValueError("MA20 crossing requires previous tradable observation")
+        def above_ma20(end):
+            previous=[Decimal(r["close"]) for r in rows[:end+1] if r["tradestatus"]=="1"]
+            if len(previous)<20:raise ValueError("insufficient MA20 history")
+            return previous[-1]>sum(previous[-20:])/20
+        if above_ma20(index-1) or not above_ma20(index):
+            raise ValueError("not a fresh MA20 crossing")
         future=rows[index+1:index+4]
         if [r["date"] for r in future]!=event["three_future_observed_dates"]:
             raise ValueError("forward dates mismatch")
