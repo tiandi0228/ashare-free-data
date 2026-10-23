@@ -32,6 +32,8 @@ def audit(root,cutoff="2025-12-31"):
                     counts["vendor_row_skips_curated_sessions"]+=1
                     if len(examples)<20:examples.append({"code":item["code"],"day":day,"next_vendor_day":successor,"curated_session_gap":gap})
                 if rows[i+1]["tradestatus"]=="0":counts["successor_vendor_suspended"]+=1
+    for key in ("verified_issuers","holdout_active_rows","last_vendor_row_no_successor","vendor_next_row_present","next_row_is_next_curated_session","vendor_row_skips_curated_sessions","successor_vendor_suspended"):
+        counts[key]+=0
     if counts["holdout_active_rows"]!=counts["last_vendor_row_no_successor"]+counts["vendor_next_row_present"]:
         raise ValueError("source accounting mismatch")
     return {"phase":"P4_REAL_VENDOR_CURATED_SESSION_JOIN",**counts,
