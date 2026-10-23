@@ -1,0 +1,42 @@
+name: P4 real vendor session coverage gaps (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p4_vendor_session_coverage.py'
+      - 'tests/test_p4_vendor_session_coverage.py'
+      - '.github/workflows/p4-vendor-session-coverage.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest tests.test_p4_vendor_session_coverage -v
+      - run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-research FETCH_HEAD
+          python -m collector.p4_vendor_session_coverage --root archived-research --out evidence/p4_vendor_dates.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path('evidence/p4_vendor_dates.json').read_text())
+          assert q['verified_issuers']>0 and q['distinct_vendor_dates']>0
+          assert q['all_issuer_dates']+q['partially_covered_dates']==q['distinct_vendor_dates']
+          assert not q['historical_exchange_calendar_authenticated']
+          assert not q['historical_session_intervals_certified']
+          assert q['trade_gate']=='BLOCKED' and q['orders']==[]
+          print('VENDOR SESSION GAP ACCEPTED:',q['distinct_vendor_dates'],'dates, partial',q['partially_covered_dates'])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p4-vendor-session-gaps-${{ github.run_id }}
+          path: evidence/p4_vendor_dates.json
+          retention-days: 14
