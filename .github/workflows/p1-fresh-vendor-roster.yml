@@ -11,6 +11,8 @@ on:
       - 'collector/p1_shard_ledger.py'
       - 'collector/p1_checkpoint.py'
       - 'tests/test_p1_checkpoint.py'
+      - 'collector/p1_csv_archive.py'
+      - 'tests/test_p1_csv_archive.py'
       - 'tests/test_p1_shard_ledger.py'
   schedule:
     - cron: '10 1 * * 1-5' # 09:10 Beijing
@@ -34,7 +36,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline source tests
-        run: python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_shard_ledger tests.test_p1_checkpoint -v
+        run: python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive -v
       - name: Install free Baostock
         run: python -m pip install 'baostock>=0.8,<1'
       - name: Observe current Beijing-date mainboard roster from free provider
@@ -247,6 +249,16 @@ jobs:
           assert x['completed_issuers']<=json.loads(Path('evidence/shards/plan.json').read_text())['issuer_count']
           print('AUDIT: source-bound completed issuers',x['completed_issuers'])
           PY
+      - name: Archive raw CSV to durable free Git research branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh auth setup-git
+          SECOND=()
+          if [[ "${{ steps.pick.outputs.has_second }}" == "true" ]]; then
+            SECOND=(--second "${{ steps.pick.outputs.second }}")
+          fi
+          python -m collector.p1_csv_archive --plan evidence/shards/plan.json --first "${{ steps.pick.outputs.first }}" "${SECOND[@]}"
       - name: Persist durable no-trade checkpoint in repository
         env:
           GH_TOKEN: ${{ github.token }}
