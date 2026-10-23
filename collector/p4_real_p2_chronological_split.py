@@ -1,0 +1,40 @@
+"""P4 evidence-only chronological split of independently verified real P2 archive.
+
+No signals, trade simulation, return claims, or historical PIT certification.
+"""
+import argparse,csv,hashlib,json
+from datetime import date
+from pathlib import Path
+from collector.p2_independent_bars import assess
+
+def audit(root,cutoff):
+    cutoff=date.fromisoformat(cutoff)
+    receipts=sorted(Path(root).glob("*/shard_*/quality.json"))
+    if not receipts:raise ValueError("no durable original receipts")
+    counts={"train_rows":0,"holdout_rows":0,"issuers_with_holdout":0,"verified_issuers":0}
+    digests=[];seen=set()
+    for p in receipts:
+        verified=assess(p.parent)
+        for item in verified["details"]:
+            code=item["code"]
+            if code in seen:raise ValueError("duplicate issuer across original shards")
+            seen.add(code)
+            raw=(p.parent/(code.replace(".","_")+".csv")).read_bytes()
+            digests.append({"issuer":code,"sha256":hashlib.sha256(raw).hexdigest()})
+            dates=[date.fromisoformat(r["date"]) for r in csv.DictReader(raw.decode("utf-8-sig").splitlines())]
+            train=sum(day<=cutoff for day in dates);holdout=len(dates)-train
+            counts["train_rows"]+=train;counts["holdout_rows"]+=holdout
+            counts["issuers_with_holdout"]+=int(holdout>0)
+            counts["verified_issuers"]+=1
+    return {"phase":"P4_REAL_P2_CHRONOLOGICAL_RESEARCH_SPLIT","cutoff_inclusive":cutoff.isoformat(),
+            **counts,"source_csv_sha256":digests,"split_time_order_verified":True,
+            "signals_evaluated":0,"out_of_sample_performance_validated":False,
+            "historical_PIT_verified":False,"trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
+def main():
+    p=argparse.ArgumentParser();p.add_argument("--root",required=True)
+    p.add_argument("--cutoff",default="2025-12-31");p.add_argument("--out",required=True)
+    a=p.parse_args();r=audit(a.root,a.cutoff)
+    path=Path(a.out);path.parent.mkdir(parents=True,exist_ok=True)
+    path.write_text(json.dumps(r,ensure_ascii=False,indent=2)+"\n")
+    print(json.dumps({k:v for k,v in r.items() if k!="source_csv_sha256"}))
+if __name__=="__main__":main()
