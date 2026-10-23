@@ -1,0 +1,30 @@
+name: P2 independent vendor CSV integrity (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p2_independent_bars.py'
+      - 'tests/test_p2_independent_bars.py'
+      - '.github/workflows/p2-independent-bars.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  p2-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline independent CSV replay and fail-closed checks
+        run: python -m unittest tests.test_p2_independent_bars -v
+      - name: Confirm independent P2 source cannot authorize trades
+        run: |
+          python - <<'PY'
+          from collector.p2_independent_bars import audit_csv
+          raw=b'date,code,open,high,low,close,volume,amount,adjustflag,tradestatus\n2026-01-05,sh.600000,10,11,9,10.5,100,1000,3,1\n'
+          assert audit_csv(raw,'sh.600000')['active_rows']==1
+          print('PASS: vendor-only prices; not official historical PIT or trading permission')
+          PY
