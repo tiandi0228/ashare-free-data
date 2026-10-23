@@ -5,11 +5,16 @@ from pathlib import Path
 from collector.p2_independent_bars import assess
 
 OFFICIAL_SSE_NOTICES={
+  2024:"https://www.sse.com.cn/disclosure/dealinstruc/closed/c/c_20231226_5733941.shtml",
   2025:"https://www.sse.com.cn/disclosure/dealinstruc/closed/c/c_20241223_10767110.shtml",
-  2026:"https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml",
+  2026:"https://www.sse.com.cn/disclosure/dealinstruc/closed/c/c_20251222_10802510.shtml",
 }
 # Ranges from annual exchange closure notices. Weekend closures are checked separately.
 HOLIDAY_RANGES={
+  2024:[("2024-01-01","2024-01-01"),("2024-02-09","2024-02-17"),
+        ("2024-04-04","2024-04-06"),("2024-05-01","2024-05-05"),
+        ("2024-06-10","2024-06-10"),("2024-09-15","2024-09-17"),
+        ("2024-10-01","2024-10-07")],
   2025:[("2025-01-01","2025-01-01"),("2025-01-28","2025-02-04"),
         ("2025-04-04","2025-04-06"),("2025-05-01","2025-05-05"),
         ("2025-05-31","2025-06-02"),("2025-10-01","2025-10-08")],
