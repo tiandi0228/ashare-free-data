@@ -1,5 +1,5 @@
 import unittest
-from collector.p1_checkpoint import merge,validate
+from collector.p1_checkpoint import merge,validate,epoch_path
 
 class CheckpointTests(unittest.TestCase):
     def ledger(self,n):
@@ -8,6 +8,9 @@ class CheckpointTests(unittest.TestCase):
                 "source_sha256":"a"*64,"shard_count":2,
                 "completed":[{"index":i,"issuer_count":8,"manifest_sha256":"b"*64,"receipt_sha256":"c"*64} for i in range(n)],
                 "completed_shards":n,"completed_issuers":n*8}
+    def test_epoch_checkpoint_is_content_addressed(self):
+        self.assertEqual(epoch_path("a"*64),"evidence/checkpoints/"+"a"*64+".json")
+        with self.assertRaises(ValueError):epoch_path("../invalid")
     def test_higher_progress_is_preserved(self):
         self.assertEqual(merge(self.ledger(0),self.ledger(1))["completed_issuers"],8)
     def test_new_progress_wins(self):
