@@ -26,7 +26,10 @@ def capture(specs,out):
             kind not in KINDS or not re.fullmatch(r"(sh|sz)[.][0-9]{6}",code)):
             raise ValueError("invalid original source specification")
         ids.add(sid)
+        identifier=re.fullmatch(r"/finalpage/\\d{4}-\\d{2}-\\d{2}/(\\d+)\\.PDF",urlparse(url).path,re.I)
+        if not identifier:raise ValueError("source URL lacks expected announcement ID")
         r={"source_id":sid,"issuer":code,"event_kind":kind,"url":url,
+           "announcement_id":identifier.group(1),"announcement_id_origin":"PDF_URL_PATH_NOT_AUTHENTICATED_INDEX",
            "source_status":"UNVERIFIED","original_bytes_verified":False,
            "event_contents_certified":False,"PIT_publication_verified":False}
         try:
