@@ -1,0 +1,59 @@
+name: P4 permanent free tail archive (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p4_tail_permanent_archive.py'
+      - '.github/workflows/p4-tail-permanent-archive.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: p4-tail-permanent-archive
+  cancel-in-progress: false
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Fetch immutable old archive
+        run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-research FETCH_HEAD
+      - name: Fetch actual source snapshots
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p evidence/tail_pilot
+          gh run download 39905582685 -n p4-free-tail-pilot-39905582685 -D evidence/tail_pilot
+          test -f evidence/tail_pilot/backfill_attempt.json
+      - name: Independently revalidate and persist exact source bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m collector.p4_tail_permanent_archive --archive archived-research --tail evidence/tail_pilot --source-run 39905582685
+      - name: Independently fetch back committed files and check SHA
+        run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-after FETCH_HEAD
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          source=Path('evidence/tail_pilot')
+          dest=Path('archived-after/p4-tail-backfill/actions-39905582685')
+          manifest=json.loads((source/'backfill_attempt.json').read_text())
+          files=['backfill_attempt.json','independent_verification.json']
+          files += [x['filename'] for x in manifest['results'] if x['status']=='OBSERVED_RESEARCH_ONLY']
+          for name in files:
+              if name=='independent_verification.json':
+                  r=json.loads((dest/name).read_text())
+                  assert r['verified_source_rows']==16 and r['restored_exit_date_observations']==16
+              else:
+                  assert hashlib.sha256((source/name).read_bytes()).digest()==hashlib.sha256((dest/name).read_bytes()).digest()
+          print('PERMANENT P4 TAIL REFETCH VERIFIED',len(files),'objects,',16,'rows')
+          PY
