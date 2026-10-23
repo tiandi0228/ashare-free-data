@@ -4,6 +4,8 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/p4-auto-tail-pipeline.yml'
+      - 'collector/p4_pending_tail_selector.py'
+      - 'collector/p4_free_tail_backfill.py'
   workflow_dispatch:
   schedule:
     - cron: '20 8 * * 1-5'
@@ -26,31 +28,12 @@ jobs:
         run: |
           git fetch --depth=1 origin research-csv-archive
           git worktree add --detach archived-research FETCH_HEAD
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          from collector.p4_real_exit_availability import audit
-          source=audit('archived-research')
-          base=Path('archived-research/p4-tail-backfill')
-          done=set()
-          for path in base.glob('actions-*/backfill_attempt.json'):
-              m=json.loads(path.read_text())
-              for item in m.get('results',[]):
-                  if item.get('status')=='OBSERVED_RESEARCH_ONLY':
-                      done.add(item['code'])
-          tasks=source['tail_backfill_requests']
-          offsets=list(range(0,len(tasks),8))
-          pending=next((i for i in offsets if any(t['code'] not in done for t in tasks[i:i+8])),None)
-          # Never recapture an already archived success: skip completed rows by
-          # checking after capture, before permanent write.
-          Path('batch.json').write_text(json.dumps({'offset':pending,'prior_success_issuers':len(done)}))
-          print('NEXT BATCH',pending,'PRIOR ARCHIVED ISSUERS',len(done))
-          PY
+          python -m collector.p4_pending_tail_selector --root archived-research --out batch.json
       - name: Bounded free vendor capture
         run: |
-          OFFSET=$(python -c "import json;print(json.load(open('batch.json'))['offset'])")
-          if [ "$OFFSET" = None ]; then echo 'All tails archived'; exit 0; fi
-          timeout 280s python -m collector.p4_free_tail_backfill --root archived-research --out evidence/tail_auto --limit 8 --offset "$OFFSET"
+          COUNT=$(python -c "import json;print(json.load(open('batch.json'))['selected_issuers'])")
+          if [ "$COUNT" = 0 ]; then echo 'No pending issuer tails'; exit 0; fi
+          timeout 280s python -m collector.p4_free_tail_backfill --root archived-research --out evidence/tail_auto --limit 8 --selection batch.json
       - name: Independently validate actual missing target dates
         if: hashFiles('evidence/tail_auto/backfill_attempt.json') != ''
         run: |
