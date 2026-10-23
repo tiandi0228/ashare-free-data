@@ -2,6 +2,7 @@
 Research integrity only; no fills, orders, returns, or PIT certification.
 """
 import argparse,csv,hashlib,json,re,subprocess
+from datetime import date
 from decimal import Decimal
 from pathlib import Path
 from collector.p2_independent_bars import assess
@@ -17,6 +18,7 @@ def verify(root,manifest):
         if not re.fullmatch(r"[0-9a-f]{40}",commit):raise ValueError("invalid source archive commit")
         actual=subprocess.check_output(["git","-C",str(root),"rev-parse","HEAD"],text=True).strip()
         if actual!=commit:raise ValueError("source archive commit mismatch")
+    cutoff=date.fromisoformat(data["cutoff_inclusive"])
     events=data["nonoverlapping_event_evidence"]
     if not isinstance(events,list) or len(events)!=data["nonoverlapping_three_observation_crossing_events"]:
         raise ValueError("manifest count mismatch")
@@ -43,6 +45,7 @@ def verify(root,manifest):
         if digest!=event["source_csv_sha256"]:raise ValueError("event source SHA mismatch")
         dates=[r["date"] for r in rows]
         day=event["signal_completed_date"]
+        if date.fromisoformat(day)<=cutoff:raise ValueError("signal crosses training holdout boundary")
         if dates.count(day)!=1:raise ValueError("missing or repeated signal date")
         index=dates.index(day)
         if rows[index]["tradestatus"]!="1":raise ValueError("signal date is not vendor tradable")
