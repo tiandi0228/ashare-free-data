@@ -31,7 +31,7 @@ def validate(ledger):
     return ledger
 
 def gh(*args,input_data=None):
-    return subprocess.check_output(["gh","api",*args],input=input_data,text=True)
+    return subprocess.run(["gh","api",*args],input=input_data,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True).stdout
 
 def remote_read(repo,path=CHECKPOINT):
     try:
@@ -39,7 +39,10 @@ def remote_read(repo,path=CHECKPOINT):
         raw=base64.b64decode(result["content"]).decode()
         return json.loads(raw.removesuffix(chr(92)+"n")),result["sha"]
     except subprocess.CalledProcessError as exc:
-        if exc.returncode==1: return None,None
+        # Only an explicit GitHub 404 means the checkpoint is absent.
+        # Authentication, rate-limit and network failures must stop the job.
+        if exc.returncode==1 and "404" in (exc.stderr or "") and "Not Found" in (exc.stderr or ""):
+            return None,None
         raise
 
 def merge(candidate,previous):
