@@ -1,0 +1,44 @@
+name: P4 free tail batch two evidence (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p4_free_tail_backfill.py'
+      - '.github/workflows/p4-free-tail-batch-two.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'baostock>=0.8,<1'
+      - run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-research FETCH_HEAD
+      - name: Recover distinct second batch and verify source hashes
+        run: |
+          timeout 280s python -m collector.p4_free_tail_backfill --root archived-research --out evidence/tail_batch_two --limit 8 --offset 8
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          root=Path('evidence/tail_batch_two')
+          r=json.loads((root/'backfill_attempt.json').read_text())
+          assert r['batch_offset']==8 and r['requested_issuers']==8
+          assert r['trade_gate']=='BLOCKED'
+          for item in r['results']:
+              if item['status']=='OBSERVED_RESEARCH_ONLY':
+                  assert hashlib.sha256((root/item['filename']).read_bytes()).hexdigest()==item['sha256']
+          print('BATCH TWO RESULTS',r['successful_issuers'],r['recovered_target_rows'])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p4-tail-batch-two-${{ github.run_id }}
+          path: evidence/tail_batch_two/
+          retention-days: 30
