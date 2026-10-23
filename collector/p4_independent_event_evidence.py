@@ -1,7 +1,7 @@
 """Independent P4 event manifest verification against original archived CSVs.
 Research integrity only; no fills, orders, returns, or PIT certification.
 """
-import argparse,csv,hashlib,json
+import argparse,csv,hashlib,json,re,subprocess
 from decimal import Decimal
 from pathlib import Path
 from collector.p2_independent_bars import assess
@@ -12,6 +12,11 @@ def verify(root,manifest):
         raise ValueError("unsafe trading boundary")
     if data.get("returns_computed") is not False or data.get("historical_OOS_validated") is not False:
         raise ValueError("unsupported return certification")
+    commit=data.get("archive_commit_sha")
+    if commit is not None:
+        if not re.fullmatch(r"[0-9a-f]{40}",commit):raise ValueError("invalid source archive commit")
+        actual=subprocess.check_output(["git","-C",str(root),"rev-parse","HEAD"],text=True).strip()
+        if actual!=commit:raise ValueError("source archive commit mismatch")
     events=data["nonoverlapping_event_evidence"]
     if not isinstance(events,list) or len(events)!=data["nonoverlapping_three_observation_crossing_events"]:
         raise ValueError("manifest count mismatch")
