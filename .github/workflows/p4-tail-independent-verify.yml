@@ -36,9 +36,12 @@ jobs:
           from pathlib import Path
           r=json.loads(Path("evidence/verified_tails.json").read_text())
           assert r["verified_source_issuers"]==8 and r["verified_source_rows"]==16
-          assert not r["archive_merged"] and not r["specific_exit_observations_proven_recovered"]
+          assert not r["archive_merged"]
+          assert r["restored_exit_date_observations"]+r["remaining_exit_date_observations"]==502
+          assert r["specific_exit_observations_proven_recovered"]==(r["restored_exit_date_observations"]>0)
           assert r["trade_gate"]=="BLOCKED" and r["fills_verified"]==0
           print("INDEPENDENT TAIL VERIFIED",r["verified_source_issuers"],r["verified_source_rows"])
+          print("EXACT EXIT TARGETS RESTORED",r["restored_exit_date_observations"],"REMAINING",r["remaining_exit_date_observations"])
           PY
       - uses: actions/upload-artifact@v4
         if: always()
