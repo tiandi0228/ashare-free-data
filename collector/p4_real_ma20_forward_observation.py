@@ -3,12 +3,14 @@
 Uses independently P2-validated archived vendor CSV. No fills, PnL,
 tradability certification, or out-of-sample strategy validation.
 """
-import argparse,csv,hashlib,json
+import argparse,csv,hashlib,json,re
 from decimal import Decimal
 from pathlib import Path
 from collector.p2_independent_bars import assess
 
-def audit(root,cutoff="2025-12-31"):
+def audit(root,cutoff="2025-12-31",archive_commit=None):
+    if archive_commit is not None and not re.fullmatch(r"[0-9a-f]{40}",archive_commit):
+        raise ValueError("invalid archived git commit")
     from datetime import date
     boundary=date.fromisoformat(cutoff)
     receipts=sorted(Path(root).glob("*/shard_*/quality.json"))
@@ -77,7 +79,7 @@ def audit(root,cutoff="2025-12-31"):
     if sum(e["three_future_vendor_tradable"] for e in event_manifest)!=nonoverlap_forward_ready:
         raise ValueError("nonoverlapping forward evidence count mismatch")
     return {"phase":"P4_REAL_VENDOR_MA20_FORWARD_OBSERVATION",
-            "cutoff_inclusive":boundary.isoformat(),"independently_p2_checked_issuers":issuer_count,
+            "cutoff_inclusive":boundary.isoformat(),"archive_commit_sha":archive_commit,"independently_p2_checked_issuers":issuer_count,
             "post_cutoff_ma20_observations":signals,
             "fresh_ma20_crossing_events":crossing_events,
             "nonoverlapping_three_observation_crossing_events":nonoverlap_crossings,
@@ -98,9 +100,10 @@ def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--root",required=True)
     ap.add_argument("--cutoff",default="2025-12-31")
+    ap.add_argument("--archive-commit")
     ap.add_argument("--out",required=True)
     a=ap.parse_args()
-    result=audit(a.root,a.cutoff)
+    result=audit(a.root,a.cutoff,a.archive_commit)
     target=Path(a.out);target.parent.mkdir(parents=True,exist_ok=True)
     target.write_text(json.dumps(result,indent=2)+"\n")
     print(json.dumps(result))
