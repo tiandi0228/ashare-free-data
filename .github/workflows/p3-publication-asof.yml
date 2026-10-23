@@ -5,6 +5,8 @@ on:
     paths:
       - 'collector/p3_publication_asof_gate.py'
       - 'tests/test_p3_publication_asof_gate.py'
+      - 'collector/p3_publication_bar_gap.py'
+      - 'tests/test_p3_publication_bar_gap.py'
       - '.github/workflows/p3-publication-asof.yml'
   workflow_dispatch:
 permissions:
@@ -19,4 +21,4 @@ jobs:
         with:
           python-version: '3.11'
       - name: Test independent original publication timestamp guard
-        run: python -m unittest tests.test_p3_publication_asof_gate -v
+        run: python -m unittest tests.test_p3_publication_asof_gate tests.test_p3_publication_bar_gap -v
