@@ -58,7 +58,7 @@ def archive(plan, selected, repository):
         if previous["source_sha256"]!=plan["source_sha256"] or previous["trade_gate"]!="BLOCKED":
             raise ValueError("archive epoch mismatch")
         previous["archived_shards"]=sorted(set(previous["archived_shards"])|{i for i,_,_ in entries})
-        manifest.write_text(json.dumps(previous,indent=2)+"\\n")
+        manifest.write_text(json.dumps(previous,indent=2)+chr(10))
         git("add",".",cwd=work)
         if git("diff","--cached","--quiet",cwd=work,check=False).returncode==0:
             print("Archive already up to date")
