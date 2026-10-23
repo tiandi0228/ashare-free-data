@@ -1,0 +1,44 @@
+name: P4 independent SSE closure cross-check (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p4_sse_holiday_crosscheck.py'
+      - 'tests/test_p4_sse_holiday_crosscheck.py'
+      - '.github/workflows/p4-sse-holiday-crosscheck.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  crosscheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest tests.test_p4_sse_holiday_crosscheck -v
+      - name: Audit actual archived source dates independently of vendor calendar
+        run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-research FETCH_HEAD
+          python -m collector.p4_sse_holiday_crosscheck --root archived-research --out evidence/p4_sse_holiday.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('evidence/p4_sse_holiday.json').read_text())
+          assert r['verified_issuers']>0
+          assert not r['unexpected_weekend_dates'] and not r['unexpected_holiday_dates']
+          assert not r['missing_expected_weekdays']
+          assert r['historical_exchange_calendar_authenticated'] is False
+          assert r['official_notices_fetched_in_this_run'] is False
+          assert r['trade_gate']=='BLOCKED' and r['orders']==[]
+          print('SSE CLOSURE CROSS-CHECK:',r['date_count'],'source dates')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p4-sse-closure-evidence-${{ github.run_id }}
+          path: evidence/p4_sse_holiday.json
+          retention-days: 14
