@@ -1,0 +1,40 @@
+name: P4 chronological real P2 evidence split (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p4_real_p2_chronological_split.py'
+      - 'tests/test_p4_real_p2_chronological_split.py'
+      - '.github/workflows/p4-real-p2-chronological.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  split:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest tests.test_p4_real_p2_chronological_split -v
+      - run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-research FETCH_HEAD
+          python -m collector.p4_real_p2_chronological_split --root archived-research --cutoff 2025-12-31 --out evidence/p4_chronological_split.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('evidence/p4_chronological_split.json').read_text())
+          assert r['verified_issuers']>0 and r['holdout_rows']>0
+          assert not r['out_of_sample_performance_validated'] and not r['historical_PIT_verified']
+          assert r['trade_gate']=='BLOCKED' and r['orders']==[]
+          print('P4 SOURCE SPLIT ACCEPTED:',r['verified_issuers'],'issuers, holdout rows',r['holdout_rows'])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p4-real-p2-split-${{ github.run_id }}
+          path: evidence/p4_chronological_split.json
+          retention-days: 14
