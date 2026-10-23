@@ -54,6 +54,18 @@ class CheckpointTests(unittest.TestCase):
         record["source_sha256"]="not_a_sha"
         with self.assertRaises(ValueError):validate(record)
 
+    def test_missing_checkpoint_requires_explicit_404(self):
+        import subprocess
+        from unittest.mock import patch
+        from collector.p1_checkpoint import remote_read
+        missing=subprocess.CalledProcessError(1,["gh","api"],stderr="gh: Not Found (HTTP 404)")
+        auth=subprocess.CalledProcessError(1,["gh","api"],stderr="gh: Forbidden (HTTP 403)")
+        with patch("collector.p1_checkpoint.gh",side_effect=missing):
+            self.assertEqual(remote_read("a/b"),(None,None))
+        with patch("collector.p1_checkpoint.gh",side_effect=auth):
+            with self.assertRaises(subprocess.CalledProcessError):
+                remote_read("a/b")
+
     def test_orders_rejected(self):
         candidate=self.ledger(0);candidate["orders"]=[{"buy":"SH"}]
         with self.assertRaises(ValueError):validate(candidate)
