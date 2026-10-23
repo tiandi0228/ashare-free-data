@@ -1,0 +1,39 @@
+name: P4 SSE original snapshot evidence (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p4_sse_original_archive.py'
+      - '.github/workflows/p4-sse-original-archive.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Capture source bytes, hash, and bounded errors
+        run: |
+          python -m collector.p4_sse_original_archive --out evidence/sse_originals
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path('evidence/sse_originals')
+          p=json.loads((root/'manifest.json').read_text())
+          assert p['expected_count']==3 and p['trade_gate']=='BLOCKED'
+          for r in p['receipts']:
+              if r['status']=='CAPTURED_OFFICIAL_HOST_CONTENT_UNVERIFIED':
+                  assert hashlib.sha256((root/r['filename']).read_bytes()).hexdigest()==r['sha256']
+          print('SOURCE SNAPSHOT RECEIPTS',p['captured_count'],'/',p['expected_count'])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p4-sse-originals-${{ github.run_id }}
+          path: evidence/sse_originals/
+          retention-days: 90
