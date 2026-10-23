@@ -31,6 +31,9 @@ def capture(specs,out):
            "event_contents_certified":False,"PIT_publication_verified":False}
         try:
             with build_opener(OfficialRedirects).open(Request(url,headers={"User-Agent":"Mozilla/5.0","Accept":"application/pdf"}),timeout=25) as resp:
+                http_date=resp.headers.get("Date")
+                last_modified=resp.headers.get("Last-Modified")
+                resolved_url=resp.geturl()
                 raw=resp.read(12000001)
             if len(raw)<3000 or len(raw)>12000000 or not raw.startswith(b"%PDF-"):
                 raise ValueError("PDF byte contract mismatch")
@@ -45,6 +48,11 @@ def capture(specs,out):
             r.update(source_status="PDF_ORIGINAL_OBSERVED",original_bytes_verified=True,
                      sha256=hashlib.sha256(raw).hexdigest(),original_bytes=len(raw),
                      observed_at_utc=datetime.now(timezone.utc).isoformat(),
+                     final_official_url=resolved_url,
+                     http_response_date_unverified=http_date,
+                     http_last_modified_unverified=last_modified,
+                     authenticated_first_published_at=None,
+                     http_headers_prove_first_publication=False,
                      issuer_text_present=symbol,required_text_presence=matches,
                      event_contents_certified=symbol and all(matches.values()))
             if r["event_contents_certified"]:
