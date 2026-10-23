@@ -13,6 +13,7 @@ on:
       - 'tests/test_p1_checkpoint.py'
       - 'collector/p1_csv_archive.py'
       - 'collector/p1_archive_audit.py'
+      - 'tests/test_p1_archive_audit.py'
       - 'tests/test_p1_csv_archive.py'
       - 'tests/test_p1_shard_ledger.py'
   schedule:
@@ -37,7 +38,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline source tests
-        run: python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive -v
+        run: python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit -v
       - name: Install free Baostock
         run: python -m pip install 'baostock>=0.8,<1'
       - name: Observe current Beijing-date mainboard roster from free provider
