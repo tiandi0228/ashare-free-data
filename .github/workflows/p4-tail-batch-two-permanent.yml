@@ -1,0 +1,71 @@
+name: P4 second tail batch verify and permanent archive (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p4-tail-batch-two-permanent.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: p4-tail-permanent-archive
+  cancel-in-progress: false
+jobs:
+  validate-archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-research FETCH_HEAD
+      - name: Download real second-batch originals
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p evidence/tail_batch_two
+          gh run download 39907461732 -n p4-tail-batch-two-39907461732 -D evidence/tail_batch_two
+          test -f evidence/tail_batch_two/backfill_attempt.json
+      - name: Independent source integrity and exact exit target reconciliation
+        run: |
+          python -m collector.p4_tail_independent_verify --archive archived-research --tail evidence/tail_batch_two --out evidence/second_batch_verified.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('evidence/second_batch_verified.json').read_text())
+          assert r['verified_source_issuers']==8 and r['verified_source_rows']==16
+          assert r['restored_exit_date_observations']>0
+          assert r['trade_gate']=='BLOCKED' and not r['archive_merged']
+          print('SECOND BATCH EXACT TARGETS',r['restored_exit_date_observations'])
+          PY
+      - name: Persist independently verified bytes on free git evidence branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -m collector.p4_tail_permanent_archive --archive archived-research --tail evidence/tail_batch_two --source-run 39907461732
+      - name: Refetch permanent bytes and match SHA256
+        run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-after FETCH_HEAD
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          source=Path('evidence/tail_batch_two')
+          dest=Path('archived-after/p4-tail-backfill/actions-39907461732')
+          manifest=json.loads((source/'backfill_attempt.json').read_text())
+          files=['backfill_attempt.json']+[x['filename'] for x in manifest['results'] if x['status']=='OBSERVED_RESEARCH_ONLY']
+          for name in files:
+              assert hashlib.sha256((source/name).read_bytes()).digest()==hashlib.sha256((dest/name).read_bytes()).digest()
+          report=json.loads((dest/'independent_verification.json').read_text())
+          assert report['restored_exit_date_observations']>0 and report['trade_gate']=='BLOCKED'
+          print('SECOND BATCH PERMANENTLY VERIFIED',report['verified_source_rows'],'rows;',report['restored_exit_date_observations'],'exit observations')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p4-second-batch-audit-${{ github.run_id }}
+          path: evidence/second_batch_verified.json
+          retention-days: 30
