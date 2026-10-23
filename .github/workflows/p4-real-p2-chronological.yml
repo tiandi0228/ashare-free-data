@@ -29,6 +29,7 @@ jobs:
           from pathlib import Path
           r=json.loads(Path('evidence/p4_chronological_split.json').read_text())
           assert r['verified_issuers']>0 and r['holdout_rows']>0 and r['train_rows']>0
+          assert r['issuers_with_5_holdout_rows']>0
           assert r['archive_commit_sha']==__import__('subprocess').check_output(['git','-C','archived-research','rev-parse','HEAD'],text=True).strip()
           assert r['issuer_level_overlap_count']==0
           assert len(r['per_issuer_split'])==r['verified_issuers']
