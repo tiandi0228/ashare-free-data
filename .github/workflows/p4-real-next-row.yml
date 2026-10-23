@@ -1,0 +1,41 @@
+name: P4 real next-row chronology audit (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p4_real_next_row_gate.py'
+      - 'tests/test_p4_real_next_row_gate.py'
+      - '.github/workflows/p4-real-next-row.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest tests.test_p4_real_next_row_gate -v
+      - run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-research FETCH_HEAD
+          python -m collector.p4_real_next_row_gate --root archived-research --cutoff 2025-12-31 --out evidence/p4_next_row.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('evidence/p4_next_row.json').read_text())
+          assert r['verified_issuers']>0 and r['after_close_ma20_observations']>0
+          assert r['next_vendor_row_present']+r['no_next_vendor_row']==r['after_close_ma20_observations']
+          assert not r['next_vendor_row_is_official_trading_calendar']
+          assert r['trade_gate']=='BLOCKED' and r['fills_verified']==0 and r['orders']==[]
+          print('P4 NEXT-ROW ACCEPTED:',r['verified_issuers'],'issuers,',r['next_vendor_row_present'],'following vendor rows')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p4-real-next-row-${{ github.run_id }}
+          path: evidence/p4_next_row.json
+          retention-days: 14
