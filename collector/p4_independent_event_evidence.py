@@ -4,6 +4,7 @@ Research integrity only; no fills, orders, returns, or PIT certification.
 import argparse,csv,hashlib,json
 from decimal import Decimal
 from pathlib import Path
+from collector.p2_independent_bars import assess
 
 def verify(root,manifest):
     data=json.loads(Path(manifest).read_text())
@@ -19,11 +20,12 @@ def verify(root,manifest):
     source={}
     for receipt in receipt_paths:
         folder=receipt.parent
-        for item in json.loads(receipt.read_text())["results"]:
+        checked=assess(folder)
+        for item in checked["details"]:
             code=item["code"]
             raw=(folder/(code.replace(".","_")+".csv")).read_bytes()
             digest=hashlib.sha256(raw).hexdigest()
-            if digest!=item["sha256"]:raise ValueError("original receipt CSV hash mismatch")
+            # P2 assess independently verifies full CSV schema, counts and SHA. 
             if code in source and source[code][0]!=digest:
                 raise ValueError("conflicting originals")
             source[code]=(digest,list(csv.DictReader(raw.decode("utf-8-sig").splitlines())))
