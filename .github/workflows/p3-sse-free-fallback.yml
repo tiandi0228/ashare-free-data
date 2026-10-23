@@ -6,6 +6,8 @@ on:
       - 'collector/p3_cninfo_sse_fallback.py'
       - 'tests/test_p3_cninfo_sse_fallback.py'
       - '.github/workflows/p3-sse-free-fallback.yml'
+  schedule:
+    - cron: "40 2 * * 1-5" # 10:40 Beijing, weekday independent source audit
   workflow_dispatch:
 permissions:
   contents: read
@@ -30,6 +32,11 @@ jobs:
           r=json.loads(Path('evidence/sse/quality.json').read_text())
           assert r['trade_gate']=='BLOCKED' and r['orders']==[]
           assert r['attempted_gets']==2
+          assert r['historical_point_in_time_universe_verified'] is False
+          for page in r['page_events']:
+              if page.get('status')=='OBSERVED_OFFICIAL_HOST_UNVERIFIED_PUBLICATION_TIMING':
+                  assert len(page['page_content_sha256'])==64
+                  assert page['original_publication_timestamp_independently_verified'] is False
           print('SSE independently observed',sum(x.get('status')=='OBSERVED_OFFICIAL_HOST_UNVERIFIED_PUBLICATION_TIMING' for x in r['page_events']),'of 2')
           PY
       - name: Capture bounded CNINFO index and independent fallback report
@@ -43,6 +50,7 @@ jobs:
           assert r['trade_gate']=='BLOCKED' and not r['cninfo_missing_id_resolved']
           assert not r['historical_first_publication_authenticated']
           print('INDEPENDENT FALLBACK EVIDENCE',r['sse_official_host_events_observed'])
+          print('CNINFO INDEX MISSING',r['cninfo_index_missing'])
           PY
       - uses: actions/upload-artifact@v4
         if: always()
