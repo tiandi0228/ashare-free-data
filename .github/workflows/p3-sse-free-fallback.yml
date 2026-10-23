@@ -1,0 +1,52 @@
+name: P3 independent SSE fallback for CNINFO gap (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p3_cninfo_sse_fallback.py'
+      - 'tests/test_p3_cninfo_sse_fallback.py'
+      - '.github/workflows/p3-sse-free-fallback.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fallback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline independent-source safety regression
+        run: python -m unittest tests.test_p3_cninfo_sse_fallback -v
+      - name: Bounded free SSE source observations
+        run: |
+          mkdir -p evidence
+          python -m collector.sse_official_delist_evidence --out evidence/sse || true
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('evidence/sse/quality.json').read_text())
+          assert r['trade_gate']=='BLOCKED' and r['orders']==[]
+          assert r['attempted_gets']==2
+          print('SSE independently observed',sum(x.get('status')=='OBSERVED_OFFICIAL_HOST_UNVERIFIED_PUBLICATION_TIMING' for x in r['page_events']),'of 2')
+          PY
+      - name: Capture bounded CNINFO index and independent fallback report
+        run: |
+          python -m collector.p3_live_index_probe --manifest collector/p3_free_official_probe_manifest.json --out evidence/index.json
+          python -m collector.p3_cninfo_sse_fallback --index evidence/index.json --sse evidence/sse/quality.json --out evidence/fallback.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('evidence/fallback.json').read_text())
+          assert r['trade_gate']=='BLOCKED' and not r['cninfo_missing_id_resolved']
+          assert not r['historical_first_publication_authenticated']
+          print('INDEPENDENT FALLBACK EVIDENCE',r['sse_official_host_events_observed'])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p3-sse-fallback-evidence-${{ github.run_id }}
+          path: evidence/
+          retention-days: 14
