@@ -2,7 +2,10 @@ name: P3 six issuer free official ST halt IPO event probe (NO TRADES)
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/p3-free-official-two-issuer-probe.yml']
+    paths:
+      - '.github/workflows/p3-free-official-two-issuer-probe.yml'
+      - 'collector/p3_free_official_multi_issuer_probe.py'
+      - 'tests/test_p3_official_source_redirect.py'
   workflow_dispatch:
 permissions:
   contents: read
@@ -16,6 +19,8 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m pip install 'pypdf>=5,<7'
+      - name: Test allowlisted official original URL redirects
+        run: python -m unittest tests.test_p3_official_source_redirect -v
       - name: Acquire original two-issuer announcements for free
         run: python -m collector.p3_free_official_multi_issuer_probe --manifest collector/p3_free_official_probe_manifest.json --out evidence
       - name: Independently verify downloaded SHA receipts
