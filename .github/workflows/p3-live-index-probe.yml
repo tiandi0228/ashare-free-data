@@ -1,0 +1,39 @@
+name: P3 bounded live CNINFO announcement index probe (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p3_live_index_probe.py'
+      - 'tests/test_p3_live_index_probe.py'
+      - '.github/workflows/p3-live-index-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify index parser invariants
+        run: python -m unittest tests.test_p3_live_index_probe -v
+      - name: Bounded six announcement live index lookup, fail closed
+        run: |
+          python -m collector.p3_live_index_probe --manifest collector/p3_free_official_probe_manifest.json --out evidence/p3_live_index.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('evidence/p3_live_index.json').read_text())
+          assert r['trade_gate']=='BLOCKED' and r['historical_PIT_eligible']==0
+          assert r['first_publication_verified'] is False and r['orders']==[]
+          print('INDEX EVIDENCE:',r['index_records_found'],'of',r['requested'],'matched; failures:',len(r['unavailable_or_unmatched']))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p3-live-index-evidence-${{ github.run_id }}
+          path: evidence/p3_live_index.json
+          retention-days: 14
