@@ -51,12 +51,15 @@ def run(path,index,dest,bs):
       "trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
     logged=False
     try:
+        print("P1_BATCH_LOGIN_START",flush=True)
         r=bs.login()
+        print("P1_BATCH_LOGIN_RESULT",getattr(r,"error_code","UNKNOWN"),flush=True)
         if r.error_code!="0":raise ValueError("Login failed")
         logged=True
         for code in selected:
             item={"code":code,"status":"ERROR"}
             report["query_attempts"]+=1
+            print("P1_BATCH_ISSUER_START",code,flush=True)
             try:
                 q=bs.query_history_k_data_plus(code,fields=",".join(FIELDS),start_date=START,end_date=END,frequency="d",adjustflag="3")
                 if q.error_code!="0" or list(q.fields)!=FIELDS:raise ValueError("Bad provider response")
@@ -82,6 +85,7 @@ def run(path,index,dest,bs):
             except Exception as exc:
                 item["error_type"]=type(exc).__name__
             report["results"].append(item)
+            print("P1_BATCH_ISSUER_RESULT",code,item["status"],item.get("error_type",""),flush=True)
         if all(x["status"]=="OBSERVED_UNVERIFIED" for x in report["results"]):
             report["status"]="OBSERVED_SUBSET_UNVERIFIED"
     except Exception as exc:
