@@ -34,6 +34,9 @@ jobs:
           assert q["historical_PIT_eligible"]==0
           for r in q["sources"]:
               file=Path("evidence")/(r["source_id"]+".pdf")
+              assert r["announcement_id"].isdigit()
+              assert r["announcement_id_origin"]=="PDF_URL_PATH_NOT_AUTHENTICATED_INDEX"
+              assert r["announcement_id"] in r["url"]
               if r["original_bytes_verified"]:
                   assert hashlib.sha256(file.read_bytes()).hexdigest()==r["sha256"]
               else:
