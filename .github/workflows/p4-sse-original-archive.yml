@@ -30,6 +30,7 @@ jobs:
               if r['status']=='CAPTURED_OFFICIAL_HOST_CONTENT_UNVERIFIED':
                   assert hashlib.sha256((root/r['filename']).read_bytes()).hexdigest()==r['sha256']
           print('SOURCE SNAPSHOT RECEIPTS',p['captured_count'],'/',p['expected_count'])
+          assert p['captured_count']==p['expected_count'], 'Official original source unavailable: research evidence not source-ready'
           PY
       - uses: actions/upload-artifact@v4
         if: always()
