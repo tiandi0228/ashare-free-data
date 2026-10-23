@@ -24,6 +24,8 @@ class ForwardObservationTests(unittest.TestCase):
                 result=audit(tmp,"2025-12-20")
             self.assertGreater(result["post_cutoff_ma20_observations"],0)
             self.assertLessEqual(result["fresh_ma20_crossing_events"],result["post_cutoff_ma20_observations"])
+            self.assertLessEqual(result["nonoverlapping_three_observation_crossing_events"],result["fresh_ma20_crossing_events"])
+            self.assertLessEqual(result["nonoverlapping_crossings_with_three_following_vendor_tradable_rows"],result["nonoverlapping_three_observation_crossing_events"])
             self.assertLessEqual(result["fresh_crossing_events_with_three_following_vendor_tradable_rows"],result["fresh_ma20_crossing_events"])
             self.assertLess(result["three_following_vendor_tradable_rows"],result["post_cutoff_ma20_observations"])
             self.assertEqual(result["post_cutoff_ma20_observations"],result["three_following_vendor_tradable_rows"]+result["observations_censored_at_archive_end"]+result["observations_blocked_by_vendor_status"])
