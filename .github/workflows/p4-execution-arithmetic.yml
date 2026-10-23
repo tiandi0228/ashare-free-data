@@ -7,6 +7,8 @@ on:
       - 'tests/test_p4_execution_arithmetic.py'
       - 'collector/p4_exit_decision.py'
       - 'tests/test_p4_exit_decision.py'
+      - 'collector/p4_calendar_limit_gate.py'
+      - 'tests/test_p4_calendar_limit_gate.py'
       - '.github/workflows/p4-execution-arithmetic.yml'
   workflow_dispatch:
 permissions:
@@ -21,4 +23,4 @@ jobs:
         with:
           python-version: '3.11'
       - name: Test T+1 fees slippage and research-only gate
-        run: python -m unittest tests.test_p4_execution_arithmetic tests.test_p4_exit_decision -v
+        run: python -m unittest tests.test_p4_execution_arithmetic tests.test_p4_exit_decision tests.test_p4_calendar_limit_gate -v
