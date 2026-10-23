@@ -13,10 +13,13 @@ class AuditTests(unittest.TestCase):
             result=audit(plan,ledger,root)
             self.assertEqual(result["archived_issuers"],0)
             self.assertEqual(result["legacy_shards_without_receipts"],[0])
+            self.assertEqual(result["archive_repair_queue"],[0])
+            self.assertEqual(result["repair_shard_count"],1)
             raw=b"date,close\n2026-01-01,1\n"
             (part/"sh_600000.csv").write_bytes(raw)
             (part/"quality.json").write_text(json.dumps({"manifest_sha256":"b"*64,"status":"OBSERVED_SUBSET_UNVERIFIED","trade_gate":"BLOCKED","results":[{"code":"sh.600000","sha256":hashlib.sha256(raw).hexdigest()}]}))
             self.assertEqual(audit(plan,ledger,root)["archived_issuers"],1)
+            self.assertEqual(audit(plan,ledger,root)["archive_repair_queue"],[])
             (part/"sh_600000.csv").write_text("corrupt")
             with self.assertRaises(ValueError):audit(plan,ledger,root)
 if __name__=="__main__":unittest.main()
