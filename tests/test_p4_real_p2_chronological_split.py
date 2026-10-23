@@ -22,7 +22,7 @@ class SplitTests(unittest.TestCase):
                 (d/"quality.json").write_text("{}")
                 (d/(code.replace(".","_")+".csv")).write_text("date,close\\n"+day+",10\\n")
             def valid(path):
-                code="sh.600000" if path.parent.parent.name=="0" else "sh.600001"
+                code="sh.600000" if path.parent.name=="0" else "sh.600001"
                 return {"details":[{"code":code}]}
             with patch("collector.p4_real_p2_chronological_split.assess",side_effect=valid):
                 with self.assertRaisesRegex(ValueError,"crosses research cutoff"):
