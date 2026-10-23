@@ -5,6 +5,10 @@ class IndexTests(unittest.TestCase):
         r=normalize({"announcements":[{"announcementId":"1223557376","secCode":"603014","adjunctUrl":"finalpage/2025-05-16/1223557376.PDF","announcementTime":1747380000000}]},"1223557376")
         self.assertEqual(r[0]["issuer"],"sh.603014")
         self.assertEqual(r[0]["timestamp_type"],"UNAUTHENTICATED_INDEX_MILLISECONDS")
+    def test_explicit_empty_index(self):
+        self.assertEqual(normalize({"totalAnnouncement":0,"announcements":None},"123"),[])
+    def test_missing_total_is_not_empty(self):
+        with self.assertRaises(ValueError):normalize({"announcements":None},"123")
     def test_invalid_shape(self):
         with self.assertRaises(ValueError):normalize({"error":"blocked"},"123")
     def test_duplicate_rejected(self):
