@@ -13,6 +13,10 @@ class ExecutionTests(unittest.TestCase):
         a=replay(**self.args())
         b=replay(**self.args(),slippage_buy="0.01",slippage_sell="0.01")
         self.assertLess(float(b["net_pnl"]),float(a["net_pnl"]))
+    def test_reject_optimistic_negative_or_nonfinite_inputs(self):
+        for kwargs in ({"slippage_buy":"-0.01"},{"slippage_sell":"-0.01"},{"slippage_buy":"NaN"},{"sell_price":"Infinity"},{"commission_rate":"NaN"}):
+            with self.subTest(kwargs=kwargs):
+                with self.assertRaises(ValueError):replay(**self.args(),**kwargs)
     def test_tplus1(self):
         with self.assertRaises(ValueError):replay(**{**self.args(),"sell_day":"2026-10-19"})
     def test_lot_and_nonpositive_price(self):
