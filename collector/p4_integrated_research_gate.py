@@ -7,13 +7,13 @@ from collector.p4_calendar_limit_gate import check_execution
 from collector.p4_signal_fill_audit import assess as audit_signals
 
 def verify(fixture):
-    if fixture.get("trade_gate")!="BLOCKED" or fixture.get("orders")!=[]:
+    if fixture.get("trade_gate")!="BLOCKED" or fixture.get("orders")!=[] or fixture.get("executable_candidates",[])!=[]:
         raise ValueError("upstream trade gate violated")
     cost=replay(**fixture["cost"])
     exit_gate=exit_assessment(**fixture["exit"])
     calendar=check_execution(**fixture["calendar"])
     chronology=audit_signals(fixture["signals"])
-    if any(x["trade_gate"]!="BLOCKED" or x["orders"]!=[] for x in (cost,exit_gate,calendar,chronology)):
+    if any(x["trade_gate"]!="BLOCKED" or x["orders"]!=[] or x.get("executable_candidates",[])!=[] for x in (cost,exit_gate,calendar,chronology)):
         raise ValueError("downstream gate violation")
     return {"phase":"P4_INTEGRATED_RESEARCH_ONLY","checks":{
         "cost_and_Tplus1":True,"exit_conflict_no_phantom_fill":not exit_gate["recorded_fill"],
