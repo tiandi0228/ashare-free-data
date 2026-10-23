@@ -12,7 +12,7 @@ def audit(root,cutoff):
     receipts=sorted(Path(root).glob("*/shard_*/quality.json"))
     if not receipts:raise ValueError("no durable original receipts")
     counts={"train_rows":0,"holdout_rows":0,"issuers_with_holdout":0,"verified_issuers":0}
-    digests=[];seen=set()
+    digests=[];seen=set();per_issuer=[]
     for p in receipts:
         verified=assess(p.parent)
         for item in verified["details"]:
@@ -26,8 +26,15 @@ def audit(root,cutoff):
             counts["train_rows"]+=train;counts["holdout_rows"]+=holdout
             counts["issuers_with_holdout"]+=int(holdout>0)
             counts["verified_issuers"]+=1
+            per_issuer.append({"issuer":code,"train_rows":train,"holdout_rows":holdout,
+                               "train_last":max((d.isoformat() for d in dates if d<=cutoff),default=None),
+                               "holdout_first":min((d.isoformat() for d in dates if d>cutoff),default=None)})
+    if counts["train_rows"]==0 or counts["holdout_rows"]==0:raise ValueError("both research periods require actual bars")
+    for row in per_issuer:
+        if row["train_last"] is not None and row["holdout_first"] is not None and row["train_last"]>=row["holdout_first"]:
+            raise ValueError("issuer time overlap")
     return {"phase":"P4_REAL_P2_CHRONOLOGICAL_RESEARCH_SPLIT","cutoff_inclusive":cutoff.isoformat(),
-            **counts,"source_csv_sha256":digests,"split_time_order_verified":True,
+            **counts,"per_issuer_split":per_issuer,"source_csv_sha256":digests,"split_time_order_verified":True,"issuer_level_overlap_count":0,
             "signals_evaluated":0,"out_of_sample_performance_validated":False,
             "historical_PIT_verified":False,"trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
 def main():
