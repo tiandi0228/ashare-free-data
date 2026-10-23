@@ -106,5 +106,7 @@ def main():
     result=audit(a.root,a.cutoff,a.archive_commit)
     target=Path(a.out);target.parent.mkdir(parents=True,exist_ok=True)
     target.write_text(json.dumps(result,indent=2)+"\n")
-    print(json.dumps(result))
+    summary={k:v for k,v in result.items() if k!="nonoverlapping_event_evidence"}
+    summary["event_evidence_entries_written"]=len(result["nonoverlapping_event_evidence"])
+    print(json.dumps(summary))
 if __name__=="__main__":main()
