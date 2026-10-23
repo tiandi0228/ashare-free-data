@@ -54,7 +54,10 @@ def run(path,index,dest,bs):
         print("P1_BATCH_LOGIN_START",flush=True)
         r=bs.login()
         print("P1_BATCH_LOGIN_RESULT",getattr(r,"error_code","UNKNOWN"),flush=True)
-        if r.error_code!="0":raise ValueError("Login failed")
+        if r.error_code!="0":
+            report["provider_login_error_code"]=str(r.error_code)[:32]
+            report["failure_category"]="PROVIDER_LOGIN_REJECTED"
+            raise ValueError("Login failed")
         logged=True
         for code in selected:
             item={"code":code,"status":"ERROR"}
@@ -62,7 +65,10 @@ def run(path,index,dest,bs):
             print("P1_BATCH_ISSUER_START",code,flush=True)
             try:
                 q=bs.query_history_k_data_plus(code,fields=",".join(FIELDS),start_date=START,end_date=END,frequency="d",adjustflag="3")
-                if q.error_code!="0" or list(q.fields)!=FIELDS:raise ValueError("Bad provider response")
+                if q.error_code!="0" or list(q.fields)!=FIELDS:
+                    item["failure_category"]="PROVIDER_RESPONSE_INVALID"
+                    item["provider_error_code"]=str(q.error_code)[:32]
+                    raise ValueError("Bad provider response")
                 rows=[]
                 while q.next():
                     row=q.get_row_data()
@@ -70,7 +76,10 @@ def run(path,index,dest,bs):
                     rows.append(row)
                     if len(rows)>600:raise ValueError("Excessive rows")
                 days=[row[0] for row in rows]
-                if not days or days!=sorted(set(days)) or days[0]<START or days[-1]>END or any(row[1]!=code for row in rows):
+                if not days:
+                    item["failure_category"]="PROVIDER_EMPTY_HISTORY"
+                    raise ValueError("Empty provider history")
+                if days!=sorted(set(days)) or days[0]<START or days[-1]>END or any(row[1]!=code for row in rows):
                     raise ValueError("Date or identity mismatch")
                 # Suspended sessions can appear as placeholder rows.
                 # Preserve them but never count them as executable trading bars.
@@ -84,12 +93,14 @@ def run(path,index,dest,bs):
                 item.update(status="OBSERVED_UNVERIFIED",rows=len(rows),tradable_rows=tradable,suspended_status_rows=suspended,first=days[0],last=days[-1],sha256=hashlib.sha256(raw).hexdigest())
             except Exception as exc:
                 item["error_type"]=type(exc).__name__
+                item.setdefault("failure_category","SOURCE_VALIDATION_FAILURE")
             report["results"].append(item)
             print("P1_BATCH_ISSUER_RESULT",code,item["status"],item.get("error_type",""),flush=True)
         if all(x["status"]=="OBSERVED_UNVERIFIED" for x in report["results"]):
             report["status"]="OBSERVED_SUBSET_UNVERIFIED"
     except Exception as exc:
         report["login_error_type"]=type(exc).__name__
+        report.setdefault("failure_category","PROVIDER_SESSION_FAILURE")
     finally:
         if logged:
             try:bs.logout()

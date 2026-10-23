@@ -31,6 +31,34 @@ class Tests(unittest.TestCase):
             self.assertFalse(q["full_market_history_verified"])
             self.assertEqual(len(api.calls),2)
             self.assertTrue(api.out)
+    def test_login_failure_preserves_provider_code(self):
+        class BadLogin(Client):
+            def login(self):return type("Auth",(),{"error_code":"10002007"})()
+        with tempfile.TemporaryDirectory() as d:
+            m=Path(d)/"m.txt";m.write_text("sh.600000\n")
+            api=BadLogin()
+            self.assertEqual(run(m,0,Path(d)/"out",api),2)
+            q=json.loads((Path(d)/"out/quality.json").read_text())
+            self.assertEqual(q["failure_category"],"PROVIDER_LOGIN_REJECTED")
+            self.assertEqual(q["provider_login_error_code"],"10002007")
+            self.assertEqual(q["query_attempts"],0)
+            self.assertEqual(q["trade_gate"],"BLOCKED")
+
+    def test_empty_history_classified_without_fabricating_rows(self):
+        class EmptyClient(Client):
+            def query_history_k_data_plus(self,code,**kwargs):
+                self.calls.append(code)
+                r=Result(code)
+                r.next=lambda: False
+                return r
+        with tempfile.TemporaryDirectory() as d:
+            m=Path(d)/"m.txt";m.write_text("sh.600000\n")
+            self.assertEqual(run(m,0,Path(d)/"out",EmptyClient()),2)
+            q=json.loads((Path(d)/"out/quality.json").read_text())
+            self.assertEqual(q["results"][0]["failure_category"],"PROVIDER_EMPTY_HISTORY")
+            self.assertEqual(q["trade_gate"],"BLOCKED")
+            self.assertFalse((Path(d)/"out/sh_600000.csv").exists())
+
     def test_reject_impossible_active_prices(self):
         row=["2026-10-20","sh.600000","10","9","8","10","100","1000","3","1"]
         with self.assertRaisesRegex(ValueError,"OHLC"):
