@@ -1,6 +1,7 @@
 import json,tempfile,unittest,hashlib
 from datetime import date,timedelta
 from pathlib import Path
+from unittest.mock import patch
 from collector.p4_independent_event_evidence import verify
 
 class IndependentEvents(unittest.TestCase):
@@ -23,12 +24,15 @@ class IndependentEvents(unittest.TestCase):
                         "three_future_observed_dates":dates[21:24],
                         "three_future_vendor_tradable":True,"fill_assumed":False}]}
             path=root/"manifest.json";path.write_text(json.dumps(report))
-            self.assertEqual(verify(root,path)["independently_verified_events"],1)
+            with patch("collector.p4_independent_event_evidence.assess",return_value={"details":[{"code":"sh.600000"}]}):
+                self.assertEqual(verify(root,path)["independently_verified_events"],1)
             report["nonoverlapping_event_evidence"][0]["signal_completed_date"]=dates[21]
             path.write_text(json.dumps(report))
-            with self.assertRaisesRegex(ValueError,"MA20 crossing"):verify(root,path)
+            with patch("collector.p4_independent_event_evidence.assess",return_value={"details":[{"code":"sh.600000"}]}):
+                with self.assertRaisesRegex(ValueError,"MA20 crossing"):verify(root,path)
             report["nonoverlapping_event_evidence"][0]["signal_completed_date"]=dates[20]
             report["nonoverlapping_event_evidence"][0]["source_csv_sha256"]="0"*64
             path.write_text(json.dumps(report))
-            with self.assertRaisesRegex(ValueError,"source SHA mismatch"):verify(root,path)
+            with patch("collector.p4_independent_event_evidence.assess",return_value={"details":[{"code":"sh.600000"}]}):
+                with self.assertRaisesRegex(ValueError,"source SHA mismatch"):verify(root,path)
 if __name__=="__main__":unittest.main()
