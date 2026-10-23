@@ -39,6 +39,10 @@ jobs:
               else:
                   assert not file.exists()
               assert r["PIT_publication_verified"] is False
+              if r["original_bytes_verified"]:
+                  assert r["final_official_url"].startswith("https://")
+                  assert r["authenticated_first_published_at"] is None
+                  assert r["http_headers_prove_first_publication"] is False
           assert q["content_matched"] >= 2
           print("PASS: all official originals independently hash-checked; unconfirmed event cues remain research only")
           PY
