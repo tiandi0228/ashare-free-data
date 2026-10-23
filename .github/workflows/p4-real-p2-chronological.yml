@@ -22,12 +22,14 @@ jobs:
       - run: |
           git fetch --depth=1 origin research-csv-archive
           git worktree add --detach archived-research FETCH_HEAD
-          python -m collector.p4_real_p2_chronological_split --root archived-research --cutoff 2025-12-31 --out evidence/p4_chronological_split.json
+          ARCHIVE_COMMIT=$(git -C archived-research rev-parse HEAD)
+          python -m collector.p4_real_p2_chronological_split --root archived-research --cutoff 2025-12-31 --archive-commit "$ARCHIVE_COMMIT" --out evidence/p4_chronological_split.json
           python - <<'PY'
           import json
           from pathlib import Path
           r=json.loads(Path('evidence/p4_chronological_split.json').read_text())
           assert r['verified_issuers']>0 and r['holdout_rows']>0 and r['train_rows']>0
+          assert r['archive_commit_sha']==__import__('subprocess').check_output(['git','-C','archived-research','rev-parse','HEAD'],text=True).strip()
           assert r['issuer_level_overlap_count']==0
           assert len(r['per_issuer_split'])==r['verified_issuers']
           for issuer in r['per_issuer_split']:

@@ -2,12 +2,14 @@
 
 No signals, trade simulation, return claims, or historical PIT certification.
 """
-import argparse,csv,hashlib,json
+import argparse,csv,hashlib,json,re
 from datetime import date
 from pathlib import Path
 from collector.p2_independent_bars import assess
 
-def audit(root,cutoff):
+def audit(root,cutoff,archive_commit=None):
+    if archive_commit is not None and not re.fullmatch(r'[0-9a-f]{40}',archive_commit):
+        raise ValueError('invalid immutable archive commit SHA')
     cutoff=date.fromisoformat(cutoff)
     receipts=sorted(Path(root).glob("*/shard_*/quality.json"))
     if not receipts:raise ValueError("no durable original receipts")
@@ -40,14 +42,14 @@ def audit(root,cutoff):
     for row in per_issuer:
         if row["train_last"] is not None and row["holdout_first"] is not None and row["train_last"]>=row["holdout_first"]:
             raise ValueError("issuer time overlap")
-    return {"phase":"P4_REAL_P2_CHRONOLOGICAL_RESEARCH_SPLIT","cutoff_inclusive":cutoff.isoformat(),
+    return {"phase":"P4_REAL_P2_CHRONOLOGICAL_RESEARCH_SPLIT","cutoff_inclusive":cutoff.isoformat(),"archive_commit_sha":archive_commit,
             **counts,"identical_duplicate_receipts_skipped":identical_duplicate_receipts,"per_issuer_split":per_issuer,"source_csv_sha256":digests,"split_time_order_verified":True,"issuer_level_overlap_count":0,
             "signals_evaluated":0,"out_of_sample_performance_validated":False,
             "historical_PIT_verified":False,"trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
 def main():
     p=argparse.ArgumentParser();p.add_argument("--root",required=True)
-    p.add_argument("--cutoff",default="2025-12-31");p.add_argument("--out",required=True)
-    a=p.parse_args();r=audit(a.root,a.cutoff)
+    p.add_argument("--cutoff",default="2025-12-31");p.add_argument("--archive-commit");p.add_argument("--out",required=True)
+    a=p.parse_args();r=audit(a.root,a.cutoff,a.archive_commit)
     path=Path(a.out);path.parent.mkdir(parents=True,exist_ok=True)
     path.write_text(json.dumps(r,ensure_ascii=False,indent=2)+"\n")
     print(json.dumps({k:v for k,v in r.items() if k!="source_csv_sha256"}))
