@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'collector/p4_sse_offline_replay.py'
+      - 'collector/p4_sse_notice_body_dates.py'
       - 'tests/test_p4_sse_offline_replay.py'
       - '.github/workflows/p4-sse-offline-replay.yml'
   workflow_dispatch:
@@ -37,6 +38,7 @@ jobs:
           assert r['source_years']==3 and r['range_date_presence_complete']
           assert r['trade_gate']=='BLOCKED' and not r['historical_exchange_calendar_authenticated']
           print('OFFLINE ORIGINAL AUDIT:',[(i['year'],len(i['unpaired_ranges'])) for i in r['records']])
+          assert r['paired_range_phrase_complete'], 'Original SSE closure clauses still unresolved'
           PY
       - uses: actions/upload-artifact@v4
         if: always()
