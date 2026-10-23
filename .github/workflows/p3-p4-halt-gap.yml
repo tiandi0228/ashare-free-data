@@ -1,0 +1,38 @@
+name: P3 P4 real halt evidence gap manifest (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p3_p4_official_halt_gap_manifest.py'
+      - '.github/workflows/p3-p4-halt-gap.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  gaps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-research FETCH_HEAD
+          python -m collector.p3_p4_official_halt_gap_manifest --root archived-research --out evidence/p3_halt_gaps.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path("evidence/p3_halt_gaps.json").read_text())
+          assert sum(len(r['affected_entry_dates']) for r in x['pending_official_evidence'])==x['vendor_suspended_exit_observations']
+          assert len(x['pending_official_evidence'])==x['distinct_issuer_halt_dates']
+          assert all(not r['official_effective_date_authenticated'] and r['risk_state']=='UNVERIFIED' for r in x['pending_official_evidence'])
+          assert x['officially_certified_halt_dates']==0 and x['trade_gate']=='BLOCKED'
+          print('OFFICIAL HALT GAPS',x['vendor_suspended_exit_observations'],'observations',x['distinct_issuer_halt_dates'],'issuer dates')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p3-p4-halt-gaps-${{ github.run_id }}
+          path: evidence/p3_halt_gaps.json
+          retention-days: 30
