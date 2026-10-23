@@ -8,7 +8,7 @@ from collector.p4_curated_session_exit import research_exit
 def audit(root,cutoff="2025-12-31"):
     receipts=sorted(Path(root).glob("*/shard_*/quality.json"))
     if not receipts:raise ValueError("missing independently validated archive")
-    counts=Counter();examples=[]
+    counts=Counter();examples=[];backfill={};vendor_halts=[]
     for receipt in receipts:
         validated=assess(receipt.parent)
         for item in validated["details"]:
@@ -30,9 +30,16 @@ def audit(root,cutoff="2025-12-31"):
                     counts["target_vendor_row_missing"]+=1
                     kind="BEYOND_SOURCE_END" if target>last_vendor_date else "INTERNAL_MISSING_DATE"
                     counts["missing_"+kind.lower()]+=1
+                    if kind=="BEYOND_SOURCE_END":
+                        code=item["code"]
+                        task=backfill.setdefault(code,{"code":code,"last_archived_date":last_vendor_date,"earliest_missing_target":target,"latest_missing_target":target,"affected_entry_observations":0})
+                        task["earliest_missing_target"]=min(task["earliest_missing_target"],target)
+                        task["latest_missing_target"]=max(task["latest_missing_target"],target)
+                        task["affected_entry_observations"]+=1
                     if len(examples)<20:examples.append({"code":item["code"],"entry":day,"target":target,"reason":kind})
                 elif next_row["tradestatus"]=="0":
                     counts["target_vendor_suspended"]+=1
+                    vendor_halts.append({"code":item["code"],"entry_date":day,"target_exit_date":target,"vendor_status":"0","official_halt_verified":False})
                     if len(examples)<20:examples.append({"code":item["code"],"entry":day,"target":target,"reason":"VENDOR_SUSPENDED"})
                 elif next_row["tradestatus"]=="1":
                     counts["target_vendor_active"]+=1
@@ -41,7 +48,13 @@ def audit(root,cutoff="2025-12-31"):
     for key in keys:counts[key]+=0
     assert counts["active_holdout_entry_dates"]==sum(counts[k] for k in ("calendar_unavailable","target_vendor_row_missing","target_vendor_suspended","target_vendor_active"))
     assert counts["target_vendor_row_missing"]==counts["missing_beyond_source_end"]+counts["missing_internal_missing_date"]
+    if sum(x["affected_entry_observations"] for x in backfill.values())!=counts["missing_beyond_source_end"] or len(vendor_halts)!=counts["target_vendor_suspended"]:
+        raise ValueError("unreconciled tail requests or halt observations")
     return {"phase":"P4_REAL_HOLDOUT_EXIT_DATE_ROW_AVAILABILITY",**counts,
+            "tail_backfill_issuer_count":len(backfill),
+            "tail_backfill_requests":sorted(backfill.values(),key=lambda x:x["code"]),
+            "vendor_halt_crosscheck_queue":vendor_halts,
+            "tail_requests_are_not_recovered_bars":True,
             "exceptions_sample":examples,
             "entry_dates_are_not_filled_orders":True,
             "vendor_active_does_not_prove_fill":True,
