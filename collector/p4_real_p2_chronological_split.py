@@ -12,15 +12,19 @@ def audit(root,cutoff):
     receipts=sorted(Path(root).glob("*/shard_*/quality.json"))
     if not receipts:raise ValueError("no durable original receipts")
     counts={"train_rows":0,"holdout_rows":0,"issuers_with_holdout":0,"verified_issuers":0,"issuers_with_both_periods":0}
-    digests=[];seen=set();per_issuer=[]
+    digests=[];seen={};per_issuer=[];identical_duplicate_receipts=0
     for p in receipts:
         verified=assess(p.parent)
         for item in verified["details"]:
             code=item["code"]
-            if code in seen:raise ValueError("duplicate issuer across original shards")
-            seen.add(code)
             raw=(p.parent/(code.replace(".","_")+".csv")).read_bytes()
-            digests.append({"issuer":code,"sha256":hashlib.sha256(raw).hexdigest()})
+            digest=hashlib.sha256(raw).hexdigest()
+            if code in seen:
+                if seen[code]!=digest:raise ValueError("conflicting duplicate issuer across original shards")
+                identical_duplicate_receipts+=1
+                continue
+            seen[code]=digest
+            digests.append({"issuer":code,"sha256":digest})
             dates=[date.fromisoformat(r["date"]) for r in csv.DictReader(raw.decode("utf-8-sig").splitlines())]
             train=sum(day<=cutoff for day in dates);holdout=len(dates)-train
             counts["train_rows"]+=train;counts["holdout_rows"]+=holdout
@@ -37,7 +41,7 @@ def audit(root,cutoff):
         if row["train_last"] is not None and row["holdout_first"] is not None and row["train_last"]>=row["holdout_first"]:
             raise ValueError("issuer time overlap")
     return {"phase":"P4_REAL_P2_CHRONOLOGICAL_RESEARCH_SPLIT","cutoff_inclusive":cutoff.isoformat(),
-            **counts,"per_issuer_split":per_issuer,"source_csv_sha256":digests,"split_time_order_verified":True,"issuer_level_overlap_count":0,
+            **counts,"identical_duplicate_receipts_skipped":identical_duplicate_receipts,"per_issuer_split":per_issuer,"source_csv_sha256":digests,"split_time_order_verified":True,"issuer_level_overlap_count":0,
             "signals_evaluated":0,"out_of_sample_performance_validated":False,
             "historical_PIT_verified":False,"trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
 def main():
