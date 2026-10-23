@@ -5,12 +5,12 @@ from pathlib import Path
 from collector.p4_real_exit_availability import audit
 from collector.baostock_batch import FIELDS,check_daily_bars
 
-def run(root,out,bs,limit=8):
-    if not 1<=limit<=8:raise ValueError("bounded 1-8 issuers per run")
+def run(root,out,bs,limit=8,offset=0):
+    if not 1<=limit<=8 or offset<0 or offset%8:raise ValueError("bounded 8-aligned issuer batch")
     source=audit(root)
-    tasks=source["tail_backfill_requests"][:limit]
+    tasks=source["tail_backfill_requests"][offset:offset+limit]
     output=Path(out);output.mkdir(parents=True,exist_ok=True)
-    report={"phase":"P4_FREE_TAIL_BACKFILL_ATTEMPT","requested_issuers":len(tasks),
+    report={"phase":"P4_FREE_TAIL_BACKFILL_ATTEMPT","requested_issuers":len(tasks),"batch_offset":offset,
             "total_pending_issuers":source["tail_backfill_issuer_count"],
             "source_missing_exit_observations":source["missing_beyond_source_end"],
             "results":[],"successful_issuers":0,"recovered_target_rows":0,
@@ -59,8 +59,8 @@ def run(root,out,bs,limit=8):
 
 def main():
     p=argparse.ArgumentParser();p.add_argument("--root",required=True);p.add_argument("--out",required=True)
-    p.add_argument("--limit",type=int,default=8);a=p.parse_args()
+    p.add_argument("--limit",type=int,default=8);p.add_argument("--offset",type=int,default=0);a=p.parse_args()
     import baostock as bs
-    r=run(a.root,a.out,bs,a.limit)
+    r=run(a.root,a.out,bs,a.limit,a.offset)
     print(json.dumps({k:v for k,v in r.items() if k!="results"},ensure_ascii=False))
 if __name__=="__main__":main()
