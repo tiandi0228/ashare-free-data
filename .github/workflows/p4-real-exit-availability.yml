@@ -30,9 +30,13 @@ jobs:
           assert x['verified_issuers']>0
           assert x['active_holdout_entry_dates']==sum(x[k] for k in ('calendar_unavailable','target_vendor_row_missing','target_vendor_suspended','target_vendor_active'))
           assert x['target_vendor_row_missing']==x['missing_beyond_source_end']+x['missing_internal_missing_date']
+          assert sum(v['affected_entry_observations'] for v in x['tail_backfill_requests'])==x['missing_beyond_source_end']
+          assert len(x['vendor_halt_crosscheck_queue'])==x['target_vendor_suspended']
+          assert x['tail_requests_are_not_recovered_bars']
           assert x['trade_gate']=='BLOCKED' and x['fills_verified']==0 and x['orders']==[]
           print('REAL EXIT DATE COVERAGE',x['active_holdout_entry_dates'],x['target_vendor_active'],x['target_vendor_row_missing'],x['target_vendor_suspended'],x['calendar_unavailable'])
           print('MISSING CLASSIFICATION',x['missing_beyond_source_end'],x['missing_internal_missing_date'])
+          print('ACTIONABLE QUEUES',x['tail_backfill_issuer_count'],'issuers',len(x['vendor_halt_crosscheck_queue']),'vendor-halt observations')
           PY
       - uses: actions/upload-artifact@v4
         if: always()
