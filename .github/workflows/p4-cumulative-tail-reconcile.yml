@@ -1,0 +1,38 @@
+name: P4 cumulative immutable tail evidence reconciliation (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p4_cumulative_tail_reconcile.py'
+      - '.github/workflows/p4-cumulative-tail-reconcile.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-research FETCH_HEAD
+          python -m collector.p4_cumulative_tail_reconcile --root archived-research --out evidence/p4_cumulative.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('evidence/p4_cumulative.json').read_text())
+          assert r['baseline_missing_exit_observations']==r['restored_exit_observations']+r['remaining_exit_observations']
+          assert r['restored_exit_observations']==r['restored_vendor_active']+r['restored_vendor_suspended']
+          assert r['trade_gate']=='BLOCKED' and r['fills_verified']==0
+          assert r['baseline_issuers_with_missing_exits']>0
+          print('CUMULATIVE EXACT EXIT REPLAY VERIFIED',r['restored_exit_observations'],'/',r['baseline_missing_exit_observations'])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p4-cumulative-tail-${{ github.run_id }}
+          path: evidence/p4_cumulative.json
+          retention-days: 30
