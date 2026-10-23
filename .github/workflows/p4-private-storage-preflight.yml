@@ -1,0 +1,42 @@
+name: P4 private storage migration preflight (read only)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p4_private_storage_preflight.py'
+      - '.github/workflows/p4-private-storage-preflight.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach original-research FETCH_HEAD
+          python -m collector.p4_private_storage_preflight --source original-research --out evidence/private-migration-manifest.json
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          report=json.loads(Path('evidence/private-migration-manifest.json').read_text())
+          assert report['source_receipt_count']>0
+          assert report['object_count']==len(report['objects'])
+          assert report['total_bytes']==sum(x['size'] for x in report['objects'])
+          assert len({x['path'] for x in report['objects']})==report['object_count']
+          assert not report['destination_written'] and report['trade_gate']=='BLOCKED'
+          for item in report['objects']:
+              raw=(Path('original-research')/item['path']).read_bytes()
+              assert hashlib.sha256(raw).hexdigest()==item['sha256']
+          print('MIGRATION PREFLIGHT VERIFIED',report['object_count'],'source files',report['total_bytes'],'bytes')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: private-storage-preflight-${{ github.run_id }}
+          path: evidence/private-migration-manifest.json
+          retention-days: 30
