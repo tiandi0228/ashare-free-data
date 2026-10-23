@@ -7,7 +7,11 @@ class NoticeTests(unittest.TestCase):
         self.assertEqual(r["unexpected_holiday_dates"],["2026-01-01","2026-01-03"])
         self.assertEqual(r["unexpected_weekend_dates"],["2026-01-03"])
     def test_unsupported_year_fails_closed(self):
-        with self.assertRaises(ValueError):check_dates([date(2024,12,31)])
+        with self.assertRaises(ValueError):check_dates([date(2023,12,29)])
+    def test_2024_official_spring_festival_closure(self):
+        r=check_dates([date(2024,2,9),date(2024,2,19)])
+        self.assertIn("2024-02-09",r["unexpected_holiday_dates"])
+        self.assertEqual(r["unsupported_years"],[])
     def test_reopening_date(self):
         r=check_dates([date(2026,2,24),date(2026,2,25)])
         self.assertFalse(r["unexpected_holiday_dates"])
