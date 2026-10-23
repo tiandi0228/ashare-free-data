@@ -216,10 +216,10 @@ jobs:
           set -e
           if [ "$code" -eq 124 ] || [ "$code" -eq 137 ]; then
             mkdir -p evidence/first_shard
-            python - <<'PY'
-          import json
+            RC="$code" python - <<'PY'
+          import json,os
           from pathlib import Path
-          Path('evidence/first_shard/runner_timeout.json').write_text(json.dumps({'phase':'P1_RUNNER_TIMEOUT','stage':'first_shard','exit_code':int('${code}'),'trade_gate':'BLOCKED','orders':[]})+'\\n')
+          Path('evidence/first_shard/runner_timeout.json').write_text(json.dumps({'phase':'P1_RUNNER_TIMEOUT','stage':'first_shard','exit_code':int(os.environ['RC']),'trade_gate':'BLOCKED','orders':[]})+'\n')
           PY
           fi
           exit "$code"
@@ -239,10 +239,10 @@ jobs:
           set -e
           if [ "$code" -eq 124 ] || [ "$code" -eq 137 ]; then
             mkdir -p evidence/second_shard
-            python - <<'PY'
-          import json
+            RC="$code" python - <<'PY'
+          import json,os
           from pathlib import Path
-          Path('evidence/second_shard/runner_timeout.json').write_text(json.dumps({'phase':'P1_RUNNER_TIMEOUT','stage':'second_shard','exit_code':int('${code}'),'trade_gate':'BLOCKED','orders':[]})+'\\n')
+          Path('evidence/second_shard/runner_timeout.json').write_text(json.dumps({'phase':'P1_RUNNER_TIMEOUT','stage':'second_shard','exit_code':int(os.environ['RC']),'trade_gate':'BLOCKED','orders':[]})+'\n')
           PY
           fi
           exit "$code"
@@ -335,10 +335,10 @@ jobs:
           set -e
           if [ "$code" -eq 124 ] || [ "$code" -eq 137 ]; then
             mkdir -p evidence/repair_shard
-            python - <<'PY'
-          import json
+            RC="$code" python - <<'PY'
+          import json,os
           from pathlib import Path
-          Path('evidence/repair_shard/runner_timeout.json').write_text(json.dumps({'phase':'P1_RUNNER_TIMEOUT','stage':'repair_shard','exit_code':int('${code}'),'trade_gate':'BLOCKED','orders':[]})+'\\n')
+          Path('evidence/repair_shard/runner_timeout.json').write_text(json.dumps({'phase':'P1_RUNNER_TIMEOUT','stage':'repair_shard','exit_code':int(os.environ['RC']),'trade_gate':'BLOCKED','orders':[]})+'\n')
           PY
           fi
           exit "$code"
