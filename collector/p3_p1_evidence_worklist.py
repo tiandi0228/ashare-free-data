@@ -41,6 +41,6 @@ def main():
     x=p.parse_args()
     q=worklist(x.root,json.loads(Path(x.plan).read_text()),json.loads(Path(x.ledger).read_text()))
     d=Path(x.out);d.parent.mkdir(parents=True,exist_ok=True)
-    d.write_text(json.dumps(q,indent=2)+"\\n")
+    d.write_text(json.dumps(q,indent=2)+"\n")
     print(json.dumps(q))
 if __name__=="__main__":main()
