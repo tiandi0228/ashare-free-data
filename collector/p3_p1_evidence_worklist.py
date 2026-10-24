@@ -25,9 +25,19 @@ def worklist(root,plan,ledger):
     days=sorted(available or [])[-3:]
     if not codes or not days or len(codes)>8:raise ValueError("no bounded common source observations")
     report=audit_coverage(codes,days,[])
+    kinds=["listing","st","halt","delisting"]
+    tasks=[{"code":code,"decision_date":day,"kind":kind,
+            "official_original_sha256":None,
+            "publication_instant_utc":None,
+            "historical_asof_verified":False,
+            "status":"OFFICIAL_EVIDENCE_REQUIRED"}
+           for code in sorted(codes) for day in days for kind in kinds]
+    if len(tasks)!=report["required_evidence_cells"]:
+        raise ValueError("P3 task denominator mismatch")
     return {"phase":"P3_P1_OBSERVED_WORKLIST","source_sha256":plan["source_sha256"],
             "source_shard_index":index,"issuer_codes":sorted(codes),
-            "observed_vendor_dates":days,"status_kinds":["listing","st","halt","delisting"],
+            "observed_vendor_dates":days,"status_kinds":kinds,
+            "official_evidence_tasks":tasks,
             "official_evidence_cells_required":report["required_evidence_cells"],
             "official_evidence_cells_verified":0,
             "official_evidence_cells_pending":report["required_evidence_cells"],

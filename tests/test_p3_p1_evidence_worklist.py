@@ -15,6 +15,8 @@ class WorklistTests(unittest.TestCase):
             with patch("collector.p3_p1_evidence_worklist.assess",return_value={"details":[{"code":"sh.600000"}]}):
                 q=worklist(root,plan,ledger)
                 self.assertEqual(q["official_evidence_cells_pending"],8)
+                self.assertEqual(len(q["official_evidence_tasks"]),8)
+                self.assertTrue(all(x["status"]=="OFFICIAL_EVIDENCE_REQUIRED" for x in q["official_evidence_tasks"]))
                 self.assertEqual(q["official_evidence_cells_verified"],0)
                 self.assertEqual(q["trade_gate"],"BLOCKED")
                 with self.assertRaises(ValueError):worklist(root,{"source_sha256":"b"*64},ledger)
