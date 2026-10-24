@@ -1,4 +1,4 @@
-import csv,json,tempfile,unittest
+import csv,json,tempfile,unittest,hashlib
 from pathlib import Path
 from unittest.mock import patch
 from collector.p3_p1_evidence_worklist import worklist
@@ -19,6 +19,9 @@ class WorklistTests(unittest.TestCase):
                 self.assertEqual(len(q["official_evidence_tasks"]),8)
                 self.assertTrue(all(x["status"]=="OFFICIAL_EVIDENCE_REQUIRED" for x in q["official_evidence_tasks"]))
                 self.assertEqual(q["official_evidence_cells_verified"],0)
+                raw=(part/"sh_600000.csv").read_bytes()
+                self.assertEqual(q["vendor_original_csv_sha256_by_issuer"]["sh.600000"],hashlib.sha256(raw).hexdigest())
+                self.assertTrue(all(t["vendor_source_csv_sha256"]==hashlib.sha256(raw).hexdigest() for t in q["official_evidence_tasks"]))
                 self.assertEqual(q["trade_gate"],"BLOCKED")
                 with self.assertRaises(ValueError):worklist(root,{"source_sha256":"b"*64},ledger)
 if __name__=="__main__":unittest.main()
