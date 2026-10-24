@@ -1,7 +1,7 @@
 """Build a bounded P3 official-state worklist from genuinely P2-checked P1 originals.
 Does NOT claim that an unobserved exchange notice proves the absence of risk.
 """
-import argparse,csv,json
+import argparse,csv,json,hashlib
 from pathlib import Path
 from collector.p2_independent_bars import assess
 from collector.p3_historical_evidence_coverage import audit_coverage
@@ -17,10 +17,13 @@ def worklist(root,plan,ledger):
     codes=[]
     available=None
     vendor_days={}
+    source_hashes={}
     for item in receipt["details"]:
         code=item["code"]
         codes.append(code)
-        rows=list(csv.DictReader((part/(code.replace(".","_")+".csv")).read_text(encoding="utf-8-sig").splitlines()))
+        raw=(part/(code.replace(".","_")+".csv")).read_bytes()
+        source_hashes[code]=hashlib.sha256(raw).hexdigest()
+        rows=list(csv.DictReader(raw.decode("utf-8-sig").splitlines()))
         dates={r["date"] for r in rows}
         vendor_days[code]={r["date"]:r["tradestatus"] for r in rows}
         available=dates if available is None else available & dates
@@ -32,6 +35,7 @@ def worklist(root,plan,ledger):
     report=audit_coverage(codes,days,[])
     kinds=["listing","st","halt","delisting"]
     tasks=[{"code":code,"decision_date":day,"kind":kind,
+            "vendor_source_csv_sha256":source_hashes[code],
             "official_original_sha256":None,
             "publication_instant_utc":None,
             "historical_asof_verified":False,
@@ -41,6 +45,7 @@ def worklist(root,plan,ledger):
         raise ValueError("P3 task denominator mismatch")
     return {"phase":"P3_P1_OBSERVED_WORKLIST","source_sha256":plan["source_sha256"],
             "source_shard_index":index,"issuer_codes":sorted(codes),
+            "vendor_original_csv_sha256_by_issuer":source_hashes,
             "observed_vendor_dates":days,"status_kinds":kinds,
             "vendor_status_observed_not_official":{c:{d:vendor_days[c][d] for d in days} for c in sorted(codes)},
             "official_evidence_tasks":tasks,
