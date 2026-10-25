@@ -5,6 +5,8 @@ on:
     paths:
       - '.github/workflows/p3-free-official-two-issuer-probe.yml'
       - 'collector/p3_free_official_multi_issuer_probe.py'
+      - 'collector/p3_publication_time_provenance_gate.py'
+      - 'tests/test_p3_publication_time_provenance_gate.py'
       - 'collector/p3_free_official_probe_manifest.json'
       - 'tests/test_p3_official_source_redirect.py'
   schedule:
@@ -24,8 +26,12 @@ jobs:
       - run: python -m pip install 'pypdf>=5,<7'
       - name: Test allowlisted official original URL redirects
         run: python -m unittest tests.test_p3_official_source_redirect -v
+      - name: Test historical publication provenance fail-closed policy
+        run: python -m unittest tests.test_p3_publication_time_provenance_gate -v
       - name: Acquire six original official-source announcements for free
         run: python -m collector.p3_free_official_multi_issuer_probe --manifest collector/p3_free_official_probe_manifest.json --out evidence
+      - name: Reject unsupported original-publication timestamp claims
+        run: python -m collector.p3_publication_time_provenance_gate --receipt evidence/quality.json --out evidence/publication_provenance_gate.json
       - name: Independently verify downloaded SHA receipts
         run: |
           python - <<'PY'
