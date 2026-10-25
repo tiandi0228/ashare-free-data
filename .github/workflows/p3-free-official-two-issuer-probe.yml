@@ -49,8 +49,8 @@ jobs:
                   assert r["final_official_url"].startswith("https://")
                   assert r["authenticated_first_published_at"] is None
                   assert r["http_headers_prove_first_publication"] is False
-          assert q["content_matched"] >= 2
-          print("PASS: all official originals independently hash-checked; unconfirmed event cues remain research only")
+          assert q["originals_observed"] == 6 and q["content_matched"] == 6
+          print("PASS: all six official original PDFs observed, content-matched and SHA checked; no historical PIT certification")
           PY
       - uses: actions/upload-artifact@v4
         if: always()
