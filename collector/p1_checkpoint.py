@@ -61,12 +61,18 @@ def merge(candidate,previous):
     validate(previous)
     if (candidate["source_sha256"],candidate["shard_count"])!=(previous["source_sha256"],previous["shard_count"]):
         raise ValueError("refusing to overwrite different frozen roster epoch")
-    if candidate["completed_issuers"]<previous["completed_issuers"]:
-        return previous
     old={x["index"]:x for x in previous["completed"]}
     new={x["index"]:x for x in candidate["completed"]}
-    if any(index not in new or new[index]!=item for index,item in old.items()):
-        raise ValueError("checkpoint would replace or drop historical verified shard evidence")
+    # Conflicting evidence is never acceptable, even when a stale candidate
+    # contains fewer shards than the durable remote checkpoint.
+    if any(new[index]!=item for index,item in old.items() if index in new):
+        raise ValueError("checkpoint would replace historical verified shard evidence")
+    if len(new)<len(old):
+        if any(index not in old for index in new):
+            raise ValueError("stale checkpoint contains unknown shards")
+        return previous
+    if any(index not in new for index in old):
+        raise ValueError("checkpoint would drop historical verified shard evidence")
     return candidate
 
 def main():
