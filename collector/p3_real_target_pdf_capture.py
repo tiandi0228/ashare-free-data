@@ -2,7 +2,7 @@
 A live download is not historical first-publication or PIT state certification.
 """
 import argparse,hashlib,json,re
-from datetime import datetime,timezone
+from datetime import date,datetime,timezone
 from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import Request,urlopen
@@ -20,9 +20,26 @@ def _research_priority(title):
     return (2 if any(term in title for term in RISK_WORDS) else
             1 if re.search(r"(?<![A-Z])\*?ST(?![A-Z])",upper) else 0)
 
-def choose(report,limit=3):
+def choose(report,limit=3,scout=None):
     if report.get("phase")!="P3_REAL_P1_LIVE_INDEX_DISCOVERY" or report.get("trade_gate")!="BLOCKED":
         raise ValueError("invalid P1 target index report")
+    days_by_issuer={}
+    if scout is not None:
+        if (scout.get("phase")!="P3_REAL_P1_UNMATCHED_OFFICIAL_DISCOVERY_QUEUE"
+            or scout.get("trade_gate")!="BLOCKED"
+            or scout.get("official_PIT_verified") is not False):
+            raise ValueError("unsafe historical decision-day source")
+        for target in scout["targets"]:
+            issuer=target["issuer"]
+            days=target["observed_decision_dates"]
+            if (not ISSUER_RE.fullmatch(issuer) or issuer in days_by_issuer
+                or not isinstance(days,list) or not days or days!=sorted(set(days))):
+                raise ValueError("invalid frozen source dates")
+            try:dates=[date.fromisoformat(x) for x in days]
+            except (ValueError,TypeError) as exc:raise ValueError("bad historical source date") from exc
+            days_by_issuer[issuer]=dates
+        if [item["issuer"] for item in report["results"]]!=list(days_by_issuer):
+            raise ValueError("official index source and decision pool mismatch")
     selected=[];seen=set()
     for item in report["results"]:
         issuer=item["issuer"]
@@ -38,18 +55,33 @@ def choose(report,limit=3):
                 raise ValueError("invalid official index candidate")
             title=candidate.get("announcement_title_unverified","")
             score=_research_priority(title)
-            candidates.append((score,{"issuer":issuer,"announcement_id":match.group(1),
-                  "url":url,"announcement_title_unverified":title,
-                  "selection_reason":"RISK_TITLE_RESEARCH_PRIORITY" if score else "INDEX_ORDER_FALLBACK"}))
+            # URL directory dates are only research hints, NOT an independently
+            # authenticated first-publication timestamp or historical effective day.
+            url_day=date.fromisoformat(url.split("/finalpage/",1)[1][:10])
+            days=days_by_issuer.get(issuer)
+            possible=days is not None and any(url_day<=day for day in days)
+            nearest=min((abs((day-url_day).days) for day in days),default=99999) if days else 99999
+            title_reason="RISK_TITLE_RESEARCH_PRIORITY" if score else "INDEX_ORDER_FALLBACK"
+            if days:
+                title_reason=("POSSIBLY_PRE_DECISION_RESEARCH_PRIORITY" if possible else
+                              "POST_DECISION_URL_DAY_UNUSABLE_ASOF_RESEARCH")
+            selected_record={"issuer":issuer,"announcement_id":match.group(1),
+                 "url":url,"announcement_title_unverified":title,
+                 "index_page_observed":candidate.get("index_page_observed"),
+                 "original_pdf_url_date_unverified":url_day.isoformat(),
+                 "could_precede_target_decision_day_unverified":possible,
+                 "selection_reason":title_reason,
+                 "first_publication_time_authenticated":False}
+            candidates.append(((int(possible) if days else 1,score,-nearest),selected_record))
         if candidates:
-            # Max chooses the first among equal-ranked candidate notices.
-            _,choice=max(candidates,key=lambda x:x[0])
+            # A pre-decision URL date is useful for discovery, not causality proof.
+            _,choice=max(candidates,key=lambda entry:entry[0])
             selected.append(choice)
         if len(selected)>=limit:break
     return selected
 
-def capture(report,out,fetch=None):
-    selected=choose(report)
+def capture(report,out,fetch=None,scout=None):
+    selected=choose(report,scout=scout)
     root=Path(out);root.mkdir(parents=True,exist_ok=True)
     results=[]
     for entry in selected:
@@ -82,8 +114,10 @@ def capture(report,out,fetch=None):
 def main():
     p=argparse.ArgumentParser()
     for n in ("index","out"):p.add_argument("--"+n,required=True)
+    p.add_argument("--scout")
     args=p.parse_args()
-    r=capture(json.loads(Path(args.index).read_text()),args.out)
+    scout=json.loads(Path(args.scout).read_text()) if args.scout else None
+    r=capture(json.loads(Path(args.index).read_text()),args.out,scout=scout)
     (Path(args.out)/"quality.json").write_text(json.dumps(r,indent=2)+"\n")
     print(json.dumps({k:v for k,v in r.items() if k!="sources"}))
 if __name__=="__main__":main()
