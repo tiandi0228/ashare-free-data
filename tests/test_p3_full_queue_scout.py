@@ -88,7 +88,34 @@ class Tests(unittest.TestCase):
         self.assertEqual(x["research_issuer_day_date_cue_links"],1)
         self.assertEqual(x["official_PIT_cells_certified"],0)
         self.assertEqual(x["trade_gate"],"BLOCKED")
+    def test_far_away_date_context_not_joined(self):
+        args=fixture()
+        args[5]["candidate_contexts"][0]["date_text"]="2026年2月18日"
+        report=reconcile(*args)
+        self.assertEqual(report["research_issuer_day_date_cue_links"],0)
+        self.assertEqual(report["out_of_window_candidate_pairs_excluded"],1)
+        self.assertEqual(report["official_PIT_cells_certified"],0)
+    def test_duplicate_context_only_one_research_link(self):
+        args=fixture()
+        args[5]["candidate_contexts"].append(dict(args[5]["candidate_contexts"][0]))
+        report=reconcile(*args)
+        self.assertEqual(report["research_issuer_day_date_cue_links"],1)
+        self.assertEqual(report["duplicated_candidate_pairs_excluded"],1)
+    def test_invalid_date_text_rejected(self):
+        args=fixture()
+        args[5]["candidate_contexts"][0]["date_text"]="2026年2月30日"
+        with self.assertRaises(ValueError):reconcile(*args)
+    def test_vendor_nontrading_research_link_never_pit_certified(self):
+        args=fixture()
+        issuer=args[1]["targets"][0]["issuer"]
+        for cell in args[0]["official_evidence_tasks"]:
+            if cell["issuer"]==issuer and cell["status_kind"]=="halt":
+                cell["vendor_tradestatus_observed"]="0"
+        report=reconcile(*args)
+        self.assertEqual(report["vendor_nontrading_date_context_links_research_only"],1)
+        self.assertFalse(report["historical_PIT_verified"])
     def test_reject_pdf_sha_mismatch(self):
+
         args=fixture()
         args[5]["candidate_contexts"][0]["original_sha256"]="d"*64
         with self.assertRaises(ValueError):reconcile(*args)
