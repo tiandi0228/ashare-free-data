@@ -116,6 +116,21 @@ class CheckpointTests(unittest.TestCase):
         record["source_sha256"]="not_a_sha"
         with self.assertRaises(ValueError):validate(record)
 
+    def test_unchanged_checkpoint_skips_remote_write(self):
+        import json,tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from collector import p1_checkpoint
+        ledger=self.ledger(1)
+        with tempfile.TemporaryDirectory() as d:
+            incoming=Path(d)/"candidate.json"
+            incoming.write_text(json.dumps(ledger))
+            with patch.object(p1_checkpoint,"remote_read",return_value=(ledger,"existing_sha")):
+                with patch.object(p1_checkpoint,"gh") as api:
+                    with patch("sys.argv",["p1_checkpoint","--mode","write","--repo","test/repo","--in-file",str(incoming)]):
+                        p1_checkpoint.main()
+                    api.assert_not_called()
+
     def test_missing_checkpoint_requires_explicit_404(self):
         import subprocess
         from unittest.mock import patch
