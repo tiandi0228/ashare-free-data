@@ -168,7 +168,7 @@ jobs:
           from pathlib import Path
           from collector.p1_checkpoint import merge,validate
           p=json.loads(Path('evidence/shards/plan.json').read_text())
-          runs=json.loads(subprocess.check_output(['gh','run','list','--workflow','p1-fresh-vendor-roster.yml','--json','databaseId,conclusion','--limit','12']))
+          runs=[]
           best=None
           best_count=-1
           durable=Path('evidence/prior_ledger.json')
@@ -180,8 +180,12 @@ jobs:
               best_count=item['completed_issuers']
               # The durable checkpoint has already passed SHA and roster checks.
               # Avoid repeated artifact downloads when it is authoritative.
-              runs=[]
               print('Using validated durable checkpoint; skipping historical artifact downloads')
+          else:
+              # Only request the GitHub run list when durable recovery is unavailable.
+              runs=json.loads(subprocess.check_output(
+                  ['gh','run','list','--workflow','p1-fresh-vendor-roster.yml',
+                   '--json','databaseId,conclusion','--limit','12'],timeout=60))
           for entry in runs:
               if entry['conclusion']!='success': continue
               rid=entry['databaseId']
