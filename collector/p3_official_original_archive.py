@@ -186,7 +186,8 @@ def prepare(*,originals_root,review,queue,index,run_id,upstream_run_id):
         raise ValueError("semantic candidate count mismatch")
     return manifest,files
 
-def persist(manifest,files,repo):
+def persist(manifest,files,repo,namespace="runs"):
+    if namespace not in ("runs","resume_runs"):raise ValueError("unsupported immutable evidence namespace")
     if not isinstance(repo,str) or not re.fullmatch(r"[\w.-]+/[\w.-]+",repo):
         raise ValueError("invalid repository")
     run_id=safe_id(manifest["run_id"])
@@ -206,7 +207,7 @@ def persist(manifest,files,repo):
                 if p.is_dir():shutil.rmtree(p)
                 else:p.unlink()
         expected=(json.dumps(manifest,sort_keys=True,ensure_ascii=False,indent=2)+"\n").encode()
-        report=work/"runs"/(run_id+".json")
+        report=work/namespace/(run_id+".json")
         report.parent.mkdir(parents=True,exist_ok=True)
         if report.exists() and report.read_bytes()!=expected:
             raise ValueError("refuse to rewrite immutable run proof")
