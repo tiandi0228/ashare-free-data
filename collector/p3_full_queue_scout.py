@@ -29,7 +29,7 @@ def plan(full_queue,limit=3):
         or len(tasks)!=q.get("required_official_evidence_cells")):
         raise ValueError("invalid full-archive queue accounting")
     by_issuer=defaultdict(lambda:{"days":set(),"kinds":set(),"shards":set(),"sources":set(),
-                                   "status_by_day":{},"date_kinds":defaultdict(set)})
+                                   "status_by_day":{},"transition_days":set(),"date_kinds":defaultdict(set)})
     has_vendor_status=q.get("vendor_suspended_context_included") is True
     seen=set()
     for item in tasks:
@@ -63,6 +63,9 @@ def plan(full_queue,limit=3):
             previous=d["status_by_day"].setdefault(day,status)
             if previous!=status:
                 raise ValueError("inconsistent vendor trade status across evidence kinds")
+            if item.get("vendor_possible_halt_transition_observed") is True:
+                if status!="0":raise ValueError("transition must have vendor nontrading marker")
+                d["transition_days"].add(day)
     if len(by_issuer)!=count:raise ValueError("missing P1 source issuer")
     for issuer,d in by_issuer.items():
         if len(d["shards"])!=1 or len(d["sources"])!=1 or d["kinds"]!=KINDS:
@@ -88,6 +91,7 @@ def plan(full_queue,limit=3):
         picks=[issuers[(start+i)%count] for i in range(min(limit,count))]
     targets=[{"issuer":issuer,"observed_decision_dates":sorted(by_issuer[issuer]["days"]),
               "vendor_suspended_research_days":sorted(day for day,status in by_issuer[issuer]["status_by_day"].items() if status=="0"),
+              "vendor_halt_transition_research_days":sorted(by_issuer[issuer]["transition_days"]),
               "target_selection_basis":"VENDOR_NONTRADING_OBSERVED_NOT_OFFICIAL" if "0" in by_issuer[issuer]["status_by_day"].values() else "FROZEN_SHARD_ROTATION",
               "cells_to_research":len(by_issuer[issuer]["days"])*4,
               "original_official_url":None,"original_publication_time":None,
