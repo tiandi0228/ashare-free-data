@@ -178,6 +178,10 @@ jobs:
                   raise ValueError('durable checkpoint roster differs from frozen plan')
               best=(item,'durable-checkpoint')
               best_count=item['completed_issuers']
+              # The durable checkpoint has already passed SHA and roster checks.
+              # Avoid repeated artifact downloads when it is authoritative.
+              runs=[]
+              print('Using validated durable checkpoint; skipping historical artifact downloads')
           for entry in runs:
               if entry['conclusion']!='success': continue
               rid=entry['databaseId']
