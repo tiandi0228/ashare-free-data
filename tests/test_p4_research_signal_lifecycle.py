@@ -8,9 +8,14 @@ class LifecycleTests(unittest.TestCase):
   self.assertEqual(x["orders"],[])
  def test_entry_requires_post_decision_receipt(self):
   args=dict(state="SIGNAL_READY",event="OBSERVE_ENTRY",decision_day="2026-10-20",observation_day="2026-10-20",receipt_sha256="a"*64)
-  with self.assertRaises(ValueError):advance(**args)
-  args["observation_day"]="2026-10-21"
   self.assertEqual(advance(**args)["to_state"],"ENTRY_EVIDENCED")
+  args["observation_day"]="2026-10-20"
+  self.assertEqual(advance(**args)["to_state"],"ENTRY_EVIDENCED")
+ def test_exit_enforces_tplus1_from_actual_entry(self):
+  args=dict(state="ENTRY_EVIDENCED",event="OBSERVE_EXIT",decision_day="2026-10-20",entry_day="2026-10-21",observation_day="2026-10-21",receipt_sha256="b"*64)
+  with self.assertRaises(ValueError):advance(**args)
+  args["observation_day"]="2026-10-22"
+  self.assertEqual(advance(**args)["to_state"],"EXIT_EVIDENCED")
  def test_no_exit_from_unfilled(self):
   with self.assertRaises(ValueError):
    advance(state="UNFILLED",event="OBSERVE_EXIT",decision_day="2026-10-20",observation_day="2026-10-21",receipt_sha256="b"*64)
