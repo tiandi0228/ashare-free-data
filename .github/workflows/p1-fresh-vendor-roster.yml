@@ -178,11 +178,13 @@ jobs:
           for entry in runs:
               if entry['conclusion']!='success': continue
               rid=entry['databaseId']
-              dest=Path('previous')
+              # Isolate each run: a prior download must never be mistaken for
+              # the current run's ledger when artifact contents differ.
+              dest=Path('previous')/str(rid)
               download=subprocess.run(['gh','run','download',str(rid),'-n',f'p1-fresh-roster-{rid}','-D',str(dest)],capture_output=True,text=True)
               if download.returncode!=0: continue
               candidates=list(dest.rglob('ledger.json'))
-              if not candidates:continue
+              if len(candidates)!=1:continue
               try:
                   ledger=json.loads(candidates[0].read_text())
                   if ledger['source_sha256']==p['source_sha256'] and ledger['shard_count']==p['shard_count']:
