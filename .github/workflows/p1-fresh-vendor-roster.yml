@@ -9,6 +9,10 @@ on:
       - 'collector/p1_fresh_shard_plan.py'
       - 'tests/test_p1_fresh_shard_plan.py'
       - 'collector/p1_shard_ledger.py'
+      - 'collector/p1_quad_pick.py'
+      - 'collector/p1_quad_verify.py'
+      - 'tests/test_p1_quad_pick.py'
+      - 'tests/test_p1_quad_verify.py'
       - 'collector/p1_checkpoint.py'
       - 'tests/test_p1_checkpoint.py'
       - 'collector/p1_csv_archive.py'
@@ -43,14 +47,14 @@ concurrency:
 jobs:
   roster:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: Offline source tests
-        run: python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick tests.test_p1_coverage_gap_diagnosis tests.test_p3_p1_evidence_worklist -v
+        run: python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick tests.test_p1_coverage_gap_diagnosis tests.test_p3_p1_evidence_worklist tests.test_p1_quad_pick tests.test_p1_quad_verify -v
       - name: Install free Baostock
         run: python -m pip install 'baostock>=0.8,<1'
       - name: Observe current Beijing-date mainboard roster from free provider
@@ -189,26 +193,12 @@ jobs:
               Path('evidence/prior_ledger.json').write_text(json.dumps(ledger))
               print('Recovered highest-progress same-roster ledger from run',rid,'issuers',best_count)
           PY
-      - name: Choose next incomplete pair from same-roster ledger, or bounded date rotation
+      - name: Select up to four distinct missing frozen roster shards
         id: pick
         run: |
-          python - <<'PY' >> "$GITHUB_OUTPUT"
-          import datetime,json,os
-          from pathlib import Path
-          from zoneinfo import ZoneInfo
-          q=json.loads(Path('evidence/shards/plan.json').read_text())
-          pair_count=(q['shard_count']+1)//2
-          idx=datetime.datetime.now(ZoneInfo('Asia/Shanghai')).date().toordinal()%pair_count
-          prior=Path('evidence/prior_ledger.json')
-          if prior.exists():
-              ledger=json.loads(prior.read_text())
-              done={e['index'] for e in ledger['completed']}
-              idx=next((i for i in range(pair_count) if (2*i not in done or (2*i+1<q['shard_count'] and 2*i+1 not in done))),idx)
-          first=idx*2
-          print(f'first={first:04d}')
-          print(f'second={first+1:04d}')
-          print(f'has_second={str(first+1<q["shard_count"]).lower()}')
-          PY
+          PRIOR_ARGS=()
+          if [[ -s evidence/prior_ledger.json ]]; then PRIOR_ARGS=(--prior evidence/prior_ledger.json); fi
+          python -m collector.p1_quad_pick --plan evidence/shards/plan.json "${PRIOR_ARGS[@]}" --output-file "$GITHUB_OUTPUT"
       - name: Fetch first real roster shard historical bars (bounded 8 only)
         run: |
           python - <<'PY'
@@ -254,6 +244,14 @@ jobs:
           PY
           fi
           exit "$code"
+      - name: Capture third eight-issuer frozen P1 shard
+        if: ${{ steps.pick.outputs.has_third }} == 'true'
+        run: |
+          timeout --signal=TERM --kill-after=5s 150s python -u -m collector.baostock_batch --manifest evidence/shards/shard_${{ steps.pick.outputs.third }}.txt --batch-index 0 --out evidence/third_shard
+      - name: Capture fourth eight-issuer frozen P1 shard
+        if: ${{ steps.pick.outputs.has_fourth }} == 'true'
+        run: |
+          timeout --signal=TERM --kill-after=5s 150s python -u -m collector.baostock_batch --manifest evidence/shards/shard_${{ steps.pick.outputs.fourth }}.txt --batch-index 0 --out evidence/fourth_shard
       - name: Verify real roster-to-bars linkage and SHA receipts
         run: |
           python - <<'PY'
@@ -284,12 +282,23 @@ jobs:
           assert set(x['code'] for x in s['results']).isdisjoint(x['code'] for x in t['results'])
           print('PASS: sixteen unique real roster-derived histories verified; NOT PIT-certified')
           PY
+      - name: Verify up to four immutable shard receipts and original CSV hashes
+        run: |
+          RECS=(--receipt "${{ steps.pick.outputs.first }}:evidence/first_shard")
+          if [[ "${{ steps.pick.outputs.has_second }}" == "true" ]]; then RECS+=(--receipt "${{ steps.pick.outputs.second }}:evidence/second_shard"); fi
+          if [[ "${{ steps.pick.outputs.has_third }}" == "true" ]]; then RECS+=(--receipt "${{ steps.pick.outputs.third }}:evidence/third_shard"); fi
+          if [[ "${{ steps.pick.outputs.has_fourth }}" == "true" ]]; then RECS+=(--receipt "${{ steps.pick.outputs.fourth }}:evidence/fourth_shard"); fi
+          python -m collector.p1_quad_verify --plan evidence/shards/plan.json --manifest-root evidence/shards "${RECS[@]}"
       - name: Reconcile observed shards into versioned source ledger
         run: |
           test -f evidence/shards/plan.json
           PRIOR_ARGS=()
           if test -f evidence/prior_ledger.json; then PRIOR_ARGS=(--prior evidence/prior_ledger.json); fi
-          python -m collector.p1_shard_ledger --plan evidence/shards/plan.json "${PRIOR_ARGS[@]}" --receipt "${{ steps.pick.outputs.first == '' && '0' || steps.pick.outputs.first }}:evidence/first_shard/quality.json" ${{ steps.pick.outputs.has_second == 'true' && format('--receipt {0}:evidence/second_shard/quality.json', steps.pick.outputs.second) || '' }} --out evidence/ledger.json
+          RECS=(--receipt "${{ steps.pick.outputs.first }}:evidence/first_shard/quality.json")
+          if [[ "${{ steps.pick.outputs.has_second }}" == "true" ]]; then RECS+=(--receipt "${{ steps.pick.outputs.second }}:evidence/second_shard/quality.json"); fi
+          if [[ "${{ steps.pick.outputs.has_third }}" == "true" ]]; then RECS+=(--receipt "${{ steps.pick.outputs.third }}:evidence/third_shard/quality.json"); fi
+          if [[ "${{ steps.pick.outputs.has_fourth }}" == "true" ]]; then RECS+=(--receipt "${{ steps.pick.outputs.fourth }}:evidence/fourth_shard/quality.json"); fi
+          python -m collector.p1_shard_ledger --plan evidence/shards/plan.json "${PRIOR_ARGS[@]}" "${RECS[@]}" --out evidence/ledger.json
           python - <<'PY'
           import json
           from pathlib import Path
@@ -307,7 +316,11 @@ jobs:
           if [[ "${{ steps.pick.outputs.has_second }}" == "true" ]]; then
             SECOND=(--second "${{ steps.pick.outputs.second }}")
           fi
-          python -m collector.p1_csv_archive --plan evidence/shards/plan.json --first "${{ steps.pick.outputs.first }}" "${SECOND[@]}"
+          THIRD=()
+          FOURTH=()
+          if [[ "${{ steps.pick.outputs.has_third }}" == "true" ]]; then THIRD=(--third "${{ steps.pick.outputs.third }}"); fi
+          if [[ "${{ steps.pick.outputs.has_fourth }}" == "true" ]]; then FOURTH=(--fourth "${{ steps.pick.outputs.fourth }}"); fi
+          python -m collector.p1_csv_archive --plan evidence/shards/plan.json --first "${{ steps.pick.outputs.first }}" "${SECOND[@]}" "${THIRD[@]}" "${FOURTH[@]}"
       - name: Audit permanent research CSV archive against recovered ledger
         run: |
           git fetch --depth=1 origin research-csv-archive
