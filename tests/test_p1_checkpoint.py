@@ -44,6 +44,25 @@ class CheckpointTests(unittest.TestCase):
         older=self.ledger(1)
         newer["completed"][0]["receipt_sha256"]="d"*64
         with self.assertRaises(ValueError):merge(newer,older)
+    def test_stale_conflicting_evidence_rejected(self):
+        stale=self.ledger(1);remote=self.ledger(2)
+        stale["completed"][0]["receipt_sha256"]="d"*64
+        with self.assertRaises(ValueError):merge(stale,remote)
+    def test_stale_different_shard_rejected(self):
+        stale=self.ledger(1);remote=self.ledger(1)
+        remote["completed"].append({"index":1,"issuer_count":8,"manifest_sha256":"b"*64,"receipt_sha256":"c"*64})
+        remote["completed_shards"]=2;remote["completed_issuers"]=16
+        remote["pending_shards"]=[];remote["next_shard"]=None
+        stale["completed"][0]["index"]=1
+        stale["pending_shards"]=[0];stale["next_shard"]=0
+        # Stale evidence for shard 1 matches, so retain the remote checkpoint.
+        self.assertEqual(merge(stale,remote)["completed_issuers"],16)
+    def test_stale_unknown_shard_rejected(self):
+        stale=self.ledger(1);remote=self.ledger(1)
+        stale["completed"][0]["index"]=1
+        stale["pending_shards"]=[0];stale["next_shard"]=0
+        with self.assertRaises(ValueError):merge(stale,remote)
+
     def test_added_shard_preserves_old_evidence(self):
         self.assertEqual(merge(self.ledger(2),self.ledger(1))["completed_issuers"],16)
     def test_out_of_range_shard_rejected(self):
