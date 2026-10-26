@@ -50,6 +50,15 @@ class TestOriginalClauseReview(unittest.TestCase):
     def test_same_clause_but_without_causal_prefix_not_effective(self):
         x=classify("2026年10月20日经营情况涉及停牌事项。","2026年10月20日","halt")
         self.assertIsNone(x["local_textual_direction_candidate"])
+    def test_unrelated_same_pdf_date_context_does_not_fail(self):
+        args=list(sample())
+        extra=dict(args[1]["candidate_contexts"][0])
+        extra["candidate_event_cues"]=["DELIST_CUE"]
+        extra["source_text_context"]="公司2026年10月20日曾讨论终止上市风险。"
+        args[1]["candidate_contexts"].append(extra)
+        result=review(*args)
+        self.assertEqual(result["explicit_original_clause_candidates"],1)
+        self.assertEqual(result["official_PIT_cells_certified"],0)
     def test_upstream_claimed_pit_is_rejected(self):
         args=list(sample());args[0]["official_PIT_cells_certified"]=1
         with self.assertRaises(ValueError):review(*args)

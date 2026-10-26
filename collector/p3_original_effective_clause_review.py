@@ -120,10 +120,19 @@ def review(join,triage,pdf_text,originals,index):
         seen.add(identity)
         contexts=triaged.get((key[0],key[1],lead["pdf_sha256"],lead["date_text"]),[])
         if not contexts:raise ValueError("missing original contextual proof for linked date")
+        # Distinct date contexts may refer to unrelated events; the upstream
+        # link only depends on the ones that match its specific event family.
+        cues={"halt":{"TRADING_HALT_CUE","TRADING_RESUME_CUE"},
+              "st":{"ST_RISK_CUE"},"listing":{"LISTING_CUE"},
+              "delisting":{"DELIST_CUE"}}.get(lead["kind"])
+        if cues is None:raise ValueError("unknown source event family")
+        relevant=[]
         for c in contexts:
-            if lead["kind"]=="halt" and not any(x in c.get("candidate_event_cues",[]) for x in ("TRADING_HALT_CUE","TRADING_RESUME_CUE")):
-                raise ValueError("halt source context not identified")
-        checked=[classify(c["source_text_context"],lead["date_text"],lead["kind"]) for c in contexts]
+            labels=c.get("candidate_event_cues",[])
+            if not isinstance(labels,list):raise ValueError("bad original cue labels")
+            if cues.intersection(labels):relevant.append(c)
+        if not relevant:raise ValueError("no kind-matched original date context")
+        checked=[classify(c["source_text_context"],lead["date_text"],lead["kind"]) for c in relevant]
         found={x["local_textual_direction_candidate"] for x in checked if x["local_textual_direction_candidate"]}
         issuer_in_text=pdf.get("issuer_code_in_text") is True
         if len(found)==1 and issuer_in_text:
