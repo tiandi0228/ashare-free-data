@@ -40,6 +40,7 @@ class TestPairing(unittest.TestCase):
             "source_halt_records":[{"issuer":I,"source_halt_date":"2025-11-04",
                 "source_halt_original_sha256":HALT,"historical_resume_authenticated":False}],
             "downloaded_resume_original_count":1,
+            "explicit_original_resume_text_candidates":1,
             "resume_notice_source_receipts":[self.item]}
         self.save()
     def save(self,run=10):
