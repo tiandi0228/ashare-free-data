@@ -10,6 +10,8 @@ from pathlib import Path
 MAP={"listing":"LISTING_CUE","st":"ST_RISK_CUE",
      "halt":"TRADING_HALT_CUE","delisting":"DELIST_CUE"}
 SHA=re.compile(r"[0-9a-f]{64}\Z")
+CHINA_DAY=re.compile(r"(20\d{2})年\s*(\d{1,2})月\s*(\d{1,2})日\Z")
+MAX_RESEARCH_DISTANCE_DAYS=14
 
 def reconcile(queue,scout,index,originals,replay,triage):
     if (queue.get("phase")!="P3_ALL_COMPLETED_P1_OFFICIAL_PIT_WORKLIST"
