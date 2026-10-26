@@ -33,7 +33,8 @@ class CycleTests(unittest.TestCase):
         self.assertEqual(x["orders"],[])
     def test_missing_exit_d6_remains_unresolved(self):
         x=audit(**args(sell_order=None,asof_day=DAYS[6]))
-        self.assertEqual(x["position_state"],"OVERDUE_RECEIPT_MISSING")
+        self.assertEqual(x["position_state"],"FRIDAY_EXIT_OVERDUE_UNRESOLVED")
+        self.assertTrue(x["friday_deadline_breached"])
         self.assertEqual(x["remaining_shares"],100)
     def test_partial_sell_keeps_position_open(self):
         buy=order("BUY",DAYS[0],n=200,fills=200)
