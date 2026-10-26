@@ -53,6 +53,25 @@ class FullQueueTests(unittest.TestCase):
         self.assertEqual({r["issuer"] for r in q["official_evidence_tasks"]},{"sz.000001","sh.600001"})
         self.assertEqual(q["independently_verified_official_PIT_cells"],0)
         self.assertEqual(q["frozen_vendor_query_end"],"2026-10-20")
+    def test_last_vendor_active_to_halt_transition_retained(self):
+        part=self.root/self.sha[:16]/"shard_0001"
+        code="sh.600001";path=part/"sh_600001.csv"
+        content=",".join(FIELDS)+"\n"+source_row(code,"2026-10-16")+"\n"+source_row(code,"2026-10-19",active=False)+"\n"+source_row(code,"2026-10-20",active=False)+"\n"
+        data=content.encode()
+        path.write_bytes(data)
+        receipt=json.loads((part/"quality.json").read_text())
+        receipt["results"][0].update(sha256=hashlib.sha256(data).hexdigest(),
+                                    rows=3,tradable_rows=1,suspended_status_rows=2)
+        (part/"quality.json").write_text(json.dumps(receipt))
+        self.ledger["completed"][1]["receipt_sha256"]=hashlib.sha256(
+            json.dumps(receipt,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
+        result=build(self.root,self.plan,self.ledger)
+        relevant=[x for x in result["official_evidence_tasks"]
+                  if x["issuer"]==code and x["status_kind"]=="halt"]
+        transitions=[x["decision_day"] for x in relevant
+                     if x["vendor_possible_halt_transition_observed"]]
+        self.assertEqual(transitions,["2026-10-19"])
+        self.assertTrue(all(x["historical_asof_verified"] is False for x in relevant))
     def test_changed_source_sha_rejected(self):
         with self.assertRaises(ValueError):
             build(self.root,{**self.plan,"source_sha256":"b"*64},self.ledger)
