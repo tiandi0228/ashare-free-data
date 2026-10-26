@@ -9,6 +9,10 @@ on:
       - 'collector/p3_official_original_archive.py'
       - 'collector/p3_persisted_temporal_risk_triage.py'
       - 'collector/p3_archived_event_episode_ledger.py'
+      - 'collector/p3_resume_followup_discovery.py'
+      - 'collector/p3_resume_original_archive.py'
+      - 'tests/test_p3_resume_followup_discovery.py'
+      - 'tests/test_p3_resume_original_archive.py'
       - 'tests/test_p3_archived_event_episode_ledger.py'
       - 'tests/test_p3_persisted_temporal_risk_triage.py'
       - 'tests/test_p3_official_original_archive.py'
@@ -40,7 +44,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline boundaries and official-source tests
-        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture tests.test_p3_original_effective_clause_review tests.test_p3_official_original_archive tests.test_p3_persisted_temporal_risk_triage tests.test_p3_archived_event_episode_ledger -v
+        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture tests.test_p3_original_effective_clause_review tests.test_p3_official_original_archive tests.test_p3_persisted_temporal_risk_triage tests.test_p3_archived_event_episode_ledger tests.test_p3_resume_followup_discovery tests.test_p3_resume_original_archive -v
       - name: Install free PDF text parser
         run: python -m pip install 'pypdf>=4,<7'
       - name: Fetch successful original P1 queue artifact
@@ -175,6 +179,48 @@ jobs:
                 'unpaired halt evidence',report['unpaired_halt_starts_needing_resumption_search'],
                 'paired text events UNCERTIFIED',report['paired_halt_resume_text_claims_unverified'],
                 'certified states ZERO')
+          PY
+      - name: Search genuine archived unpaired halt issuers for subsequent resumption originals
+        run: |
+          python -m collector.p3_resume_followup_discovery \
+            --episodes evidence/p3_all_archived_original_event_episodes.json \
+            --run-number "${{ github.run_number }}" \
+            --out evidence/resume_index.json
+          python -m collector.p3_real_target_pdf_capture \
+            --index evidence/resume_index.json --out evidence/resume_originals
+          python -m collector.p3_real_p1_pdf_replay \
+            --root evidence/resume_originals --out evidence/resume_pdf_sha_replay.json
+          python -m collector.p3_real_p1_pdf_text_cues \
+            --root evidence/resume_originals --out evidence/resume_original_pdf_text.json
+      - name: Persist separate resumption original PDFs and verify append-only SHA receipts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh auth setup-git
+          python -m collector.p3_resume_original_archive \
+            --mode archive --index evidence/resume_index.json \
+            --originals evidence/resume_originals \
+            --text evidence/resume_original_pdf_text.json \
+            --run-id "${{ github.run_id }}" --repo "${{ github.repository }}"
+          git fetch --depth=1 origin research-official-originals-archive
+          git worktree add --detach archived-official-resume FETCH_HEAD
+          python -m collector.p3_resume_original_archive \
+            --mode verify --root archived-official-resume \
+            --run-id "${{ github.run_id }}" | tee evidence/resume_original_archive_replay.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          resume=json.loads(Path('evidence/resume_original_archive_replay.json').read_text())
+          captured=json.loads(Path('evidence/resume_originals/quality.json').read_text())
+          assert resume['official_originals_sha_verified']==captured['retrieved']
+          assert resume['source_issuers'] in (1,2,3)
+          assert resume['official_resume_effective_dates_certified']==0
+          assert resume['historical_PIT_verified'] is False
+          assert resume['trade_gate']=='BLOCKED' and resume['orders']==[]
+          print('P3 RESUME FOLLOWUP VERIFIED:',resume['source_issuers'],
+                'halt sources',resume['official_originals_sha_verified'],
+                'original PDF SHA replayed',resume['same_clause_resumption_text_candidates'],
+                'unverified resume text leads; PIT zero')
           PY
       - uses: actions/upload-artifact@v4
         if: always()
