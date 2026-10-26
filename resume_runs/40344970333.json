@@ -1,0 +1,67 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 0,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 0,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [],
+  "run_id": 40344970333,
+  "source_halt_issuers_attempted": 3,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600119",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-07-26",
+      "search_window_start": "2026-04-26",
+      "source_halt_announcement_id": "1225197307",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-04-27",
+      "source_halt_original_sha256": "48073c8aba6948d9680150628431be1610fb092559dddd232f8d01aaa937eb16"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600302",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-07-29",
+      "search_window_start": "2026-04-29",
+      "source_halt_announcement_id": "1225266706",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-04-30",
+      "source_halt_original_sha256": "fd930a55cb23c69325e918b4037c0fa20f21c7b564ac7ae95d4e27d1e20be06d"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600303",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-07-17",
+      "search_window_start": "2025-04-17",
+      "source_halt_announcement_id": "1223122556",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-04-18",
+      "source_halt_original_sha256": "5db7b2a068bf46a9a66a803bf33181868f9d5f442b0826a81ffa80c4c0d3e5ae"
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.600119",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    },
+    {
+      "issuer": "sh.600302",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    },
+    {
+      "issuer": "sh.600303",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
