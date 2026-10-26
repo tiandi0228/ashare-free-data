@@ -21,6 +21,8 @@ on:
       - 'collector/p1_coverage_gap_diagnosis.py'
       - 'tests/test_p1_coverage_gap_diagnosis.py'
       - 'collector/p3_p1_evidence_worklist.py'
+      - 'collector/p3_all_completed_worklist.py'
+      - 'tests/test_p3_all_completed_worklist.py'
       - 'tests/test_p3_p1_evidence_worklist.py'
       - 'collector/p1_repair_pick.py'
       - 'tests/test_p1_repair_pick.py'
@@ -54,7 +56,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline source tests
-        run: python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick tests.test_p1_coverage_gap_diagnosis tests.test_p3_p1_evidence_worklist tests.test_p1_quad_pick tests.test_p1_quad_verify -v
+        run: python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick tests.test_p1_coverage_gap_diagnosis tests.test_p3_p1_evidence_worklist tests.test_p1_quad_pick tests.test_p1_quad_verify tests.test_p3_all_completed_worklist -v
       - name: Install free Baostock
         run: python -m pip install 'baostock>=0.8,<1'
       - name: Observe current Beijing-date mainboard roster from free provider
@@ -414,6 +416,21 @@ jobs:
       - name: Build bounded P3 official state evidence worklist from real P1 archive
         run: |
           python -m collector.p3_p1_evidence_worklist --root archived-research --plan evidence/shards/plan.json --ledger evidence/ledger.json --out evidence/p3_official_evidence_worklist.json
+      - name: Generate SHA-linked official P3 evidence queue for ALL completed P1 issuers
+        run: |
+          python -m collector.p3_all_completed_worklist --root archived-research --plan evidence/shards/plan.json --ledger evidence/ledger.json --out evidence/p3_all_completed_official_evidence_queue.json
+          python - <<'PY'
+          import json
+          q=json.load(open('evidence/p3_all_completed_official_evidence_queue.json'))
+          ledger=json.load(open('evidence/ledger.json'))
+          assert q['completed_issuers_replayed']==ledger['completed_issuers']
+          assert q['completed_shards_replayed']==ledger['completed_shards']
+          assert q['required_official_evidence_cells']==len(q['official_evidence_tasks'])
+          assert q['independently_verified_official_PIT_cells']==0
+          assert q['historical_PIT_verified'] is False
+          assert q['trade_gate']=='BLOCKED' and q['orders']==[] and q['executable_candidates']==[]
+          print('P3 COMPLETE SOURCE-SCOPED QUEUE:',q['completed_issuers_replayed'],'issuers',q['required_official_evidence_cells'],'PIT tasks pending')
+          PY
       - name: Persist durable no-trade checkpoint in repository
         env:
           GH_TOKEN: ${{ github.token }}
