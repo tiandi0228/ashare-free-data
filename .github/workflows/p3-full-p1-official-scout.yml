@@ -1,0 +1,93 @@
+name: P3 rotating official originals for full audited P1 issuer queue (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p3_full_queue_scout.py'
+      - 'collector/p3_full_queue_source_join.py'
+      - 'tests/test_p3_full_queue_scout.py'
+      - '.github/workflows/p3-full-p1-official-scout.yml'
+  workflow_run:
+    workflows: ['P1 fresh Baostock mainboard roster observation (NO TRADES)']
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: p3-full-p1-official-scout-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  scout:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline boundaries and official-source tests
+        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture -v
+      - name: Install free PDF text parser
+        run: python -m pip install 'pypdf>=4,<7'
+      - name: Fetch successful original P1 queue artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json,os,subprocess
+          from pathlib import Path
+          event=json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+          if os.environ['GITHUB_EVENT_NAME']=='workflow_run':
+              upstream=event['workflow_run']
+              if upstream['conclusion']!='success' or upstream['name']!='P1 fresh Baostock mainboard roster observation (NO TRADES)':
+                  raise ValueError('unexpected upstream P1 run')
+              run_id=upstream['id']
+          else:
+              recent=json.loads(subprocess.check_output(['gh','run','list','--workflow','p1-fresh-vendor-roster.yml','--limit','20','--json','databaseId,conclusion'],text=True))
+              run_id=next(row['databaseId'] for row in recent if row['conclusion']=='success')
+          Path('p1').mkdir(exist_ok=True)
+          subprocess.run(['gh','run','download',str(run_id),'-n',f'p1-fresh-roster-{run_id}','-D','p1'],check=True)
+          candidates=list(Path('p1').rglob('p3_all_completed_official_evidence_queue.json'))
+          if len(candidates)!=1:raise ValueError('P1 full-issuer evidence queue artifact missing/ambiguous')
+          Path('evidence').mkdir(exist_ok=True)
+          Path('evidence/full_p1_queue.json').write_bytes(candidates[0].read_bytes())
+          Path('evidence/upstream.json').write_text(json.dumps({'upstream_run_id':run_id,'is_historical_official_PIT_authenticated':False,'trade_gate':'BLOCKED'})+'\n')
+          print('P3_SOURCE_P1_RUN',run_id)
+          PY
+      - name: Select three distinct current P1 historical official-source targets
+        run: python -m collector.p3_full_queue_scout --queue evidence/full_p1_queue.json --out evidence/scout_queue.json
+      - name: Query free CNINFO official announcement index for selected issuers
+        run: python -m collector.p3_real_target_index_probe --queue evidence/scout_queue.json --out evidence/index.json
+      - name: Retrieve bounded original PDF bytes, no PIT certification
+        run: python -m collector.p3_real_target_pdf_capture --index evidence/index.json --out evidence/originals
+      - name: Reverify original PDF hashes and extract candidate date-context text
+        run: |
+          python -m collector.p3_real_p1_pdf_replay --root evidence/originals --out evidence/pdf_replay.json
+          python -m collector.p3_real_p1_pdf_text_cues --root evidence/originals --out evidence/pdf_text.json
+          python -m collector.p3_real_date_context_triage --source evidence/pdf_text.json --out evidence/triage.json
+          python -m collector.p3_full_queue_source_join --queue evidence/full_p1_queue.json --scout evidence/scout_queue.json --index evidence/index.json --originals evidence/originals/quality.json --replay evidence/pdf_replay.json --triage evidence/triage.json --out evidence/full_p1_source_join.json
+      - name: Assert official historical PIT remains uncertified
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report=json.loads(Path('evidence/full_p1_source_join.json').read_text())
+          original=json.loads(Path('evidence/originals/quality.json').read_text())
+          assert report['index_lookups'] in (1,2,3)
+          assert original['retrieved']<=original['attempted']<=3
+          assert report['official_pdf_originals_sha_replayed']==original['retrieved']
+          assert report['official_PIT_cells_certified']==0
+          assert report['first_publication_times_independently_authenticated']==0
+          assert report['historical_PIT_verified'] is False
+          assert report['trade_gate']=='BLOCKED' and report['orders']==[]
+          print('P3 ORIGINAL SOURCE RESEARCH ACCEPTED',report['index_lookups'],'issuers',original['retrieved'],'retrieved original PDFs, ZERO certified PIT')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p3-full-p1-official-scout-${{ github.run_id }}
+          path: evidence/
+          retention-days: 14
+          if-no-files-found: warn
