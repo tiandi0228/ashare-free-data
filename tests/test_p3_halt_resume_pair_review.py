@@ -36,6 +36,7 @@ class TestPairing(unittest.TestCase):
             "historical_PIT_verified":False,"publisher_first_publication_authenticated":False,
             "official_resume_effective_dates_certified":0,
             "continuous_halt_resume_intervals_certified":0,
+            "source_halt_issuers_attempted":1,
             "source_halt_records":[{"issuer":I,"source_halt_date":"2025-11-04",
                 "source_halt_original_sha256":HALT,"historical_resume_authenticated":False}],
             "downloaded_resume_original_count":1,
