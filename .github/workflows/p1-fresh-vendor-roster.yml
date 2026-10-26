@@ -166,6 +166,7 @@ jobs:
           python - <<'PY'
           import json,subprocess
           from pathlib import Path
+          from collector.p1_checkpoint import merge,validate
           p=json.loads(Path('evidence/shards/plan.json').read_text())
           runs=json.loads(subprocess.check_output(['gh','run','list','--workflow','p1-fresh-vendor-roster.yml','--json','databaseId,conclusion','--limit','12']))
           best=None
@@ -188,10 +189,17 @@ jobs:
               try:
                   ledger=json.loads(candidates[0].read_text())
                   if ledger['source_sha256']==p['source_sha256'] and ledger['shard_count']==p['shard_count']:
-                      count=ledger.get('completed_issuers',-1)
-                      if type(count) is int and count>best_count:
+                      validate(ledger)
+                      if best is not None:
+                          # Never allow an artifact to override a durable SHA-linked
+                          # receipt without checking overlapping evidence.
+                          merged=merge(ledger,best[0])
+                          if merged is best[0]:continue
+                      count=ledger['completed_issuers']
+                      if count>best_count:
                           best,best_count=(ledger,rid),count
-              except (ValueError,KeyError,TypeError):pass
+              except (ValueError,KeyError,TypeError) as exc:
+                  print('Skipped invalid or conflicting historical ledger from',rid,str(exc))
           if best is not None:
               ledger,rid=best
               Path('evidence/prior_ledger.json').write_text(json.dumps(ledger))
