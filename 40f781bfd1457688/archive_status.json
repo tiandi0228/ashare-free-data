@@ -2,6 +2,10 @@
   "source_sha256": "40f781bfd1457688130c41a038d8f8165d3ff4dcbf3e2da9b5fb992c8a2ed01d",
   "trade_gate": "BLOCKED",
   "archived_shards": [
+    0,
+    1,
+    2,
+    3,
     315,
     316,
     317,
