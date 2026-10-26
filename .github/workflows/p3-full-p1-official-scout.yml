@@ -5,6 +5,8 @@ on:
     paths:
       - 'collector/p3_full_queue_scout.py'
       - 'collector/p3_full_queue_source_join.py'
+      - 'collector/p3_original_effective_clause_review.py'
+      - 'tests/test_p3_original_effective_clause_review.py'
       - 'tests/test_p3_full_queue_scout.py'
       - 'collector/p3_real_target_pdf_capture.py'
       - 'collector/p3_real_target_index_probe.py'
@@ -32,7 +34,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline boundaries and official-source tests
-        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture -v
+        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture tests.test_p3_original_effective_clause_review -v
       - name: Install free PDF text parser
         run: python -m pip install 'pypdf>=4,<7'
       - name: Fetch successful original P1 queue artifact
@@ -72,6 +74,7 @@ jobs:
           python -m collector.p3_real_p1_pdf_text_cues --root evidence/originals --out evidence/pdf_text.json
           python -m collector.p3_real_date_context_triage --source evidence/pdf_text.json --out evidence/triage.json
           python -m collector.p3_full_queue_source_join --queue evidence/full_p1_queue.json --scout evidence/scout_queue.json --index evidence/index.json --originals evidence/originals/quality.json --replay evidence/pdf_replay.json --triage evidence/triage.json --out evidence/full_p1_source_join.json
+          python -m collector.p3_original_effective_clause_review --join evidence/full_p1_source_join.json --triage evidence/triage.json --pdf-text evidence/pdf_text.json --originals evidence/originals/quality.json --index evidence/index.json --out evidence/original_effective_clause_review.json
       - name: Assert official historical PIT remains uncertified
         run: |
           python - <<'PY'
@@ -86,6 +89,14 @@ jobs:
           assert report['first_publication_times_independently_authenticated']==0
           assert report['historical_PIT_verified'] is False
           assert report['trade_gate']=='BLOCKED' and report['orders']==[]
+          semantic=json.loads(Path('evidence/original_effective_clause_review.json').read_text())
+          assert semantic['evaluated_research_links']==report['research_issuer_day_date_cue_links']
+          assert semantic['explicit_original_clause_candidates']<=semantic['evaluated_research_links']
+          assert semantic['certified_effective_dates']==0
+          assert semantic['authenticated_first_publication_times']==0
+          assert semantic['historical_PIT_verified'] is False
+          assert semantic['trade_gate']=='BLOCKED' and semantic['orders']==[]
+          print('P3 REAL ORIGINAL LOCAL CLAUSES:',semantic['explicit_original_clause_candidates'],'out of',semantic['evaluated_research_links'],'research leads; 0 certified effective states')
           print('P3 ORIGINAL SOURCE RESEARCH ACCEPTED',report['index_lookups'],'issuers',original['retrieved'],'retrieved original PDFs, ZERO certified PIT')
           PY
       - uses: actions/upload-artifact@v4
