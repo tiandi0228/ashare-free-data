@@ -54,6 +54,12 @@ class CycleTests(unittest.TestCase):
     def test_unfilled_entry_excluded(self):
         x=audit(**args(buy_order=order("BUY",DAYS[0],fills=0),sell_order=None))
         self.assertEqual(x["position_state"],"UNFILLED_ENTRY_EXCLUDED_FROM_RETURNS")
+    def test_future_sell_order_rejected(self):
+        with self.assertRaises(ValueError):
+            audit(**args(sell_order=order("SELL", DAYS[6])))
+    def test_sell_limit_must_match_preflight(self):
+        with self.assertRaises(ValueError):
+            audit(**args(exit_market_inputs={**MARKET,"order_limit_price":"6.35"}))
     def test_conflicting_market_date_rejected(self):
         with self.assertRaises(ValueError):
             audit(**args(exit_market_inputs={**MARKET,"exit_day":DAYS[2]}))
