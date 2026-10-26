@@ -26,8 +26,8 @@ def exit_assessment(*,entry_day,observation_day,trading_sessions_elapsed,low,hig
     elif not fill_proven:
         outcome="EXIT_SIGNAL_UNFILLED"
     else:
-        outcome="VERIFIED_FILL_EXTERNAL_EVIDENCE_REQUIRED"
+        outcome="FILL_CLAIM_REQUIRES_INDEPENDENT_RECEIPT"
     return {"phase":"P4_EXIT_RESEARCH_GATE","reasons":reasons,"outcome":outcome,
             "conservative_stop_precedence":stop_hit and profit_hit,
-            "recorded_fill":bool(fill_proven and tradable and reasons and not (stop_hit and profit_hit)),
+            "recorded_fill":False,
             "historical_OOS_validated":False,"trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
