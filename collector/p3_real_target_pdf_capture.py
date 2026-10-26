@@ -18,7 +18,7 @@ def _research_priority(title):
         raise ValueError("invalid unverified index title")
     upper=title.upper()
     return (2 if any(term in title for term in RISK_WORDS) else
-            1 if re.search(r"(?<![A-Z])\\*?ST(?![A-Z])",upper) else 0)
+            1 if re.search(r"(?<![A-Z])\*?ST(?![A-Z])",upper) else 0)
 
 def choose(report,limit=3):
     if report.get("phase")!="P3_REAL_P1_LIVE_INDEX_DISCOVERY" or report.get("trade_gate")!="BLOCKED":
