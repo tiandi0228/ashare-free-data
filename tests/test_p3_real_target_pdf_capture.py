@@ -28,6 +28,16 @@ class TestLiveCapture(unittest.TestCase):
     def test_no_risk_keyword_is_fallback_not_certified(self):
         r=choose(self.sample())
         self.assertEqual(r[0]["selection_reason"],"INDEX_ORDER_FALLBACK")
+    def test_star_st_title_is_prioritized_as_research_only(self):
+        report=self.sample()
+        report["results"][0]["candidates"][0]["announcement_title_unverified"]="关于公司经营情况的公告"
+        report["results"][0]["candidates"].append({
+            "official_pdf_url":"https://static.cninfo.com.cn/finalpage/2026-01-03/123456791.PDF",
+            "announcement_id":"123456791","announcement_title_unverified":"关于实施*ST风险警示的公告",
+            "historical_PIT_verified":False})
+        chosen=choose(report)
+        self.assertEqual(chosen[0]["announcement_id"],"123456791")
+        self.assertEqual(chosen[0]["selection_reason"],"RISK_TITLE_RESEARCH_PRIORITY")
     def test_reject_untrusted_url(self):
         r=self.sample();r["results"][0]["candidates"][0]["official_pdf_url"]="https://evil.invalid/x.pdf"
         with self.assertRaises(ValueError):choose(r)
