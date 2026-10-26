@@ -42,6 +42,22 @@ class LedgerTests(unittest.TestCase):
         prior["pending_shards"]=[]
         with self.assertRaises(ValueError):reconcile(self.plan,[],prior)
 
+    def test_duplicate_receipt_rejected(self):
+        with self.assertRaises(ValueError):
+            reconcile(self.plan,[(0,self.receipt(0)),(0,self.receipt(0))])
+
+    def test_changed_completed_receipt_rejected(self):
+        previous=reconcile(self.plan,[(0,self.receipt(0))])
+        altered=self.receipt(0)
+        altered["results"][0]["sha256"]="e"*64
+        with self.assertRaises(ValueError):
+            reconcile(self.plan,[(0,altered)],previous)
+
+    def test_identical_completed_receipt_allowed(self):
+        previous=reconcile(self.plan,[(0,self.receipt(0))])
+        current=reconcile(self.plan,[(0,self.receipt(0))],previous)
+        self.assertEqual(current["completed"],previous["completed"])
+
     def test_bad_receipt_not_counted(self):
         r=self.receipt(0);r["results"][0]["status"]="ERROR"
         a=reconcile(self.plan,[(0,r)])
