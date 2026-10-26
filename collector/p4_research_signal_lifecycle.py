@@ -3,7 +3,7 @@ from datetime import date
 import re
 
 SHA=re.compile(r"[a-f0-9]{64}\Z")
-def advance(*,state,event,decision_day,observation_day,receipt_sha256=None):
+def advance(*,state,event,decision_day,observation_day,receipt_sha256=None,entry_day=None):
     if state not in ("SIGNAL_READY","UNFILLED","ENTRY_EVIDENCED","EXIT_EVIDENCED"):
         raise ValueError("invalid research state")
     if event not in ("EXPIRE_UNFILLED","OBSERVE_ENTRY","OBSERVE_EXIT"):
@@ -14,11 +14,12 @@ def advance(*,state,event,decision_day,observation_day,receipt_sha256=None):
         if state!="SIGNAL_READY" or receipt_sha256 is not None:raise ValueError("invalid unfilled expiry")
         new="UNFILLED"
     elif event=="OBSERVE_ENTRY":
-        if state!="SIGNAL_READY" or observed<=start or not isinstance(receipt_sha256,str) or not SHA.fullmatch(receipt_sha256):
+        if state!="SIGNAL_READY" or observed<start or not isinstance(receipt_sha256,str) or not SHA.fullmatch(receipt_sha256):
             raise ValueError("entry needs later independently evidenced observation")
         new="ENTRY_EVIDENCED"
     else:
-        if state!="ENTRY_EVIDENCED" or observed<=start or not isinstance(receipt_sha256,str) or not SHA.fullmatch(receipt_sha256):
+        if (state!="ENTRY_EVIDENCED" or not isinstance(entry_day,str) or
+            observed<=date.fromisoformat(entry_day) or date.fromisoformat(entry_day)<start or not isinstance(receipt_sha256,str) or not SHA.fullmatch(receipt_sha256):
             raise ValueError("exit needs independent later receipt")
         new="EXIT_EVIDENCED"
     return {"phase":"P4_V22_RESEARCH_SIGNAL_LIFECYCLE","from_state":state,
