@@ -7,6 +7,8 @@ on:
       - 'collector/p3_free_official_multi_issuer_probe.py'
       - 'collector/p3_publication_time_provenance_gate.py'
       - 'collector/p3_official_scope_overlap.py'
+      - 'collector/p3_real_official_discovery_queue.py'
+      - 'tests/test_p3_real_official_discovery_queue.py'
       - 'tests/test_p3_official_scope_overlap.py'
       - 'tests/test_p3_publication_time_provenance_gate.py'
       - 'collector/p3_free_official_probe_manifest.json'
@@ -33,6 +35,8 @@ jobs:
         run: python -m unittest tests.test_p3_publication_time_provenance_gate -v
       - name: Test P1 versus official-source cross-coverage accounting
         run: python -m unittest tests.test_p3_official_scope_overlap -v
+      - name: Test real unmatched official discovery targeting
+        run: python -m unittest tests.test_p3_real_official_discovery_queue -v
       - name: Acquire six original official-source announcements for free
         run: python -m collector.p3_free_official_multi_issuer_probe --manifest collector/p3_free_official_probe_manifest.json --out evidence
       - name: Reject unsupported original-publication timestamp claims
@@ -77,6 +81,7 @@ jobs:
           gh run download "$RUN_ID" --name "p1-fresh-roster-$RUN_ID" --dir p1-artifact
           test -s p1-artifact/p3_official_evidence_worklist.json
           python -m collector.p3_official_scope_overlap --worklist p1-artifact/p3_official_evidence_worklist.json --sources evidence/quality.json --out evidence/p1_official_scope_overlap.json
+          python -m collector.p3_real_official_discovery_queue --worklist p1-artifact/p3_official_evidence_worklist.json --sources evidence/quality.json --out evidence/real_official_discovery_queue.json
           python - <<'PY'
           import json
           from pathlib import Path
