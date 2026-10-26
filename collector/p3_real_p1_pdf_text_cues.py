@@ -24,6 +24,12 @@ def extract(root):
             if len(reader.pages)>80:raise ValueError("too many source pages")
             text="".join((p.extract_text() or "") for p in reader.pages)
             normalized="".join(text.split())
+            contexts=[]
+            for m in list(DATE.finditer(normalized))[:30]:
+                excerpt=normalized[max(0,m.start()-70):min(len(normalized),m.end()+70)]
+                contexts.append({"date_text":m.group(0),"source_text_context":excerpt,
+                                 "effective_date_certified":False})
+            item["date_contexts_research_only"]=contexts
             item.update(text_status="TEXT_EXTRACTED_RESEARCH_ONLY" if normalized else "NO_EXTRACTABLE_TEXT",
                         issuer_code_in_text=row["issuer"][-6:] in normalized,
                         event_keyword_presence={k:k in normalized for k in KEYWORDS},
