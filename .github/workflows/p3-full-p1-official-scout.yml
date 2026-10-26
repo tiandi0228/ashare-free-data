@@ -7,6 +7,8 @@ on:
       - 'collector/p3_full_queue_source_join.py'
       - 'collector/p3_original_effective_clause_review.py'
       - 'collector/p3_official_original_archive.py'
+      - 'collector/p3_persisted_temporal_risk_triage.py'
+      - 'tests/test_p3_persisted_temporal_risk_triage.py'
       - 'tests/test_p3_official_original_archive.py'
       - 'tests/test_p3_original_effective_clause_review.py'
       - 'tests/test_p3_full_queue_scout.py'
@@ -36,7 +38,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline boundaries and official-source tests
-        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture tests.test_p3_original_effective_clause_review tests.test_p3_official_original_archive -v
+        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture tests.test_p3_original_effective_clause_review tests.test_p3_official_original_archive tests.test_p3_persisted_temporal_risk_triage -v
       - name: Install free PDF text parser
         run: python -m pip install 'pypdf>=4,<7'
       - name: Fetch successful original P1 queue artifact
@@ -131,6 +133,24 @@ jobs:
           assert audit['trade_gate']=='BLOCKED' and audit['orders']==[]
           print('P3 DURABLE ORIGINAL ARCHIVE PASS:',audit['retrieved_and_persisted_originals'],
                 'PDFs persisted & replayed with',audit['archived_semantic_research_links'],'research leads; 0 PIT certifications')
+          PY
+      - name: Independently flag archived approval-vs-effective and event-vs-decision date risks
+        run: |
+          python -m collector.p3_persisted_temporal_risk_triage \
+            --manifest "archived-official-research/runs/${{ github.run_id }}.json" \
+            --out evidence/p3_persisted_temporal_risk_triage.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          triage=json.loads(Path('evidence/p3_persisted_temporal_risk_triage.json').read_text())
+          review=json.loads(Path('evidence/original_effective_clause_review.json').read_text())
+          assert triage['explicit_textual_candidate_count']==review['explicit_original_clause_candidates']
+          assert triage['historical_PIT_verified'] is False
+          assert triage['certified_event_effective_dates']==0
+          assert triage['trade_gate']=='BLOCKED' and triage['orders']==[]
+          print('P3 TEMPORAL SANITY: unverified text candidates',triage['explicit_textual_candidate_count'],
+                'date mismatches',triage['candidate_with_text_date_not_decision_day'],
+                'approval/consent caveats',triage['candidate_with_approval_not_effective_date'])
           PY
       - uses: actions/upload-artifact@v4
         if: always()
