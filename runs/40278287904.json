@@ -1,0 +1,72 @@
+{
+  "audited_issuer_count": 448,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 2,
+  "historical_PIT_verified": false,
+  "orders": [],
+  "original_pdf_count": 1,
+  "p1_upstream_run_id": 40278047600,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 3976,
+  "research_date_action_links": [
+    {
+      "announcement_id": "1221739765",
+      "claimed_index_publication_utc_unverified": "2024-11-15T16:00:00+00:00",
+      "decision_day": "2024-11-18",
+      "decision_time_available_certified": false,
+      "effective_date_authenticated": false,
+      "event_kind": "halt",
+      "first_publication_authenticated": false,
+      "index_time_screen": "INDEX_TIME_NOT_AFTER_DECISION_CLOSE_UNVERIFIED",
+      "issuer": "sh.600356",
+      "local_textual_direction_candidate": "HALT_START",
+      "original_pdf_sha256": "aa8aa9eb2b756fe70930ecfaa2fe2733bb4679791b83ed58fb3d9384dc5abf3e",
+      "source_clause_excerpt": "公司股票将于2024年11月18日（星期一）开市起停牌",
+      "source_date_text": "2024年11月18日",
+      "source_shard": 32,
+      "vendor_csv_sha256": "7e0bcb005f6dcf4561e19973df47538ffc78214ac266257056bbc040e6f6acf2",
+      "vendor_tradestatus_observed": "0"
+    },
+    {
+      "announcement_id": "1221739765",
+      "claimed_index_publication_utc_unverified": "2024-11-15T16:00:00+00:00",
+      "decision_day": "2024-11-28",
+      "decision_time_available_certified": false,
+      "effective_date_authenticated": false,
+      "event_kind": "halt",
+      "first_publication_authenticated": false,
+      "index_time_screen": "INDEX_TIME_NOT_AFTER_DECISION_CLOSE_UNVERIFIED",
+      "issuer": "sh.600356",
+      "local_textual_direction_candidate": "HALT_START",
+      "original_pdf_sha256": "aa8aa9eb2b756fe70930ecfaa2fe2733bb4679791b83ed58fb3d9384dc5abf3e",
+      "source_clause_excerpt": "公司股票将于2024年11月18日（星期一）开市起停牌",
+      "source_date_text": "2024年11月18日",
+      "source_shard": 32,
+      "vendor_csv_sha256": "7e0bcb005f6dcf4561e19973df47538ffc78214ac266257056bbc040e6f6acf2",
+      "vendor_tradestatus_observed": "0"
+    }
+  ],
+  "run_id": 40278287904,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1221739765",
+      "archive_path": "pdf/sh_600356/1221739765/aa8aa9eb2b756fe70930ecfaa2fe2733bb4679791b83ed58fb3d9384dc5abf3e.pdf",
+      "bytes": 610397,
+      "captured_at_utc": "2026-10-26T06:10:58.714539+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1731686400000,
+      "issuer": "sh.600356",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2024-11-16/1221739765.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "aa8aa9eb2b756fe70930ecfaa2fe2733bb4679791b83ed58fb3d9384dc5abf3e",
+      "title_from_index_unverified": "恒丰纸业关于筹划发行股份购买资产事项的停牌公告"
+    }
+  ],
+  "source_roster_sha256": "3529685a3d2d6402bffb7afef1e075b1385f59b06dc8a4920f95fd59d0d5a99a",
+  "trade_gate": "BLOCKED"
+}
