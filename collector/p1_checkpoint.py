@@ -21,8 +21,14 @@ def validate(ledger):
     if type(ledger.get("shard_count")) is not int or not 1<=ledger["shard_count"]<=10000:
         raise ValueError("invalid checkpoint shard count")
     epoch_path(ledger.get("source_sha256"))
-    done=ledger.get("completed",[])
-    if len(done)!=ledger.get("completed_shards") or sum(x["issuer_count"] for x in done)!=ledger.get("completed_issuers"):
+    done=ledger.get("completed")
+    if not isinstance(done,list) or any(not isinstance(x,dict) for x in done):
+        raise ValueError("invalid completed shard records")
+    if (type(ledger.get("completed_shards")) is not int or
+        type(ledger.get("completed_issuers")) is not int or
+        len(done)!=ledger["completed_shards"] or
+        any(type(x.get("issuer_count")) is not int for x in done) or
+        sum(x["issuer_count"] for x in done)!=ledger["completed_issuers"]):
         raise ValueError("inconsistent checkpoint counts")
     if any(type(x.get("index")) is not int or type(x.get("issuer_count")) is not int or not 0<=x["index"]<ledger["shard_count"] or not 1<=x["issuer_count"]<=8 or len(x.get("receipt_sha256",""))!=64 for x in done):
         raise ValueError("invalid checkpoint entries")
