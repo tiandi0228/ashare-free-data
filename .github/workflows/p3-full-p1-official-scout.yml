@@ -8,6 +8,8 @@ on:
       - 'collector/p3_original_effective_clause_review.py'
       - 'collector/p3_official_original_archive.py'
       - 'collector/p3_persisted_temporal_risk_triage.py'
+      - 'collector/p3_archived_event_episode_ledger.py'
+      - 'tests/test_p3_archived_event_episode_ledger.py'
       - 'tests/test_p3_persisted_temporal_risk_triage.py'
       - 'tests/test_p3_official_original_archive.py'
       - 'tests/test_p3_original_effective_clause_review.py'
@@ -38,7 +40,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline boundaries and official-source tests
-        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture tests.test_p3_original_effective_clause_review tests.test_p3_official_original_archive tests.test_p3_persisted_temporal_risk_triage -v
+        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture tests.test_p3_original_effective_clause_review tests.test_p3_official_original_archive tests.test_p3_persisted_temporal_risk_triage tests.test_p3_archived_event_episode_ledger -v
       - name: Install free PDF text parser
         run: python -m pip install 'pypdf>=4,<7'
       - name: Fetch successful original P1 queue artifact
@@ -151,6 +153,28 @@ jobs:
           print('P3 TEMPORAL SANITY: unverified text candidates',triage['explicit_textual_candidate_count'],
                 'date mismatches',triage['candidate_with_text_date_not_decision_day'],
                 'approval/consent caveats',triage['candidate_with_approval_not_effective_date'])
+          PY
+      - name: Replay all archived original PDFs and research halt-resume event episodes
+        run: |
+          python -m collector.p3_archived_event_episode_ledger \
+            --root archived-official-research \
+            --out evidence/p3_all_archived_original_event_episodes.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report=json.loads(Path('evidence/p3_all_archived_original_event_episodes.json').read_text())
+          assert report['runs_replayed']>=1
+          assert report['raw_text_assertion_references']>=report['deduplicated_text_event_claims']
+          assert report['official_PIT_cells_certified']==0
+          assert report['historical_first_publication_authenticated'] is False
+          assert report['complete_issuer_halt_intervals_certified'] is False
+          assert report['historical_PIT_verified'] is False
+          assert report['trade_gate']=='BLOCKED' and report['orders']==[]
+          print('P3 ARCHIVED EVENT EPISODES: runs',report['runs_replayed'],
+                'unique text events',report['deduplicated_text_event_claims'],
+                'unpaired halt evidence',report['unpaired_halt_starts_needing_resumption_search'],
+                'paired text events UNCERTIFIED',report['paired_halt_resume_text_claims_unverified'],
+                'certified states ZERO')
           PY
       - uses: actions/upload-artifact@v4
         if: always()
