@@ -44,6 +44,12 @@ class FullQueueTests(unittest.TestCase):
         q=build(self.root,self.plan,self.ledger)
         self.assertEqual(q["completed_issuers_replayed"],2)
         self.assertEqual(q["required_official_evidence_cells"],16)
+        self.assertTrue(q["vendor_suspended_context_included"])
+        self.assertEqual(q["issuers_with_vendor_nontrading_history"],1)
+        risk=[t for t in q["official_evidence_tasks"] if t["issuer"]=="sz.000001" and t["decision_day"]=="2026-10-19"]
+        self.assertEqual(len(risk),4)
+        self.assertTrue(all(t["vendor_tradestatus_observed"]=="0" for t in risk))
+        self.assertTrue(all(t["historical_asof_verified"] is False for t in risk))
         self.assertEqual({r["issuer"] for r in q["official_evidence_tasks"]},{"sz.000001","sh.600001"})
         self.assertEqual(q["independently_verified_official_PIT_cells"],0)
         self.assertEqual(q["frozen_vendor_query_end"],"2026-10-20")
