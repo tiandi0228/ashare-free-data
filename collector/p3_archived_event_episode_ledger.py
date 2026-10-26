@@ -92,9 +92,7 @@ def build(root):
                     "first_publication_authenticated":False,
                     "effective_date_certified":False,
                     "historical_asof_trade_eligible":False}
-    if raw_claims!=sum(len(set(c["decision_days_observed"])) for c in claims.values()):
-        # Multiple run replays can repeat the same decision day; dedupe is expected.
-        if raw_claims< len(claims):raise ValueError("research claim accounting")
+    if raw_claims<len(claims):raise ValueError("research claim accounting impossible")
     ordered=sorted(claims.values(),key=lambda e:(e["issuer"],e["claimed_event_day"],
                 e["announcement_id"],e["textual_direction"]))
     for item in ordered:
