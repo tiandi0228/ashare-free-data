@@ -57,6 +57,22 @@ class Tests(unittest.TestCase):
     def test_rotation_differs_after_new_shards(self):
         self.assertNotEqual([x["issuer"] for x in plan(q(8))["targets"]],
                             [x["issuer"] for x in plan(q(12))["targets"]])
+    def test_prioritize_vendor_nontrading_not_official(self):
+        r=q()
+        r["vendor_suspended_context_included"]=True
+        for row in r["official_evidence_tasks"]:
+            row["vendor_tradestatus_observed"]="0" if row["issuer"]=="sz.000002" else "1"
+        result=plan(r)
+        self.assertEqual(result["targets"][0]["issuer"],"sz.000002")
+        self.assertEqual(result["targets"][0]["vendor_suspended_research_days"],["2026-10-20"])
+        self.assertEqual(result["vendor_nontrading_research_targets"],1)
+        self.assertFalse(result["official_PIT_verified"])
+    def test_inconsistent_vendor_status_fails_closed(self):
+        r=q()
+        r["vendor_suspended_context_included"]=True
+        for row in r["official_evidence_tasks"]:row["vendor_tradestatus_observed"]="1"
+        r["official_evidence_tasks"][0]["vendor_tradestatus_observed"]="0"
+        with self.assertRaises(ValueError):plan(r)
     def test_reject_fake_pit_and_duplicate(self):
         data=q();data["official_evidence_tasks"][0]["historical_asof_verified"]=True
         with self.assertRaises(ValueError):plan(data)
