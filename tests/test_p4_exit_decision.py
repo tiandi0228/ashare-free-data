@@ -20,6 +20,11 @@ class ExitGateTests(unittest.TestCase):
         x=exit_assessment(**p)
         self.assertIn("D_PLUS_3",x["reasons"])
         self.assertFalse(x["recorded_fill"])
+    def test_caller_fill_claim_does_not_fabricate_trade(self):
+        p={**self.params(),"low":9.5,"tradable":True,"fill_proven":True}
+        x=exit_assessment(**p)
+        self.assertEqual(x["outcome"],"FILL_CLAIM_REQUIRES_INDEPENDENT_RECEIPT")
+        self.assertFalse(x["recorded_fill"])
     def test_friday_exit(self):
         p={**self.params(),"observation_day":"2026-10-23"}
         self.assertIn("FRIDAY_EXIT",exit_assessment(**p)["reasons"])
