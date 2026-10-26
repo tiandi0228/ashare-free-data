@@ -95,6 +95,22 @@ class CheckpointTests(unittest.TestCase):
         candidate["pending_shards"]=[0];candidate["next_shard"]=0
         with self.assertRaises(ValueError):merge(candidate,previous)
 
+    def test_malformed_completed_records_fail_closed(self):
+        for value in (None, {}, "not-a-list", [None], ["text"], [4]):
+            with self.subTest(value=value):
+                record=self.ledger(1);record["completed"]=value
+                with self.assertRaises(ValueError):validate(record)
+
+    def test_non_integer_completed_totals_fail_closed(self):
+        for key,value in (("completed_shards",True),("completed_issuers",8.0)):
+            with self.subTest(key=key):
+                record=self.ledger(1);record[key]=value
+                with self.assertRaises(ValueError):validate(record)
+
+    def test_non_integer_completed_issuer_count_fail_closed(self):
+        record=self.ledger(1);record["completed"][0]["issuer_count"]=True
+        with self.assertRaises(ValueError):validate(record)
+
     def test_wrong_source_hash_rejected(self):
         record=self.ledger(1)
         record["source_sha256"]="not_a_sha"
