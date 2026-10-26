@@ -54,6 +54,26 @@ class TestLiveCapture(unittest.TestCase):
         self.assertEqual(picked["announcement_id"],"123456790")
         self.assertTrue(picked["could_precede_target_decision_day_unverified"])
         self.assertFalse(picked["first_publication_time_authenticated"])
+    def test_prioritize_halt_transition_over_recent_generic_date(self):
+        report=self.sample()
+        report["results"][0]["candidates"][0]["announcement_title_unverified"]="经营情况说明"
+        report["results"][0]["candidates"][0]["official_pdf_url"]="https://static.cninfo.com.cn/finalpage/2026-10-19/123456789.PDF"
+        report["results"][0]["candidates"].append({
+            "official_pdf_url":"https://static.cninfo.com.cn/finalpage/2026-09-13/123456790.PDF",
+            "announcement_id":"123456790","announcement_title_unverified":"关于股票停牌公告",
+            "historical_PIT_verified":False})
+        scout={"phase":"P3_REAL_P1_UNMATCHED_OFFICIAL_DISCOVERY_QUEUE",
+               "trade_gate":"BLOCKED","official_PIT_verified":False,
+               "targets":[{"issuer":"sz.000001","observed_decision_dates":["2026-09-14","2026-10-20"],
+                           "vendor_halt_transition_research_days":["2026-09-14"],
+                           "vendor_suspended_research_days":["2026-09-14"]}]}
+        self.assertEqual(choose(report,scout=scout)[0]["announcement_id"],"123456790")
+    def test_vendor_transition_not_in_source_scope_rejected(self):
+        scout={"phase":"P3_REAL_P1_UNMATCHED_OFFICIAL_DISCOVERY_QUEUE",
+               "trade_gate":"BLOCKED","official_PIT_verified":False,
+               "targets":[{"issuer":"sz.000001","observed_decision_dates":["2026-10-20"],
+                           "vendor_halt_transition_research_days":["2026-09-14"]}]}
+        with self.assertRaises(ValueError):choose(self.sample(),scout=scout)
     def test_frozen_scope_mismatch_fails_closed(self):
         scout={"phase":"P3_REAL_P1_UNMATCHED_OFFICIAL_DISCOVERY_QUEUE",
                "trade_gate":"BLOCKED","official_PIT_verified":False,
