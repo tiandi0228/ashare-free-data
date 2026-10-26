@@ -1,6 +1,7 @@
 """Bounded live CNINFO index lookup for actual missing P1 issuers; no PIT promotion."""
 import argparse,json,re
-from datetime import date
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from urllib.parse import urlencode
 from urllib.request import Request,urlopen
@@ -21,7 +22,7 @@ def select_targets(queue,limit=3):
 def query(issuer):
     code=issuer[-6:]
     params={"pageNum":1,"pageSize":30,"tabName":"fulltext","searchkey":code,
-            "seDate":"2025-01-01~2026-10-26","plate":"sh" if issuer.startswith("sh.") else "sz"}
+            "seDate":"2024-10-20~"+datetime.now(ZoneInfo('Asia/Shanghai')).date().isoformat(),"plate":"sh" if issuer.startswith("sh.") else "sz"}
     req=Request(ENDPOINT,data=urlencode(params).encode(),headers={"User-Agent":"Mozilla/5.0",
             "Referer":"https://www.cninfo.com.cn/","Content-Type":"application/x-www-form-urlencoded"},method="POST")
     with urlopen(req,timeout=18) as r:
@@ -39,6 +40,7 @@ def query(issuer):
         found.append({"announcement_id":str(e.get("announcementId","")),
                       "official_pdf_url":"https://static.cninfo.com.cn/"+path,
                       "index_published_milliseconds_unverified":e.get("announcementTime"),
+                      "announcement_title_unverified":str(e.get("announcementTitle", ""))[:200],
                       "original_bytes_captured":False,"historical_PIT_verified":False})
     return found
 
