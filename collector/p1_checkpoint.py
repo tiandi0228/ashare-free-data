@@ -114,8 +114,8 @@ def main():
     if a.source_sha and candidate.get("source_sha256")!=a.source_sha:
         raise ValueError("checkpoint source SHA mismatch")
     chosen=merge(candidate,remote)
-    if chosen is remote:
-        print("Preserved higher-progress remote checkpoint")
+    if chosen is remote or (remote is not None and chosen==remote):
+        print("No new shard evidence; durable checkpoint unchanged")
         return
     data=base64.b64encode((json.dumps(chosen,indent=2,ensure_ascii=False)+chr(10)).encode()).decode()
     params=["-X","PUT",f"repos/{a.repo}/contents/{checkpoint}","-f","message=chore(p1): persist audited no-trade shard checkpoint","-f",f"content={data}","-f","branch=main"]
