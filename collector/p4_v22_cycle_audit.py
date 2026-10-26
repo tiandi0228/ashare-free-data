@@ -26,6 +26,8 @@ def audit(*, issuer, buy_order, sell_order, asof_day, calendar_sessions,
     sessions = [date.fromisoformat(x) for x in calendar_sessions]
     if sessions != sorted(sessions) or today not in sessions:
         raise ValueError("observation day not in ordered calendar")
+    if date.fromisoformat(buy_order["placed_at"][:10]) > today:
+        raise ValueError("future buy order timestamp")
     buy = replay_order(**buy_order)
     if buy["side"] != "BUY":
         raise ValueError("buy leg required")
@@ -56,6 +58,10 @@ def audit(*, issuer, buy_order, sell_order, asof_day, calendar_sessions,
             raise ValueError("exit market input conflicts with entry, date or side")
     preflight = preflight_check(**{**exit_market_inputs, **fixed})
     if sell_order is not None:
+        if date.fromisoformat(sell_order["placed_at"][:10]) > today:
+            raise ValueError("future sell order timestamp")
+        if Decimal(str(exit_market_inputs.get("order_limit_price"))) != Decimal(str(sell_order["limit_price"])):
+            raise ValueError("sell receipt order limit differs from preflight quote")
         if any(date.fromisoformat(e["observed_at"][:10]) > today for e in sell_order["events"]):
             raise ValueError("future sell evidence")
         if _fill_days(sell_order) - {today}:
