@@ -7,7 +7,9 @@ class CheckpointTests(unittest.TestCase):
                 "historical_PIT_verified":False,"orders":[],"executable_candidates":[],
                 "source_sha256":"a"*64,"shard_count":2,
                 "completed":[{"index":i,"issuer_count":8,"manifest_sha256":"b"*64,"receipt_sha256":"c"*64} for i in range(n)],
-                "completed_shards":n,"completed_issuers":n*8}
+                "completed_shards":n,"completed_issuers":n*8,
+                "pending_shards":list(range(n,2)), "next_shard":n if n<2 else None,
+                "failed_in_this_reconciliation":[], "full_market_bars_certified":False}
     def test_epoch_checkpoint_is_content_addressed(self):
         self.assertEqual(epoch_path("a"*64),"evidence/checkpoints/"+"a"*64+".json")
         with self.assertRaises(ValueError):epoch_path("../invalid")
@@ -47,6 +49,19 @@ class CheckpointTests(unittest.TestCase):
     def test_out_of_range_shard_rejected(self):
         record=self.ledger(1)
         record["completed"][0]["index"]=record["shard_count"]
+        with self.assertRaises(ValueError):validate(record)
+
+    def test_pending_ledger_mismatch_rejected(self):
+        record=self.ledger(1);record["pending_shards"]=[]
+        with self.assertRaises(ValueError):validate(record)
+    def test_next_shard_mismatch_rejected(self):
+        record=self.ledger(1);record["next_shard"]=0
+        with self.assertRaises(ValueError):validate(record)
+    def test_invalid_evidence_digest_rejected(self):
+        record=self.ledger(1);record["completed"][0]["manifest_sha256"]="z"*64
+        with self.assertRaises(ValueError):validate(record)
+    def test_unverified_cannot_claim_full_market(self):
+        record=self.ledger(1);record["full_market_bars_certified"]=True
         with self.assertRaises(ValueError):validate(record)
 
     def test_wrong_source_hash_rejected(self):
