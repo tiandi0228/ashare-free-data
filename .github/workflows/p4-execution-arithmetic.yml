@@ -11,6 +11,8 @@ on:
       - 'tests/test_p4_calendar_limit_gate.py'
       - 'collector/p4_signal_fill_audit.py'
       - 'collector/p4_research_signal_lifecycle.py'
+      - 'collector/p4_limit_order_replay.py'
+      - 'tests/test_p4_limit_order_replay.py'
       - 'tests/test_p4_research_signal_lifecycle.py'
       - 'tests/test_p4_signal_fill_audit.py'
       - 'collector/p4_integrated_research_gate.py'
@@ -29,4 +31,4 @@ jobs:
         with:
           python-version: '3.11'
       - name: Test T+1 fees slippage and research-only gate
-        run: python -m unittest tests.test_p4_execution_arithmetic tests.test_p4_exit_decision tests.test_p4_calendar_limit_gate tests.test_p4_signal_fill_audit tests.test_p4_integrated_research_gate tests.test_p4_research_signal_lifecycle -v
+        run: python -m unittest tests.test_p4_execution_arithmetic tests.test_p4_exit_decision tests.test_p4_calendar_limit_gate tests.test_p4_signal_fill_audit tests.test_p4_integrated_research_gate tests.test_p4_research_signal_lifecycle tests.test_p4_limit_order_replay -v
