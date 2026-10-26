@@ -40,6 +40,7 @@ def build(root,plan,ledger):
         set(archived)!=set(by_index)):
         raise ValueError("archive not identical to completed checkpoint")
     tasks=[];issuer_count=0;seen=set();source_first=None;source_last=None
+    vendor_nontrading_issuer_count=0;vendor_nontrading_date_count=0
     for index in sorted(by_index):
         completed_shard=by_index[index];expected=shards[index]
         if (completed_shard.get("issuer_count")!=expected["count"] or
@@ -66,13 +67,21 @@ def build(root,plan,ledger):
             source_first=min(source_first or rows[0]["date"],rows[0]["date"])
             source_last=max(source_last or rows[-1]["date"],rows[-1]["date"])
             selected={row["date"] for row in rows[-2:]}
-            risk_dates=[row["date"] for row in rows if row["tradestatus"]!="1"]
+            status_by_day={row["date"]:row["tradestatus"] for row in rows}
+            risk_dates=[row["date"] for row in rows if row["tradestatus"]=="0"]
+            transitions=[row["date"] for i,row in enumerate(rows)
+                         if i>0 and row["tradestatus"]=="0" and rows[i-1]["tradestatus"]=="1"]
             if risk_dates:
+                vendor_nontrading_issuer_count+=1
                 selected.add(risk_dates[-1])
+                if transitions:selected.add(transitions[-1])
+                vendor_nontrading_date_count+=sum(status_by_day[day]=="0" for day in selected)
             for day in sorted(selected):
                 for kind in KINDS:
                     tasks.append({"issuer":code,"decision_day":day,"status_kind":kind,
                                   "source_shard":index,"vendor_csv_sha256":source_sha,
+                                  "vendor_tradestatus_observed":status_by_day[day],
+                                  "vendor_possible_halt_transition_observed":day in transitions,
                                   "official_original_sha256":None,
                                   "official_publisher_authenticated":False,
                                   "official_first_publication_utc":None,
@@ -88,7 +97,10 @@ def build(root,plan,ledger):
             "completed_shards_replayed":len(by_index),
             "completed_issuers_replayed":issuer_count,
             "original_csv_replayed_by_P2":True,
-            "sample_selection":"LAST_TWO_VENDOR_ROWS_PLUS_LATEST_VENDOR_NONTRADING_IF_PRESENT",
+            "sample_selection":"LAST_TWO_VENDOR_ROWS_PLUS_LAST_NONTRADING_AND_LATEST_ACTIVE_TO_NONTRADING_TRANSITION",
+            "vendor_suspended_context_included":True,
+            "issuers_with_vendor_nontrading_history":vendor_nontrading_issuer_count,
+            "latest_vendor_nontrading_days_sampled":vendor_nontrading_date_count,
             "source_first_vendor_bar_day":source_first,
             "source_last_vendor_bar_day":source_last,
             "frozen_vendor_query_end":END,

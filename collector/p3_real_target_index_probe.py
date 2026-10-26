@@ -5,7 +5,7 @@ notice completeness or historical trading eligibility. Search only three
 pages per issuer; no results never mean the issuer was safe.
 """
 import argparse,json,re
-from datetime import datetime
+from datetime import date,datetime,timedelta
 from zoneinfo import ZoneInfo
 from pathlib import Path
 from urllib.parse import urlencode
@@ -38,7 +38,7 @@ def _post_query(params):
     if len(raw)>1500000:raise ValueError("oversized index response")
     return json.loads(raw)
 
-def query(issuer,fetch_page=None,max_pages=MAX_PAGES):
+def query(issuer,fetch_page=None,max_pages=MAX_PAGES,observed_dates=None):
     if not isinstance(issuer,str) or not CODE_RE.fullmatch(issuer):
         raise ValueError("not a mainboard issuer")
     if type(max_pages)!=int or not 1<=max_pages<=MAX_PAGES:
@@ -46,13 +46,26 @@ def query(issuer,fetch_page=None,max_pages=MAX_PAGES):
     fetch_page=fetch_page or _post_query
     code=issuer[-6:]
     column="sse" if issuer.startswith("sh.") else "szse"
-    end=datetime.now(ZoneInfo("Asia/Shanghai")).date().isoformat()
+    today=datetime.now(ZoneInfo("Asia/Shanghai")).date()
+    start=date.fromisoformat("2024-10-20")
+    end=today
+    if observed_dates is not None:
+        if (not isinstance(observed_dates,list) or not 1<=len(observed_dates)<=3
+            or observed_dates!=sorted(set(observed_dates))):
+            raise ValueError("invalid bounded vendor suspension dates")
+        dates=[date.fromisoformat(x) for x in observed_dates]
+        if any(x>today for x in dates):raise ValueError("future vendor suspension")
+        # A narrow historical source-search window, not proof of the
+        # notice's first publication or effective date.
+        start=min(dates)-timedelta(days=45)
+        end=min(today,max(dates)+timedelta(days=7))
+    window=start.isoformat()+"~"+end.isoformat()
     found=[];seen=set()
     for page in range(1,max_pages+1):
         params={"pageNum":page,"pageSize":PAGE_SIZE,"tabName":"fulltext",
                 "column":column,"plate":"sh" if column=="sse" else "sz",
                 "stock":"","searchkey":code,"category":"","sortName":"",
-                "sortType":"","seDate":"2024-10-20~"+end}
+                "sortType":"","seDate":window}
         data=fetch_page(params)
         if not isinstance(data,dict) or not isinstance(data.get("announcements"),list):
             raise ValueError("index missing announcements, not proof of no notices")
@@ -86,11 +99,21 @@ def run(queue,client=query):
     results=[]
     for issuer in codes:
         try:
-            candidates=client(issuer)
+            target=next((t for t in queue["targets"] if t["issuer"]==issuer),{})
+            transition=target.get("vendor_halt_transition_research_days") or []
+            vendor_nontrading=target.get("vendor_suspended_research_days") or []
+            if transition:
+                candidates=client(issuer,observed_dates=transition[-3:])
+            elif vendor_nontrading:
+                candidates=client(issuer,observed_dates=vendor_nontrading[-3:])
+            else:
+                candidates=client(issuer)
             if not isinstance(candidates,list) or len(candidates)>MAX_PAGES*PAGE_SIZE:
                 raise ValueError("invalid or oversized client candidates")
             results.append({"issuer":issuer,
                 "status":"INDEX_CANDIDATES_UNVERIFIED" if candidates else "NO_INDEX_MATCH_NOT_NO_RISK",
+                "historical_vendor_event_window_used":bool(transition or vendor_nontrading),
+                "historical_vendor_transition_days":transition[-3:],
                 "candidates":candidates})
         except Exception as e:
             results.append({"issuer":issuer,"status":"INDEX_UNAVAILABLE_NOT_NO_RISK",
