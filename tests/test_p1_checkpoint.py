@@ -111,6 +111,10 @@ class CheckpointTests(unittest.TestCase):
         record=self.ledger(1);record["completed"][0]["issuer_count"]=True
         with self.assertRaises(ValueError):validate(record)
 
+    def test_null_receipt_digest_rejected_cleanly(self):
+        record=self.ledger(1);record["completed"][0]["receipt_sha256"]=None
+        with self.assertRaises(ValueError):validate(record)
+
     def test_wrong_source_hash_rejected(self):
         record=self.ledger(1)
         record["source_sha256"]="not_a_sha"
