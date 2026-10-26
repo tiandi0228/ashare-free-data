@@ -32,6 +32,16 @@ class LedgerTests(unittest.TestCase):
         del prior["completed"][0]["receipt_sha256"]
         with self.assertRaises(ValueError):
             reconcile(self.plan,[],prior)
+    def test_tampered_prior_gate_rejected(self):
+        prior=reconcile(self.plan,[(0,self.receipt(0))])
+        prior["trade_gate"]="OPEN"
+        with self.assertRaises(ValueError):reconcile(self.plan,[],prior)
+
+    def test_tampered_prior_pending_rejected(self):
+        prior=reconcile(self.plan,[(0,self.receipt(0))])
+        prior["pending_shards"]=[]
+        with self.assertRaises(ValueError):reconcile(self.plan,[],prior)
+
     def test_bad_receipt_not_counted(self):
         r=self.receipt(0);r["results"][0]["status"]="ERROR"
         a=reconcile(self.plan,[(0,r)])
