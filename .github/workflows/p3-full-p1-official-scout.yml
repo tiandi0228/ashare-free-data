@@ -6,6 +6,8 @@ on:
       - 'collector/p3_full_queue_scout.py'
       - 'collector/p3_full_queue_source_join.py'
       - 'collector/p3_original_effective_clause_review.py'
+      - 'collector/p3_official_original_archive.py'
+      - 'tests/test_p3_official_original_archive.py'
       - 'tests/test_p3_original_effective_clause_review.py'
       - 'tests/test_p3_full_queue_scout.py'
       - 'collector/p3_real_target_pdf_capture.py'
@@ -18,7 +20,7 @@ on:
     types: [completed]
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
   actions: read
 concurrency:
   group: p3-full-p1-official-scout-${{ github.ref }}
@@ -34,7 +36,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline boundaries and official-source tests
-        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture tests.test_p3_original_effective_clause_review -v
+        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture tests.test_p3_original_effective_clause_review tests.test_p3_official_original_archive -v
       - name: Install free PDF text parser
         run: python -m pip install 'pypdf>=4,<7'
       - name: Fetch successful original P1 queue artifact
@@ -98,6 +100,37 @@ jobs:
           assert semantic['trade_gate']=='BLOCKED' and semantic['orders']==[]
           print('P3 REAL ORIGINAL LOCAL CLAUSES:',semantic['explicit_original_clause_candidates'],'out of',semantic['evaluated_research_links'],'research leads; 0 certified effective states')
           print('P3 ORIGINAL SOURCE RESEARCH ACCEPTED',report['index_lookups'],'issuers',original['retrieved'],'retrieved original PDFs, ZERO certified PIT')
+          PY
+      - name: Append SHA-verified official PDF originals and research lineage to free Git archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh auth setup-git
+          SOURCE_RUN=$(python -c "import json;print(json.load(open('evidence/upstream.json'))['upstream_run_id'])")
+          python -m collector.p3_official_original_archive --mode archive \
+            --source-root evidence/originals \
+            --review evidence/original_effective_clause_review.json \
+            --queue evidence/full_p1_queue.json \
+            --index evidence/index.json \
+            --run-id "${{ github.run_id }}" --upstream-run-id "$SOURCE_RUN"
+      - name: Independently replay original PDF bytes from durable Git archive
+        run: |
+          git fetch --depth=1 origin research-official-originals-archive
+          git worktree add --detach archived-official-research FETCH_HEAD
+          python -m collector.p3_official_original_archive --mode verify \
+            --root archived-official-research --source-root evidence/originals \
+            --run-id "${{ github.run_id }}" | tee evidence/p3_durable_original_replay.json
+          python - <<'PY'
+          import json
+          audit=json.load(open('evidence/p3_durable_original_replay.json'))
+          original=json.load(open('evidence/originals/quality.json'))
+          review=json.load(open('evidence/original_effective_clause_review.json'))
+          assert audit['retrieved_and_persisted_originals']==original['retrieved']
+          assert audit['archived_semantic_research_links']==review['evaluated_research_links']
+          assert audit['historical_PIT_verified'] is False
+          assert audit['trade_gate']=='BLOCKED' and audit['orders']==[]
+          print('P3 DURABLE ORIGINAL ARCHIVE PASS:',audit['retrieved_and_persisted_originals'],
+                'PDFs persisted & replayed with',audit['archived_semantic_research_links'],'research leads; 0 PIT certifications')
           PY
       - uses: actions/upload-artifact@v4
         if: always()
