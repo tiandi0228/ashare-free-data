@@ -44,6 +44,30 @@ class ProbeTests(unittest.TestCase):
     def test_foreign_issuer_is_filtered_not_assumed(self):
         docs=query("sh.600038",fetch_page=lambda p:{"announcements":[row(issuer="sz.000001")],"hasMore":False})
         self.assertEqual(docs,[])
+    def test_vendor_halt_window_is_bounded_and_no_pit_claim(self):
+        seen=[]
+        def feed(params):
+            seen.append(params)
+            return {"announcements":[],"hasMore":False}
+        query("sh.600038",fetch_page=feed,observed_dates=["2026-09-14"])
+        self.assertEqual(seen[0]["seDate"],"2026-07-31~2026-09-21")
+    def test_run_passes_transition_as_evidence_search_not_clearance(self):
+        q=self.sample()
+        q["targets"]=[{"issuer":"sh.600038",
+                       "vendor_halt_transition_research_days":["2026-09-14"],
+                       "vendor_suspended_research_days":["2026-10-20"]}]
+        seen=[]
+        def fake(issuer,observed_dates=None):
+            seen.append((issuer,observed_dates))
+            return []
+        r=run(q,fake)
+        self.assertEqual(seen,[("sh.600038",["2026-09-14"])])
+        self.assertTrue(r["results"][0]["historical_vendor_event_window_used"])
+        self.assertFalse(r["historical_PIT_verified"])
+    def test_vendor_future_date_rejected(self):
+        with self.assertRaises(ValueError):
+            query("sh.600038",fetch_page=lambda _:{"announcements":[]},
+                  observed_dates=["2099-01-01"])
     def test_hard_page_cap(self):
         with self.assertRaises(ValueError):query("sh.600038",max_pages=MAX_PAGES+1)
         self.assertEqual(MAX_PAGES,3)
