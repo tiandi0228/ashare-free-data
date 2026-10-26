@@ -459,6 +459,33 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python -m collector.p1_checkpoint --mode write --source-sha "$(python -c "import json;print(json.load(open('evidence/ledger.json'))['source_sha256'])")" --in-file evidence/ledger.json
+      - name: Publish P1 run diagnostics (research only)
+        if: always()
+        env:
+          GATE: BLOCKED
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          root=Path('evidence')
+          summary=Path(os.environ['GITHUB_STEP_SUMMARY'])
+          lines=['## P1 bounded collection diagnostics','', 'Trade gate: **BLOCKED** (research only).','']
+          for name in ('quality.json','shards/plan.json','prior_ledger.json','ledger.json','archive_audit.json'):
+              file=root/name
+              if not file.is_file():
+                  lines.append(f'- `{name}`: unavailable (step did not produce it)')
+                  continue
+              try:
+                  obj=json.loads(file.read_text())
+                  if not isinstance(obj,dict):raise ValueError('not a JSON object')
+                  keys=('status','requested_day','issuer_count','shard_count','completed_shards','completed_issuers','next_shard','archived_issuers','archive_gap_issuers','trade_gate')
+                  observed=', '.join(f'{key}={obj[key]}' for key in keys if key in obj and isinstance(obj[key],(str,int,bool,type(None))))
+                  lines.append(f'- `{name}`: {observed or "JSON exists; no standard counters"}')
+              except (ValueError,UnicodeError,OSError) as exc:
+                  lines.append(f'- `{name}`: invalid or unreadable JSON ({type(exc).__name__})')
+          lines+=['','A missing file means its producing step did not finish, not that the market data is certified.']
+          summary.open('a').write('\n'.join(lines)+'\n')
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
