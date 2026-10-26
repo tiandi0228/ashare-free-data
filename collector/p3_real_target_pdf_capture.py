@@ -37,7 +37,10 @@ def choose(report,limit=3,scout=None):
                 raise ValueError("invalid frozen source dates")
             try:dates=[date.fromisoformat(x) for x in days]
             except (ValueError,TypeError) as exc:raise ValueError("bad historical source date") from exc
-            days_by_issuer[issuer]=dates
+            priority=target.get("vendor_halt_transition_research_days") or target.get("vendor_suspended_research_days") or days
+            if not isinstance(priority,list) or not priority or any(d not in days for d in priority):
+                raise ValueError("vendor halt date not in P1 checked decision-day scope")
+            days_by_issuer[issuer]=[date.fromisoformat(d) for d in priority]
         if [item["issuer"] for item in report["results"]]!=list(days_by_issuer):
             raise ValueError("official index source and decision pool mismatch")
     selected=[];seen=set()
