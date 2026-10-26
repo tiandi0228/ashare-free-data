@@ -10,21 +10,41 @@ from urllib.request import Request,urlopen
 URL_RE=re.compile(r"https://static\.cninfo\.com\.cn/finalpage/\d{4}-\d{2}-\d{2}/(\d+)\.PDF",re.I)
 ISSUER_RE=re.compile(r"(?:sh\.(?:600|601|603|605)|sz\.(?:000|001|002|003))\d{3}")
 
+# Ranking is only a download priority, NOT a certified event classification.
+# CNINFO titles are index metadata; the actual PDF must still be replayed.
+RISK_WORDS=("停牌","复牌","风险警示","退市","终止上市","暂停上市","上市公告书")
+def _research_priority(title):
+    if not isinstance(title,str) or len(title)>200:
+        raise ValueError("invalid unverified index title")
+    upper=title.upper()
+    return (2 if any(term in title for term in RISK_WORDS) else
+            1 if re.search(r"(?<![A-Z])\\*?ST(?![A-Z])",upper) else 0)
+
 def choose(report,limit=3):
     if report.get("phase")!="P3_REAL_P1_LIVE_INDEX_DISCOVERY" or report.get("trade_gate")!="BLOCKED":
         raise ValueError("invalid P1 target index report")
-    selected=[]
+    selected=[];seen=set()
     for item in report["results"]:
         issuer=item["issuer"]
-        if not ISSUER_RE.fullmatch(issuer):raise ValueError("invalid issuer")
+        if not ISSUER_RE.fullmatch(issuer) or issuer in seen:
+            raise ValueError("invalid or duplicate issuer")
+        seen.add(issuer)
+        candidates=[]
         for candidate in item["candidates"]:
             url=candidate.get("official_pdf_url")
             match=URL_RE.fullmatch(url or "")
             if (not match or candidate.get("announcement_id")!=match.group(1)
                 or candidate.get("historical_PIT_verified") is not False):
                 raise ValueError("invalid official index candidate")
-            selected.append({"issuer":issuer,"announcement_id":match.group(1),"url":url})
-            break
+            title=candidate.get("announcement_title_unverified","")
+            score=_research_priority(title)
+            candidates.append((score,{"issuer":issuer,"announcement_id":match.group(1),
+                  "url":url,"announcement_title_unverified":title,
+                  "selection_reason":"RISK_TITLE_RESEARCH_PRIORITY" if score else "INDEX_ORDER_FALLBACK"}))
+        if candidates:
+            # Max chooses the first among equal-ranked candidate notices.
+            _,choice=max(candidates,key=lambda x:x[0])
+            selected.append(choice)
         if len(selected)>=limit:break
     return selected
 

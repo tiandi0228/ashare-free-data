@@ -14,6 +14,20 @@ class TestLiveCapture(unittest.TestCase):
             self.assertEqual(q["sources"][0]["sha256"],hashlib.sha256(raw).hexdigest())
             self.assertFalse(q["historical_PIT_verified"])
             self.assertTrue((Path(d)/q["sources"][0]["original_file"]).exists())
+    def test_relevant_original_title_before_generic_first_notice(self):
+        report=self.sample()
+        candidate=report["results"][0]["candidates"][0]
+        candidate["announcement_title_unverified"]="第三季度经营情况公告"
+        report["results"][0]["candidates"].append({
+            "official_pdf_url":"https://static.cninfo.com.cn/finalpage/2026-01-02/123456790.PDF",
+            "announcement_id":"123456790","announcement_title_unverified":"关于股票停牌的公告",
+            "historical_PIT_verified":False})
+        chosen=choose(report)
+        self.assertEqual(chosen[0]["announcement_id"],"123456790")
+        self.assertEqual(chosen[0]["selection_reason"],"RISK_TITLE_RESEARCH_PRIORITY")
+    def test_no_risk_keyword_is_fallback_not_certified(self):
+        r=choose(self.sample())
+        self.assertEqual(r[0]["selection_reason"],"INDEX_ORDER_FALLBACK")
     def test_reject_untrusted_url(self):
         r=self.sample();r["results"][0]["candidates"][0]["official_pdf_url"]="https://evil.invalid/x.pdf"
         with self.assertRaises(ValueError):choose(r)
