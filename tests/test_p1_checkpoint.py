@@ -83,6 +83,18 @@ class CheckpointTests(unittest.TestCase):
         record=self.ledger(1);record["full_market_bars_certified"]=True
         with self.assertRaises(ValueError):validate(record)
 
+    def test_invalid_failed_shard_rejected(self):
+        for failed in ([2], [0,0], ["0"], None):
+            with self.subTest(failed=failed):
+                record=self.ledger(1);record["failed_in_this_reconciliation"]=failed
+                with self.assertRaises(ValueError):validate(record)
+
+    def test_same_count_different_completed_shard_rejected(self):
+        candidate=self.ledger(1);previous=self.ledger(1)
+        candidate["completed"][0]["index"]=1
+        candidate["pending_shards"]=[0];candidate["next_shard"]=0
+        with self.assertRaises(ValueError):merge(candidate,previous)
+
     def test_wrong_source_hash_rejected(self):
         record=self.ledger(1)
         record["source_sha256"]="not_a_sha"
