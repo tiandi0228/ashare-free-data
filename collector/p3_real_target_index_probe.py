@@ -38,7 +38,7 @@ def _post_query(params):
     if len(raw)>1500000:raise ValueError("oversized index response")
     return json.loads(raw)
 
-def query(issuer,fetch_page=None,max_pages=MAX_PAGES,observed_dates=None):
+def query(issuer,fetch_page=None,max_pages=MAX_PAGES,observed_dates=None,research_window=None):
     if not isinstance(issuer,str) or not CODE_RE.fullmatch(issuer):
         raise ValueError("not a mainboard issuer")
     if type(max_pages)!=int or not 1<=max_pages<=MAX_PAGES:
@@ -49,6 +49,14 @@ def query(issuer,fetch_page=None,max_pages=MAX_PAGES,observed_dates=None):
     today=datetime.now(ZoneInfo("Asia/Shanghai")).date()
     start=date.fromisoformat("2024-10-20")
     end=today
+    if observed_dates is not None and research_window is not None:
+        raise ValueError("conflicting historical discovery windows")
+    if research_window is not None:
+        if (not isinstance(research_window,(list,tuple)) or len(research_window)!=2):
+            raise ValueError("invalid bounded research window")
+        start,end=(date.fromisoformat(x) for x in research_window)
+        if start>end or (end-start).days>100 or start>today or end>today:
+            raise ValueError("unsafe historical query interval")
     if observed_dates is not None:
         if (not isinstance(observed_dates,list) or not 1<=len(observed_dates)<=3
             or observed_dates!=sorted(set(observed_dates))):

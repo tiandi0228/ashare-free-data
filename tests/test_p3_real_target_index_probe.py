@@ -68,6 +68,25 @@ class ProbeTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             query("sh.600038",fetch_page=lambda _:{"announcements":[]},
                   observed_dates=["2099-01-01"])
+    def test_followup_window_exact_and_bounded(self):
+        seen=[]
+        def fetch(args):
+            seen.append(args["seDate"])
+            return {"announcements":[],"hasMore":False}
+        self.assertEqual(query("sh.600319",fetch_page=fetch,
+                               research_window=("2025-11-03","2026-02-01")),[])
+        self.assertEqual(seen,["2025-11-03~2026-02-01"])
+    def test_unbounded_future_or_reversed_followup_blocked(self):
+        for period in (("2025-01-01","2026-05-01"),
+                       ("2026-02-01","2025-11-01"),
+                       ("2025-11-01","2099-02-01")):
+            with self.assertRaises(ValueError):
+                query("sh.600319",fetch_page=lambda _:{"announcements":[]},
+                      research_window=period)
+    def test_followup_cannot_override_vendor_window(self):
+        with self.assertRaises(ValueError):
+            query("sh.600319",observed_dates=["2025-11-04"],
+                  research_window=("2025-11-03","2025-11-08"))
     def test_hard_page_cap(self):
         with self.assertRaises(ValueError):query("sh.600038",max_pages=MAX_PAGES+1)
         self.assertEqual(MAX_PAGES,3)
