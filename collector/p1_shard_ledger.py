@@ -1,6 +1,7 @@
 """Conservative per-roster shard ledger: only verified receipts count as done."""
 import argparse, hashlib, json
 from pathlib import Path
+from collector.p1_checkpoint import validate as validate_checkpoint
 
 def reconcile(plan, receipts, prior=None):
     if plan.get("phase")!="P1_FRESH_VENDOR_SHARD_PLAN":
@@ -10,7 +11,8 @@ def reconcile(plan, receipts, prior=None):
         raise ValueError("invalid shard plan")
     source=plan["source_sha256"]
     completed={}
-    if prior:
+    if prior is not None:
+        validate_checkpoint(prior)
         if prior.get("source_sha256")!=source or prior.get("shard_count")!=len(shards):
             raise ValueError("ledger belongs to another roster")
         for item in prior.get("completed",[]):
