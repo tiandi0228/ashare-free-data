@@ -21,9 +21,13 @@ def reconcile(plan, receipts, prior=None):
                 raise ValueError("duplicate or invalid prior ledger index")
             completed[index]=item
     failed=[]
+    seen=set()
     for index, receipt in receipts:
         if type(index)!=int or not 0<=index<len(shards):
             raise ValueError("receipt shard out of range")
+        if index in seen:
+            raise ValueError("duplicate shard receipt in reconciliation")
+        seen.add(index)
         expected=shards[index]
         if receipt.get("manifest_sha256")!=expected["sha256"] or receipt.get("issuer_count")!=expected["count"]:
             raise ValueError("receipt manifest mismatch")
@@ -33,9 +37,12 @@ def reconcile(plan, receipts, prior=None):
             len(receipt.get("results",[]))==expected["count"] and
             all(r.get("status")=="OBSERVED_UNVERIFIED" and len(r.get("sha256",""))==64 for r in receipt["results"]))
         if ok:
-            completed[index]={"index":index,"manifest_sha256":expected["sha256"],
-                              "issuer_count":expected["count"],"receipt_sha256":hashlib.sha256(
-                                  json.dumps(receipt,sort_keys=True,ensure_ascii=False).encode()).hexdigest()}
+            entry={"index":index,"manifest_sha256":expected["sha256"],
+                   "issuer_count":expected["count"],"receipt_sha256":hashlib.sha256(
+                       json.dumps(receipt,sort_keys=True,ensure_ascii=False).encode()).hexdigest()}
+            if index in completed and completed[index]!=entry:
+                raise ValueError("receipt conflicts with previously completed shard")
+            completed[index]=entry
         else:
             completed.pop(index,None)
             failed.append(index)
