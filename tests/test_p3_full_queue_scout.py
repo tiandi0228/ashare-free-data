@@ -65,8 +65,15 @@ class Tests(unittest.TestCase):
         result=plan(r)
         self.assertEqual(result["targets"][0]["issuer"],"sz.000002")
         self.assertEqual(result["targets"][0]["vendor_suspended_research_days"],["2026-10-20"])
+        self.assertEqual(result["targets"][0]["vendor_halt_transition_research_days"],[])
         self.assertEqual(result["vendor_nontrading_research_targets"],1)
         self.assertFalse(result["official_PIT_verified"])
+    def test_vendor_transition_requires_nontrading(self):
+        r=q()
+        r["vendor_suspended_context_included"]=True
+        for row in r["official_evidence_tasks"]:row["vendor_tradestatus_observed"]="1"
+        r["official_evidence_tasks"][0]["vendor_possible_halt_transition_observed"]=True
+        with self.assertRaises(ValueError):plan(r)
     def test_inconsistent_vendor_status_fails_closed(self):
         r=q()
         r["vendor_suspended_context_included"]=True
