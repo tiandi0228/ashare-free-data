@@ -28,6 +28,16 @@ def validate(ledger):
         raise ValueError("invalid checkpoint entries")
     if len({x["index"] for x in done})!=len(done):
         raise ValueError("duplicated checkpoint shards")
+    for item in done:
+        for key in ("manifest_sha256","receipt_sha256"):
+            digest=item.get(key)
+            if not isinstance(digest,str) or len(digest)!=64 or any(c not in "0123456789abcdef" for c in digest):
+                raise ValueError("invalid checkpoint evidence digest")
+    expected_pending=[i for i in range(ledger["shard_count"]) if i not in {x["index"] for x in done}]
+    if ledger.get("pending_shards")!=expected_pending or ledger.get("next_shard")!=(expected_pending[0] if expected_pending else None):
+        raise ValueError("checkpoint pending shard mismatch")
+    if ledger.get("full_market_bars_certified") is not False or ledger.get("failed_in_this_reconciliation") is None:
+        raise ValueError("unsafe checkpoint certification fields")
     return ledger
 
 def gh(*args,input_data=None):
