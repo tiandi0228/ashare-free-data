@@ -11,6 +11,8 @@ on:
       - 'collector/p3_archived_event_episode_ledger.py'
       - 'collector/p3_resume_followup_discovery.py'
       - 'collector/p3_resume_original_archive.py'
+      - 'collector/p3_halt_resume_pair_review.py'
+      - 'tests/test_p3_halt_resume_pair_review.py'
       - 'tests/test_p3_resume_followup_discovery.py'
       - 'tests/test_p3_resume_original_archive.py'
       - 'tests/test_p3_archived_event_episode_ledger.py'
@@ -44,7 +46,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline boundaries and official-source tests
-        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture tests.test_p3_original_effective_clause_review tests.test_p3_official_original_archive tests.test_p3_persisted_temporal_risk_triage tests.test_p3_archived_event_episode_ledger tests.test_p3_resume_followup_discovery tests.test_p3_resume_original_archive -v
+        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture tests.test_p3_original_effective_clause_review tests.test_p3_official_original_archive tests.test_p3_persisted_temporal_risk_triage tests.test_p3_archived_event_episode_ledger tests.test_p3_resume_followup_discovery tests.test_p3_resume_original_archive tests.test_p3_halt_resume_pair_review -v
       - name: Install free PDF text parser
         run: python -m pip install 'pypdf>=4,<7'
       - name: Fetch successful original P1 queue artifact
@@ -221,6 +223,25 @@ jobs:
                 'halt sources',resume['official_originals_sha_verified'],
                 'original PDF SHA replayed',resume['same_clause_resumption_text_candidates'],
                 'unverified resume text leads; PIT zero')
+          PY
+      - name: Pair independently SHA-verified historical halt and resumption PDF text across runs
+        run: |
+          python -m collector.p3_halt_resume_pair_review \
+            --episodes evidence/p3_all_archived_original_event_episodes.json \
+            --archive archived-official-resume \
+            --out evidence/p3_all_resume_original_text_pairs.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          result=json.loads(Path('evidence/p3_all_resume_original_text_pairs.json').read_text())
+          assert result['archived_resume_runs_replayed']>=1
+          assert result['official_halt_resume_intervals_certified']==0
+          assert result['authenticated_first_publication_count']==0
+          assert result['historical_PIT_verified'] is False
+          assert result['trade_gate']=='BLOCKED' and result['orders']==[]
+          print('P3 ORIGINAL RESEARCH PAIRS:',result['deduplicated_research_text_pairs'],
+                'text-only SHA pairs',result['unpaired_halt_sources_remaining_in_bounded_research'],
+                'unpaired archive starts; certified exchange states ZERO')
           PY
       - uses: actions/upload-artifact@v4
         if: always()
