@@ -65,7 +65,7 @@ jobs:
       - name: Query free CNINFO official announcement index for selected issuers
         run: python -m collector.p3_real_target_index_probe --queue evidence/scout_queue.json --out evidence/index.json
       - name: Retrieve bounded original PDF bytes, no PIT certification
-        run: python -m collector.p3_real_target_pdf_capture --index evidence/index.json --out evidence/originals
+        run: python -m collector.p3_real_target_pdf_capture --index evidence/index.json --scout evidence/scout_queue.json --out evidence/originals
       - name: Reverify original PDF hashes and extract candidate date-context text
         run: |
           python -m collector.p3_real_p1_pdf_replay --root evidence/originals --out evidence/pdf_replay.json

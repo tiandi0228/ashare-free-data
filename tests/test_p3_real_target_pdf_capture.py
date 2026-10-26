@@ -38,6 +38,27 @@ class TestLiveCapture(unittest.TestCase):
         chosen=choose(report)
         self.assertEqual(chosen[0]["announcement_id"],"123456791")
         self.assertEqual(chosen[0]["selection_reason"],"RISK_TITLE_RESEARCH_PRIORITY")
+    def test_decision_date_filters_out_postdated_risk_notice(self):
+        report=self.sample()
+        first=report["results"][0]["candidates"][0]
+        first["announcement_title_unverified"]="关于股票停牌的公告"
+        first["official_pdf_url"]="https://static.cninfo.com.cn/finalpage/2026-10-26/123456789.PDF"
+        report["results"][0]["candidates"].append({
+            "official_pdf_url":"https://static.cninfo.com.cn/finalpage/2026-10-19/123456790.PDF",
+            "announcement_id":"123456790","announcement_title_unverified":"上市公司公告",
+            "historical_PIT_verified":False})
+        scout={"phase":"P3_REAL_P1_UNMATCHED_OFFICIAL_DISCOVERY_QUEUE",
+               "trade_gate":"BLOCKED","official_PIT_verified":False,
+               "targets":[{"issuer":"sz.000001","observed_decision_dates":["2026-10-20"]}]}
+        picked=choose(report,scout=scout)[0]
+        self.assertEqual(picked["announcement_id"],"123456790")
+        self.assertTrue(picked["could_precede_target_decision_day_unverified"])
+        self.assertFalse(picked["first_publication_time_authenticated"])
+    def test_frozen_scope_mismatch_fails_closed(self):
+        scout={"phase":"P3_REAL_P1_UNMATCHED_OFFICIAL_DISCOVERY_QUEUE",
+               "trade_gate":"BLOCKED","official_PIT_verified":False,
+               "targets":[{"issuer":"sh.600000","observed_decision_dates":["2026-10-20"]}]}
+        with self.assertRaises(ValueError):choose(self.sample(),scout=scout)
     def test_reject_untrusted_url(self):
         r=self.sample();r["results"][0]["candidates"][0]["official_pdf_url"]="https://evil.invalid/x.pdf"
         with self.assertRaises(ValueError):choose(r)
