@@ -185,7 +185,7 @@ jobs:
               # Only request the GitHub run list when durable recovery is unavailable.
               runs=json.loads(subprocess.check_output(
                   ['gh','run','list','--workflow','p1-fresh-vendor-roster.yml',
-                   '--json','databaseId,conclusion','--limit','12'],timeout=60))
+                   '--json','databaseId,conclusion','--limit','4'],timeout=30))
           for entry in runs:
               if entry['conclusion']!='success': continue
               rid=entry['databaseId']
@@ -193,7 +193,7 @@ jobs:
               # the current run's ledger when artifact contents differ.
               dest=Path('previous')/str(rid)
               try:
-                  download=subprocess.run(['gh','run','download',str(rid),'-n',f'p1-fresh-roster-{rid}','-D',str(dest)],capture_output=True,text=True,timeout=90)
+                  download=subprocess.run(['gh','run','download',str(rid),'-n',f'p1-fresh-roster-{rid}','-D',str(dest)],capture_output=True,text=True,timeout=45)
               except subprocess.TimeoutExpired:
                   print('Skipped timed-out artifact download from',rid)
                   continue
