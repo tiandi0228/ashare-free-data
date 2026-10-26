@@ -16,6 +16,12 @@ class LifecycleTests(unittest.TestCase):
   with self.assertRaises(ValueError):advance(**args)
   args["observation_day"]="2026-10-22"
   self.assertEqual(advance(**args)["to_state"],"EXIT_EVIDENCED")
+ def test_entry_after_validity_expires_is_rejected(self):
+  with self.assertRaises(ValueError):
+   advance(state="SIGNAL_READY",event="OBSERVE_ENTRY",decision_day="2026-10-20",observation_day="2026-10-22",valid_until_day="2026-10-21",receipt_sha256="c"*64)
+ def test_expiry_cannot_happen_before_deadline(self):
+  with self.assertRaises(ValueError):
+   advance(state="SIGNAL_READY",event="EXPIRE_UNFILLED",decision_day="2026-10-20",observation_day="2026-10-20",valid_until_day="2026-10-21")
  def test_no_exit_from_unfilled(self):
   with self.assertRaises(ValueError):
    advance(state="UNFILLED",event="OBSERVE_EXIT",decision_day="2026-10-20",observation_day="2026-10-21",receipt_sha256="b"*64)
