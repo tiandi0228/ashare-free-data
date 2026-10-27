@@ -26,6 +26,18 @@ class EpochCompareTests(unittest.TestCase):
         self.assertEqual(result["conflicting_overlapping_shards"], [0])
         self.assertEqual(result["matching_manifest_and_receipt_shards"], 0)
 
+    def test_disjoint_progress_is_reported_but_not_transferred(self):
+        left = self.ledger("a")
+        right = self.ledger("d")
+        right["completed"][0]["index"] = 1
+        right["pending_shards"] = [0]
+        right["next_shard"] = 0
+        result = compare(left, right)
+        self.assertEqual(result["overlapping_completed_shards"], 0)
+        self.assertEqual(result["left_only_indices"], [0])
+        self.assertEqual(result["right_only_indices"], [1])
+        self.assertFalse(result["cross_epoch_reuse_authorized"])
+
     def test_unsafe_checkpoint_rejected(self):
         bad = self.ledger("d")
         bad["trade_gate"] = "OPEN"
