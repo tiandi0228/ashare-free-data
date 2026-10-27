@@ -9,8 +9,12 @@ def audit(plan, ledger, root):
     marker=json.loads((epoch/"archive_status.json").read_text())
     if marker["source_sha256"]!=plan["source_sha256"] or marker["trade_gate"]!="BLOCKED":
         raise ValueError("invalid archive marker")
-    observed=set(marker["archived_shards"])
-    if len(observed)!=len(marker["archived_shards"]):raise ValueError("duplicate archive entries")
+    entries=marker.get("archived_shards")
+    if (not isinstance(entries,list) or
+        any(type(index) is not int or not 0<=index<len(plan["shards"]) for index in entries)):
+        raise ValueError("invalid archive shard indices")
+    observed=set(entries)
+    if len(observed)!=len(entries):raise ValueError("duplicate archive entries")
     if not observed.issubset({x["index"] for x in ledger["completed"]}):
         raise ValueError("archive references uncompleted shard")
     archived=0
