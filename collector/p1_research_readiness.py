@@ -31,12 +31,29 @@ def assess(ledger):
     }
 
 
+def unavailable():
+    """Explicit fail-closed report when an upstream job produced no ledger."""
+    return {
+        "phase": "P1_RESEARCH_READINESS",
+        "source_sha256": None,
+        "completed_shards": None,
+        "shard_count": None,
+        "completed_issuers": None,
+        "unresolved_checks": ["CURRENT_LEDGER_UNAVAILABLE"],
+        "research_data_complete": False,
+        "trade_gate": "BLOCKED",
+        "buy_recommendations_authorized": False,
+        "orders": [],
+        "executable_candidates": [],
+    }
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ledger", required=True)
+    parser.add_argument("--ledger")
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
-    report = assess(json.loads(Path(args.ledger).read_text()))
+    report = assess(json.loads(Path(args.ledger).read_text())) if args.ledger else unavailable()
     output = Path(args.out)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, indent=2) + "\n")
