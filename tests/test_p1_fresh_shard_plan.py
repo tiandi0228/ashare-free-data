@@ -18,6 +18,22 @@ class ShardPlanTests(unittest.TestCase):
             for s in r["shards"]:
                 b=(Path(d)/"out"/s["name"]).read_bytes()
                 self.assertEqual(hashlib.sha256(b).hexdigest(),s["sha256"])
+    def test_membership_digest_is_stable_across_csv_metadata_and_order(self):
+        with tempfile.TemporaryDirectory() as d:
+            rows=[(f"sh.{600000+i}","1",f"name{i}") for i in range(1000)]
+            source=Path(d)/"a.csv"
+            with source.open("w",newline="") as f:
+                w=csv.writer(f);w.writerow(("code","tradeStatus","code_name"));w.writerows(rows)
+            first=plan(source,Path(d)/"first","2026-10-22")
+            other=Path(d)/"b.csv"
+            with other.open("w",newline="") as f:
+                w=csv.writer(f);w.writerow(("code","tradeStatus","code_name"))
+                w.writerows((code,status,"renamed") for code,status,_ in reversed(rows))
+            second=plan(other,Path(d)/"second","2026-10-23")
+            self.assertNotEqual(first["source_sha256"],second["source_sha256"])
+            self.assertEqual(first["roster_codes_sha256"],second["roster_codes_sha256"])
+            self.assertEqual(first["shards"],second["shards"])
+
     def test_duplicates_fail_closed(self):
         with tempfile.TemporaryDirectory() as d:
             source=Path(d)/"source.csv"
