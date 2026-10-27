@@ -5,7 +5,7 @@ from pathlib import Path
 from collector.p1_checkpoint import validate
 
 
-def assess(ledger):
+def assess(ledger, archive_audit=None):
     validate(ledger)
     missing = []
     if ledger["completed_shards"] != ledger["shard_count"]:
@@ -14,6 +14,15 @@ def assess(ledger):
         missing.append("FULL_MARKET_BARS_NOT_CERTIFIED")
     if ledger.get("historical_PIT_verified") is not True:
         missing.append("HISTORICAL_PIT_NOT_AUTHENTICATED")
+    if archive_audit is None:
+        missing.append("CSV_ARCHIVE_AUDIT_UNAVAILABLE")
+    elif (not isinstance(archive_audit,dict) or
+          archive_audit.get("trade_gate")!="BLOCKED" or
+          archive_audit.get("archive_complete") is not True or
+          type(archive_audit.get("archived_issuers")) is not int or
+          archive_audit["archived_issuers"]!=ledger["completed_issuers"] or
+          archive_audit.get("archive_gap_issuers")!=0):
+        missing.append("CSV_ARCHIVE_NOT_CERTIFIED")
     # None of these real-time execution checks can be certified from a vendor
     # history ledger. They require independently timestamped market evidence.
     missing.extend([
@@ -40,10 +49,10 @@ def assess(ledger):
     }
 
 
-def assess_or_block(ledger):
+def assess_or_block(ledger, archive_audit=None):
     """Never publish an actionable report for malformed upstream evidence."""
     try:
-        return assess(ledger)
+        return assess(ledger, archive_audit)
     except (ValueError, KeyError, TypeError, AttributeError):
         return unavailable("CURRENT_LEDGER_INVALID")
 
@@ -69,11 +78,12 @@ def unavailable(reason="CURRENT_LEDGER_UNAVAILABLE"):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ledger")
+    parser.add_argument("--archive-audit")
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
     if args.ledger:
         try:
-            report = assess_or_block(json.loads(Path(args.ledger).read_text()))
+            report = assess_or_block(json.loads(Path(args.ledger).read_text()),\n                json.loads(Path(args.archive_audit).read_text()) if args.archive_audit else None)
         except (OSError, UnicodeError, json.JSONDecodeError):
             report = unavailable("CURRENT_LEDGER_INVALID")
     else:
