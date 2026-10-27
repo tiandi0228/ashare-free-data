@@ -1,0 +1,112 @@
+{
+  "archive_merged": false,
+  "fills_verified": 0,
+  "historical_PIT_verified": false,
+  "orders": [],
+  "phase": "P4_INDEPENDENT_TAIL_RECOVERY_AUDIT",
+  "remaining_exit_date_observations": 4194,
+  "restored_exit_date_observations": 24,
+  "row_date_details": [
+    {
+      "code": "sh.600094",
+      "missing_exit_observations": 3,
+      "recovered_dates": [
+        "2026-10-21",
+        "2026-10-22",
+        "2026-10-23"
+      ],
+      "restored_exit_date_observations": 3,
+      "restored_vendor_active_observations": 3,
+      "rows": 3
+    },
+    {
+      "code": "sh.600095",
+      "missing_exit_observations": 3,
+      "recovered_dates": [
+        "2026-10-21",
+        "2026-10-22",
+        "2026-10-23"
+      ],
+      "restored_exit_date_observations": 3,
+      "restored_vendor_active_observations": 3,
+      "rows": 3
+    },
+    {
+      "code": "sh.600096",
+      "missing_exit_observations": 3,
+      "recovered_dates": [
+        "2026-10-21",
+        "2026-10-22",
+        "2026-10-23"
+      ],
+      "restored_exit_date_observations": 3,
+      "restored_vendor_active_observations": 3,
+      "rows": 3
+    },
+    {
+      "code": "sh.600097",
+      "missing_exit_observations": 3,
+      "recovered_dates": [
+        "2026-10-21",
+        "2026-10-22",
+        "2026-10-23"
+      ],
+      "restored_exit_date_observations": 3,
+      "restored_vendor_active_observations": 3,
+      "rows": 3
+    },
+    {
+      "code": "sh.600098",
+      "missing_exit_observations": 3,
+      "recovered_dates": [
+        "2026-10-21",
+        "2026-10-22",
+        "2026-10-23"
+      ],
+      "restored_exit_date_observations": 3,
+      "restored_vendor_active_observations": 3,
+      "rows": 3
+    },
+    {
+      "code": "sh.600099",
+      "missing_exit_observations": 3,
+      "recovered_dates": [
+        "2026-10-21",
+        "2026-10-22",
+        "2026-10-23"
+      ],
+      "restored_exit_date_observations": 3,
+      "restored_vendor_active_observations": 3,
+      "rows": 3
+    },
+    {
+      "code": "sh.600100",
+      "missing_exit_observations": 3,
+      "recovered_dates": [
+        "2026-10-21",
+        "2026-10-22",
+        "2026-10-23"
+      ],
+      "restored_exit_date_observations": 3,
+      "restored_vendor_active_observations": 3,
+      "rows": 3
+    },
+    {
+      "code": "sh.600101",
+      "missing_exit_observations": 3,
+      "recovered_dates": [
+        "2026-10-21",
+        "2026-10-22",
+        "2026-10-23"
+      ],
+      "restored_exit_date_observations": 3,
+      "restored_vendor_active_observations": 3,
+      "rows": 3
+    }
+  ],
+  "source_tail_date_coverage_only": true,
+  "specific_exit_observations_proven_recovered": true,
+  "trade_gate": "BLOCKED",
+  "verified_source_issuers": 8,
+  "verified_source_rows": 24
+}
