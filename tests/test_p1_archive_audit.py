@@ -2,6 +2,9 @@ import hashlib,json,tempfile,unittest
 from pathlib import Path
 from collector.p1_archive_audit import audit
 
+def receipt_digest(receipt):
+    return hashlib.sha256(json.dumps(receipt,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
+
 class AuditTests(unittest.TestCase):
     def test_out_of_range_or_boolean_archive_indices_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -47,8 +50,14 @@ class AuditTests(unittest.TestCase):
             self.assertEqual(result["repair_shard_count"],1)
             raw=b"date,close\n2026-01-01,1\n"
             (part/"sh_600000.csv").write_bytes(raw)
-            (part/"quality.json").write_text(json.dumps({"manifest_sha256":"b"*64,"status":"OBSERVED_SUBSET_UNVERIFIED","trade_gate":"BLOCKED","results":[{"code":"sh.600000","sha256":hashlib.sha256(raw).hexdigest()}]}))
+            receipt={"manifest_sha256":"b"*64,"status":"OBSERVED_SUBSET_UNVERIFIED","trade_gate":"BLOCKED","results":[{"code":"sh.600000","sha256":hashlib.sha256(raw).hexdigest()}]}
+            (part/"quality.json").write_text(json.dumps(receipt))
+            ledger["completed"][0]["receipt_sha256"]=receipt_digest(receipt)
             self.assertEqual(audit(plan,ledger,root)["archived_issuers"],1)
+            ledger["completed"][0]["receipt_sha256"]="0"*64
+            with self.assertRaisesRegex(ValueError,"immutable ledger"):
+                audit(plan,ledger,root)
+            ledger["completed"][0]["receipt_sha256"]=receipt_digest(receipt)
             self.assertEqual(audit(plan,ledger,root)["archive_repair_queue"],[])
             (part/"sh_600000.csv").write_text("corrupt")
             with self.assertRaises(ValueError):audit(plan,ledger,root)
