@@ -1,0 +1,41 @@
+import unittest
+from collector.p1_research_readiness import assess
+
+
+class ReadinessTests(unittest.TestCase):
+    def ledger(self):
+        return {
+            "phase": "P1_ROSTER_SHARD_LEDGER",
+            "source_sha256": "a" * 64, "shard_count": 2,
+            "completed": [{"index": 0, "issuer_count": 8, "manifest_sha256": "b" * 64, "receipt_sha256": "c" * 64}],
+            "completed_shards": 1, "completed_issuers": 8,
+            "pending_shards": [1], "next_shard": 1,
+            "failed_in_this_reconciliation": [],
+            "full_market_bars_certified": False,
+            "historical_PIT_verified": False,
+            "trade_gate": "BLOCKED", "orders": [], "executable_candidates": []
+        }
+
+    def test_partial_ledger_not_actionable(self):
+        report = assess(self.ledger())
+        self.assertFalse(report["buy_recommendations_authorized"])
+        self.assertIn("HISTORICAL_VENDOR_SHARDS_INCOMPLETE", report["unresolved_checks"])
+
+    def test_all_vendor_shards_still_not_certified(self):
+        item = self.ledger()
+        item["completed"].append({"index": 1, "issuer_count": 8, "manifest_sha256": "d" * 64, "receipt_sha256": "e" * 64})
+        item.update(completed_shards=2, completed_issuers=16, pending_shards=[], next_shard=None)
+        report = assess(item)
+        self.assertTrue(report["research_data_complete"])
+        self.assertFalse(report["buy_recommendations_authorized"])
+        self.assertIn("HISTORICAL_PIT_NOT_AUTHENTICATED", report["unresolved_checks"])
+
+    def test_tampered_open_gate_rejected(self):
+        item = self.ledger()
+        item["trade_gate"] = "OPEN"
+        with self.assertRaises(ValueError):
+            assess(item)
+
+
+if __name__ == "__main__":
+    unittest.main()
