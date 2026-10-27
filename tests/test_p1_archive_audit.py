@@ -45,6 +45,7 @@ class AuditTests(unittest.TestCase):
             ledger={"source_sha256":"a"*64,"trade_gate":"BLOCKED","completed":[{"index":0}],"completed_issuers":1}
             result=audit(plan,ledger,root)
             self.assertEqual(result["archived_issuers"],0)
+            self.assertEqual(result["source_sha256"],"a"*64)
             self.assertEqual(result["legacy_shards_without_receipts"],[0])
             self.assertEqual(result["archive_repair_queue"],[0])
             self.assertEqual(result["repair_shard_count"],1)
