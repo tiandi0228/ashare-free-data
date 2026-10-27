@@ -30,6 +30,8 @@ on:
       - 'tests/test_p1_shard_ledger.py'
       - 'collector/p1_epoch_compare.py'
       - 'tests/test_p1_epoch_compare.py'
+      - 'collector/p1_research_readiness.py'
+      - 'tests/test_p1_research_readiness.py'
   schedule:
     - cron: '10 1 * * 1-5' # 09:10 Beijing
     - cron: '10 3 * * 1-5' # 11:10 Beijing; additional source sampling window
@@ -58,7 +60,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline source tests
-        run: python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick tests.test_p1_coverage_gap_diagnosis tests.test_p3_p1_evidence_worklist tests.test_p1_quad_pick tests.test_p1_quad_verify tests.test_p3_all_completed_worklist tests.test_p1_epoch_compare -v
+        run: python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick tests.test_p1_coverage_gap_diagnosis tests.test_p3_p1_evidence_worklist tests.test_p1_quad_pick tests.test_p1_quad_verify tests.test_p3_all_completed_worklist tests.test_p1_epoch_compare tests.test_p1_research_readiness -v
       - name: Install free Baostock
         run: python -m pip install 'baostock>=0.8,<1'
       - name: Observe current Beijing-date mainboard roster from free provider
@@ -495,6 +497,14 @@ jobs:
           Path('evidence/epoch_comparison.json').write_text(json.dumps(report,indent=2)+chr(10))
           print('READ-ONLY EPOCH AUDIT:',report)
           PY
+      - name: Assess research-only readiness (never opens trades)
+        if: always()
+        run: |
+          if [ -f evidence/ledger.json ]; then
+            python -m collector.p1_research_readiness --ledger evidence/ledger.json --out evidence/research_readiness.json
+          else
+            echo "No valid current ledger; readiness cannot be certified"
+          fi
       - name: Publish P1 run diagnostics (research only)
         if: always()
         env:
@@ -506,7 +516,7 @@ jobs:
           root=Path('evidence')
           summary=Path(os.environ['GITHUB_STEP_SUMMARY'])
           lines=['## P1 bounded collection diagnostics','', 'Trade gate: **BLOCKED** (research only).','']
-          for name in ('quality.json','shards/plan.json','prior_ledger.json','ledger.json','archive_audit.json','epoch_comparison.json'):
+          for name in ('quality.json','shards/plan.json','prior_ledger.json','ledger.json','archive_audit.json','epoch_comparison.json','research_readiness.json'):
               file=root/name
               if not file.is_file():
                   lines.append(f'- `{name}`: unavailable (step did not produce it)')
@@ -514,7 +524,7 @@ jobs:
               try:
                   obj=json.loads(file.read_text())
                   if not isinstance(obj,dict):raise ValueError('not a JSON object')
-                  keys=('status','requested_day','source_sha256','roster_codes_sha256','mainboard_sha256','snapshot_reused','issuer_count','shard_count','completed_shards','completed_issuers','next_shard','archived_issuers','archive_gap_issuers','overlapping_completed_shards','left_only_completed_shards','right_only_completed_shards','matching_manifest_shards','matching_manifest_and_receipt_shards','cross_epoch_reuse_authorized','trade_gate')
+                  keys=('status','requested_day','source_sha256','roster_codes_sha256','mainboard_sha256','snapshot_reused','issuer_count','shard_count','completed_shards','completed_issuers','next_shard','archived_issuers','archive_gap_issuers','overlapping_completed_shards','left_only_completed_shards','right_only_completed_shards','matching_manifest_shards','matching_manifest_and_receipt_shards','cross_epoch_reuse_authorized','research_data_complete','buy_recommendations_authorized','trade_gate')
                   observed=', '.join(f'{key}={obj[key]}' for key in keys if key in obj and isinstance(obj[key],(str,int,bool,type(None))))
                   lines.append(f'- `{name}`: {observed or "JSON exists; no standard counters"}')
               except (ValueError,UnicodeError,OSError) as exc:
