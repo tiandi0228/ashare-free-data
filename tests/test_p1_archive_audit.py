@@ -15,6 +15,24 @@ class AuditTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     audit(plan,ledger,root)
 
+    def test_duplicate_issuer_within_archive_shard_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);epoch=root/("a"*16);part=epoch/"shard_0000"
+            part.mkdir(parents=True)
+            (epoch/"archive_status.json").write_text(json.dumps({
+                "source_sha256":"a"*64,"trade_gate":"BLOCKED","archived_shards":[0]}))
+            plan={"source_sha256":"a"*64,"shards":[{"index":0,"sha256":"b"*64,"count":2}]}
+            ledger={"source_sha256":"a"*64,"trade_gate":"BLOCKED",
+                    "completed":[{"index":0}],"completed_issuers":2}
+            raw=b"date,close\\n2026-01-01,1\\n"
+            (part/"sh_600000.csv").write_bytes(raw)
+            row={"code":"sh.600000","sha256":hashlib.sha256(raw).hexdigest()}
+            (part/"quality.json").write_text(json.dumps({
+                "manifest_sha256":"b"*64,"status":"OBSERVED_SUBSET_UNVERIFIED",
+                "trade_gate":"BLOCKED","results":[row,row]}))
+            with self.assertRaisesRegex(ValueError,"duplicate"):
+                audit(plan,ledger,root)
+
     def test_legacy_without_receipt_not_counted(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);epoch=root/("a"*16);part=epoch/"shard_0000"
