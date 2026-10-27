@@ -473,8 +473,16 @@ jobs:
           from pathlib import Path
           from collector.p1_checkpoint import epoch_path,remote_read,validate
           from collector.p1_epoch_compare import compare
-          epochs=('3529685a3d2d6402bffb7afef1e075b1385f59b06dc8a4920f95fd59d0d5a99a',
-                  '40f781bfd1457688130c41a038d8f8165d3ff4dcbf3e2da9b5fb992c8a2ed01d')
+          baseline='3529685a3d2d6402bffb7afef1e075b1385f59b06dc8a4920f95fd59d0d5a99a'
+          current_plan=Path('evidence/shards/plan.json')
+          if not current_plan.is_file():
+              print('No current frozen roster plan; read-only epoch comparison skipped')
+              raise SystemExit(0)
+          current=json.loads(current_plan.read_text())['source_sha256']
+          if current==baseline:
+              print('Current roster matches comparison baseline; no cross-epoch comparison needed')
+              raise SystemExit(0)
+          epochs=(baseline,current)
           states=[]
           for digest in epochs:
               item,_=remote_read('${{ github.repository }}',epoch_path(digest))
@@ -498,7 +506,7 @@ jobs:
           root=Path('evidence')
           summary=Path(os.environ['GITHUB_STEP_SUMMARY'])
           lines=['## P1 bounded collection diagnostics','', 'Trade gate: **BLOCKED** (research only).','']
-          for name in ('quality.json','shards/plan.json','prior_ledger.json','ledger.json','archive_audit.json'):
+          for name in ('quality.json','shards/plan.json','prior_ledger.json','ledger.json','archive_audit.json','epoch_comparison.json'):
               file=root/name
               if not file.is_file():
                   lines.append(f'- `{name}`: unavailable (step did not produce it)')
@@ -506,7 +514,7 @@ jobs:
               try:
                   obj=json.loads(file.read_text())
                   if not isinstance(obj,dict):raise ValueError('not a JSON object')
-                  keys=('status','requested_day','source_sha256','roster_codes_sha256','mainboard_sha256','snapshot_reused','issuer_count','shard_count','completed_shards','completed_issuers','next_shard','archived_issuers','archive_gap_issuers','trade_gate')
+                  keys=('status','requested_day','source_sha256','roster_codes_sha256','mainboard_sha256','snapshot_reused','issuer_count','shard_count','completed_shards','completed_issuers','next_shard','archived_issuers','archive_gap_issuers','overlapping_completed_shards','matching_manifest_and_receipt_shards','cross_epoch_reuse_authorized','trade_gate')
                   observed=', '.join(f'{key}={obj[key]}' for key in keys if key in obj and isinstance(obj[key],(str,int,bool,type(None))))
                   lines.append(f'- `{name}`: {observed or "JSON exists; no standard counters"}')
               except (ValueError,UnicodeError,OSError) as exc:
