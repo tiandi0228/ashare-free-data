@@ -86,7 +86,7 @@ jobs:
               ['gh','run','list','--workflow','p1-fresh-vendor-roster.yml',
                '--json','databaseId,conclusion','--limit','8'],timeout=30))
           for run in runs:
-              if run['conclusion']!='success':continue
+              if run['conclusion'] not in ('success','failure','timed_out'):continue
               rid=run['databaseId']
               dest=Path('frozen_previous')/str(rid)
               try:
