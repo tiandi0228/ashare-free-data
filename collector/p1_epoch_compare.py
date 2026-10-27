@@ -14,6 +14,8 @@ def compare(left, right):
     a = {item["index"]: item for item in left["completed"]}
     b = {item["index"]: item for item in right["completed"]}
     common = sorted(set(a) & set(b))
+    left_only = sorted(set(a) - set(b))
+    right_only = sorted(set(b) - set(a))
     matching_manifests = [i for i in common if a[i]["manifest_sha256"] == b[i]["manifest_sha256"]]
     matching_receipts = [i for i in matching_manifests if a[i]["receipt_sha256"] == b[i]["receipt_sha256"]]
     return {
@@ -23,6 +25,10 @@ def compare(left, right):
         "left_completed_shards": len(a),
         "right_completed_shards": len(b),
         "overlapping_completed_shards": len(common),
+        "left_only_completed_shards": len(left_only),
+        "right_only_completed_shards": len(right_only),
+        "left_only_indices": left_only,
+        "right_only_indices": right_only,
         "matching_manifest_shards": len(matching_manifests),
         "matching_manifest_and_receipt_shards": len(matching_receipts),
         "conflicting_overlapping_shards": [i for i in common if i not in matching_receipts],
