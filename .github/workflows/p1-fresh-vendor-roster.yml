@@ -500,7 +500,9 @@ jobs:
       - name: Assess research-only readiness (never opens trades)
         if: always()
         run: |
-          if [ -f evidence/ledger.json ]; then
+          if [ -f evidence/ledger.json ] && [ -f evidence/archive_audit.json ]; then
+            python -m collector.p1_research_readiness --ledger evidence/ledger.json --archive-audit evidence/archive_audit.json --out evidence/research_readiness.json
+          elif [ -f evidence/ledger.json ]; then
             python -m collector.p1_research_readiness --ledger evidence/ledger.json --out evidence/research_readiness.json
           else
             python -m collector.p1_research_readiness --out evidence/research_readiness.json
