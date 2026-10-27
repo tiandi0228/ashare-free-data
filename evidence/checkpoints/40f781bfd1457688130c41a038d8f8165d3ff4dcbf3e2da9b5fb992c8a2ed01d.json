@@ -268,6 +268,30 @@
       "receipt_sha256": "82e4f6eaabdfabf8e9bc3ab0aa99944364f5e45a71928216e58a6dd84357886b"
     },
     {
+      "index": 44,
+      "manifest_sha256": "a98cb40220f6079c8b967574139a1098ebcc514f066edca63e747ef4046541c2",
+      "issuer_count": 8,
+      "receipt_sha256": "e1615ac7b147f40558bca725670f71add171df4bf14aa562df1f50af48146753"
+    },
+    {
+      "index": 45,
+      "manifest_sha256": "ebafad9c364295aba2cb167f0651c0df04aeaa1049383d4c0195227677241320",
+      "issuer_count": 8,
+      "receipt_sha256": "58da834a0f95a982c2e404a85568fa22c2edd248b87aa79716349e275bbd802b"
+    },
+    {
+      "index": 46,
+      "manifest_sha256": "d78fb915512b3ca706ebfd16913be0434295cec7ac84be4e97a8c3176aae7ae8",
+      "issuer_count": 8,
+      "receipt_sha256": "488de2d3f089378c93372a5916612a389d6aeb7047019f91afccb2b084b6281d"
+    },
+    {
+      "index": 47,
+      "manifest_sha256": "60b545809098c5f24aee30cba0fec06077dd8f08e7be6788ae1631afb6806307",
+      "issuer_count": 8,
+      "receipt_sha256": "de3002f170362e326831d07c2aa6f1326c7d83fd043b07565d381ebd40d8900b"
+    },
+    {
       "index": 315,
       "manifest_sha256": "62b1117846c9dac5cb845ada567705c2ec5598536e54664cddec7d69439e0f1e",
       "issuer_count": 8,
@@ -292,13 +316,9 @@
       "receipt_sha256": "ffe959fe28b1f98a7cdb1348b58d04d67ee922e5001d5a81320ed0af1382070c"
     }
   ],
-  "completed_shards": 48,
-  "completed_issuers": 384,
+  "completed_shards": 52,
+  "completed_issuers": 416,
   "pending_shards": [
-    44,
-    45,
-    46,
-    47,
     48,
     49,
     50,
@@ -649,7 +669,7 @@
     399
   ],
   "failed_in_this_reconciliation": [],
-  "next_shard": 44,
+  "next_shard": 48,
   "full_market_bars_certified": false,
   "historical_PIT_verified": false,
   "trade_gate": "BLOCKED",
