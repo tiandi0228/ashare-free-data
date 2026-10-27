@@ -43,6 +43,19 @@ class CSVArchiveTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,"duplicate archive shard"):
                 collect(plan,[(0,path),(0,path)])
 
+    def test_failed_issuer_result_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)
+            raw=b"date,close\\n2026-01-01,1.2\\n"
+            (path/"sh_600000.csv").write_bytes(raw)
+            receipt={"manifest_sha256":"a"*64,"issuer_count":1,
+                     "status":"OBSERVED_SUBSET_UNVERIFIED","trade_gate":"BLOCKED",
+                     "results":[{"code":"sh.600000","status":"ERROR",
+                                 "sha256":hashlib.sha256(raw).hexdigest()}]}
+            (path/"quality.json").write_text(json.dumps(receipt))
+            with self.assertRaisesRegex(ValueError,"result status"):
+                collect({"shards":[{"sha256":"a"*64,"count":1}]},[(0,path)])
+
     def test_blocked_gate_required(self):
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)
