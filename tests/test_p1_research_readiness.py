@@ -49,6 +49,18 @@ class ReadinessTests(unittest.TestCase):
         self.assertFalse(report["buy_recommendations_authorized"])
         self.assertIn("HISTORICAL_PIT_NOT_AUTHENTICATED", report["unresolved_checks"])
 
+    def test_full_vendor_coverage_never_implies_realtime_execution_ready(self):
+        item = self.ledger()
+        item["completed"].append({"index": 1, "issuer_count": 8,
+                                  "manifest_sha256": "d" * 64, "receipt_sha256": "e" * 64})
+        item.update(completed_shards=2, completed_issuers=16,
+                    pending_shards=[], next_shard=None)
+        report = assess(item)
+        self.assertFalse(report["realtime_execution_checks_verified"])
+        self.assertIn("REALTIME_QUOTE_FRESHNESS_NOT_VERIFIED", report["unresolved_checks"])
+        self.assertIn("COMPLETE_ONE_MINUTE_BAR_NOT_VERIFIED", report["unresolved_checks"])
+        self.assertFalse(report["buy_recommendations_authorized"])
+
     def test_tampered_open_gate_rejected(self):
         item = self.ledger()
         item["trade_gate"] = "OPEN"
