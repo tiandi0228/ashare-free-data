@@ -14,6 +14,14 @@ def assess(ledger):
         missing.append("FULL_MARKET_BARS_NOT_CERTIFIED")
     if ledger.get("historical_PIT_verified") is not True:
         missing.append("HISTORICAL_PIT_NOT_AUTHENTICATED")
+    # None of these real-time execution checks can be certified from a vendor
+    # history ledger. They require independently timestamped market evidence.
+    missing.extend([
+        "REALTIME_QUOTE_FRESHNESS_NOT_VERIFIED",
+        "COMPLETE_ONE_MINUTE_BAR_NOT_VERIFIED",
+        "POINT_IN_TIME_SECURITY_UNIVERSE_NOT_VERIFIED",
+        "TRADE_COST_AND_EXECUTION_RULES_NOT_VERIFIED",
+    ])
     # The ledger is intentionally research-only. A complete vendor collection
     # is not permission to route any order or advertise executable picks.
     return {
@@ -24,6 +32,7 @@ def assess(ledger):
         "completed_issuers": ledger["completed_issuers"],
         "unresolved_checks": missing,
         "research_data_complete": ledger["completed_shards"] == ledger["shard_count"],
+        "realtime_execution_checks_verified": False,
         "trade_gate": "BLOCKED",
         "buy_recommendations_authorized": False,
         "orders": [],
@@ -49,6 +58,7 @@ def unavailable(reason="CURRENT_LEDGER_UNAVAILABLE"):
         "completed_issuers": None,
         "unresolved_checks": [reason],
         "research_data_complete": False,
+        "realtime_execution_checks_verified": False,
         "trade_gate": "BLOCKED",
         "buy_recommendations_authorized": False,
         "orders": [],
