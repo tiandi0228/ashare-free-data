@@ -469,7 +469,7 @@ jobs:
         run: |
           mkdir -p evidence
           python - <<'PY'
-          import json,subprocess
+          import json
           from pathlib import Path
           from collector.p1_checkpoint import epoch_path,remote_read,validate
           from collector.p1_epoch_compare import compare
@@ -484,7 +484,7 @@ jobs:
           report=compare(*states)
           assert report['trade_gate']=='BLOCKED'
           assert report['cross_epoch_reuse_authorized'] is False
-          Path('evidence/epoch_comparison.json').write_text(json.dumps(report,indent=2)+'\\n')
+          Path('evidence/epoch_comparison.json').write_text(json.dumps(report,indent=2)+chr(10))
           print('READ-ONLY EPOCH AUDIT:',report)
           PY
       - name: Publish P1 run diagnostics (research only)
