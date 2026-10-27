@@ -1,5 +1,5 @@
 import unittest
-from collector.p1_research_readiness import assess, unavailable
+from collector.p1_research_readiness import assess, assess_or_block, unavailable
 
 
 class ReadinessTests(unittest.TestCase):
@@ -22,6 +22,18 @@ class ReadinessTests(unittest.TestCase):
         self.assertFalse(report["research_data_complete"])
         self.assertFalse(report["buy_recommendations_authorized"])
         self.assertEqual(report["trade_gate"], "BLOCKED")
+
+    def test_malformed_ledger_is_reported_blocked(self):
+        bad = self.ledger()
+        bad["completed_shards"] = 2
+        report = assess_or_block(bad)
+        self.assertEqual(report["unresolved_checks"], ["CURRENT_LEDGER_INVALID"])
+        self.assertEqual(report["trade_gate"], "BLOCKED")
+        self.assertFalse(report["buy_recommendations_authorized"])
+
+    def test_non_mapping_ledger_is_reported_blocked(self):
+        report = assess_or_block([])
+        self.assertEqual(report["unresolved_checks"], ["CURRENT_LEDGER_INVALID"])
 
     def test_partial_ledger_not_actionable(self):
         report = assess(self.ledger())
