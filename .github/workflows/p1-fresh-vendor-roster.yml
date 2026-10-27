@@ -478,7 +478,7 @@ jobs:
               try:
                   obj=json.loads(file.read_text())
                   if not isinstance(obj,dict):raise ValueError('not a JSON object')
-                  keys=('status','requested_day','issuer_count','shard_count','completed_shards','completed_issuers','next_shard','archived_issuers','archive_gap_issuers','trade_gate')
+                  keys=('status','requested_day','source_sha256','mainboard_sha256','snapshot_reused','issuer_count','shard_count','completed_shards','completed_issuers','next_shard','archived_issuers','archive_gap_issuers','trade_gate')
                   observed=', '.join(f'{key}={obj[key]}' for key in keys if key in obj and isinstance(obj[key],(str,int,bool,type(None))))
                   lines.append(f'- `{name}`: {observed or "JSON exists; no standard counters"}')
               except (ValueError,UnicodeError,OSError) as exc:
