@@ -30,9 +30,10 @@ class AuditTests(unittest.TestCase):
             raw=b"date,close\\n2026-01-01,1\\n"
             (part/"sh_600000.csv").write_bytes(raw)
             row={"code":"sh.600000","sha256":hashlib.sha256(raw).hexdigest()}
-            (part/"quality.json").write_text(json.dumps({
-                "manifest_sha256":"b"*64,"status":"OBSERVED_SUBSET_UNVERIFIED",
-                "trade_gate":"BLOCKED","results":[row,row]}))
+            receipt={"manifest_sha256":"b"*64,"status":"OBSERVED_SUBSET_UNVERIFIED",
+                     "trade_gate":"BLOCKED","results":[row,row]}
+            (part/"quality.json").write_text(json.dumps(receipt))
+            ledger["completed"][0]["receipt_sha256"]=receipt_digest(receipt)
             with self.assertRaisesRegex(ValueError,"duplicate"):
                 audit(plan,ledger,root)
 
