@@ -18,6 +18,7 @@ def audit(plan, ledger, root):
     if not observed.issubset({x["index"] for x in ledger["completed"]}):
         raise ValueError("archive references uncompleted shard")
     archived=0
+    ledger_receipts={item["index"]:item for item in ledger["completed"]}
     legacy_without_receipts=[]
     for idx in sorted(observed):
         part=epoch/f"shard_{idx:04d}"
@@ -27,6 +28,9 @@ def audit(plan, ledger, root):
             legacy_without_receipts.append(idx)
             continue
         receipt=json.loads(manifest.read_text())
+        canonical=hashlib.sha256(json.dumps(receipt,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
+        if canonical!=ledger_receipts[idx].get("receipt_sha256"):
+            raise ValueError("archived receipt does not match immutable ledger evidence")
         if receipt["manifest_sha256"]!=expected["sha256"] or receipt["status"]!="OBSERVED_SUBSET_UNVERIFIED" or receipt["trade_gate"]!="BLOCKED":
             raise ValueError("invalid permanent quality receipt")
         results=receipt["results"]
