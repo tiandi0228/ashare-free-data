@@ -13,15 +13,27 @@ def git(*args,cwd=None,check=True):
 
 def collect(plan, selected):
     files=[]
+    seen_codes=set()
+    seen_shards=set()
     for index,folder in selected:
+        if type(index) is not int or not 0<=index<len(plan["shards"]) or index in seen_shards:
+            raise ValueError("invalid or duplicate archive shard index")
+        seen_shards.add(index)
         shard=plan["shards"][index]
         receipt=json.loads((folder/"quality.json").read_text())
         if receipt["manifest_sha256"]!=shard["sha256"] or receipt["issuer_count"]!=shard["count"]:
             raise ValueError("shard receipt mismatch")
         if receipt.get("status")!="OBSERVED_SUBSET_UNVERIFIED" or receipt.get("trade_gate")!="BLOCKED":
             raise ValueError("unsafe receipt")
-        for item in receipt["results"]:
-            source=folder/(item["code"].replace(".","_")+".csv")
+        results=receipt.get("results")
+        if not isinstance(results,list) or len(results)!=shard["count"]:
+            raise ValueError("incomplete archive receipt")
+        for item in results:
+            code=item.get("code") if isinstance(item,dict) else None
+            if not isinstance(code,str) or code in seen_codes:
+                raise ValueError("invalid or duplicate issuer in archive batch")
+            seen_codes.add(code)
+            source=folder/(code.replace(".","_")+".csv")
             raw=source.read_bytes()
             if hashlib.sha256(raw).hexdigest()!=item["sha256"]:
                 raise ValueError("CSV digest mismatch")
