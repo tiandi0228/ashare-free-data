@@ -3,6 +3,18 @@ from pathlib import Path
 from collector.p1_archive_audit import audit
 
 class AuditTests(unittest.TestCase):
+    def test_out_of_range_or_boolean_archive_indices_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp); epoch=root/("a"*16)
+            epoch.mkdir()
+            plan={"source_sha256":"a"*64,"shards":[{"index":0,"sha256":"b"*64,"count":1}]}
+            ledger={"source_sha256":"a"*64,"trade_gate":"BLOCKED","completed":[{"index":0}],"completed_issuers":1}
+            for invalid in ([1],[-1],[True],["0"]):
+                (epoch/"archive_status.json").write_text(json.dumps({
+                    "source_sha256":"a"*64,"trade_gate":"BLOCKED","archived_shards":invalid}))
+                with self.assertRaises(ValueError):
+                    audit(plan,ledger,root)
+
     def test_legacy_without_receipt_not_counted(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);epoch=root/("a"*16);part=epoch/"shard_0000"
