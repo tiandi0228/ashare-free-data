@@ -147,6 +147,16 @@ class CheckpointTests(unittest.TestCase):
             with self.assertRaises(subprocess.CalledProcessError):
                 remote_read("a/b")
 
+    def test_gh_api_is_bounded_and_timeout_fails_closed(self):
+        import subprocess
+        from unittest.mock import patch
+        from collector.p1_checkpoint import gh
+        with patch("collector.p1_checkpoint.subprocess.run",
+                   side_effect=subprocess.TimeoutExpired(["gh","api"],45)) as run:
+            with self.assertRaises(subprocess.TimeoutExpired):
+                gh("repos/test/repo/contents/checkpoint")
+            self.assertEqual(run.call_args.kwargs["timeout"],45)
+
     def test_orders_rejected(self):
         candidate=self.ledger(0);candidate["orders"]=[{"buy":"SH"}]
         with self.assertRaises(ValueError):validate(candidate)
