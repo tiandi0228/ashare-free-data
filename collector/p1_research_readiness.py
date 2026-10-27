@@ -31,7 +31,15 @@ def assess(ledger):
     }
 
 
-def unavailable():
+def assess_or_block(ledger):
+    """Never publish an actionable report for malformed upstream evidence."""
+    try:
+        return assess(ledger)
+    except (ValueError, KeyError, TypeError, AttributeError):
+        return unavailable("CURRENT_LEDGER_INVALID")
+
+
+def unavailable(reason="CURRENT_LEDGER_UNAVAILABLE"):
     """Explicit fail-closed report when an upstream job produced no ledger."""
     return {
         "phase": "P1_RESEARCH_READINESS",
@@ -39,7 +47,7 @@ def unavailable():
         "completed_shards": None,
         "shard_count": None,
         "completed_issuers": None,
-        "unresolved_checks": ["CURRENT_LEDGER_UNAVAILABLE"],
+        "unresolved_checks": [reason],
         "research_data_complete": False,
         "trade_gate": "BLOCKED",
         "buy_recommendations_authorized": False,
@@ -53,7 +61,13 @@ def main():
     parser.add_argument("--ledger")
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
-    report = assess(json.loads(Path(args.ledger).read_text())) if args.ledger else unavailable()
+    if args.ledger:
+        try:
+            report = assess_or_block(json.loads(Path(args.ledger).read_text()))
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            report = unavailable("CURRENT_LEDGER_INVALID")
+    else:
+        report = unavailable()
     output = Path(args.out)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, indent=2) + "\n")
