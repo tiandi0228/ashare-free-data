@@ -61,6 +61,15 @@ class ReadinessTests(unittest.TestCase):
         self.assertIn("COMPLETE_ONE_MINUTE_BAR_NOT_VERIFIED", report["unresolved_checks"])
         self.assertFalse(report["buy_recommendations_authorized"])
 
+    def test_archive_audit_missing_or_incomplete_blocks_readiness(self):
+        item=self.ledger()
+        self.assertIn("CSV_ARCHIVE_AUDIT_UNAVAILABLE",assess(item)["unresolved_checks"])
+        audit={"trade_gate":"BLOCKED","archive_complete":True,
+               "archived_issuers":8,"archive_gap_issuers":0}
+        self.assertNotIn("CSV_ARCHIVE_NOT_CERTIFIED",assess(item,audit)["unresolved_checks"])
+        audit["archived_issuers"]=7
+        self.assertIn("CSV_ARCHIVE_NOT_CERTIFIED",assess(item,audit)["unresolved_checks"])
+
     def test_tampered_open_gate_rejected(self):
         item = self.ledger()
         item["trade_gate"] = "OPEN"
