@@ -14,6 +14,8 @@ def plan(source, out, requested_day):
     if any(not CODE.fullmatch(c) for c in codes):
         raise ValueError("non-mainboard code in vendor roster")
     codes=sorted(codes)
+    # Independent membership identity: unchanged by CSV ordering or metadata.
+    codes_sha256=hashlib.sha256(("\n".join(codes)+"\n").encode()).hexdigest()
     groups=[codes[i:i+CAP] for i in range(0,len(codes),CAP)]
     out.mkdir(parents=True,exist_ok=True)
     receipts=[]
@@ -23,7 +25,7 @@ def plan(source, out, requested_day):
         (out/name).write_bytes(data)
         receipts.append({"index":i,"name":name,"count":len(group),"sha256":hashlib.sha256(data).hexdigest()})
     result={"phase":"P1_FRESH_VENDOR_SHARD_PLAN","requested_day":requested_day,
-            "source_sha256":hashlib.sha256(raw).hexdigest(),"issuer_count":len(codes),
+            "source_sha256":hashlib.sha256(raw).hexdigest(),"roster_codes_sha256":codes_sha256,"issuer_count":len(codes),
             "shard_size_cap":CAP,"shard_count":len(groups),"shards":receipts,
             "historical_PIT_verified":False,"complete_historical_ST_halt_delist_verified":False,
             "full_market_bars_observed":False,"paid_api_calls":0,
