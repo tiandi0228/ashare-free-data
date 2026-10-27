@@ -64,11 +64,19 @@ class ReadinessTests(unittest.TestCase):
     def test_archive_audit_missing_or_incomplete_blocks_readiness(self):
         item=self.ledger()
         self.assertIn("CSV_ARCHIVE_AUDIT_UNAVAILABLE",assess(item)["unresolved_checks"])
-        audit={"trade_gate":"BLOCKED","archive_complete":True,
+        audit={"source_sha256":"a"*64,"trade_gate":"BLOCKED","archive_complete":True,
                "archived_issuers":8,"archive_gap_issuers":0}
         self.assertNotIn("CSV_ARCHIVE_NOT_CERTIFIED",assess(item,audit)["unresolved_checks"])
         audit["archived_issuers"]=7
         self.assertIn("CSV_ARCHIVE_NOT_CERTIFIED",assess(item,audit)["unresolved_checks"])
+
+    def test_archive_audit_from_different_epoch_is_rejected(self):
+        item=self.ledger()
+        audit={"source_sha256":"b"*64,"trade_gate":"BLOCKED","archive_complete":True,
+               "archived_issuers":8,"archive_gap_issuers":0}
+        report=assess(item,audit)
+        self.assertIn("CSV_ARCHIVE_NOT_CERTIFIED",report["unresolved_checks"])
+        self.assertFalse(report["buy_recommendations_authorized"])
 
     def test_tampered_open_gate_rejected(self):
         item = self.ledger()
