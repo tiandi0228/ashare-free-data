@@ -503,7 +503,7 @@ jobs:
           if [ -f evidence/ledger.json ]; then
             python -m collector.p1_research_readiness --ledger evidence/ledger.json --out evidence/research_readiness.json
           else
-            echo "No valid current ledger; readiness cannot be certified"
+            python -m collector.p1_research_readiness --out evidence/research_readiness.json
           fi
       - name: Publish P1 run diagnostics (research only)
         if: always()
