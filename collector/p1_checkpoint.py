@@ -52,7 +52,7 @@ def validate(ledger):
     return ledger
 
 def gh(*args,input_data=None):
-    return subprocess.run(["gh","api",*args],input=input_data,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True).stdout
+    return subprocess.run(["gh","api",*args],input=input_data,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True,timeout=45).stdout
 
 def remote_read(repo,path=CHECKPOINT):
     try:
