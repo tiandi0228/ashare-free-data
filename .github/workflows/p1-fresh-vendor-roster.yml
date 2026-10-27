@@ -28,6 +28,8 @@ on:
       - 'tests/test_p1_repair_pick.py'
       - 'tests/test_p1_csv_archive.py'
       - 'tests/test_p1_shard_ledger.py'
+      - 'collector/p1_epoch_compare.py'
+      - 'tests/test_p1_epoch_compare.py'
   schedule:
     - cron: '10 1 * * 1-5' # 09:10 Beijing
     - cron: '10 3 * * 1-5' # 11:10 Beijing; additional source sampling window
@@ -56,7 +58,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline source tests
-        run: python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick tests.test_p1_coverage_gap_diagnosis tests.test_p3_p1_evidence_worklist tests.test_p1_quad_pick tests.test_p1_quad_verify tests.test_p3_all_completed_worklist -v
+        run: python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick tests.test_p1_coverage_gap_diagnosis tests.test_p3_p1_evidence_worklist tests.test_p1_quad_pick tests.test_p1_quad_verify tests.test_p3_all_completed_worklist tests.test_p1_epoch_compare -v
       - name: Install free Baostock
         run: python -m pip install 'baostock>=0.8,<1'
       - name: Observe current Beijing-date mainboard roster from free provider
@@ -459,6 +461,32 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python -m collector.p1_checkpoint --mode write --source-sha "$(python -c "import json;print(json.load(open('evidence/ledger.json'))['source_sha256'])")" --in-file evidence/ledger.json
+      - name: Read-only cross-epoch checkpoint comparison
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p evidence
+          python - <<'PY'
+          import json,subprocess
+          from pathlib import Path
+          from collector.p1_checkpoint import epoch_path,remote_read,validate
+          from collector.p1_epoch_compare import compare
+          epochs=('3529685a3d2d6402bffb7afef1e075b1385f59b06dc8a4920f95fd59d0d5a99a',
+                  '40f781bfd1457688130c41a038d8f8165d3ff4dcbf3e2da9b5fb992c8a2ed01d')
+          states=[]
+          for digest in epochs:
+              item,_=remote_read('${{ github.repository }}',epoch_path(digest))
+              if item is None:
+                  raise ValueError('missing expected research checkpoint '+digest)
+              states.append(validate(item))
+          report=compare(*states)
+          assert report['trade_gate']=='BLOCKED'
+          assert report['cross_epoch_reuse_authorized'] is False
+          Path('evidence/epoch_comparison.json').write_text(json.dumps(report,indent=2)+'\\n')
+          print('READ-ONLY EPOCH AUDIT:',report)
+          PY
       - name: Publish P1 run diagnostics (research only)
         if: always()
         env:
