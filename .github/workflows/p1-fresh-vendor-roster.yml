@@ -60,14 +60,18 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline source tests
+        id: diag_0
         run: python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick tests.test_p1_coverage_gap_diagnosis tests.test_p3_p1_evidence_worklist tests.test_p1_quad_pick tests.test_p1_quad_verify tests.test_p3_all_completed_worklist tests.test_p1_epoch_compare tests.test_p1_research_readiness -v
       - name: Install free Baostock
+        id: diag_1
         run: python -m pip install 'baostock>=0.8,<1'
       - name: Observe current Beijing-date mainboard roster from free provider
+        id: diag_2
         id: roster
         continue-on-error: true
         run: timeout 210s python -m collector.p1_fresh_vendor_roster --out evidence
       - name: Recover explicitly stale vendor roster if live source fails
+        id: diag_3
         if: steps.roster.outcome == 'failure'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -328,6 +332,7 @@ jobs:
           if [[ "${{ steps.pick.outputs.has_fourth }}" == "true" ]]; then RECS+=(--receipt "${{ steps.pick.outputs.fourth }}:evidence/fourth_shard"); fi
           python -m collector.p1_quad_verify --plan evidence/shards/plan.json --manifest-root evidence/shards "${RECS[@]}"
       - name: Reconcile observed shards into versioned source ledger
+        id: diag_4
         run: |
           test -f evidence/shards/plan.json
           PRIOR_ARGS=()
@@ -346,6 +351,7 @@ jobs:
           print('AUDIT: source-bound completed issuers',x['completed_issuers'])
           PY
       - name: Archive raw CSV to durable free Git research branch
+        id: diag_5
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -360,6 +366,7 @@ jobs:
           if [[ "${{ steps.pick.outputs.has_fourth }}" == "true" ]]; then FOURTH=(--fourth "${{ steps.pick.outputs.fourth }}"); fi
           python -m collector.p1_csv_archive --plan evidence/shards/plan.json --first "${{ steps.pick.outputs.first }}" "${SECOND[@]}" "${THIRD[@]}" "${FOURTH[@]}"
       - name: Audit permanent research CSV archive against recovered ledger
+        id: diag_6
         run: |
           git fetch --depth=1 origin research-csv-archive
           git worktree add --detach archived-research FETCH_HEAD
@@ -468,6 +475,7 @@ jobs:
           print('P3 COMPLETE SOURCE-SCOPED QUEUE:',q['completed_issuers_replayed'],'issuers',q['required_official_evidence_cells'],'PIT tasks pending')
           PY
       - name: Persist durable no-trade checkpoint in repository
+        id: diag_7
         env:
           GH_TOKEN: ${{ github.token }}
         run: python -m collector.p1_checkpoint --mode write --source-sha "$(python -c "import json;print(json.load(open('evidence/ledger.json'))['source_sha256'])")" --in-file evidence/ledger.json
@@ -526,6 +534,15 @@ jobs:
           root=Path('evidence')
           summary=Path(os.environ['GITHUB_STEP_SUMMARY'])
           lines=['## P1 bounded collection diagnostics','', 'Trade gate: **BLOCKED** (research only).','']
+          lines+=['','### Critical step outcomes']
+          lines.append('- Offline source tests: **${{ steps.diag_0.outcome }}**')
+          lines.append('- Install free Baostock: **${{ steps.diag_1.outcome }}**')
+          lines.append('- Observe current Beijing-date mainboard roster from free provider: **${{ steps.diag_2.outcome }}**')
+          lines.append('- Recover explicitly stale vendor roster if live source fails: **${{ steps.diag_3.outcome }}**')
+          lines.append('- Reconcile observed shards into versioned source ledger: **${{ steps.diag_4.outcome }}**')
+          lines.append('- Archive raw CSV to durable free Git research branch: **${{ steps.diag_5.outcome }}**')
+          lines.append('- Audit permanent research CSV archive against recovered ledger: **${{ steps.diag_6.outcome }}**')
+          lines.append('- Persist durable no-trade checkpoint in repository: **${{ steps.diag_7.outcome }}**')
           for name in ('quality.json','shards/plan.json','prior_ledger.json','ledger.json','archive_audit.json','epoch_comparison.json','research_readiness.json'):
               file=root/name
               if not file.is_file():
