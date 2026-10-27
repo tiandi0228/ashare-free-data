@@ -18,6 +18,7 @@ def assess(ledger, archive_audit=None):
         missing.append("CSV_ARCHIVE_AUDIT_UNAVAILABLE")
     elif (not isinstance(archive_audit,dict) or
           archive_audit.get("trade_gate")!="BLOCKED" or
+          archive_audit.get("source_sha256")!=ledger["source_sha256"] or
           archive_audit.get("archive_complete") is not True or
           type(archive_audit.get("archived_issuers")) is not int or
           archive_audit["archived_issuers"]!=ledger["completed_issuers"] or
