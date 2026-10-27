@@ -29,8 +29,15 @@ def audit(plan, ledger, root):
         receipt=json.loads(manifest.read_text())
         if receipt["manifest_sha256"]!=expected["sha256"] or receipt["status"]!="OBSERVED_SUBSET_UNVERIFIED" or receipt["trade_gate"]!="BLOCKED":
             raise ValueError("invalid permanent quality receipt")
-        if len(receipt["results"])!=expected["count"]:raise ValueError("incomplete archive")
-        for row in receipt["results"]:
+        results=receipt["results"]
+        if not isinstance(results,list) or len(results)!=expected["count"]:
+            raise ValueError("incomplete archive")
+        codes=[row.get("code") for row in results if isinstance(row,dict)]
+        if len(codes)!=len(results) or any(not isinstance(code,str) for code in codes) or len(set(codes))!=len(codes):
+            raise ValueError("duplicate or invalid archived issuer codes")
+        if receipt.get("issuer_count") is not None and receipt["issuer_count"]!=expected["count"]:
+            raise ValueError("archived issuer count mismatch")
+        for row in results:
             data=(part/(row["code"].replace(".","_")+".csv")).read_bytes()
             if hashlib.sha256(data).hexdigest()!=row["sha256"]:raise ValueError("archive CSV hash mismatch")
             archived+=1
