@@ -75,12 +75,20 @@ jobs:
           python - <<'PY'
           import hashlib,json,subprocess
           from pathlib import Path
-          runs=json.loads(subprocess.check_output(['gh','run','list','--workflow','p1-fresh-vendor-roster.yml','--json','databaseId,conclusion','--limit','20']))
+          runs=json.loads(subprocess.check_output(
+              ['gh','run','list','--workflow','p1-fresh-vendor-roster.yml',
+               '--json','databaseId,conclusion','--limit','8'],timeout=30))
           for run in runs:
               if run['conclusion']!='success':continue
               rid=run['databaseId']
               dest=Path('frozen_previous')/str(rid)
-              result=subprocess.run(['gh','run','download',str(rid),'-n',f'p1-fresh-roster-{rid}','-D',str(dest)],capture_output=True,text=True)
+              try:
+                  result=subprocess.run(
+                      ['gh','run','download',str(rid),'-n',f'p1-fresh-roster-{rid}','-D',str(dest)],
+                      capture_output=True,text=True,timeout=45)
+              except subprocess.TimeoutExpired:
+                  print('Skipped timed-out frozen snapshot artifact',rid)
+                  continue
               if result.returncode:continue
               qfile=dest/'quality.json'; csvfile=dest/'mainboard.csv'
               if not (qfile.exists() and csvfile.exists()):continue
