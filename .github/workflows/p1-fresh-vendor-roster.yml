@@ -283,11 +283,11 @@ jobs:
           fi
           exit "$code"
       - name: Capture third eight-issuer frozen P1 shard
-        if: ${{ steps.pick.outputs.has_third }} == 'true'
+        if: steps.pick.outputs.has_third == 'true'
         run: |
           timeout --signal=TERM --kill-after=5s 150s python -u -m collector.baostock_batch --manifest evidence/shards/shard_${{ steps.pick.outputs.third }}.txt --batch-index 0 --out evidence/third_shard
       - name: Capture fourth eight-issuer frozen P1 shard
-        if: ${{ steps.pick.outputs.has_fourth }} == 'true'
+        if: steps.pick.outputs.has_fourth == 'true'
         run: |
           timeout --signal=TERM --kill-after=5s 150s python -u -m collector.baostock_batch --manifest evidence/shards/shard_${{ steps.pick.outputs.fourth }}.txt --batch-index 0 --out evidence/fourth_shard
       - name: Verify real roster-to-bars linkage and SHA receipts
