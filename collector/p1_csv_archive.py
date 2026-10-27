@@ -29,6 +29,8 @@ def collect(plan, selected):
         if not isinstance(results,list) or len(results)!=shard["count"]:
             raise ValueError("incomplete archive receipt")
         for item in results:
+            if not isinstance(item,dict) or item.get("status") not in (None,"OBSERVED_UNVERIFIED"):
+                raise ValueError("invalid issuer result status in archive batch")
             code=item.get("code") if isinstance(item,dict) else None
             if not isinstance(code,str) or code in seen_codes:
                 raise ValueError("invalid or duplicate issuer in archive batch")
