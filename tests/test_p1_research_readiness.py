@@ -1,5 +1,5 @@
 import unittest
-from collector.p1_research_readiness import assess
+from collector.p1_research_readiness import assess, unavailable
 
 
 class ReadinessTests(unittest.TestCase):
@@ -15,6 +15,13 @@ class ReadinessTests(unittest.TestCase):
             "historical_PIT_verified": False,
             "trade_gate": "BLOCKED", "orders": [], "executable_candidates": []
         }
+
+    def test_missing_ledger_produces_explicit_blocked_report(self):
+        report = unavailable()
+        self.assertEqual(report["unresolved_checks"], ["CURRENT_LEDGER_UNAVAILABLE"])
+        self.assertFalse(report["research_data_complete"])
+        self.assertFalse(report["buy_recommendations_authorized"])
+        self.assertEqual(report["trade_gate"], "BLOCKED")
 
     def test_partial_ledger_not_actionable(self):
         report = assess(self.ledger())
