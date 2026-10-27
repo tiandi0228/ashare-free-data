@@ -46,6 +46,8 @@ class ReadinessTests(unittest.TestCase):
         item.update(completed_shards=2, completed_issuers=16, pending_shards=[], next_shard=None)
         report = assess(item)
         self.assertTrue(report["research_data_complete"])
+        self.assertTrue(report["vendor_shards_complete"])
+        self.assertFalse(report["research_certified"])
         self.assertFalse(report["buy_recommendations_authorized"])
         self.assertIn("HISTORICAL_PIT_NOT_AUTHENTICATED", report["unresolved_checks"])
 
