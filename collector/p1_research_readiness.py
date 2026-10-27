@@ -83,7 +83,8 @@ def main():
     args = parser.parse_args()
     if args.ledger:
         try:
-            report = assess_or_block(json.loads(Path(args.ledger).read_text()),\n                json.loads(Path(args.archive_audit).read_text()) if args.archive_audit else None)
+            report = assess_or_block(json.loads(Path(args.ledger).read_text()),
+                json.loads(Path(args.archive_audit).read_text()) if args.archive_audit else None)
         except (OSError, UnicodeError, json.JSONDecodeError):
             report = unavailable("CURRENT_LEDGER_INVALID")
     else:
