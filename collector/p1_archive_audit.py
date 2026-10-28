@@ -43,6 +43,8 @@ def audit(plan, ledger, root):
         if receipt.get("issuer_count") is not None and receipt["issuer_count"]!=expected["count"]:
             raise ValueError("archived issuer count mismatch")
         for row in results:
+            if row.get("status")!="OBSERVED_UNVERIFIED":
+                raise ValueError("invalid archived issuer result status")
             data=(part/(row["code"].replace(".","_")+".csv")).read_bytes()
             if hashlib.sha256(data).hexdigest()!=row["sha256"]:raise ValueError("archive CSV hash mismatch")
             archived+=1
