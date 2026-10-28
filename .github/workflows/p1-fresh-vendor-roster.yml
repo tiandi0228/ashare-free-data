@@ -72,6 +72,578 @@ jobs:
           mkdir -p evidence
           set -o pipefail
           python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick tests.test_p1_coverage_gap_diagnosis tests.test_p3_p1_evidence_worklist tests.test_p1_quad_pick tests.test_p1_quad_verify tests.test_p3_all_completed_worklist tests.test_p1_epoch_compare tests.test_p1_research_readiness -v 2>&1 | tee evidence/offline_tests.log
+      - name: Annotate exact offline unittest failures
+        if: failure() && steps.diag_0.outcome == 'failure'
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          log=Path('evidence/offline_tests.log')
+          if not log.is_file():
+              print('::error title=P1 offline tests::Offline unittest log was not produced')
+              raise SystemExit(0)
+          text=log.read_text(errors='replace')
+          names=re.findall(r'(?m)^(?:FAIL|ERROR): (.+)
+        id: diag_1
+        run: python -m pip install 'baostock>=0.8,<1'
+      - name: Observe current Beijing-date mainboard roster from free provider
+        id: roster
+        continue-on-error: true
+        run: timeout 210s python -m collector.p1_fresh_vendor_roster --out evidence
+      - name: Preserve failed live vendor roster receipt for diagnosis
+        if: steps.roster.outcome == 'failure'
+        run: |
+          if test -f evidence/quality.json; then
+            cp evidence/quality.json evidence/live_roster_attempt.json
+          fi
+      - name: Recover explicitly stale vendor roster if live source fails
+        id: diag_3
+        if: steps.roster.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import hashlib,json,subprocess
+          from pathlib import Path
+          runs=json.loads(subprocess.check_output(
+              ['gh','run','list','--workflow','p1-fresh-vendor-roster.yml',
+               '--json','databaseId,conclusion','--limit','150'],timeout=45))
+          # Prefer completed runs, since consecutive failures may have no roster artifact.
+          # Bounded fallback also allows a failed downstream run with a valid snapshot.
+          candidates=[r for r in runs if r['conclusion']=='success']
+          candidates += [r for r in runs if r['conclusion'] in ('failure','timed_out')]
+          for run in candidates[:40]:
+              rid=run['databaseId']
+              dest=Path('frozen_previous')/str(rid)
+              try:
+                  result=subprocess.run(
+                      ['gh','run','download',str(rid),'-n',f'p1-fresh-roster-{rid}','-D',str(dest)],
+                      capture_output=True,text=True,timeout=45)
+              except subprocess.TimeoutExpired:
+                  print('Skipped timed-out frozen snapshot artifact',rid)
+                  continue
+              if result.returncode:continue
+              qfile=dest/'quality.json'; csvfile=dest/'mainboard.csv'
+              if not (qfile.exists() and csvfile.exists()):continue
+              try:
+                  q=json.loads(qfile.read_text())
+                  if q.get('status') not in ('OBSERVED_UNVERIFIED','FROZEN_VENDOR_SNAPSHOT_UNVERIFIED'):continue
+                  if q.get('mainboard_prefix_rows',0)<2500 or hashlib.sha256(csvfile.read_bytes()).hexdigest()!=q.get('mainboard_sha256') or q.get('trade_gate')!='BLOCKED':continue
+                  if q.get('historical_PIT_verified') is not False or q.get('publisher_authenticated') is not False:continue
+                  if q['status']=='FROZEN_VENDOR_SNAPSHOT_UNVERIFIED':
+                      if q.get('snapshot_reused') is not True or type(q.get('snapshot_origin_run')) is not int or q['snapshot_origin_run']<=0:continue
+                  origin=q['snapshot_origin_run'] if q['status']=='FROZEN_VENDOR_SNAPSHOT_UNVERIFIED' else rid
+                  Path('evidence').mkdir(exist_ok=True)
+                  Path('evidence/mainboard.csv').write_bytes(csvfile.read_bytes())
+                  q.update(status='FROZEN_VENDOR_SNAPSHOT_UNVERIFIED',snapshot_origin_run=origin,
+                           snapshot_requested_day=q['requested_day'],snapshot_reused=True,
+                           source_day_is_official_publication_proof=False,
+                           historical_PIT_verified=False,publisher_authenticated=False,
+                           trade_gate='BLOCKED',orders=[],executable_candidates=[])
+                  Path('evidence/quality.json').write_text(json.dumps(q,ensure_ascii=False,indent=2)+chr(10))
+                  print('RECOVERED: explicitly frozen vendor snapshot from',rid,q['requested_day'])
+                  break
+              except (ValueError,KeyError,TypeError):continue
+          else:raise SystemExit('No verified frozen vendor snapshot available; fail closed')
+          PY
+      - name: Verify bounded original roster receipt
+        run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          q=json.loads(Path('evidence/quality.json').read_text())
+          assert q['status'] in ('OBSERVED_UNVERIFIED','FROZEN_VENDOR_SNAPSHOT_UNVERIFIED')
+          assert q['mainboard_prefix_rows']>=2500
+          if q['status']=='FROZEN_VENDOR_SNAPSHOT_UNVERIFIED':
+              assert q['snapshot_reused'] is True and q['snapshot_origin_run']>0
+              print('WARNING: STALE vendor snapshot, not a current-day roster')
+          assert hashlib.sha256(Path('evidence/mainboard.csv').read_bytes()).hexdigest()==q['mainboard_sha256']
+          assert 1<=q['logical_queries']<=2 and q['paid_api_calls']==0
+          assert q['publisher_authenticated'] is False and q['historical_PIT_verified'] is False
+          assert q['trade_gate']=='BLOCKED' and q['orders']==[] and q['executable_candidates']==[]
+          print('PASS: fresh vendor snapshot observed; no historical PIT or tradability certification')
+          PY
+      - name: Build deterministic eight-issuer research batches from real roster
+        run: |
+          # Use the actual vendor observation date, including when recovery reused a frozen snapshot.
+          SOURCE_DAY=$(python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path('evidence/quality.json').read_text())
+          day=q['requested_day']
+          assert isinstance(day,str) and len(day)==10 and day[4]=='-' and day[7]=='-'
+          print(day)
+          PY
+          )
+          python -m collector.p1_fresh_shard_plan --source evidence/mainboard.csv --out evidence/shards --requested-day "$SOURCE_DAY"
+          python - <<'PY'
+          import json,hashlib,math
+          from pathlib import Path
+          q=json.loads(Path('evidence/quality.json').read_text())
+          p=json.loads(Path('evidence/shards/plan.json').read_text())
+          assert p['source_sha256']==q['mainboard_sha256']
+          assert p['requested_day']==q['requested_day'], 'source date must not be rewritten on stale fallback'
+          assert p['issuer_count']==q['mainboard_prefix_rows']
+          assert p['shard_count']==math.ceil(q['mainboard_prefix_rows']/8)
+          assert sum(s['count'] for s in p['shards'])==q['mainboard_prefix_rows']
+          for s in p['shards']:
+              assert hashlib.sha256(Path('evidence/shards',s['name']).read_bytes()).hexdigest()==s['sha256']
+          assert p['historical_PIT_verified'] is False and p['trade_gate']=='BLOCKED'
+          print('PASS: fresh vendor roster mapped to deterministic research shards; no historical PIT certification')
+          PY
+      - name: Recover durable same-version GitHub checkpoint (legacy JSON suffix compatible)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m collector.p1_checkpoint --mode read --source-sha "$(python -c "import json;print(json.load(open('evidence/shards/plan.json'))['source_sha256'])")" --out evidence/durable_ledger.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('evidence/durable_ledger.json')
+          if p.exists():
+              q=json.loads(Path('evidence/shards/plan.json').read_text())
+              r=json.loads(p.read_text())
+              if (r['source_sha256'],r['shard_count'])==(q['source_sha256'],q['shard_count']):
+                  Path('evidence/prior_ledger.json').write_text(json.dumps(r))
+                  print('Matching durable frozen roster checkpoint recovered')
+              else:
+                  print('Durable checkpoint is for another roster, not reusable')
+          PY
+      - name: Recover prior successful ledger only for identical roster SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json,subprocess
+          from pathlib import Path
+          from collector.p1_checkpoint import merge,validate
+          p=json.loads(Path('evidence/shards/plan.json').read_text())
+          runs=[]
+          best=None
+          best_count=-1
+          durable=Path('evidence/prior_ledger.json')
+          if durable.exists():
+              item=validate(json.loads(durable.read_text()))
+              if item['source_sha256']!=p['source_sha256'] or item['shard_count']!=p['shard_count']:
+                  raise ValueError('durable checkpoint roster differs from frozen plan')
+              best=(item,'durable-checkpoint')
+              best_count=item['completed_issuers']
+              # The durable checkpoint has already passed SHA and roster checks.
+              # Avoid repeated artifact downloads when it is authoritative.
+              print('Using validated durable checkpoint; skipping historical artifact downloads')
+          else:
+              # Only request the GitHub run list when durable recovery is unavailable.
+              runs=json.loads(subprocess.check_output(
+                  ['gh','run','list','--workflow','p1-fresh-vendor-roster.yml',
+                   '--json','databaseId,conclusion','--limit','4'],timeout=30))
+          for entry in runs:
+              if entry['conclusion']!='success': continue
+              rid=entry['databaseId']
+              # Isolate each run: a prior download must never be mistaken for
+              # the current run's ledger when artifact contents differ.
+              dest=Path('previous')/str(rid)
+              try:
+                  download=subprocess.run(['gh','run','download',str(rid),'-n',f'p1-fresh-roster-{rid}','-D',str(dest)],capture_output=True,text=True,timeout=45)
+              except subprocess.TimeoutExpired:
+                  print('Skipped timed-out artifact download from',rid)
+                  continue
+              if download.returncode!=0: continue
+              candidates=list(dest.rglob('ledger.json'))
+              if len(candidates)!=1:continue
+              try:
+                  ledger=json.loads(candidates[0].read_text())
+                  if ledger['source_sha256']==p['source_sha256'] and ledger['shard_count']==p['shard_count']:
+                      validate(ledger)
+                      if best is not None:
+                          # Never allow an artifact to override a durable SHA-linked
+                          # receipt without checking overlapping evidence.
+                          merged=merge(ledger,best[0])
+                          if merged is best[0]:continue
+                      count=ledger['completed_issuers']
+                      if count>best_count:
+                          best,best_count=(ledger,rid),count
+              except (ValueError,KeyError,TypeError) as exc:
+                  print('Skipped invalid or conflicting historical ledger from',rid,str(exc))
+          if best is not None:
+              ledger,rid=best
+              Path('evidence/prior_ledger.json').write_text(json.dumps(ledger))
+              print('Recovered highest-progress same-roster ledger from run',rid,'issuers',best_count)
+          PY
+      - name: Select up to four distinct missing frozen roster shards
+        id: pick
+        run: |
+          PRIOR_ARGS=()
+          if [[ -s evidence/prior_ledger.json ]]; then PRIOR_ARGS=(--prior evidence/prior_ledger.json); fi
+          python -m collector.p1_quad_pick --plan evidence/shards/plan.json "${PRIOR_ARGS[@]}" --per-run "${{ github.event_name == 'workflow_dispatch' && inputs.shards_per_run || '1' }}" --output-file "$GITHUB_OUTPUT"
+      - name: Record bounded pilot selection for audit
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          selected=['${{ steps.pick.outputs.first }}','${{ steps.pick.outputs.second }}',
+                    '${{ steps.pick.outputs.third }}','${{ steps.pick.outputs.fourth }}']
+          chosen=[int(v) for v in selected if v and v!='NONE']
+          requested=int("${{ github.event_name == 'workflow_dispatch' && inputs.shards_per_run || '1' }}")
+          assert requested in (1,2)
+          assert len(chosen)==requested and len(set(chosen))==len(chosen)
+          receipt={'phase':'P1_BOUNDED_PILOT_SELECTION','requested_shards':requested,
+                   'selected_shards':chosen,'selected_count':len(chosen),
+                   'trade_gate':'BLOCKED','orders':[]}
+          Path('evidence/pilot_selection.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          print('P1 PILOT SELECTION:',receipt)
+          PY
+      - name: Fetch first real roster shard historical bars (bounded 8 only)
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('evidence/shards/plan.json').read_text())
+          assert p['shard_count']>=1 and p['shards'][int('${{ steps.pick.outputs.first }}')]['count']<=8
+          print('Real roster shard 0 SHA:',p['shards'][int('${{ steps.pick.outputs.first }}')]['sha256'])
+          PY
+          set +e
+          timeout --signal=TERM --kill-after=5s 150s python -u -m collector.baostock_batch --manifest evidence/shards/shard_${{ steps.pick.outputs.first }}.txt --batch-index 0 --out evidence/first_shard
+          code=$?
+          set -e
+          if [ "$code" -eq 124 ] || [ "$code" -eq 137 ]; then
+            mkdir -p evidence/first_shard
+            RC="$code" python - <<'PY'
+          import json,os
+          from pathlib import Path
+          Path('evidence/first_shard/runner_timeout.json').write_text(json.dumps({'phase':'P1_RUNNER_TIMEOUT','stage':'first_shard','exit_code':int(os.environ['RC']),'trade_gate':'BLOCKED','orders':[]})+'\n')
+          PY
+          fi
+          exit "$code"
+      - name: Fetch next real roster shard historical bars (bounded 8 only)
+        if: steps.pick.outputs.has_second == 'true'
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('evidence/shards/plan.json').read_text())
+          assert p['shard_count']>=2 and p['shards'][int('${{ steps.pick.outputs.second }}')]['count']<=8
+          print('Real roster shard 1 SHA:',p['shards'][int('${{ steps.pick.outputs.second }}')]['sha256'])
+          PY
+          set +e
+          timeout --signal=TERM --kill-after=5s 150s python -u -m collector.baostock_batch --manifest evidence/shards/shard_${{ steps.pick.outputs.second }}.txt --batch-index 0 --out evidence/second_shard
+          code=$?
+          set -e
+          if [ "$code" -eq 124 ] || [ "$code" -eq 137 ]; then
+            mkdir -p evidence/second_shard
+            RC="$code" python - <<'PY'
+          import json,os
+          from pathlib import Path
+          Path('evidence/second_shard/runner_timeout.json').write_text(json.dumps({'phase':'P1_RUNNER_TIMEOUT','stage':'second_shard','exit_code':int(os.environ['RC']),'trade_gate':'BLOCKED','orders':[]})+'\n')
+          PY
+          fi
+          exit "$code"
+      - name: Capture third eight-issuer frozen P1 shard
+        if: steps.pick.outputs.has_third == 'true'
+        run: |
+          timeout --signal=TERM --kill-after=5s 150s python -u -m collector.baostock_batch --manifest evidence/shards/shard_${{ steps.pick.outputs.third }}.txt --batch-index 0 --out evidence/third_shard
+      - name: Capture fourth eight-issuer frozen P1 shard
+        if: steps.pick.outputs.has_fourth == 'true'
+        run: |
+          timeout --signal=TERM --kill-after=5s 150s python -u -m collector.baostock_batch --manifest evidence/shards/shard_${{ steps.pick.outputs.fourth }}.txt --batch-index 0 --out evidence/fourth_shard
+      - name: Verify real roster-to-bars linkage and SHA receipts
+        run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          p=json.loads(Path('evidence/shards/plan.json').read_text())
+          s=json.loads(Path('evidence/first_shard/quality.json').read_text())
+          assert s['manifest_sha256']==p['shards'][int('${{ steps.pick.outputs.first }}')]['sha256']
+          assert 1<=s['issuer_count']<=8 and s['query_attempts']==s['issuer_count']
+          assert s['status']=='OBSERVED_SUBSET_UNVERIFIED'
+          assert s['trade_gate']=='BLOCKED' and not s['orders']
+          for item in s['results']:
+              assert item['status']=='OBSERVED_UNVERIFIED'
+              raw=Path('evidence/first_shard',item['code'].replace('.','_')+'.csv').read_bytes()
+              assert hashlib.sha256(raw).hexdigest()==item['sha256']
+          if '${{ steps.pick.outputs.has_second }}' != 'true':
+              print('Only one final shard remains; no duplicate second acquisition')
+              raise SystemExit(0)
+          t=json.loads(Path('evidence/second_shard/quality.json').read_text())
+          assert t['manifest_sha256']==p['shards'][int('${{ steps.pick.outputs.second }}')]['sha256']
+          assert 1<=t['issuer_count']<=8 and t['query_attempts']==t['issuer_count']
+          assert t['status']=='OBSERVED_SUBSET_UNVERIFIED'
+          assert t['trade_gate']=='BLOCKED' and not t['orders']
+          for item in t['results']:
+              assert item['status']=='OBSERVED_UNVERIFIED'
+              raw=Path('evidence/second_shard',item['code'].replace('.','_')+'.csv').read_bytes()
+              assert hashlib.sha256(raw).hexdigest()==item['sha256']
+          assert set(x['code'] for x in s['results']).isdisjoint(x['code'] for x in t['results'])
+          print('PASS: sixteen unique real roster-derived histories verified; NOT PIT-certified')
+          PY
+      - name: Verify up to four immutable shard receipts and original CSV hashes
+        run: |
+          RECS=(--receipt "${{ steps.pick.outputs.first }}:evidence/first_shard")
+          if [[ "${{ steps.pick.outputs.has_second }}" == "true" ]]; then RECS+=(--receipt "${{ steps.pick.outputs.second }}:evidence/second_shard"); fi
+          if [[ "${{ steps.pick.outputs.has_third }}" == "true" ]]; then RECS+=(--receipt "${{ steps.pick.outputs.third }}:evidence/third_shard"); fi
+          if [[ "${{ steps.pick.outputs.has_fourth }}" == "true" ]]; then RECS+=(--receipt "${{ steps.pick.outputs.fourth }}:evidence/fourth_shard"); fi
+          python -m collector.p1_quad_verify --plan evidence/shards/plan.json --manifest-root evidence/shards "${RECS[@]}"
+      - name: Reconcile observed shards into versioned source ledger
+        id: diag_4
+        run: |
+          test -f evidence/shards/plan.json
+          PRIOR_ARGS=()
+          if test -f evidence/prior_ledger.json; then PRIOR_ARGS=(--prior evidence/prior_ledger.json); fi
+          RECS=(--receipt "${{ steps.pick.outputs.first }}:evidence/first_shard/quality.json")
+          if [[ "${{ steps.pick.outputs.has_second }}" == "true" ]]; then RECS+=(--receipt "${{ steps.pick.outputs.second }}:evidence/second_shard/quality.json"); fi
+          if [[ "${{ steps.pick.outputs.has_third }}" == "true" ]]; then RECS+=(--receipt "${{ steps.pick.outputs.third }}:evidence/third_shard/quality.json"); fi
+          if [[ "${{ steps.pick.outputs.has_fourth }}" == "true" ]]; then RECS+=(--receipt "${{ steps.pick.outputs.fourth }}:evidence/fourth_shard/quality.json"); fi
+          python -m collector.p1_shard_ledger --plan evidence/shards/plan.json "${PRIOR_ARGS[@]}" "${RECS[@]}" --out evidence/ledger.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path('evidence/ledger.json').read_text())
+          assert x['trade_gate']=='BLOCKED' and x['historical_PIT_verified'] is False
+          assert x['completed_issuers']<=json.loads(Path('evidence/shards/plan.json').read_text())['issuer_count']
+          print('AUDIT: source-bound completed issuers',x['completed_issuers'])
+          PY
+      - name: Archive raw CSV to durable free Git research branch
+        id: diag_5
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh auth setup-git
+          SECOND=()
+          if [[ "${{ steps.pick.outputs.has_second }}" == "true" ]]; then
+            SECOND=(--second "${{ steps.pick.outputs.second }}")
+          fi
+          THIRD=()
+          FOURTH=()
+          if [[ "${{ steps.pick.outputs.has_third }}" == "true" ]]; then THIRD=(--third "${{ steps.pick.outputs.third }}"); fi
+          if [[ "${{ steps.pick.outputs.has_fourth }}" == "true" ]]; then FOURTH=(--fourth "${{ steps.pick.outputs.fourth }}"); fi
+          python -m collector.p1_csv_archive --plan evidence/shards/plan.json --first "${{ steps.pick.outputs.first }}" "${SECOND[@]}" "${THIRD[@]}" "${FOURTH[@]}"
+      - name: Audit permanent research CSV archive against recovered ledger
+        id: diag_6
+        run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-research FETCH_HEAD
+          python -m collector.p1_archive_audit --plan evidence/shards/plan.json --ledger evidence/ledger.json --root archived-research --out evidence/archive_audit.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path('evidence/archive_audit.json').read_text())
+          assert q['trade_gate']=='BLOCKED' and q['historical_PIT_verified'] is False
+          assert q['archived_issuers']<=q['ledger_issuers']
+          print('ARCHIVE AUDIT: permanently verified',q['archived_issuers'],'of',q['ledger_issuers'])
+          PY
+      - name: Persist durable no-trade checkpoint in repository
+        id: diag_7
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -m collector.p1_checkpoint --mode write --source-sha "$(python -c "import json;print(json.load(open('evidence/ledger.json'))['source_sha256'])")" --in-file evidence/ledger.json
+      - name: Preserve pre-repair archive audit
+        run: cp evidence/archive_audit.json evidence/archive_audit_before_repair.json
+      - name: Pick one bounded previous archive gap
+        id: repair
+        run: |
+          python -m collector.p1_repair_pick --audit evidence/archive_audit.json --ledger evidence/ledger.json --out evidence/repair_pick.json
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          item=json.loads(Path('evidence/repair_pick.json').read_text())['repair_shard']
+          print('needed='+str(item is not None).lower())
+          if item is not None:print('index='+f'{item:04d}')
+          PY
+      - name: Reacquire one missing archived research shard (bounded 8)
+        if: steps.repair.outputs.needed == 'true'
+        run: |
+          set +e
+          timeout --signal=TERM --kill-after=5s 150s python -u -m collector.baostock_batch --manifest evidence/shards/shard_${{ steps.repair.outputs.index }}.txt --batch-index 0 --out evidence/repair_shard
+          code=$?
+          set -e
+          if [ "$code" -eq 124 ] || [ "$code" -eq 137 ]; then
+            mkdir -p evidence/repair_shard
+            RC="$code" python - <<'PY'
+          import json,os
+          from pathlib import Path
+          Path('evidence/repair_shard/runner_timeout.json').write_text(json.dumps({'phase':'P1_RUNNER_TIMEOUT','stage':'repair_shard','exit_code':int(os.environ['RC']),'trade_gate':'BLOCKED','orders':[]})+'\n')
+          PY
+          fi
+          exit "$code"
+      - name: Archive recovered historical CSV with its original receipt
+        if: steps.repair.outputs.needed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh auth setup-git
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from collector.p1_csv_archive import archive
+          plan=json.loads(Path('evidence/shards/plan.json').read_text())
+          archive(plan,[(int('${{ steps.repair.outputs.index }}'),Path('evidence/repair_shard'))],'${{ github.repository }}')
+          PY
+      - name: Reaudit archive after bounded repair
+        if: steps.repair.outputs.needed == 'true'
+        run: |
+          git -C archived-research fetch --depth=1 origin research-csv-archive
+          git -C archived-research checkout --detach FETCH_HEAD
+          python -m collector.p1_archive_audit --plan evidence/shards/plan.json --ledger evidence/ledger.json --root archived-research --out evidence/archive_audit.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          before=json.loads(Path('evidence/archive_audit_before_repair.json').read_text())
+          after=json.loads(Path('evidence/archive_audit.json').read_text())
+          idx=int('${{ steps.repair.outputs.index }}')
+          count=json.loads(Path('evidence/shards/plan.json').read_text())['shards'][idx]['count']
+          assert after['trade_gate']=='BLOCKED' and after['historical_PIT_verified'] is False
+          assert after['archived_issuers']==before['archived_issuers']+count
+          assert idx not in after['archive_repair_queue']
+          print('REPAIR AUDIT PASS: durable verified issuers',after['archived_issuers'],'gap',after['archive_gap_issuers'])
+          PY
+      - name: Verify durable repair progress never regresses
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          ledger=json.loads(Path('evidence/ledger.json').read_text())
+          after=json.loads(Path('evidence/archive_audit.json').read_text())
+          before=json.loads(Path('evidence/archive_audit_before_repair.json').read_text())
+          assert after['trade_gate']=='BLOCKED' and after['historical_PIT_verified'] is False
+          assert after['archived_issuers']>=before['archived_issuers']
+          assert after['archived_issuers']<=ledger['completed_issuers']
+          assert after['archive_gap_issuers']==ledger['completed_issuers']-after['archived_issuers']
+          print('P1 PROGRESS ACCEPTED: ledger',ledger['completed_issuers'],'durable',after['archived_issuers'],'gap',after['archive_gap_issuers'])
+          PY
+      - name: Independently classify P1 coverage and archive gaps
+        run: |
+          python -m collector.p1_coverage_gap_diagnosis --plan evidence/shards/plan.json --ledger evidence/ledger.json --archive evidence/archive_audit.json --out evidence/coverage_gap_diagnosis.json
+      - name: Build bounded P3 official state evidence worklist from real P1 archive
+        run: |
+          python -m collector.p3_p1_evidence_worklist --root archived-research --plan evidence/shards/plan.json --ledger evidence/ledger.json --out evidence/p3_official_evidence_worklist.json
+      - name: Generate SHA-linked official P3 evidence queue for ALL completed P1 issuers
+        run: |
+          python -m collector.p3_all_completed_worklist --root archived-research --plan evidence/shards/plan.json --ledger evidence/ledger.json --out evidence/p3_all_completed_official_evidence_queue.json
+          python - <<'PY'
+          import json
+          q=json.load(open('evidence/p3_all_completed_official_evidence_queue.json'))
+          ledger=json.load(open('evidence/ledger.json'))
+          assert q['completed_issuers_replayed']==ledger['completed_issuers']
+          assert q['completed_shards_replayed']==ledger['completed_shards']
+          assert q['required_official_evidence_cells']==len(q['official_evidence_tasks'])
+          assert q['independently_verified_official_PIT_cells']==0
+          assert q['historical_PIT_verified'] is False
+          assert q['trade_gate']=='BLOCKED' and q['orders']==[] and q['executable_candidates']==[]
+          print('P3 COMPLETE SOURCE-SCOPED QUEUE:',q['completed_issuers_replayed'],'issuers',q['required_official_evidence_cells'],'PIT tasks pending')
+          PY
+      - name: Read-only cross-epoch checkpoint comparison
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p evidence
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from collector.p1_checkpoint import epoch_path,remote_read,validate
+          from collector.p1_epoch_compare import compare
+          baseline='3529685a3d2d6402bffb7afef1e075b1385f59b06dc8a4920f95fd59d0d5a99a'
+          current_plan=Path('evidence/shards/plan.json')
+          if not current_plan.is_file():
+              print('No current frozen roster plan; read-only epoch comparison skipped')
+              raise SystemExit(0)
+          current=json.loads(current_plan.read_text())['source_sha256']
+          if current==baseline:
+              print('Current roster matches comparison baseline; no cross-epoch comparison needed')
+              raise SystemExit(0)
+          epochs=(baseline,current)
+          states=[]
+          for digest in epochs:
+              item,_=remote_read('${{ github.repository }}',epoch_path(digest))
+              if item is None:
+                  raise ValueError('missing expected research checkpoint '+digest)
+              states.append(validate(item))
+          report=compare(*states)
+          assert report['trade_gate']=='BLOCKED'
+          assert report['cross_epoch_reuse_authorized'] is False
+          Path('evidence/epoch_comparison.json').write_text(json.dumps(report,indent=2)+chr(10))
+          print('READ-ONLY EPOCH AUDIT:',report)
+          PY
+      - name: Assess research-only readiness (never opens trades)
+        if: always()
+        run: |
+          if [ -f evidence/ledger.json ] && [ -f evidence/archive_audit.json ]; then
+            python -m collector.p1_research_readiness --ledger evidence/ledger.json --archive-audit evidence/archive_audit.json --out evidence/research_readiness.json
+          elif [ -f evidence/ledger.json ]; then
+            python -m collector.p1_research_readiness --ledger evidence/ledger.json --out evidence/research_readiness.json
+          else
+            python -m collector.p1_research_readiness --out evidence/research_readiness.json
+          fi
+      - name: Publish P1 run diagnostics (research only)
+        if: always()
+        env:
+          GATE: BLOCKED
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          root=Path('evidence')
+          summary=Path(os.environ['GITHUB_STEP_SUMMARY'])
+          lines=['## P1 bounded collection diagnostics','', 'Trade gate: **BLOCKED** (research only).','']
+          # Preserve the exact unittest failure names even if the job exits before data collection.
+          offline=root/'offline_tests.log'
+          if offline.is_file():
+              import re
+              raw=offline.read_text(errors='replace')
+              failing=[line.strip() for line in raw.splitlines()
+                       if line.startswith(('FAIL:','ERROR:','FAILED (','Ran '))]
+              lines+=['','### Offline test result']
+              if failing:
+                  lines.extend('- '+line[:280] for line in failing[:20])
+              else:
+                  lines.append('- No unittest failure summary found; inspect offline_tests.log artifact')
+              blocks=re.findall(r'(?ms)^={6,}\n(?:FAIL|ERROR):.*?(?=^={6,}\n(?:FAIL|ERROR):|^Ran \d+ tests|\Z)',raw)
+              for block in blocks[:3]:
+                  lines+=['','```text',block[-1800:],' ```'.strip()]
+          lines+=['','### Critical step outcomes']
+          lines.append('- Offline source tests: **${{ steps.diag_0.outcome }}**')
+          lines.append('- Install free Baostock: **${{ steps.diag_1.outcome }}**')
+          lines.append('- Observe current Beijing-date mainboard roster from free provider: **${{ steps.roster.outcome }}**')
+          lines.append('- Recover explicitly stale vendor roster if live source fails: **${{ steps.diag_3.outcome }}**')
+          lines.append('- Reconcile observed shards into versioned source ledger: **${{ steps.diag_4.outcome }}**')
+          lines.append('- Archive raw CSV to durable free Git research branch: **${{ steps.diag_5.outcome }}**')
+          lines.append('- Audit permanent research CSV archive against recovered ledger: **${{ steps.diag_6.outcome }}**')
+          lines.append('- Persist durable no-trade checkpoint in repository: **${{ steps.diag_7.outcome }}**')
+          for name in ('pilot_selection.json','live_roster_attempt.json','quality.json','shards/plan.json','prior_ledger.json','ledger.json','archive_audit.json','epoch_comparison.json','research_readiness.json'):
+              file=root/name
+              if not file.is_file():
+                  lines.append(f'- `{name}`: unavailable (step did not produce it)')
+                  continue
+              try:
+                  obj=json.loads(file.read_text())
+                  if not isinstance(obj,dict):raise ValueError('not a JSON object')
+                  keys=('status','requested_shards','selected_count','requested_day','source_sha256','roster_codes_sha256','mainboard_sha256','snapshot_reused','issuer_count','shard_count','completed_shards','completed_issuers','next_shard','archived_issuers','archive_gap_issuers','overlapping_completed_shards','left_only_completed_shards','right_only_completed_shards','matching_manifest_shards','matching_manifest_and_receipt_shards','cross_epoch_reuse_authorized','research_data_complete','vendor_shards_complete','research_certified','realtime_execution_checks_verified','buy_recommendations_authorized','trade_gate')
+                  if name=='live_roster_attempt.json':
+                      for field in ('error_type','error_detail','logical_queries','last_source_total_rows'):
+                          value=obj.get(field)
+                          if isinstance(value,(str,int)):
+                              lines.append(f'- live roster {field}: {str(value)[:240]}')
+                  observed=', '.join(f'{key}={obj[key]}' for key in keys if key in obj and isinstance(obj[key],(str,int,bool,type(None))))
+                  lines.append(f'- `{name}`: {observed or "JSON exists; no standard counters"}')
+              except (ValueError,UnicodeError,OSError) as exc:
+                  lines.append(f'- `{name}`: invalid or unreadable JSON ({type(exc).__name__})')
+          lines+=['','A missing file means its producing step did not finish, not that the market data is certified.']
+          summary.open('a').write('\n'.join(lines)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p1-fresh-roster-${{ github.run_id }}
+          path: evidence/
+          retention-days: 14
+          if-no-files-found: warn
+,text)
+          for name in names[:20]:
+              safe=name.replace('%','%25').replace('\r','%0D').replace('\n','%0A')
+              print('::error title=P1 offline unittest::'+safe)
+          if not names:
+              print('::error title=P1 offline unittest::Tests failed; inspect offline_tests.log artifact')
+          PY
       - name: Install free Baostock
         id: diag_1
         run: python -m pip install 'baostock>=0.8,<1'
