@@ -24,7 +24,7 @@ class AuditTests(unittest.TestCase):
             part.mkdir(parents=True)
             (epoch/"archive_status.json").write_text(json.dumps({
                 "source_sha256":"a"*64,"trade_gate":"BLOCKED","archived_shards":[0]}))
-            plan={"source_sha256":"a"*64,"shards":[{"index":0,"sha256":"b"*64,"count":2}]}
+            plan={"source_sha256":"a"*64,"shards":[{"index":0,"sha256":hashlib.sha256(b"sh.600000\n").hexdigest(),"count":2}]}
             ledger={"source_sha256":"a"*64,"trade_gate":"BLOCKED",
                     "completed":[{"index":0}],"completed_issuers":2}
             raw=b"date,close\\n2026-01-01,1\\n"
