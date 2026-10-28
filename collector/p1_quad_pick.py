@@ -44,7 +44,10 @@ def main():
     prior=json.loads(Path(a.prior).read_text()) if a.prior else None
     run_number=os.environ.get("GITHUB_RUN_NUMBER")
     start=rotating_start(plan["shard_count"],int(run_number) if run_number is not None else None)
-    selected=choose(plan,prior,start_index=start)
+    # Reliability pilot: one independently verifiable shard per workflow run.
+    # A later failed shard must not prevent a successful first shard from
+    # reaching the archive audit and durable checkpoint steps.
+    selected=choose(plan,prior,start_index=start)[:1]
     if not selected:raise ValueError("all P1 shards completed: do not recapture")
     with Path(a.output_file).open("a") as out:
         for n,key in enumerate(("first","second","third","fourth")):
