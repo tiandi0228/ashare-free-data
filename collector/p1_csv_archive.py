@@ -9,7 +9,7 @@ from pathlib import Path
 BRANCH="research-csv-archive"
 
 def git(*args,cwd=None,check=True):
-    return subprocess.run(["git",*args],cwd=cwd,check=check,text=True,capture_output=True)
+    return subprocess.run(["git",*args],cwd=cwd,check=check,text=True,capture_output=True,timeout=90)
 
 def collect(plan, selected):
     files=[]
