@@ -109,10 +109,15 @@ jobs:
               if not (qfile.exists() and csvfile.exists()):continue
               try:
                   q=json.loads(qfile.read_text())
-                  if q['status']!='OBSERVED_UNVERIFIED' or q['mainboard_prefix_rows']<2500 or hashlib.sha256(csvfile.read_bytes()).hexdigest()!=q['mainboard_sha256'] or q['trade_gate']!='BLOCKED':continue
+                  if q.get('status') not in ('OBSERVED_UNVERIFIED','FROZEN_VENDOR_SNAPSHOT_UNVERIFIED'):continue
+                  if q.get('mainboard_prefix_rows',0)<2500 or hashlib.sha256(csvfile.read_bytes()).hexdigest()!=q.get('mainboard_sha256') or q.get('trade_gate')!='BLOCKED':continue
+                  if q.get('historical_PIT_verified') is not False or q.get('publisher_authenticated') is not False:continue
+                  if q['status']=='FROZEN_VENDOR_SNAPSHOT_UNVERIFIED':
+                      if q.get('snapshot_reused') is not True or type(q.get('snapshot_origin_run')) is not int or q['snapshot_origin_run']<=0:continue
+                  origin=q['snapshot_origin_run'] if q['status']=='FROZEN_VENDOR_SNAPSHOT_UNVERIFIED' else rid
                   Path('evidence').mkdir(exist_ok=True)
                   Path('evidence/mainboard.csv').write_bytes(csvfile.read_bytes())
-                  q.update(status='FROZEN_VENDOR_SNAPSHOT_UNVERIFIED',snapshot_origin_run=rid,
+                  q.update(status='FROZEN_VENDOR_SNAPSHOT_UNVERIFIED',snapshot_origin_run=origin,
                            snapshot_requested_day=q['requested_day'],snapshot_reused=True,
                            source_day_is_official_publication_proof=False,
                            historical_PIT_verified=False,publisher_authenticated=False,
