@@ -45,7 +45,7 @@ def audit(plan, ledger, root):
         if overlap:
             raise ValueError("duplicate archived issuer across shards")
         seen_issuers.update(codes)
-        membership_sha=hashlib.sha256(("".join(code+"\\n" for code in sorted(codes))).encode()).hexdigest()
+        membership_sha=hashlib.sha256(("".join(code+"\n" for code in sorted(codes))).encode()).hexdigest()
         if membership_sha!=expected["sha256"]:
             raise ValueError("archived issuer membership differs from shard manifest")
         if receipt.get("issuer_count") is not None and receipt["issuer_count"]!=expected["count"]:
