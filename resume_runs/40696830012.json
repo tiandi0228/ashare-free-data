@@ -1,0 +1,94 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 1,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 1,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1222733661",
+      "archival_pdf_path": "pdf/sh_600168/1222733661/5fb30175526efe827112056f66ad815d42a301f500f1091efb5a29a832c9436c.pdf",
+      "bytes": 571656,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.600168",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2025-03-07/1222733661.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "5fb30175526efe827112056f66ad815d42a301f500f1091efb5a29a832c9436c",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "证券代码：600168）自2025年3月7日（星期五）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "5fb30175526efe827112056f66ad815d42a301f500f1091efb5a29a832c9436c",
+          "pdf_date_phrase": "2025年3月7日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-10-28T13:29:41.994155+00:00",
+      "source_halt_original_sha256": "4b911568e8b5bbd966c665693d874a92f0abe1d5f8a56def339e70f595f8274c",
+      "source_halt_text_day": "2025-02-21",
+      "title_unverified": "武汉三镇实业控股股份有限公司关于披露发行股份及支付现金购买资产并募集配套资金暨关联交易事项的一般风险提示暨公司股票复牌的公告"
+    }
+  ],
+  "run_id": 40696830012,
+  "source_halt_issuers_attempted": 3,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600119",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-07-26",
+      "search_window_start": "2026-04-26",
+      "source_halt_announcement_id": "1225197307",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-04-27",
+      "source_halt_original_sha256": "48073c8aba6948d9680150628431be1610fb092559dddd232f8d01aaa937eb16"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600156",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-09-08",
+      "search_window_start": "2025-06-09",
+      "source_halt_announcement_id": "1223826319",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-06-10",
+      "source_halt_original_sha256": "2d547675be2c5d20e7d7277bd384e5a1ea5dae9201eac55bd027f92e6283b183"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600168",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-05-22",
+      "search_window_start": "2025-02-20",
+      "source_halt_announcement_id": "1222593178",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-02-21",
+      "source_halt_original_sha256": "4b911568e8b5bbd966c665693d874a92f0abe1d5f8a56def339e70f595f8274c"
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.600119",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    },
+    {
+      "issuer": "sh.600156",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    },
+    {
+      "issuer": "sh.600168",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
