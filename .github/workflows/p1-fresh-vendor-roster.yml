@@ -574,6 +574,21 @@ jobs:
           root=Path('evidence')
           summary=Path(os.environ['GITHUB_STEP_SUMMARY'])
           lines=['## P1 bounded collection diagnostics','', 'Trade gate: **BLOCKED** (research only).','']
+          # Preserve the exact unittest failure names even if the job exits before data collection.
+          offline=root/'offline_tests.log'
+          if offline.is_file():
+              import re
+              raw=offline.read_text(errors='replace')
+              failing=[line.strip() for line in raw.splitlines()
+                       if line.startswith(('FAIL:','ERROR:','FAILED (','Ran '))]
+              lines+=['','### Offline test result']
+              if failing:
+                  lines.extend('- '+line[:280] for line in failing[:20])
+              else:
+                  lines.append('- No unittest failure summary found; inspect offline_tests.log artifact')
+              blocks=re.findall(r'(?ms)^={6,}\\n(?:FAIL|ERROR):.*?(?=^={6,}\\n(?:FAIL|ERROR):|^Ran \\d+ tests|\\Z)',raw)
+              for block in blocks[:3]:
+                  lines+=['','```text',block[-1800:],' ```'.strip()]
           lines+=['','### Critical step outcomes']
           lines.append('- Offline source tests: **${{ steps.diag_0.outcome }}**')
           lines.append('- Install free Baostock: **${{ steps.diag_1.outcome }}**')
