@@ -29,6 +29,12 @@ def collect(plan, selected):
         results=receipt.get("results")
         if not isinstance(results,list) or len(results)!=shard["count"]:
             raise ValueError("incomplete archive receipt")
+        codes=[item.get("code") for item in results if isinstance(item,dict)]
+        if len(codes)!=len(results) or any(not isinstance(code,str) or not CODE.fullmatch(code) for code in codes):
+            raise ValueError("invalid archive batch issuer membership")
+        membership=hashlib.sha256(("".join(code+"\n" for code in sorted(codes))).encode()).hexdigest()
+        if membership!=shard["sha256"]:
+            raise ValueError("archive issuer membership differs from original shard manifest")
         for item in results:
             if not isinstance(item,dict) or item.get("status")!="OBSERVED_UNVERIFIED":
                 raise ValueError("invalid issuer result status in archive batch")
