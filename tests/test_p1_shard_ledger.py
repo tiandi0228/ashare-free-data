@@ -58,6 +58,16 @@ class LedgerTests(unittest.TestCase):
         current=reconcile(self.plan,[(0,self.receipt(0))],previous)
         self.assertEqual(current["completed"],previous["completed"])
 
+    def test_failed_retry_preserves_prior_same_epoch_evidence(self):
+        previous=reconcile(self.plan,[(0,self.receipt(0))])
+        retry=self.receipt(0)
+        retry["results"][0]["status"]="ERROR"
+        current=reconcile(self.plan,[(0,retry)],previous)
+        self.assertEqual(current["completed"],previous["completed"])
+        self.assertEqual(current["completed_issuers"],8)
+        self.assertEqual(current["failed_in_this_reconciliation"],[0])
+        self.assertEqual(current["trade_gate"],"BLOCKED")
+
     def test_bad_receipt_not_counted(self):
         r=self.receipt(0);r["results"][0]["status"]="ERROR"
         a=reconcile(self.plan,[(0,r)])
