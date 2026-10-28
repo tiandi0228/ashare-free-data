@@ -586,7 +586,7 @@ jobs:
                   lines.extend('- '+line[:280] for line in failing[:20])
               else:
                   lines.append('- No unittest failure summary found; inspect offline_tests.log artifact')
-              blocks=re.findall(r'(?ms)^={6,}\\n(?:FAIL|ERROR):.*?(?=^={6,}\\n(?:FAIL|ERROR):|^Ran \\d+ tests|\\Z)',raw)
+              blocks=re.findall(r'(?ms)^={6,}\n(?:FAIL|ERROR):.*?(?=^={6,}\n(?:FAIL|ERROR):|^Ran \d+ tests|\Z)',raw)
               for block in blocks[:3]:
                   lines+=['','```text',block[-1800:],' ```'.strip()]
           lines+=['','### Critical step outcomes']
