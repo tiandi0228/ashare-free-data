@@ -44,6 +44,13 @@ on:
     - cron: '10 11 * * 1-5' # 19:10 Beijing, extra bounded opportunity
     - cron: '10 17 * * 0-4' # 01:10 Beijing Monday-Friday (prior UTC calendar day)
   workflow_dispatch:
+    inputs:
+      shards_per_run:
+        description: "P1 bounded research shards per manual run (scheduled always 1)"
+        type: choice
+        required: true
+        default: "1"
+        options: ["1", "2"]
 permissions:
   contents: write
   actions: read
@@ -256,7 +263,7 @@ jobs:
         run: |
           PRIOR_ARGS=()
           if [[ -s evidence/prior_ledger.json ]]; then PRIOR_ARGS=(--prior evidence/prior_ledger.json); fi
-          python -m collector.p1_quad_pick --plan evidence/shards/plan.json "${PRIOR_ARGS[@]}" --output-file "$GITHUB_OUTPUT"
+          python -m collector.p1_quad_pick --plan evidence/shards/plan.json "${PRIOR_ARGS[@]}" --per-run "${{ github.event_name == 'workflow_dispatch' && inputs.shards_per_run || '1' }}" --output-file "$GITHUB_OUTPUT"
       - name: Fetch first real roster shard historical bars (bounded 8 only)
         run: |
           python - <<'PY'
