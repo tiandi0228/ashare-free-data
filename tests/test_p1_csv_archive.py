@@ -29,14 +29,27 @@ class CSVArchiveTests(unittest.TestCase):
             path=Path(folder)
             raw=b"date,close\n2026-01-01,1.2\n"
             (path/"sh_600000.csv").write_bytes(raw)
-            plan={"shards":[{"sha256":"a"*64,"count":1}]}
-            receipt={"manifest_sha256":"a"*64,"issuer_count":1,"status":"OBSERVED_SUBSET_UNVERIFIED",
+            plan={"shards":[{"sha256":hashlib.sha256(b"sh.600000\n").hexdigest(),"count":1}]}
+            receipt={"manifest_sha256":hashlib.sha256(b"sh.600000\n").hexdigest(),"issuer_count":1,"status":"OBSERVED_SUBSET_UNVERIFIED",
                      "trade_gate":"BLOCKED","results":[{"code":"sh.600000","status":"OBSERVED_UNVERIFIED","sha256":hashlib.sha256(raw).hexdigest()}]}
             (path/"quality.json").write_text(json.dumps(receipt))
             result=collect(plan,[(0,path)])
             self.assertEqual(len(result),1)
             (path/"sh_600000.csv").write_text("tampered")
             with self.assertRaises(ValueError):collect(plan,[(0,path)])
+    def test_wrong_shard_membership_rejected_before_git_write(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)
+            raw=b"date,close\n2026-01-01,1.2\n"
+            (path/"sh_600000.csv").write_bytes(raw)
+            receipt={"manifest_sha256":"a"*64,"issuer_count":1,
+                     "status":"OBSERVED_SUBSET_UNVERIFIED","trade_gate":"BLOCKED",
+                     "results":[{"code":"sh.600000","status":"OBSERVED_UNVERIFIED",
+                                 "sha256":hashlib.sha256(raw).hexdigest()}]}
+            (path/"quality.json").write_text(json.dumps(receipt))
+            with self.assertRaisesRegex(ValueError,"membership"):
+                collect({"shards":[{"sha256":"a"*64,"count":1}]},[(0,path)])
+
     def test_duplicate_issuer_rejected_before_archive_write(self):
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)
