@@ -69,7 +69,6 @@ jobs:
         id: diag_1
         run: python -m pip install 'baostock>=0.8,<1'
       - name: Observe current Beijing-date mainboard roster from free provider
-        id: diag_2
         id: roster
         continue-on-error: true
         run: timeout 210s python -m collector.p1_fresh_vendor_roster --out evidence
@@ -540,7 +539,7 @@ jobs:
           lines+=['','### Critical step outcomes']
           lines.append('- Offline source tests: **${{ steps.diag_0.outcome }}**')
           lines.append('- Install free Baostock: **${{ steps.diag_1.outcome }}**')
-          lines.append('- Observe current Beijing-date mainboard roster from free provider: **${{ steps.diag_2.outcome }}**')
+          lines.append('- Observe current Beijing-date mainboard roster from free provider: **${{ steps.roster.outcome }}**')
           lines.append('- Recover explicitly stale vendor roster if live source fails: **${{ steps.diag_3.outcome }}**')
           lines.append('- Reconcile observed shards into versioned source ledger: **${{ steps.diag_4.outcome }}**')
           lines.append('- Archive raw CSV to durable free Git research branch: **${{ steps.diag_5.outcome }}**')
