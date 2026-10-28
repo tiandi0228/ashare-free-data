@@ -10,7 +10,7 @@ class AuditTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp); epoch=root/("a"*16)
             epoch.mkdir()
-            plan={"source_sha256":"a"*64,"shards":[{"index":0,"sha256":hashlib.sha256(b"sh.600000\\n").hexdigest(),"count":1}]}
+            plan={"source_sha256":"a"*64,"shards":[{"index":0,"sha256":hashlib.sha256(b"sh.600000\n").hexdigest(),"count":1}]}
             ledger={"source_sha256":"a"*64,"trade_gate":"BLOCKED","completed":[{"index":0}],"completed_issuers":1}
             for invalid in ([1],[-1],[True],["0"]):
                 (epoch/"archive_status.json").write_text(json.dumps({
@@ -30,7 +30,7 @@ class AuditTests(unittest.TestCase):
             raw=b"date,close\\n2026-01-01,1\\n"
             (part/"sh_600000.csv").write_bytes(raw)
             row={"code":"sh.600000","status":"OBSERVED_UNVERIFIED","sha256":hashlib.sha256(raw).hexdigest()}
-            receipt={"manifest_sha256":hashlib.sha256(b"sh.600000\\n").hexdigest(),"status":"OBSERVED_SUBSET_UNVERIFIED",
+            receipt={"manifest_sha256":hashlib.sha256(b"sh.600000\n").hexdigest(),"status":"OBSERVED_SUBSET_UNVERIFIED",
                      "trade_gate":"BLOCKED","results":[row,row]}
             (part/"quality.json").write_text(json.dumps(receipt))
             ledger["completed"][0]["receipt_sha256"]=receipt_digest(receipt)
@@ -44,7 +44,7 @@ class AuditTests(unittest.TestCase):
             (epoch/"archive_status.json").write_text(json.dumps({
                 "source_sha256":"a"*64,"trade_gate":"BLOCKED","archived_shards":[0,1]}))
             plan={"source_sha256":"a"*64,"shards":[
-                {"index":0,"sha256":hashlib.sha256(b"sh.600000\\n").hexdigest(),"count":1},
+                {"index":0,"sha256":hashlib.sha256(b"sh.600000\n").hexdigest(),"count":1},
                 {"index":1,"sha256":"c"*64,"count":1}]}
             raw=b"date,close\\n2026-01-01,1\\n"
             ledger={"source_sha256":"a"*64,"trade_gate":"BLOCKED",
@@ -85,7 +85,7 @@ class AuditTests(unittest.TestCase):
             root=Path(tmp);epoch=root/("a"*16);part=epoch/"shard_0000"
             part.mkdir(parents=True)
             (epoch/"archive_status.json").write_text(json.dumps({"source_sha256":"a"*64,"trade_gate":"BLOCKED","archived_shards":[0]}))
-            plan={"source_sha256":"a"*64,"shards":[{"index":0,"sha256":hashlib.sha256(b"sh.600000\\n").hexdigest(),"count":1}]}
+            plan={"source_sha256":"a"*64,"shards":[{"index":0,"sha256":hashlib.sha256(b"sh.600000\n").hexdigest(),"count":1}]}
             ledger={"source_sha256":"a"*64,"trade_gate":"BLOCKED","completed":[{"index":0}],"completed_issuers":1}
             result=audit(plan,ledger,root)
             self.assertEqual(result["archived_issuers"],0)
@@ -95,7 +95,7 @@ class AuditTests(unittest.TestCase):
             self.assertEqual(result["repair_shard_count"],1)
             raw=b"date,close\n2026-01-01,1\n"
             (part/"sh_600000.csv").write_bytes(raw)
-            receipt={"manifest_sha256":hashlib.sha256(b"sh.600000\\n").hexdigest(),"status":"OBSERVED_SUBSET_UNVERIFIED","trade_gate":"BLOCKED","results":[{"code":"sh.600000","status":"OBSERVED_UNVERIFIED","sha256":hashlib.sha256(raw).hexdigest()}]}
+            receipt={"manifest_sha256":hashlib.sha256(b"sh.600000\n").hexdigest(),"status":"OBSERVED_SUBSET_UNVERIFIED","trade_gate":"BLOCKED","results":[{"code":"sh.600000","status":"OBSERVED_UNVERIFIED","sha256":hashlib.sha256(raw).hexdigest()}]}
             (part/"quality.json").write_text(json.dumps(receipt))
             ledger["completed"][0]["receipt_sha256"]=receipt_digest(receipt)
             self.assertEqual(audit(plan,ledger,root)["archived_issuers"],1)
