@@ -49,7 +49,7 @@ class AuditTests(unittest.TestCase):
             raw=b"date,close\\n2026-01-01,1\\n"
             ledger={"source_sha256":"a"*64,"trade_gate":"BLOCKED",
                     "completed":[],"completed_issuers":2}
-            for index,sha in [(0,"b"*64),(1,"c"*64)]:
+            for index,sha in [(0,hashlib.sha256(b"sh.600000\n").hexdigest()),(1,"c"*64)]:
                 part=epoch/f"shard_{index:04d}";part.mkdir()
                 (part/"sh_600000.csv").write_bytes(raw)
                 receipt={"manifest_sha256":sha,"status":"OBSERVED_SUBSET_UNVERIFIED",
