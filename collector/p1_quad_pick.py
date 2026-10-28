@@ -1,5 +1,5 @@
 """Select up to four distinct, missing shards of the same immutable P1 roster."""
-import argparse,json
+import argparse,json,os
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -22,6 +22,16 @@ def choose(plan,prior=None,start_index=0,limit=4):
     order=list(range(start_index,count))+list(range(start_index))
     return [i for i in order if i not in done][:limit]
 
+def rotating_start(shard_count,run_number=None):
+    if type(shard_count) is not int or shard_count<1:
+        raise ValueError('invalid shard count')
+    if run_number is None:
+        now=datetime.now(ZoneInfo('Asia/Shanghai'))
+        run_number=now.date().toordinal()*12+now.hour//2
+    if type(run_number) is not int or run_number<0:
+        raise ValueError('invalid run number')
+    return (run_number*4)%shard_count
+
 def main():
     p=argparse.ArgumentParser()
     p.add_argument("--plan",required=True);p.add_argument("--prior")
@@ -29,7 +39,8 @@ def main():
     a=p.parse_args()
     plan=json.loads(Path(a.plan).read_text())
     prior=json.loads(Path(a.prior).read_text()) if a.prior else None
-    start=0 if prior is not None else datetime.now(ZoneInfo("Asia/Shanghai")).date().toordinal()%plan["shard_count"]
+    run_number=os.environ.get("GITHUB_RUN_NUMBER")
+    start=rotating_start(plan["shard_count"],int(run_number) if run_number is not None else None)
     selected=choose(plan,prior,start_index=start)
     if not selected:raise ValueError("all P1 shards completed: do not recapture")
     with Path(a.output_file).open("a") as out:
