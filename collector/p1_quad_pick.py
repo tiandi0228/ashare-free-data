@@ -39,6 +39,7 @@ def main():
     p=argparse.ArgumentParser()
     p.add_argument("--plan",required=True);p.add_argument("--prior")
     p.add_argument("--output-file",required=True)
+    p.add_argument("--per-run",type=int,default=1,choices=(1,2))
     a=p.parse_args()
     plan=json.loads(Path(a.plan).read_text())
     prior=json.loads(Path(a.prior).read_text()) if a.prior else None
@@ -47,7 +48,7 @@ def main():
     # Reliability pilot: one independently verifiable shard per workflow run.
     # A later failed shard must not prevent a successful first shard from
     # reaching the archive audit and durable checkpoint steps.
-    selected=choose(plan,prior,start_index=start)[:1]
+    selected=choose(plan,prior,start_index=start)[:a.per_run]
     if not selected:raise ValueError("all P1 shards completed: do not recapture")
     with Path(a.output_file).open("a") as out:
         for n,key in enumerate(("first","second","third","fourth")):
