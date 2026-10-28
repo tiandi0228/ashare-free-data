@@ -1,0 +1,104 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 2,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 2,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1224318223",
+      "archival_pdf_path": "pdf/sh_600500/1224318223/d56895d161e65e3a78862f306c2b9f2f42d0ba50d5b30e0e2a7e89acf644eb36.pdf",
+      "bytes": 112007,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.600500",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2025-07-29/1224318223.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "d56895d161e65e3a78862f306c2b9f2f42d0ba50d5b30e0e2a7e89acf644eb36",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "证券代码：600500）将于2025年7月29日（星期二）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "d56895d161e65e3a78862f306c2b9f2f42d0ba50d5b30e0e2a7e89acf644eb36",
+          "pdf_date_phrase": "2025年7月29日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-10-28T13:23:37.368790+00:00",
+      "source_halt_original_sha256": "087ba3646d99acb953ddfc567c588d6eb900a28f40dcb7fdd82c316ff3d73713",
+      "source_halt_text_day": "2025-07-16",
+      "title_unverified": "中化国际关于发行股份购买资产暨关联交易事项的一般风险提示暨公司股票复牌的提示性公告"
+    },
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1222355440",
+      "archival_pdf_path": "pdf/sz_000408/1222355440/04b274aadc1d083e5bed96550cb824da63cb06c32a5aa99683e0b98f2f63d400.pdf",
+      "bytes": 261389,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sz.000408",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2025-01-17/1222355440.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "04b274aadc1d083e5bed96550cb824da63cb06c32a5aa99683e0b98f2f63d400",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "证券代码：000408）自2025年1月17日（星期五）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "04b274aadc1d083e5bed96550cb824da63cb06c32a5aa99683e0b98f2f63d400",
+          "pdf_date_phrase": "2025年1月17日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-10-28T13:23:37.772149+00:00",
+      "source_halt_original_sha256": "4837e54bfc8975b71a9f4ef6b82b8b820be87f6cc14e1d3d955a04ec734917b6",
+      "source_halt_text_day": "2025-01-10",
+      "title_unverified": "关于筹划公司控制权变更事项的复牌公告"
+    }
+  ],
+  "run_id": 40695881819,
+  "source_halt_issuers_attempted": 2,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600500",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-10-14",
+      "search_window_start": "2025-07-15",
+      "source_halt_announcement_id": "1224176869",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-07-16",
+      "source_halt_original_sha256": "087ba3646d99acb953ddfc567c588d6eb900a28f40dcb7fdd82c316ff3d73713"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sz.000408",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-04-10",
+      "search_window_start": "2025-01-09",
+      "source_halt_announcement_id": "1222286144",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-01-10",
+      "source_halt_original_sha256": "4837e54bfc8975b71a9f4ef6b82b8b820be87f6cc14e1d3d955a04ec734917b6"
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.600500",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    },
+    {
+      "issuer": "sz.000408",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
