@@ -26,6 +26,26 @@ class PickTests(unittest.TestCase):
         self.assertEqual(starts[:3],[0,399,398])
         self.assertNotEqual(rotating_start(400,0),rotating_start(400,100))
 
+    def test_single_shard_pilot_cli_outputs_only_first(self):
+        import json,os,tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from collector.p1_quad_pick import main
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            plan=root/"plan.json"
+            output=root/"outputs.txt"
+            plan.write_text(json.dumps(self.plan()))
+            args=["p1_quad_pick","--plan",str(plan),"--output-file",str(output)]
+            with patch("sys.argv",args),patch.dict(os.environ,{"GITHUB_RUN_NUMBER":"0"}):
+                main()
+            recorded=dict(line.split("=",1) for line in output.read_text().splitlines())
+            self.assertEqual(recorded["first"],"0000")
+            self.assertEqual(recorded["has_first"],"true")
+            for name in ("second","third","fourth"):
+                self.assertEqual(recorded["has_"+name],"false")
+                self.assertEqual(recorded[name],"NONE")
+
     def test_invalid_run_rotation_fails_closed(self):
         for value in (-1,True,"2"):
             with self.assertRaises(ValueError):
