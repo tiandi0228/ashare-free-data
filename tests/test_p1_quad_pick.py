@@ -20,6 +20,12 @@ class PickTests(unittest.TestCase):
         self.assertTrue(any(1 not in group for group in selections))
         self.assertTrue(all(len(group)==4 and len(set(group))==4 for group in selections))
 
+    def test_400_shard_rotation_covers_every_start(self):
+        starts=[rotating_start(400,i) for i in range(400)]
+        self.assertEqual(len(set(starts)),400)
+        self.assertEqual(starts[:3],[0,399,398])
+        self.assertNotEqual(rotating_start(400,0),rotating_start(400,100))
+
     def test_invalid_run_rotation_fails_closed(self):
         for value in (-1,True,"2"):
             with self.assertRaises(ValueError):
