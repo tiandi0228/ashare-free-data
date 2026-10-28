@@ -1,6 +1,7 @@
 """Independent frozen-roster CSV archive completeness audit (NO TRADES)."""
 import argparse, hashlib, json
 from pathlib import Path
+from collector.p1_roster_shard_manifest import CODE
 
 def audit(plan, ledger, root):
     if ledger["source_sha256"]!=plan["source_sha256"] or ledger["trade_gate"]!="BLOCKED":
@@ -37,7 +38,7 @@ def audit(plan, ledger, root):
         if not isinstance(results,list) or len(results)!=expected["count"]:
             raise ValueError("incomplete archive")
         codes=[row.get("code") for row in results if isinstance(row,dict)]
-        if len(codes)!=len(results) or any(not isinstance(code,str) for code in codes) or len(set(codes))!=len(codes):
+        if len(codes)!=len(results) or any(not isinstance(code,str) or not CODE.fullmatch(code) for code in codes) or len(set(codes))!=len(codes):
             raise ValueError("duplicate or invalid archived issuer codes")
         if receipt.get("issuer_count") is not None and receipt["issuer_count"]!=expected["count"]:
             raise ValueError("archived issuer count mismatch")
