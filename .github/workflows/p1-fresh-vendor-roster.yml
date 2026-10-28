@@ -381,6 +381,11 @@ jobs:
           assert q['archived_issuers']<=q['ledger_issuers']
           print('ARCHIVE AUDIT: permanently verified',q['archived_issuers'],'of',q['ledger_issuers'])
           PY
+      - name: Persist durable no-trade checkpoint in repository
+        id: diag_7
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -m collector.p1_checkpoint --mode write --source-sha "$(python -c "import json;print(json.load(open('evidence/ledger.json'))['source_sha256'])")" --in-file evidence/ledger.json
       - name: Preserve pre-repair archive audit
         run: cp evidence/archive_audit.json evidence/archive_audit_before_repair.json
       - name: Pick one bounded previous archive gap
@@ -476,11 +481,6 @@ jobs:
           assert q['trade_gate']=='BLOCKED' and q['orders']==[] and q['executable_candidates']==[]
           print('P3 COMPLETE SOURCE-SCOPED QUEUE:',q['completed_issuers_replayed'],'issuers',q['required_official_evidence_cells'],'PIT tasks pending')
           PY
-      - name: Persist durable no-trade checkpoint in repository
-        id: diag_7
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python -m collector.p1_checkpoint --mode write --source-sha "$(python -c "import json;print(json.load(open('evidence/ledger.json'))['source_sha256'])")" --in-file evidence/ledger.json
       - name: Read-only cross-epoch checkpoint comparison
         if: always()
         continue-on-error: true
