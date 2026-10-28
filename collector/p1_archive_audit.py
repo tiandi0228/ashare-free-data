@@ -19,6 +19,7 @@ def audit(plan, ledger, root):
     if not observed.issubset({x["index"] for x in ledger["completed"]}):
         raise ValueError("archive references uncompleted shard")
     archived=0
+    seen_issuers=set()
     ledger_receipts={item["index"]:item for item in ledger["completed"]}
     legacy_without_receipts=[]
     for idx in sorted(observed):
@@ -40,6 +41,10 @@ def audit(plan, ledger, root):
         codes=[row.get("code") for row in results if isinstance(row,dict)]
         if len(codes)!=len(results) or any(not isinstance(code,str) or not CODE.fullmatch(code) for code in codes) or len(set(codes))!=len(codes):
             raise ValueError("duplicate or invalid archived issuer codes")
+        overlap=seen_issuers.intersection(codes)
+        if overlap:
+            raise ValueError("duplicate archived issuer across shards")
+        seen_issuers.update(codes)
         if receipt.get("issuer_count") is not None and receipt["issuer_count"]!=expected["count"]:
             raise ValueError("archived issuer count mismatch")
         for row in results:
