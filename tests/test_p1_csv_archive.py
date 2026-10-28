@@ -3,6 +3,16 @@ from pathlib import Path
 from collector.p1_csv_archive import collect
 
 class CSVArchiveTests(unittest.TestCase):
+    def test_git_operations_have_bounded_timeout(self):
+        import subprocess
+        from unittest.mock import patch
+        from collector.p1_csv_archive import git
+        with patch("collector.p1_csv_archive.subprocess.run",
+                   side_effect=subprocess.TimeoutExpired(["git","fetch"],90)) as run:
+            with self.assertRaises(subprocess.TimeoutExpired):
+                git("fetch","origin","research-csv-archive")
+            self.assertEqual(run.call_args.kwargs["timeout"],90)
+
     def test_verified_csv_accepted(self):
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)
