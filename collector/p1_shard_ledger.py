@@ -44,7 +44,8 @@ def reconcile(plan, receipts, prior=None):
                 raise ValueError("receipt conflicts with previously completed shard")
             completed[index]=entry
         else:
-            completed.pop(index,None)
+            # A failed retry is not proof that an earlier immutable receipt vanished.
+            # Preserve same-epoch prior evidence; report the failed attempt separately.
             failed.append(index)
     valid=[]
     for i, entry in completed.items():
