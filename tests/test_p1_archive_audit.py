@@ -29,7 +29,7 @@ class AuditTests(unittest.TestCase):
                     "completed":[{"index":0}],"completed_issuers":2}
             raw=b"date,close\\n2026-01-01,1\\n"
             (part/"sh_600000.csv").write_bytes(raw)
-            row={"code":"sh.600000","sha256":hashlib.sha256(raw).hexdigest()}
+            row={"code":"sh.600000","status":"OBSERVED_UNVERIFIED","sha256":hashlib.sha256(raw).hexdigest()}
             receipt={"manifest_sha256":"b"*64,"status":"OBSERVED_SUBSET_UNVERIFIED",
                      "trade_gate":"BLOCKED","results":[row,row]}
             (part/"quality.json").write_text(json.dumps(receipt))
@@ -52,10 +52,18 @@ class AuditTests(unittest.TestCase):
             self.assertEqual(result["repair_shard_count"],1)
             raw=b"date,close\n2026-01-01,1\n"
             (part/"sh_600000.csv").write_bytes(raw)
-            receipt={"manifest_sha256":"b"*64,"status":"OBSERVED_SUBSET_UNVERIFIED","trade_gate":"BLOCKED","results":[{"code":"sh.600000","sha256":hashlib.sha256(raw).hexdigest()}]}
+            receipt={"manifest_sha256":"b"*64,"status":"OBSERVED_SUBSET_UNVERIFIED","trade_gate":"BLOCKED","results":[{"code":"sh.600000","status":"OBSERVED_UNVERIFIED","sha256":hashlib.sha256(raw).hexdigest()}]}
             (part/"quality.json").write_text(json.dumps(receipt))
             ledger["completed"][0]["receipt_sha256"]=receipt_digest(receipt)
             self.assertEqual(audit(plan,ledger,root)["archived_issuers"],1)
+            invalid=dict(receipt)
+            invalid["results"]=[{**receipt["results"][0],"status":"ERROR"}]
+            (part/"quality.json").write_text(json.dumps(invalid))
+            ledger["completed"][0]["receipt_sha256"]=receipt_digest(invalid)
+            with self.assertRaisesRegex(ValueError,"issuer result status"):
+                audit(plan,ledger,root)
+            (part/"quality.json").write_text(json.dumps(receipt))
+            ledger["completed"][0]["receipt_sha256"]=receipt_digest(receipt)
             ledger["completed"][0]["receipt_sha256"]="0"*64
             with self.assertRaisesRegex(ValueError,"immutable ledger"):
                 audit(plan,ledger,root)
