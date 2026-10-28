@@ -3,6 +3,17 @@ from pathlib import Path
 from collector.p1_csv_archive import collect
 
 class CSVArchiveTests(unittest.TestCase):
+    def test_non_mainboard_issuer_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)
+            receipt={"manifest_sha256":"a"*64,"issuer_count":1,
+                     "status":"OBSERVED_SUBSET_UNVERIFIED","trade_gate":"BLOCKED",
+                     "results":[{"code":"sz.300001","status":"OBSERVED_UNVERIFIED",
+                                 "sha256":"b"*64}]}
+            (path/"quality.json").write_text(json.dumps(receipt))
+            with self.assertRaisesRegex(ValueError,"invalid or duplicate issuer"):
+                collect({"shards":[{"sha256":"a"*64,"count":1}]},[(0,path)])
+
     def test_git_operations_have_bounded_timeout(self):
         import subprocess
         from unittest.mock import patch
