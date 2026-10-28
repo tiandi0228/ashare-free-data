@@ -69,8 +69,8 @@ class CSVArchiveTests(unittest.TestCase):
             path=Path(folder)
             raw=b"date,close\n2026-01-01,1.2\n"
             (path/"sh_600000.csv").write_bytes(raw)
-            plan={"shards":[{"sha256":"a"*64,"count":1}]}
-            receipt={"manifest_sha256":"a"*64,"issuer_count":1,
+            plan={"shards":[{"sha256":hashlib.sha256(b"sh.600000\n").hexdigest(),"count":1}]}
+            receipt={"manifest_sha256":hashlib.sha256(b"sh.600000\n").hexdigest(),"issuer_count":1,
                      "status":"OBSERVED_SUBSET_UNVERIFIED","trade_gate":"BLOCKED",
                      "results":[{"code":"sh.600000","status":"OBSERVED_UNVERIFIED","sha256":hashlib.sha256(raw).hexdigest()}]}
             (path/"quality.json").write_text(json.dumps(receipt))
