@@ -30,7 +30,10 @@ def rotating_start(shard_count,run_number=None):
         run_number=now.date().toordinal()*12+now.hour//2
     if type(run_number) is not int or run_number<0:
         raise ValueError('invalid run number')
-    return (run_number*4)%shard_count
+    # A stride coprime to the shard count visits every possible starting index.
+    # Multiples of four only visit 100 distinct starts for a 400-shard plan,
+    # repeatedly binding the same four issuers to a failing shard.
+    return (run_number*(shard_count-1))%shard_count
 
 def main():
     p=argparse.ArgumentParser()
