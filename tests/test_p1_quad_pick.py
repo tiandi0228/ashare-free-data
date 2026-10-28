@@ -46,6 +46,26 @@ class PickTests(unittest.TestCase):
                 self.assertEqual(recorded["has_"+name],"false")
                 self.assertEqual(recorded[name],"NONE")
 
+    def test_optional_two_shard_pilot_cli(self):
+        import json,os,tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from collector.p1_quad_pick import main
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);plan=root/"plan.json";out=root/"outputs.txt"
+            plan.write_text(json.dumps(self.plan()))
+            argv=["p1_quad_pick","--plan",str(plan),"--output-file",str(out),"--per-run","2"]
+            with patch("sys.argv",argv),patch.dict(os.environ,{"GITHUB_RUN_NUMBER":"0"}):
+                main()
+            result=dict(line.split("=",1) for line in out.read_text().splitlines())
+            self.assertEqual(result["first"],"0000")
+            self.assertEqual(result["second"],"0001")
+            self.assertEqual(result["has_second"],"true")
+            self.assertEqual(result["has_third"],"false")
+            for invalid in ("0","3"):
+                with patch("sys.argv",argv[:-1]+[invalid]),patch.dict(os.environ,{"GITHUB_RUN_NUMBER":"0"}):
+                    with self.assertRaises(SystemExit):main()
+
     def test_invalid_run_rotation_fails_closed(self):
         for value in (-1,True,"2"):
             with self.assertRaises(ValueError):
