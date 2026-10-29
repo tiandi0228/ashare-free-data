@@ -87,6 +87,41 @@ class PickTests(unittest.TestCase):
         self.assertEqual(opened,closed)
         self.assertTrue(workflow.rstrip().endswith("if-no-files-found: warn"))
 
+    def test_last_pending_shard_in_dual_pilot_is_selected_once(self):
+        import json,os,tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from collector.p1_quad_pick import main
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            plan=root/"plan.json"
+            prior=root/"prior.json"
+            output=root/"outputs.txt"
+            plan.write_text(json.dumps(self.plan()))
+            prior.write_text(json.dumps({
+                "source_sha256":"a"*64,"shard_count":7,"trade_gate":"BLOCKED",
+                "completed":[{"index":i} for i in range(6)]}))
+            args=["p1_quad_pick","--plan",str(plan),"--prior",str(prior),
+                  "--output-file",str(output),"--per-run","2"]
+            with patch("sys.argv",args),patch.dict(os.environ,{"GITHUB_RUN_NUMBER":"0"}):
+                main()
+            flags=dict(line.split("=",1) for line in output.read_text().splitlines())
+            self.assertEqual(flags["first"],"0006")
+            self.assertEqual(flags["has_first"],"true")
+            self.assertEqual(flags["has_second"],"false")
+            self.assertEqual(flags["second"],"NONE")
+
+    def test_only_nightly_slot_requests_two_scheduled_shards(self):
+        from pathlib import Path
+        flow=(Path(__file__).resolve().parents[1]/
+              ".github/workflows/p1-fresh-vendor-roster.yml").read_text()
+        self.assertIn("github.event.schedule == '10 15 * * 1-5'",flow)
+        self.assertIn("P1_REQUESTED_SHARDS: ${{",flow)
+        self.assertIn('--per-run "$P1_REQUESTED_SHARDS"',flow)
+        self.assertIn('requested=int(os.environ["P1_REQUESTED_SHARDS"])',flow)
+        self.assertIn("assert 1<=len(chosen)<=requested",flow)
+        self.assertIn("steps.optional_second.outputs.has_second",flow)
+
     def test_invalid_run_rotation_fails_closed(self):
         for value in (-1,True,"2"):
             with self.assertRaises(ValueError):
