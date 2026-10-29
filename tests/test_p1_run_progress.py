@@ -21,7 +21,10 @@ class P1RunProgressTests(unittest.TestCase):
         current=reconcile(plan,[(1,receipt(1))],prior)
         audit={"source_sha256":source,"trade_gate":"BLOCKED",
                "historical_PIT_verified":False,"ledger_issuers":2,
-               "archived_issuers":2,"archive_gap_issuers":0}
+               "archived_issuers":2,"archive_gap_issuers":0,
+               "archive_csv_replay_enabled":True,
+               "independently_replayed_active_rows":2,
+               "independently_replayed_suspended_rows":0}
         selection={"selected_shards":[1],"selected_count":1,"trade_gate":"BLOCKED"}
         policy=decide("false","skipped","NONE")
         return plan,prior,current,audit,selection,policy
@@ -80,6 +83,16 @@ class P1RunProgressTests(unittest.TestCase):
         altered["completed"][0]["receipt_sha256"]="f"*64
         with self.assertRaisesRegex(ValueError,"replaced receipt"):
             assess(p,altered,audit,selection,policy,prior)
+
+    def test_unreplayed_archive_cannot_be_called_durable(self):
+        p,prior,current,audit,selection,policy=self.fixture()
+        shallow=dict(audit,archive_csv_replay_enabled=False)
+        with self.assertRaisesRegex(ValueError,"archive audit"):
+            assess(p,current,shallow,selection,policy,prior)
+        forged=dict(audit,independently_replayed_active_rows=0,
+                    independently_replayed_suspended_rows=0)
+        with self.assertRaisesRegex(ValueError,"replay counters"):
+            assess(p,current,forged,selection,policy,prior)
 
     def test_malformed_archive_counters_or_policy_rejected(self):
         p,prior,current,audit,selection,policy=self.fixture()
