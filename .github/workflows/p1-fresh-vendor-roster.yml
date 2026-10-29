@@ -350,7 +350,7 @@ jobs:
       - name: Accept successful optional second shard or safely retain first
         id: optional_second
         run: |
-          python -m collector.p1_optional_second --requested-second "${{ steps.pick.outputs.has_second }}" --outcome "${{ steps.second_fetch.outcome }}" --second "${{ steps.pick.outputs.second }}" --output-file "$GITHUB_OUTPUT" --report evidence/optional_second.json
+          python -m collector.p1_optional_second --requested-second "${{ steps.pick.outputs.has_second }}" --outcome "${{ steps.second_fetch.outcome }}" --second "${{ steps.pick.outputs.second }}" --plan evidence/shards/plan.json --manifest-root evidence/shards --second-folder evidence/second_shard --output-file "$GITHUB_OUTPUT" --report evidence/optional_second.json
       - name: Capture third eight-issuer frozen P1 shard
         if: steps.pick.outputs.has_third == 'true'
         run: |
