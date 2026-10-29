@@ -19,7 +19,11 @@ def capture(out, provider, day):
     try:
         for login_attempt in range(2):
             report["login_attempts"]=login_attempt+1
-            login=provider.login()
+            try:
+                login=provider.login()
+            except (OSError,TimeoutError,ConnectionError) as exc:
+                report["last_login_error_type"]=type(exc).__name__
+                continue
             if login.error_code=="0":
                 logged=True
                 break
@@ -29,7 +33,13 @@ def capture(out, provider, day):
         main=None
         for attempt in range(2):
             report["logical_queries"]+=1
-            q=provider.query_all_stock(day=day)
+            try:
+                q=provider.query_all_stock(day=day)
+            except (OSError,TimeoutError,ConnectionError) as exc:
+                report["last_source_error_type"]=type(exc).__name__
+                if attempt==0:
+                    continue
+                raise ValueError("roster provider transport failed after bounded retry") from exc
             if q.error_code!="0":
                 report["last_source_error_code"]=str(q.error_code)[:32]
                 if attempt==0:
