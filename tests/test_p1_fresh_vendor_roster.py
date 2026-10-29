@@ -53,6 +53,44 @@ class FreshRosterTests(unittest.TestCase):
             self.assertEqual(q["logical_queries"],2)
             self.assertEqual(q["mainboard_prefix_rows"],3000)
             self.assertEqual(q["trade_gate"],"BLOCKED")
+    def test_transient_login_error_recovers_with_bounded_retry(self):
+        class LoginTransient(Provider):
+            def __init__(self):
+                super().__init__()
+                self.logins=0
+            def login(self):
+                self.logins+=1
+                if self.logins==1:
+                    item=Result([])
+                    item.error_code="10001"
+                    return item
+                return Result([])
+        with tempfile.TemporaryDirectory() as tmp:
+            api=LoginTransient()
+            self.assertEqual(capture(tmp,api,"2026-10-22"),0)
+            quality=json.loads((Path(tmp)/"quality.json").read_text())
+            self.assertEqual(quality["login_attempts"],2)
+            self.assertEqual(api.logins,2)
+            self.assertEqual(quality["trade_gate"],"BLOCKED")
+
+    def test_repeated_login_failure_blocks_without_roster_query(self):
+        class LoginAlwaysFails(Provider):
+            def login(self):
+                self.logins+=1
+                item=Result([])
+                item.error_code="10001"
+                return item
+        with tempfile.TemporaryDirectory() as tmp:
+            api=LoginAlwaysFails()
+            api.logins=0
+            self.assertEqual(capture(tmp,api,"2026-10-22"),2)
+            quality=json.loads((Path(tmp)/"quality.json").read_text())
+            self.assertEqual(quality["login_attempts"],2)
+            self.assertEqual(quality["last_login_error_code"],"10001")
+            self.assertEqual(api.queries,0)
+            self.assertEqual(quality["status"],"BLOCKED_PARTIAL")
+            self.assertFalse((Path(tmp)/"mainboard.csv").exists())
+
     def test_one_retry_recovers_transient_vendor_error(self):
         class ErrorResult:
             error_code="10001"
