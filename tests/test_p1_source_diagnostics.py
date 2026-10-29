@@ -89,6 +89,85 @@ class P1SourceDiagnosticTests(unittest.TestCase):
             self.assertEqual(examine(root)["roles"][0]["status"],
                              "UNSAFE_SOURCE_RECEIPT")
 
+    def test_second_csv_replay_rejection_is_not_reported_as_success(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.select(root, 2)
+            # The provider says the query completed, but independent replay
+            # rejected this source as inconsistent.
+            self.quality(root, "second_shard", "OBSERVED_SUBSET_UNVERIFIED", [
+                {"code": "sh.600001", "status": "OBSERVED_UNVERIFIED"}])
+            (root / "optional_second.json").write_text(json.dumps({
+                "phase": "P1_OPTIONAL_SECOND_SHARD_POLICY",
+                "requested_second": True, "accepted_second": False,
+                "status": "SECOND_INVALID_PRESERVE_FIRST",
+                "second_rejection_type": "ValueError",
+                "historical_PIT_verified": False, "trade_gate": "BLOCKED",
+                "orders": [], "executable_candidates": [],
+            }))
+            second = examine(root)["roles"][1]
+            self.assertEqual(second["observed_issuers"], 1)
+            self.assertEqual(second["status"], "SECOND_REJECTED_PRESERVE_FIRST")
+            self.assertIn("INDEPENDENT_REPLAY_ValueError",
+                          second["failure_categories"])
+            self.assertEqual(second["optional_second_policy_status"],
+                             "SECOND_INVALID_PRESERVE_FIRST")
+
+    def test_verified_second_distinguishes_provider_from_replay_verdict(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.select(root, 2)
+            self.quality(root, "second_shard", "OBSERVED_SUBSET_UNVERIFIED", [
+                {"code": "sh.600001", "status": "OBSERVED_UNVERIFIED"}])
+            (root / "optional_second.json").write_text(json.dumps({
+                "phase": "P1_OPTIONAL_SECOND_SHARD_POLICY",
+                "requested_second": True, "accepted_second": True,
+                "second_verification_passed": True,
+                "status": "SECOND_SHARD_VERIFIED",
+                "historical_PIT_verified": False, "trade_gate": "BLOCKED",
+                "orders": [], "executable_candidates": [],
+            }))
+            self.assertEqual(examine(root)["roles"][1]["status"],
+                             "SECOND_INDEPENDENTLY_VERIFIED_UNVERIFIED")
+
+    def test_unsafe_optional_second_policy_cannot_hide_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.select(root, 2)
+            self.quality(root, "second_shard", "OBSERVED_SUBSET_UNVERIFIED", [
+                {"code": "sh.600001", "status": "OBSERVED_UNVERIFIED"}])
+            policy = root / "optional_second.json"
+            policy.write_text(json.dumps({
+                "phase": "P1_OPTIONAL_SECOND_SHARD_POLICY",
+                "requested_second": True, "accepted_second": True,
+                "second_verification_passed": True,
+                "status": "SECOND_SHARD_VERIFIED",
+                "trade_gate": "OPEN",
+                "historical_PIT_verified": False,
+                "orders": [], "executable_candidates": [],
+            }))
+            self.assertEqual(examine(root)["roles"][1]["status"],
+                             "INVALID_OPTIONAL_SECOND_POLICY")
+            policy.write_text("malformed")
+            self.assertEqual(examine(root)["roles"][1]["status"],
+                             "INVALID_OPTIONAL_SECOND_POLICY")
+
+    def test_second_verdict_cannot_override_missing_source_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.select(root, 2)
+            (root / "optional_second.json").write_text(json.dumps({
+                "phase": "P1_OPTIONAL_SECOND_SHARD_POLICY",
+                "requested_second": True, "accepted_second": True,
+                "second_verification_passed": True,
+                "status": "SECOND_SHARD_VERIFIED",
+                "trade_gate": "BLOCKED",
+                "historical_PIT_verified": False,
+                "orders": [], "executable_candidates": [],
+            }))
+            self.assertEqual(examine(root)["roles"][1]["status"],
+                             "SECOND_POLICY_SOURCE_CONFLICT")
+
     def test_archive_progress_is_not_invented(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
