@@ -288,6 +288,9 @@ class OrphanArchiveRecoveryTests(unittest.TestCase):
         self.marker([0])
         proposed, report = recover(self.plan, None, self.archive, self.manifests)
         richer = reconcile(self.plan, [(1, self.receipts[1])], proposed)
+        # Reconciliation retains prior entry objects; detach before mutating
+        # the simulated remote so the proposed local evidence stays intact.
+        richer["completed"] = [dict(item) for item in richer["completed"]]
         richer["completed"][0]["receipt_sha256"] = "f" * 64
         planned = self.root / "plan.json"
         proposal_file = self.root / "proposed.json"
