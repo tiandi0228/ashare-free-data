@@ -64,6 +64,43 @@ class P1RunProgressTests(unittest.TestCase):
         self.assertEqual(result["new_selected_shards"],[0,1])
         self.assertEqual(result["new_shards_durably_accepted"],2)
 
+    def test_dual_pilot_requires_two_new_deep_archived_shards(self):
+        p,prior,current,audit,selection,policy=self.fixture()
+        selection.update(selected_shards=[0,1],selected_count=2,
+                         requested_shards=2)
+        policy=decide("true","success","0001")
+        # Merely observing vendor success must not pass the dual pilot.
+        unverified=assess(p,current,audit,selection,policy,None)
+        self.assertEqual(unverified["dual_pilot_result"],
+                         "DUAL_PILOT_NOT_YET_PROVEN")
+        policy.update(status="SECOND_SHARD_VERIFIED",
+                      second_verification_passed=True)
+        verified=assess(p,current,audit,selection,policy,None)
+        self.assertEqual(verified["dual_pilot_result"],
+                         "TWO_VERIFIED_SHARDS_ARCHIVED")
+        self.assertEqual(verified["new_shards_durably_accepted"],2)
+
+    def test_dual_pilot_rejected_second_retains_first_with_traceable_result(self):
+        p,prior,current,audit,selection,policy=self.fixture()
+        selection.update(selected_shards=[0,1],selected_count=2,
+                         requested_shards=2)
+        policy=decide("true","failure","0001")
+        audit.update(ledger_issuers=1,archived_issuers=1,
+                     independently_replayed_active_rows=1)
+        one=assess(p,prior,audit,selection,policy,None)
+        self.assertEqual(one["dual_pilot_result"],
+                         "FIRST_ARCHIVED_SECOND_REJECTED")
+        self.assertEqual(one["new_shards_durably_accepted"],1)
+
+    def test_last_pending_single_shard_is_distinct_from_successful_dual(self):
+        p,prior,current,audit,selection,policy=self.fixture()
+        selection.update(requested_shards=2)
+        result=assess(p,current,audit,selection,policy,prior)
+        self.assertEqual(result["dual_pilot_result"],"ONLY_ONE_SHARD_PENDING")
+        selection["requested_shards"]=0
+        with self.assertRaisesRegex(ValueError,"requested dual pilot size"):
+            assess(p,current,audit,selection,policy,prior)
+
     def test_cross_epoch_and_unselected_growth_rejected(self):
         p,prior,current,audit,selection,policy=self.fixture()
         mismatch=dict(prior,source_sha256="f"*64)
