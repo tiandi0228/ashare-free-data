@@ -144,6 +144,15 @@ class AuditTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,"metadata"):
                 audit(plan,ledger,root,replay=True)
 
+    def test_workflow_deep_replays_archive_before_and_after_repair(self):
+        workflow=(Path(__file__).resolve().parents[1]/
+                  ".github/workflows/p1-fresh-vendor-roster.yml").read_text()
+        command="python -m collector.p1_archive_audit --plan evidence/shards/plan.json --ledger evidence/ledger.json --root archived-research --out evidence/archive_audit.json --replay"
+        self.assertEqual(workflow.count(command),2)
+        self.assertGreaterEqual(
+            workflow.count("assert after['archive_csv_replay_enabled'] is True"),2)
+        self.assertIn("assert q['archive_csv_replay_enabled'] is True",workflow)
+
     def test_legacy_without_receipt_not_counted(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);epoch=root/("a"*16);part=epoch/"shard_0000"
