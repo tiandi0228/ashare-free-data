@@ -91,6 +91,45 @@ class FreshRosterTests(unittest.TestCase):
             self.assertEqual(quality["status"],"BLOCKED_PARTIAL")
             self.assertFalse((Path(tmp)/"mainboard.csv").exists())
 
+    def test_stream_interrupted_once_replays_full_roster(self):
+        class InterruptedResult(Result):
+            def __init__(self,rows):
+                super().__init__(rows)
+                self.reads=0
+            def next(self):
+                self.reads+=1
+                if self.reads==100:
+                    raise TimeoutError("stream interrupted")
+                return super().next()
+        class ProviderWithInterrupt(Provider):
+            def query_all_stock(self,day):
+                self.queries+=1
+                rows=[[f"sh.{[600,601,603][i//1000]*1000+i%1000}","1",f"issuer{i}"] for i in range(3000)]
+                return InterruptedResult(rows) if self.queries==1 else Result(rows)
+        with tempfile.TemporaryDirectory() as tmp:
+            api=ProviderWithInterrupt()
+            self.assertEqual(capture(tmp,api,"2026-10-22"),0)
+            quality=json.loads((Path(tmp)/"quality.json").read_text())
+            self.assertEqual(quality["logical_queries"],2)
+            self.assertEqual(quality["mainboard_prefix_rows"],3000)
+            self.assertEqual(quality["last_source_error_type"],"TimeoutError")
+
+    def test_repeated_stream_interruptions_fail_closed(self):
+        class InterruptedResult(Result):
+            def next(self):
+                raise TimeoutError("stream down")
+        class ProviderWithInterrupt(Provider):
+            def query_all_stock(self,day):
+                self.queries+=1
+                return InterruptedResult([])
+        with tempfile.TemporaryDirectory() as tmp:
+            api=ProviderWithInterrupt()
+            self.assertEqual(capture(tmp,api,"2026-10-22"),2)
+            quality=json.loads((Path(tmp)/"quality.json").read_text())
+            self.assertEqual(quality["logical_queries"],2)
+            self.assertEqual(quality["status"],"BLOCKED_PARTIAL")
+            self.assertFalse((Path(tmp)/"mainboard.csv").exists())
+
     def test_transient_query_exception_recovers(self):
         class Transient(Provider):
             def query_all_stock(self,day):
