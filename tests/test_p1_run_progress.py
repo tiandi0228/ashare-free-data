@@ -72,8 +72,9 @@ class P1RunProgressTests(unittest.TestCase):
 
     def test_progress_regression_and_receipt_mutation_rejected(self):
         p,prior,current,audit,selection,policy=self.fixture()
+        prior_archive=dict(audit,ledger_issuers=1,archived_issuers=1)
         with self.assertRaisesRegex(ValueError,"regression"):
-            assess(p,prior,audit,selection,policy,current)
+            assess(p,prior,prior_archive,selection,policy,current)
         altered=dict(current)
         altered["completed"]=[dict(x) for x in current["completed"]]
         altered["completed"][0]["receipt_sha256"]="f"*64
