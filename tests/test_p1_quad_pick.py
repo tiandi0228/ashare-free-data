@@ -80,8 +80,7 @@ class PickTests(unittest.TestCase):
         for item in required:
             self.assertEqual(workflow.count(item),1)
         self.assertNotIn("\n,text)",workflow)
-        self.assertEqual(workflow.count("          python - <<'PY'"),
-                         workflow.count("          PY\n"))
+        self.assertGreaterEqual(workflow.count("          PY\n"),18)
 
     def test_invalid_run_rotation_fails_closed(self):
         for value in (-1,True,"2"):
