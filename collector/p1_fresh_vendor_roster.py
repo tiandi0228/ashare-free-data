@@ -8,6 +8,8 @@ from collector.baostock_dated_universe import FIELDS, csv_bytes, inspect_rows
 def capture(out, provider, day):
     path=Path(out)
     path.mkdir(parents=True, exist_ok=True)
+    # Never leave a previous successful roster in the output of a failed attempt.
+    (path/"mainboard.csv").unlink(missing_ok=True)
     report={"phase":"P1_FRESH_VENDOR_ROSTER","requested_day":day,"status":"BLOCKED_PARTIAL",
             "observed_at_utc":datetime.now(ZoneInfo("UTC")).isoformat(),
             "source":"Baostock query_all_stock","logical_queries":0,"paid_api_calls":0,
