@@ -86,14 +86,14 @@ class AuditTests(unittest.TestCase):
             root=Path(tmp);epoch=root/("a"*16);part=epoch/"shard_0000"
             part.mkdir(parents=True)
             code="sh.600000"
-            shard_sha=hashlib.sha256((code+"\\n").encode()).hexdigest()
+            shard_sha=hashlib.sha256((code+"\n").encode()).hexdigest()
             (epoch/"archive_status.json").write_text(json.dumps({
                 "source_sha256":"a"*64,"trade_gate":"BLOCKED","archived_shards":[0]}))
             plan={"source_sha256":"a"*64,
                   "shards":[{"index":0,"sha256":shard_sha,"count":1}]}
             def write_bar(close="6.40"):
                 row=["2026-10-20",code,"6.40","6.50","6.30",close,"1000","6400","3","1"]
-                raw=(",".join(FIELDS)+"\\n"+",".join(row)+"\\n").encode()
+                raw=(",".join(FIELDS)+"\n"+",".join(row)+"\n").encode()
                 (part/"sh_600000.csv").write_bytes(raw)
                 receipt={"manifest_sha256":shard_sha,"status":"OBSERVED_SUBSET_UNVERIFIED",
                          "trade_gate":"BLOCKED","issuer_count":1,"results":[{
@@ -123,10 +123,10 @@ class AuditTests(unittest.TestCase):
             root=Path(tmp);epoch=root/("a"*16);part=epoch/"shard_0000"
             part.mkdir(parents=True)
             code="sh.600000"
-            raw=(",".join(FIELDS)+"\\n"+
-                 "2026-10-20,sh.600000,6.40,6.50,6.30,6.40,1000,6400,3,1\\n").encode()
+            raw=(",".join(FIELDS)+"\n"+
+                 "2026-10-20,sh.600000,6.40,6.50,6.30,6.40,1000,6400,3,1\n").encode()
             (part/"sh_600000.csv").write_bytes(raw)
-            manifest_sha=hashlib.sha256((code+"\\n").encode()).hexdigest()
+            manifest_sha=hashlib.sha256((code+"\n").encode()).hexdigest()
             (epoch/"archive_status.json").write_text(json.dumps({
                 "source_sha256":"a"*64,"trade_gate":"BLOCKED","archived_shards":[0]}))
             receipt={"manifest_sha256":manifest_sha,"status":"OBSERVED_SUBSET_UNVERIFIED",
