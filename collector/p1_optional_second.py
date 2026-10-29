@@ -42,21 +42,62 @@ def decide(requested, outcome, second):
     }
 
 
+
+def verify_second_capture(plan, manifest_root, second_index, folder):
+    """Independent source/CSV replay before optional second can be archived."""
+    from collector.p1_quad_verify import verify
+    p = json.loads(Path(plan).read_text())
+    verified = verify(p, [(int(second_index), Path(folder))], Path(manifest_root))
+    if (verified.get("verified_shards") != 1
+            or verified.get("verified_issuers") != p["shards"][int(second_index)]["count"]
+            or verified.get("trade_gate") != "BLOCKED"
+            or verified.get("historical_PIT_verified") is not False):
+        raise ValueError("unsafe second-shard independent verification")
+    return verified
+
+
+def accept_verified_second(result, plan, manifest_root, folder):
+    """Keep the first shard when optional evidence is incomplete or inconsistent."""
+    if not result["accepted_second"]:
+        return result
+    try:
+        details = verify_second_capture(
+            plan, manifest_root, result["second_shard_index"], folder)
+    except (ValueError, OSError, KeyError, TypeError, UnicodeError, IndexError) as exc:
+        result.update(
+            accepted_second=False, effective_shard_count=1,
+            status="SECOND_INVALID_PRESERVE_FIRST",
+            second_rejection_type=type(exc).__name__,
+            second_verification_passed=False,
+        )
+    else:
+        result.update(
+            status="SECOND_SHARD_VERIFIED",
+            second_verification_passed=True,
+            second_verified_issuers=details["verified_issuers"],
+        )
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--requested-second", required=True)
     parser.add_argument("--outcome", required=True)
     parser.add_argument("--second", required=True)
+    parser.add_argument("--plan", required=True)
+    parser.add_argument("--manifest-root", required=True)
+    parser.add_argument("--second-folder", required=True)
     parser.add_argument("--output-file", required=True)
     parser.add_argument("--report", required=True)
     args = parser.parse_args()
     result = decide(args.requested_second, args.outcome, args.second)
+    result = accept_verified_second(result, args.plan, args.manifest_root, args.second_folder)
     dest = Path(args.report)
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(json.dumps(result, indent=2) + "\n")
     with Path(args.output_file).open("a") as handle:
         handle.write("has_second=" + str(result["accepted_second"]).lower() + "\n")
-    if result["status"] == "SECOND_FAILED_PRESERVE_FIRST":
+    if result["status"] in ("SECOND_FAILED_PRESERVE_FIRST", "SECOND_INVALID_PRESERVE_FIRST"):
         print("::warning title=Optional second shard failed::Preserving and auditing the successful first research shard")
     print(json.dumps(result))
 
