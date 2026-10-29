@@ -135,6 +135,69 @@ class CheckpointTests(unittest.TestCase):
                         p1_checkpoint.main()
                     api.assert_not_called()
 
+    def test_write_checkpoint_uses_json_stdin_and_preserves_blob_sha(self):
+        import base64,json,tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from collector import p1_checkpoint
+        candidate=self.ledger(2)
+        remote=self.ledger(1)
+        with tempfile.TemporaryDirectory() as d:
+            source=Path(d)/"checkpoint.json"
+            source.write_text(json.dumps(candidate))
+            with patch.object(p1_checkpoint,"remote_read",return_value=(remote,"existing_blob_sha")):
+                with patch.object(p1_checkpoint,"gh",return_value="{}") as api:
+                    with patch("sys.argv",[
+                        "p1_checkpoint","--mode","write","--repo","test/repo",
+                        "--source-sha","a"*64,"--in-file",str(source),
+                    ]):
+                        p1_checkpoint.main()
+        api.assert_called_once()
+        self.assertEqual(api.call_args.args[:2],("-X","PUT"))
+        self.assertEqual(api.call_args.args[-2:],("--input","-"))
+        self.assertFalse(any(arg.startswith("content=") for arg in api.call_args.args))
+        payload=json.loads(api.call_args.kwargs["input_data"])
+        self.assertEqual(payload["sha"],"existing_blob_sha")
+        self.assertEqual(payload["branch"],"main")
+        raw=base64.b64decode(payload["content"])
+        self.assertEqual(json.loads(raw),candidate)
+
+    def test_large_full_market_checkpoint_is_not_an_argv_argument(self):
+        import base64,json,tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from collector import p1_checkpoint
+        # 1,000 shards makes the GitHub Contents API body substantially larger
+        # than Linux's single-argument limit; the API call is fully mocked.
+        candidate=self.ledger(0)
+        candidate.update(
+            shard_count=1000,
+            completed=[
+                {"index":i,"issuer_count":8,"manifest_sha256":"b"*64,
+                 "receipt_sha256":"c"*64} for i in range(1000)
+            ],
+            completed_shards=1000,
+            completed_issuers=8000,
+            pending_shards=[],
+            next_shard=None,
+        )
+        validate(candidate)
+        with tempfile.TemporaryDirectory() as d:
+            source=Path(d)/"full_market.json"
+            source.write_text(json.dumps(candidate))
+            with patch.object(p1_checkpoint,"remote_read",return_value=(None,None)):
+                with patch.object(p1_checkpoint,"gh",return_value="{}") as api:
+                    with patch("sys.argv",[
+                        "p1_checkpoint","--mode","write","--repo","test/repo",
+                        "--source-sha","a"*64,"--in-file",str(source),
+                    ]):
+                        p1_checkpoint.main()
+        self.assertEqual(api.call_args.args[-2:],("--input","-"))
+        body=json.loads(api.call_args.kwargs["input_data"])
+        self.assertGreater(len(body["content"]),131072)
+        self.assertEqual(json.loads(base64.b64decode(body["content"])),candidate)
+        self.assertNotIn("sha",body)
+
     def test_missing_checkpoint_requires_explicit_404(self):
         import subprocess
         from unittest.mock import patch
