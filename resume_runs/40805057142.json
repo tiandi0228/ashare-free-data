@@ -1,0 +1,120 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 2,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 2,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1225162753",
+      "archival_pdf_path": "pdf/sh_600323/1225162753/91b5b901ac15901d2399536746d7859a9044f97ca3be81a8ba68ed52f3e2c353.pdf",
+      "bytes": 119099,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.600323",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-04-24/1225162753.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "91b5b901ac15901d2399536746d7859a9044f97ca3be81a8ba68ed52f3e2c353",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "公司股票将于2026年4月24日（星期五）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "91b5b901ac15901d2399536746d7859a9044f97ca3be81a8ba68ed52f3e2c353",
+          "pdf_date_phrase": "2026年4月24日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-10-29T02:13:59.711260+00:00",
+      "source_halt_original_sha256": "843bfbda67e71e8c7cf747a93081d7f2d604c493efc834c1a322ceb706828266",
+      "source_halt_text_day": "2026-04-22",
+      "title_unverified": "关于披露发行股份及支付现金购买资产并募集配套资金暨关联交易预案的一般性风险提示暨公司股票复牌的公告"
+    },
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1221927229",
+      "archival_pdf_path": "pdf/sh_600331/1221927229/90e83d802c2b2150ef275da7ee39c11821837c6e44744ca0f9aa4d39b74be9e5.pdf",
+      "bytes": 656352,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.600331",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2024-12-05/1221927229.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "90e83d802c2b2150ef275da7ee39c11821837c6e44744ca0f9aa4d39b74be9e5",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "公司股票自2024年12月5日（星期四）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "90e83d802c2b2150ef275da7ee39c11821837c6e44744ca0f9aa4d39b74be9e5",
+          "pdf_date_phrase": "2024年12月5日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-10-29T02:14:00.262831+00:00",
+      "source_halt_original_sha256": "ba1ba7873a6687b7f007e2829a0244d2fa61ed8f0f0b5da69f54d8741ae5c656",
+      "source_halt_text_day": "2024-12-04",
+      "title_unverified": "关于蜀道投资集团有限责任公司要约收购公司股份结果暨股票复牌的公告"
+    }
+  ],
+  "run_id": 40805057142,
+  "source_halt_issuers_attempted": 3,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600323",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-07-21",
+      "search_window_start": "2026-04-21",
+      "source_halt_announcement_id": "1225136403",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-04-22",
+      "source_halt_original_sha256": "843bfbda67e71e8c7cf747a93081d7f2d604c493efc834c1a322ceb706828266"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600331",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-03-04",
+      "search_window_start": "2024-12-03",
+      "source_halt_announcement_id": "1221918585",
+      "source_halt_certified": false,
+      "source_halt_date": "2024-12-04",
+      "source_halt_original_sha256": "ba1ba7873a6687b7f007e2829a0244d2fa61ed8f0f0b5da69f54d8741ae5c656"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600337",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-07-29",
+      "search_window_start": "2026-04-29",
+      "source_halt_announcement_id": "1225266726",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-04-30",
+      "source_halt_original_sha256": "1d57cce4093d1d6bf5401a404ed46b5139e5b609546a356b731dbecbc2f61563"
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.600323",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    },
+    {
+      "issuer": "sh.600331",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    },
+    {
+      "issuer": "sh.600337",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
