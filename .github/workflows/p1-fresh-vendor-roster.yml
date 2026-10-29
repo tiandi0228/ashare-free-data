@@ -12,6 +12,8 @@ on:
       - 'tests/test_p1_fresh_shard_plan.py'
       - 'collector/p1_shard_ledger.py'
       - 'collector/p1_quad_pick.py'
+      - 'collector/p1_optional_second.py'
+      - 'tests/test_p1_optional_second.py'
       - 'collector/p1_quad_verify.py'
       - 'tests/test_p1_quad_pick.py'
       - 'tests/test_p1_quad_verify.py'
@@ -73,7 +75,7 @@ jobs:
         run: |
           mkdir -p evidence
           set -o pipefail
-          python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_roster_lock tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick tests.test_p1_coverage_gap_diagnosis tests.test_p3_p1_evidence_worklist tests.test_p1_quad_pick tests.test_p1_quad_verify tests.test_p3_all_completed_worklist tests.test_p1_epoch_compare tests.test_p1_research_readiness -v 2>&1 | tee evidence/offline_tests.log
+          python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_roster_lock tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick tests.test_p1_coverage_gap_diagnosis tests.test_p3_p1_evidence_worklist tests.test_p1_quad_pick tests.test_p1_optional_second tests.test_p1_quad_verify tests.test_p3_all_completed_worklist tests.test_p1_epoch_compare tests.test_p1_research_readiness -v 2>&1 | tee evidence/offline_tests.log
       - name: Restore immutable P1 research roster pin if available
         id: pin
         env:
@@ -321,7 +323,9 @@ jobs:
           fi
           exit "$code"
       - name: Fetch next real roster shard historical bars (bounded 8 only)
+        id: second_fetch
         if: steps.pick.outputs.has_second == 'true'
+        continue-on-error: true
         run: |
           python - <<'PY'
           import json
@@ -343,6 +347,10 @@ jobs:
           PY
           fi
           exit "$code"
+      - name: Accept successful optional second shard or safely retain first
+        id: optional_second
+        run: |
+          python -m collector.p1_optional_second --requested-second "${{ steps.pick.outputs.has_second }}" --outcome "${{ steps.second_fetch.outcome }}" --second "${{ steps.pick.outputs.second }}" --output-file "$GITHUB_OUTPUT" --report evidence/optional_second.json
       - name: Capture third eight-issuer frozen P1 shard
         if: steps.pick.outputs.has_third == 'true'
         run: |
@@ -366,7 +374,7 @@ jobs:
               assert item['status']=='OBSERVED_UNVERIFIED'
               raw=Path('evidence/first_shard',item['code'].replace('.','_')+'.csv').read_bytes()
               assert hashlib.sha256(raw).hexdigest()==item['sha256']
-          if '${{ steps.pick.outputs.has_second }}' != 'true':
+          if '${{ steps.optional_second.outputs.has_second }}' != 'true':
               print('Only one final shard remains; no duplicate second acquisition')
               raise SystemExit(0)
           t=json.loads(Path('evidence/second_shard/quality.json').read_text())
@@ -384,7 +392,7 @@ jobs:
       - name: Verify up to four immutable shard receipts and original CSV hashes
         run: |
           RECS=(--receipt "${{ steps.pick.outputs.first }}:evidence/first_shard")
-          if [[ "${{ steps.pick.outputs.has_second }}" == "true" ]]; then RECS+=(--receipt "${{ steps.pick.outputs.second }}:evidence/second_shard"); fi
+          if [[ "${{ steps.optional_second.outputs.has_second }}" == "true" ]]; then RECS+=(--receipt "${{ steps.pick.outputs.second }}:evidence/second_shard"); fi
           if [[ "${{ steps.pick.outputs.has_third }}" == "true" ]]; then RECS+=(--receipt "${{ steps.pick.outputs.third }}:evidence/third_shard"); fi
           if [[ "${{ steps.pick.outputs.has_fourth }}" == "true" ]]; then RECS+=(--receipt "${{ steps.pick.outputs.fourth }}:evidence/fourth_shard"); fi
           python -m collector.p1_quad_verify --plan evidence/shards/plan.json --manifest-root evidence/shards "${RECS[@]}"
@@ -395,7 +403,7 @@ jobs:
           PRIOR_ARGS=()
           if test -f evidence/prior_ledger.json; then PRIOR_ARGS=(--prior evidence/prior_ledger.json); fi
           RECS=(--receipt "${{ steps.pick.outputs.first }}:evidence/first_shard/quality.json")
-          if [[ "${{ steps.pick.outputs.has_second }}" == "true" ]]; then RECS+=(--receipt "${{ steps.pick.outputs.second }}:evidence/second_shard/quality.json"); fi
+          if [[ "${{ steps.optional_second.outputs.has_second }}" == "true" ]]; then RECS+=(--receipt "${{ steps.pick.outputs.second }}:evidence/second_shard/quality.json"); fi
           if [[ "${{ steps.pick.outputs.has_third }}" == "true" ]]; then RECS+=(--receipt "${{ steps.pick.outputs.third }}:evidence/third_shard/quality.json"); fi
           if [[ "${{ steps.pick.outputs.has_fourth }}" == "true" ]]; then RECS+=(--receipt "${{ steps.pick.outputs.fourth }}:evidence/fourth_shard/quality.json"); fi
           python -m collector.p1_shard_ledger --plan evidence/shards/plan.json "${PRIOR_ARGS[@]}" "${RECS[@]}" --out evidence/ledger.json
@@ -414,7 +422,7 @@ jobs:
         run: |
           gh auth setup-git
           SECOND=()
-          if [[ "${{ steps.pick.outputs.has_second }}" == "true" ]]; then
+          if [[ "${{ steps.optional_second.outputs.has_second }}" == "true" ]]; then
             SECOND=(--second "${{ steps.pick.outputs.second }}")
           fi
           THIRD=()
@@ -615,7 +623,7 @@ jobs:
           lines.append('- Archive raw CSV to durable free Git research branch: **${{ steps.diag_5.outcome }}**')
           lines.append('- Audit permanent research CSV archive against recovered ledger: **${{ steps.diag_6.outcome }}**')
           lines.append('- Persist durable no-trade checkpoint in repository: **${{ steps.diag_7.outcome }}**')
-          for name in ('p1_roster_lock.json','pilot_selection.json','live_roster_attempt.json','quality.json','shards/plan.json','prior_ledger.json','ledger.json','archive_audit.json','epoch_comparison.json','research_readiness.json'):
+          for name in ('p1_roster_lock.json','pilot_selection.json','optional_second.json','live_roster_attempt.json','quality.json','shards/plan.json','prior_ledger.json','ledger.json','archive_audit.json','epoch_comparison.json','research_readiness.json'):
               file=root/name
               if not file.is_file():
                   lines.append(f'- `{name}`: unavailable (step did not produce it)')
@@ -623,7 +631,7 @@ jobs:
               try:
                   obj=json.loads(file.read_text())
                   if not isinstance(obj,dict):raise ValueError('not a JSON object')
-                  keys=('status','selection','pinned_requested_day','requested_shards','selected_count','requested_day','source_sha256','roster_codes_sha256','mainboard_sha256','snapshot_reused','issuer_count','shard_count','completed_shards','completed_issuers','next_shard','archived_issuers','archive_gap_issuers','overlapping_completed_shards','left_only_completed_shards','right_only_completed_shards','matching_manifest_shards','matching_manifest_and_receipt_shards','cross_epoch_reuse_authorized','research_data_complete','vendor_shards_complete','research_certified','realtime_execution_checks_verified','buy_recommendations_authorized','trade_gate')
+                  keys=('status','selection','pinned_requested_day','requested_shards','selected_count','effective_shard_count','second_step_outcome','requested_day','source_sha256','roster_codes_sha256','mainboard_sha256','snapshot_reused','issuer_count','shard_count','completed_shards','completed_issuers','next_shard','archived_issuers','archive_gap_issuers','overlapping_completed_shards','left_only_completed_shards','right_only_completed_shards','matching_manifest_shards','matching_manifest_and_receipt_shards','cross_epoch_reuse_authorized','research_data_complete','vendor_shards_complete','research_certified','realtime_execution_checks_verified','buy_recommendations_authorized','trade_gate')
                   if name=='live_roster_attempt.json':
                       for field in ('error_type','error_detail','logical_queries','last_source_total_rows'):
                           value=obj.get(field)
