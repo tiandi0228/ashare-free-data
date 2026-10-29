@@ -87,13 +87,60 @@ def recover(plan, prior, archive_root, manifest_root):
     return updated, result
 
 
+def confirm_durable_recovery(proposed, remote, report):
+    """Confirm that GitHub's *re-read* immutable epoch checkpoint contains
+    every recovered receipt, not merely that the PUT command returned zero.
+    """
+    validate_checkpoint(proposed)
+    validate_checkpoint(remote)
+    if (not isinstance(report, dict)
+            or report.get("phase") != "P1_ORPHAN_ARCHIVE_RECOVERY"
+            or report.get("status") != "ORPHANS_REPLAYED_AWAITING_DURABLE_CHECKPOINT"
+            or report.get("trade_gate") != "BLOCKED"
+            or report.get("historical_PIT_verified") is not False
+            or report.get("orders") != []
+            or report.get("executable_candidates") != []):
+        raise ValueError("invalid pending recovery acknowledgment")
+    ids = report.get("recovered_archive_indices")
+    if (not isinstance(ids, list) or not ids or len(ids) > MAX_ORPHAN_REPLAY
+            or any(type(i) is not int for i in ids)
+            or ids != sorted(set(ids))
+            or report.get("recovered_shards") != len(ids)
+            or report.get("checkpoint_shards_after") != proposed["completed_shards"]
+            or report.get("source_sha256") != proposed["source_sha256"]
+            or proposed["source_sha256"] != remote["source_sha256"]
+            or proposed["shard_count"] != remote["shard_count"]):
+        raise ValueError("recovery version or count mismatch")
+    proposed_by_id = {row["index"]: row for row in proposed["completed"]}
+    remote_by_id = {row["index"]: row for row in remote["completed"]}
+    if not set(ids).issubset(proposed_by_id):
+        raise ValueError("recovery report references unknown checkpoint shards")
+    if any(remote_by_id.get(idx) != entry for idx, entry in proposed_by_id.items()):
+        raise ValueError("remote checkpoint omitted or modified recovered evidence")
+    return dict(
+        report,
+        status="ORPHANS_DURABLY_CHECKPOINTED",
+        durable_recovered_indices=ids,
+        durable_checkpoint_shards=remote["completed_shards"],
+        checkpoint_readback_verified=True,
+    )
+
+
 def main():
     ap = argparse.ArgumentParser()
     for name in ("plan", "root", "manifest-root", "out", "report"):
         ap.add_argument("--" + name, required=True)
     ap.add_argument("--prior")
+    ap.add_argument("--confirm-remote", help="Re-read epoch-specific remote checkpoint after write")
     args = ap.parse_args()
     read = lambda path: json.loads(Path(path).read_text())
+    if args.confirm_remote:
+        proposed = read(args.out)
+        remote = read(args.confirm_remote)
+        report = confirm_durable_recovery(proposed, remote, read(args.report))
+        Path(args.report).write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\\n")
+        print(json.dumps(report, ensure_ascii=False))
+        return
     prior = read(args.prior) if args.prior and Path(args.prior).exists() else None
     ledger, report = recover(
         read(args.plan), prior, args.root, args.manifest_root)
