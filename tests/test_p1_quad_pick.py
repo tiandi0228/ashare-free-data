@@ -66,6 +66,23 @@ class PickTests(unittest.TestCase):
                 with patch("sys.argv",argv[:-1]+[invalid]),patch.dict(os.environ,{"GITHUB_RUN_NUMBER":"0"}):
                     with self.assertRaises(SystemExit):main()
 
+    def test_workflow_keeps_single_ordered_offline_and_vendor_steps(self):
+        from pathlib import Path
+        workflow=(Path(__file__).resolve().parents[1]/".github/workflows/p1-fresh-vendor-roster.yml").read_text()
+        required=(
+            "      - name: Offline source tests",
+            "      - name: Install free Baostock",
+            "      - name: Observe current Beijing-date mainboard roster from free provider",
+            "      - uses: actions/upload-artifact@v4",
+        )
+        positions=[workflow.index(item) for item in required]
+        self.assertEqual(positions,sorted(positions))
+        for item in required:
+            self.assertEqual(workflow.count(item),1)
+        self.assertNotIn("\n,text)",workflow)
+        self.assertEqual(workflow.count("          python - <<'PY'"),
+                         workflow.count("          PY\n"))
+
     def test_invalid_run_rotation_fails_closed(self):
         for value in (-1,True,"2"):
             with self.assertRaises(ValueError):
