@@ -80,6 +80,70 @@ class AuditTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,"membership"):
                 audit(plan,ledger,root)
 
+    def test_deep_archive_replay_rejects_invalid_ohlc_even_if_sha_is_updated(self):
+        from collector.baostock_batch import FIELDS
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);epoch=root/("a"*16);part=epoch/"shard_0000"
+            part.mkdir(parents=True)
+            code="sh.600000"
+            shard_sha=hashlib.sha256((code+"\\n").encode()).hexdigest()
+            (epoch/"archive_status.json").write_text(json.dumps({
+                "source_sha256":"a"*64,"trade_gate":"BLOCKED","archived_shards":[0]}))
+            plan={"source_sha256":"a"*64,
+                  "shards":[{"index":0,"sha256":shard_sha,"count":1}]}
+            def write_bar(close="6.40"):
+                row=["2026-10-20",code,"6.40","6.50","6.30",close,"1000","6400","3","1"]
+                raw=(",".join(FIELDS)+"\\n"+",".join(row)+"\\n").encode()
+                (part/"sh_600000.csv").write_bytes(raw)
+                receipt={"manifest_sha256":shard_sha,"status":"OBSERVED_SUBSET_UNVERIFIED",
+                         "trade_gate":"BLOCKED","issuer_count":1,"results":[{
+                             "code":code,"status":"OBSERVED_UNVERIFIED",
+                             "sha256":hashlib.sha256(raw).hexdigest(),
+                             "rows":1,"first":"2026-10-20","last":"2026-10-20",
+                             "tradable_rows":1,"suspended_status_rows":0}]}
+                (part/"quality.json").write_text(json.dumps(receipt))
+                ledger={"source_sha256":"a"*64,"trade_gate":"BLOCKED",
+                        "completed":[{"index":0,"receipt_sha256":receipt_digest(receipt)}],
+                        "completed_issuers":1}
+                return ledger
+            ledger=write_bar()
+            report=audit(plan,ledger,root,replay=True)
+            self.assertTrue(report["archive_csv_replay_enabled"])
+            self.assertEqual(report["independently_replayed_active_rows"],1)
+            self.assertEqual(report["independently_replayed_suspended_rows"],0)
+            ledger=write_bar(close="8.40")
+            # Matching receipt and CSV digests do not imply valid market OHLC.
+            self.assertEqual(audit(plan,ledger,root)["archived_issuers"],1)
+            with self.assertRaisesRegex(ValueError,"OHLC"):
+                audit(plan,ledger,root,replay=True)
+
+    def test_deep_archive_replay_rejects_false_source_row_metadata(self):
+        from collector.baostock_batch import FIELDS
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);epoch=root/("a"*16);part=epoch/"shard_0000"
+            part.mkdir(parents=True)
+            code="sh.600000"
+            raw=(",".join(FIELDS)+"\\n"+
+                 "2026-10-20,sh.600000,6.40,6.50,6.30,6.40,1000,6400,3,1\\n").encode()
+            (part/"sh_600000.csv").write_bytes(raw)
+            manifest_sha=hashlib.sha256((code+"\\n").encode()).hexdigest()
+            (epoch/"archive_status.json").write_text(json.dumps({
+                "source_sha256":"a"*64,"trade_gate":"BLOCKED","archived_shards":[0]}))
+            receipt={"manifest_sha256":manifest_sha,"status":"OBSERVED_SUBSET_UNVERIFIED",
+                     "trade_gate":"BLOCKED","issuer_count":1,"results":[{
+                         "code":code,"status":"OBSERVED_UNVERIFIED",
+                         "sha256":hashlib.sha256(raw).hexdigest(),
+                         "rows":2,"first":"2026-10-20","last":"2026-10-20",
+                         "tradable_rows":1,"suspended_status_rows":0}]}
+            (part/"quality.json").write_text(json.dumps(receipt))
+            plan={"source_sha256":"a"*64,
+                  "shards":[{"index":0,"sha256":manifest_sha,"count":1}]}
+            ledger={"source_sha256":"a"*64,"trade_gate":"BLOCKED",
+                    "completed":[{"index":0,"receipt_sha256":receipt_digest(receipt)}],
+                    "completed_issuers":1}
+            with self.assertRaisesRegex(ValueError,"metadata"):
+                audit(plan,ledger,root,replay=True)
+
     def test_legacy_without_receipt_not_counted(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);epoch=root/("a"*16);part=epoch/"shard_0000"
