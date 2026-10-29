@@ -15,10 +15,15 @@ def capture(out, provider, day):
             "trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
     logged=False
     try:
-        login=provider.login()
-        if login.error_code!="0":
-            raise ValueError("login failed")
-        logged=True
+        for login_attempt in range(2):
+            report["login_attempts"]=login_attempt+1
+            login=provider.login()
+            if login.error_code=="0":
+                logged=True
+                break
+            report["last_login_error_code"]=str(login.error_code)[:32]
+        if not logged:
+            raise ValueError("login failed after bounded retry")
         main=None
         for attempt in range(2):
             report["logical_queries"]+=1
