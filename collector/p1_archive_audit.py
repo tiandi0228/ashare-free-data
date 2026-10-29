@@ -2,8 +2,11 @@
 import argparse, hashlib, json
 from pathlib import Path
 from collector.p1_roster_shard_manifest import CODE
+from collector.p1_quad_verify import _csv_replay
 
-def audit(plan, ledger, root):
+def audit(plan, ledger, root, replay=False):
+    if type(replay) is not bool:
+        raise ValueError('invalid archived bar replay mode')
     if ledger["source_sha256"]!=plan["source_sha256"] or ledger["trade_gate"]!="BLOCKED":
         raise ValueError("ledger belongs to different roster or opens trade")
     epoch=Path(root)/plan["source_sha256"][:16]
@@ -19,6 +22,8 @@ def audit(plan, ledger, root):
     if not observed.issubset({x["index"] for x in ledger["completed"]}):
         raise ValueError("archive references uncompleted shard")
     archived=0
+    replayed_active_rows=0
+    replayed_suspended_rows=0
     seen_issuers=set()
     ledger_receipts={item["index"]:item for item in ledger["completed"]}
     legacy_without_receipts=[]
@@ -55,6 +60,10 @@ def audit(plan, ledger, root):
                 raise ValueError("invalid archived issuer result status")
             data=(part/(row["code"].replace(".","_")+".csv")).read_bytes()
             if hashlib.sha256(data).hexdigest()!=row["sha256"]:raise ValueError("archive CSV hash mismatch")
+            if replay:
+                active,suspended=_csv_replay(data,row["code"],row)
+                replayed_active_rows+=active
+                replayed_suspended_rows+=suspended
             archived+=1
     completed={x["index"] for x in ledger["completed"]}
     missing_shards=sorted(completed-observed)
@@ -64,6 +73,9 @@ def audit(plan, ledger, root):
             "legacy_shards_without_receipts":legacy_without_receipts,
             "unarchived_shards":missing_shards,"archive_repair_queue":repair_shards,
             "repair_shard_count":len(repair_shards),
+            "archive_csv_replay_enabled":replay,
+            "independently_replayed_active_rows":replayed_active_rows,
+            "independently_replayed_suspended_rows":replayed_suspended_rows,
             "trade_gate":"BLOCKED","historical_PIT_verified":False}
     if result["archive_gap_issuers"]<0:raise ValueError("overreported archive")
     return result
@@ -74,8 +86,9 @@ def main():
     ap.add_argument("--ledger",required=True)
     ap.add_argument("--root",required=True)
     ap.add_argument("--out",required=True)
+    ap.add_argument("--replay",action="store_true",help="Independently check all archived vendor bar dates, OHLC, statuses and receipt counts")
     x=ap.parse_args()
-    report=audit(json.loads(Path(x.plan).read_text()),json.loads(Path(x.ledger).read_text()),x.root)
+    report=audit(json.loads(Path(x.plan).read_text()),json.loads(Path(x.ledger).read_text()),x.root,replay=x.replay)
     Path(x.out).write_text(json.dumps(report,indent=2)+chr(10))
     print(json.dumps(report))
 if __name__=="__main__":main()
