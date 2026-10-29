@@ -1,0 +1,67 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 0,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 0,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [],
+  "run_id": 40947209302,
+  "source_halt_issuers_attempted": 3,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600500",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-10-14",
+      "search_window_start": "2025-07-15",
+      "source_halt_announcement_id": "1224176869",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-07-16",
+      "source_halt_original_sha256": "087ba3646d99acb953ddfc567c588d6eb900a28f40dcb7fdd82c316ff3d73713"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603879",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-07-29",
+      "search_window_start": "2025-04-29",
+      "source_halt_announcement_id": "1223423243",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-04-30",
+      "source_halt_original_sha256": "616cd7c4e9222b26c83276c619fd235e8e5a8924d7a8e7a49099b110feaf11d8"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603897",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-02-01",
+      "search_window_start": "2025-11-02",
+      "source_halt_announcement_id": "1224782056",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-11-03",
+      "source_halt_original_sha256": "fd45e7b555378ae00d69d5dfec6fcd05773fd8e0dc67afde1c03c2b1931d3939"
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.600500",
+      "matching_titles": 0,
+      "status": "INDEX_UNAVAILABLE_NOT_NO_RESUMPTION"
+    },
+    {
+      "issuer": "sh.603879",
+      "matching_titles": 0,
+      "status": "INDEX_UNAVAILABLE_NOT_NO_RESUMPTION"
+    },
+    {
+      "issuer": "sh.603897",
+      "matching_titles": 0,
+      "status": "INDEX_UNAVAILABLE_NOT_NO_RESUMPTION"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
