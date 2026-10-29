@@ -106,9 +106,25 @@ def examine(root):
                         categories.append(str(receipt["failure_category"])[:96])
                     if receipt.get("login_error_type"):
                         categories.append("LOGIN_" + str(receipt["login_error_type"])[:80])
-                    if row["source_status"] == "OBSERVED_SUBSET_UNVERIFIED" and not failures and sources:
+                    # A provider "success" label is not sufficient if the
+                    # receipt omits issuers, attempts or the free-source marker.
+                    count = receipt.get("issuer_count")
+                    attempts = receipt.get("query_attempts")
+                    receipt_consistent = (
+                        type(count) is int and 1 <= count <= 8
+                        and type(attempts) is int and attempts == count
+                        and len(sources) == count
+                        and receipt.get("paid_api_calls") == 0
+                    )
+                    if not receipt_consistent:
+                        categories.append("SOURCE_RECEIPT_COUNT_OR_COST_MISMATCH")
+                    if (row["source_status"] == "OBSERVED_SUBSET_UNVERIFIED"
+                            and not failures and sources and receipt_consistent
+                            and row["status"] not in ("RUNNER_TIMEOUT",
+                                "INVALID_TIMEOUT_EVIDENCE")):
                         row["status"] = "OBSERVED_UNVERIFIED"
-                    elif row["status"] != "RUNNER_TIMEOUT":
+                    elif row["status"] not in ("RUNNER_TIMEOUT",
+                                              "INVALID_TIMEOUT_EVIDENCE"):
                         row["status"] = "SOURCE_INCOMPLETE"
                     row["failure_categories"] = sorted(set(categories))[:MAX_ERRORS]
         # A successful vendor query is only an observation, never independent
