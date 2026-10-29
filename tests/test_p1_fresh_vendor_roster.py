@@ -126,6 +126,16 @@ class FreshRosterTests(unittest.TestCase):
             self.assertEqual(receipt["last_source_error_code"],"10001")
             self.assertFalse((Path(tmp)/"mainboard.csv").exists())
 
+    def test_failed_capture_does_not_leave_stale_roster_csv(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder=Path(tmp)
+            (folder/"mainboard.csv").write_text("stale,not,current\n")
+            self.assertEqual(capture(tmp,Provider(False),"2026-10-22"),2)
+            self.assertFalse((folder/"mainboard.csv").exists())
+            quality=json.loads((folder/"quality.json").read_text())
+            self.assertEqual(quality["status"],"BLOCKED_PARTIAL")
+            self.assertEqual(quality["trade_gate"],"BLOCKED")
+
     def test_implausibly_small_roster_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(capture(tmp,Provider(False),"2026-10-22"),2)
