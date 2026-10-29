@@ -1,0 +1,120 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 2,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 2,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1225611307",
+      "archival_pdf_path": "pdf/sh_600293/1225611307/ed9e456c6ccb5779e0a174d0da7c620ae9b5b58ba1e77bbdea80a7f051c38291.pdf",
+      "bytes": 108619,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.600293",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-20/1225611307.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "ed9e456c6ccb5779e0a174d0da7c620ae9b5b58ba1e77bbdea80a7f051c38291",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "证券代码：600293）自2026年10月20日（星期二）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "ed9e456c6ccb5779e0a174d0da7c620ae9b5b58ba1e77bbdea80a7f051c38291",
+          "pdf_date_phrase": "2026年10月20日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-10-29T00:33:28.797903+00:00",
+      "source_halt_original_sha256": "8107cc4d7ecedc8c57d18e8edc8ac6f0e3a8bfa0b49e811c4d2a4b8fa1c8e0b9",
+      "source_halt_text_day": "2026-09-29",
+      "title_unverified": "湖北三峡新型建材股份有限公司关于发行股份及支付现金购买资产并募集配套资金的一般风险提示暨公司股票复牌的公告"
+    },
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1225571318",
+      "archival_pdf_path": "pdf/sh_600301/1225571318/2577251f9a0c7b28321c3c90cd89887b8c3c58d4982c689d4ad0d99b6dbe104c.pdf",
+      "bytes": 119131,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.600301",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-19/1225571318.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "2577251f9a0c7b28321c3c90cd89887b8c3c58d4982c689d4ad0d99b6dbe104c",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "公司股票将于2026年9月21日（星期一）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "2577251f9a0c7b28321c3c90cd89887b8c3c58d4982c689d4ad0d99b6dbe104c",
+          "pdf_date_phrase": "2026年9月21日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-10-29T00:33:29.799816+00:00",
+      "source_halt_original_sha256": "8f4e9a6101680c72d4a3e436ab29d6c993f33b48274eba30929978c29e5f4ba9",
+      "source_halt_text_day": "2026-09-14",
+      "title_unverified": "广西华锡有色金属股份有限公司关于控制权拟变更暨复牌的公告"
+    }
+  ],
+  "run_id": 40794756034,
+  "source_halt_issuers_attempted": 3,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600293",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-10-29",
+      "search_window_start": "2026-09-28",
+      "source_halt_announcement_id": "1225586063",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-09-29",
+      "source_halt_original_sha256": "8107cc4d7ecedc8c57d18e8edc8ac6f0e3a8bfa0b49e811c4d2a4b8fa1c8e0b9"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600301",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-10-29",
+      "search_window_start": "2026-09-13",
+      "source_halt_announcement_id": "1225559574",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-09-14",
+      "source_halt_original_sha256": "8f4e9a6101680c72d4a3e436ab29d6c993f33b48274eba30929978c29e5f4ba9"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600302",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-07-29",
+      "search_window_start": "2026-04-29",
+      "source_halt_announcement_id": "1225266706",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-04-30",
+      "source_halt_original_sha256": "fd930a55cb23c69325e918b4037c0fa20f21c7b564ac7ae95d4e27d1e20be06d"
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.600293",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    },
+    {
+      "issuer": "sh.600301",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    },
+    {
+      "issuer": "sh.600302",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
