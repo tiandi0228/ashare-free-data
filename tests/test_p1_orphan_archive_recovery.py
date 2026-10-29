@@ -98,8 +98,29 @@ class OrphanArchiveRecoveryTests(unittest.TestCase):
         self.assertEqual(result["completed_shards"], 0)
         self.assertEqual(report["status"], "NO_ARCHIVE_MARKER_FOR_EPOCH")
 
+    def test_missing_archive_marker_for_nonempty_checkpoint_fails_closed(self):
+        with self.assertRaisesRegex(ValueError,"lacks marker"):
+            recover(self.plan, self.prior, self.archive, self.manifests)
+
+    def test_workflow_recovers_orphans_before_selecting_new_shards(self):
+        workflow=(Path(__file__).resolve().parents[1]/
+                  ".github/workflows/p1-fresh-vendor-roster.yml").read_text()
+        recovery=workflow.index(
+            "      - name: Recover previously archived but uncheckpointed research shards")
+        selection=workflow.index(
+            "      - name: Select up to four distinct missing frozen roster shards")
+        self.assertLess(recovery,selection)
+        block=workflow[recovery:selection]
+        self.assertIn("python -m collector.p1_orphan_archive_recovery",block)
+        self.assertIn("RECOVERED=",block)
+        self.assertIn("if [[ \"$RECOVERED\" -gt 0 ]]",block)
+        self.assertIn("python -m collector.p1_checkpoint --mode write",block)
+        self.assertIn("cp evidence/recovered_ledger.json evidence/prior_ledger.json",block)
+        self.assertIn("evidence/orphan_recovery.json",workflow)
+        self.assertIn("tests.test_p1_orphan_archive_recovery",workflow)
+
     def test_malformed_archive_marker_is_rejected(self):
-        for indices in ([0, 1, 1], [-1], [True], [2]):
+        for indices in ([0, 1, 1], [-1], [True], [2], [{"index": 1}]):
             with self.subTest(indices=indices):
                 self.marker(indices)
                 with self.assertRaises(ValueError):
