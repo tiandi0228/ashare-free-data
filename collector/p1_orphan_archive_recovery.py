@@ -149,6 +149,10 @@ def main():
         proposed = read(args.out)
         remote = read(args.confirm_remote)
         report = confirm_durable_recovery(proposed, remote, read(args.report))
+        # A concurrent writer can legitimately add more same-epoch verified
+        # shards after our proposed checkpoint was prepared. Never regress the
+        # next picker to the older proposal after accepting that remote superset.
+        Path(args.out).write_text(json.dumps(remote, ensure_ascii=False, indent=2) + "\n")
         Path(args.report).write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
         print(json.dumps(report, ensure_ascii=False))
         return
