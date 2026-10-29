@@ -440,12 +440,13 @@ jobs:
         run: |
           git fetch --depth=1 origin research-csv-archive
           git worktree add --detach archived-research FETCH_HEAD
-          python -m collector.p1_archive_audit --plan evidence/shards/plan.json --ledger evidence/ledger.json --root archived-research --out evidence/archive_audit.json
+          python -m collector.p1_archive_audit --plan evidence/shards/plan.json --ledger evidence/ledger.json --root archived-research --out evidence/archive_audit.json --replay
           python - <<'PY'
           import json
           from pathlib import Path
           q=json.loads(Path('evidence/archive_audit.json').read_text())
           assert q['trade_gate']=='BLOCKED' and q['historical_PIT_verified'] is False
+          assert q['archive_csv_replay_enabled'] is True
           assert q['archived_issuers']<=q['ledger_issuers']
           print('ARCHIVE AUDIT: permanently verified',q['archived_issuers'],'of',q['ledger_issuers'])
           PY
@@ -501,7 +502,7 @@ jobs:
         run: |
           git -C archived-research fetch --depth=1 origin research-csv-archive
           git -C archived-research checkout --detach FETCH_HEAD
-          python -m collector.p1_archive_audit --plan evidence/shards/plan.json --ledger evidence/ledger.json --root archived-research --out evidence/archive_audit.json
+          python -m collector.p1_archive_audit --plan evidence/shards/plan.json --ledger evidence/ledger.json --root archived-research --out evidence/archive_audit.json --replay
           python - <<'PY'
           import json
           from pathlib import Path
@@ -510,6 +511,7 @@ jobs:
           idx=int('${{ steps.repair.outputs.index }}')
           count=json.loads(Path('evidence/shards/plan.json').read_text())['shards'][idx]['count']
           assert after['trade_gate']=='BLOCKED' and after['historical_PIT_verified'] is False
+          assert after['archive_csv_replay_enabled'] is True
           assert after['archived_issuers']==before['archived_issuers']+count
           assert idx not in after['archive_repair_queue']
           print('REPAIR AUDIT PASS: durable verified issuers',after['archived_issuers'],'gap',after['archive_gap_issuers'])
@@ -523,6 +525,7 @@ jobs:
           after=json.loads(Path('evidence/archive_audit.json').read_text())
           before=json.loads(Path('evidence/archive_audit_before_repair.json').read_text())
           assert after['trade_gate']=='BLOCKED' and after['historical_PIT_verified'] is False
+          assert after['archive_csv_replay_enabled'] is True
           assert after['archived_issuers']>=before['archived_issuers']
           assert after['archived_issuers']<=ledger['completed_issuers']
           assert after['archive_gap_issuers']==ledger['completed_issuers']-after['archived_issuers']
@@ -641,7 +644,7 @@ jobs:
               try:
                   obj=json.loads(file.read_text())
                   if not isinstance(obj,dict):raise ValueError('not a JSON object')
-                  keys=('status','selection','pinned_requested_day','requested_shards','selected_count','new_shard_count','new_shards_durably_accepted','effective_shard_count','second_step_outcome','requested_day','source_sha256','roster_codes_sha256','mainboard_sha256','snapshot_reused','issuer_count','shard_count','completed_shards','completed_issuers','next_shard','archived_issuers','archive_gap_issuers','overlapping_completed_shards','left_only_completed_shards','right_only_completed_shards','matching_manifest_shards','matching_manifest_and_receipt_shards','cross_epoch_reuse_authorized','research_data_complete','vendor_shards_complete','research_certified','realtime_execution_checks_verified','buy_recommendations_authorized','trade_gate')
+                  keys=('status','selection','pinned_requested_day','requested_shards','selected_count','new_shard_count','new_shards_durably_accepted','effective_shard_count','second_step_outcome','requested_day','source_sha256','roster_codes_sha256','mainboard_sha256','snapshot_reused','issuer_count','shard_count','completed_shards','completed_issuers','next_shard','archived_issuers','archive_gap_issuers','archive_csv_replay_enabled','independently_replayed_active_rows','independently_replayed_suspended_rows','overlapping_completed_shards','left_only_completed_shards','right_only_completed_shards','matching_manifest_shards','matching_manifest_and_receipt_shards','cross_epoch_reuse_authorized','research_data_complete','vendor_shards_complete','research_certified','realtime_execution_checks_verified','buy_recommendations_authorized','trade_gate')
                   if name=='live_roster_attempt.json':
                       for field in ('error_type','error_detail','logical_queries','last_source_total_rows'):
                           value=obj.get(field)
