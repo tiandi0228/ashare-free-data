@@ -120,6 +120,7 @@ class DualShardEndToEndTests(unittest.TestCase):
         self.assertEqual(ledger["completed_shards"], 2)
         self.assertEqual(ledger["completed_issuers"], 2)
         self.assertEqual(report["effective_shard_count"], 2)
+        self.assertEqual(report["dual_pilot_result"], "TWO_VERIFIED_SHARDS_ARCHIVED")
 
     def test_tampered_second_csv_preserves_first_deep_archival(self):
         second = self.receipts[1][1]
@@ -134,6 +135,7 @@ class DualShardEndToEndTests(unittest.TestCase):
         self.assertEqual(ledger["completed_shards"], 1)
         self.assertEqual(ledger["pending_shards"], [1])
         self.assertEqual(report["new_selected_shards"], [0])
+        self.assertEqual(report["dual_pilot_result"], "FIRST_ARCHIVED_SECOND_REJECTED")
 
     def test_failed_second_fetch_does_not_drop_first_verified_receipt(self):
         policy = accept_verified_second(
@@ -143,6 +145,7 @@ class DualShardEndToEndTests(unittest.TestCase):
         ledger, report = self.archive_and_report([0], policy)
         self.assertEqual(ledger["completed_shards"], 1)
         self.assertEqual(report["new_shards_durably_accepted"], 1)
+        self.assertEqual(report["dual_pilot_result"], "FIRST_ARCHIVED_SECOND_REJECTED")
 
 
 if __name__ == "__main__":
