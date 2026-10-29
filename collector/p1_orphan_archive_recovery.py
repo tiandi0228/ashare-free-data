@@ -35,6 +35,8 @@ def recover(plan, prior, archive_root, manifest_root):
     epoch = Path(archive_root) / plan["source_sha256"][:16]
     marker_path = epoch / "archive_status.json"
     if not marker_path.exists():
+        if old:
+            raise ValueError("archived branch lacks marker for nonempty checkpoint")
         marker_indices = []
         status = "NO_ARCHIVE_MARKER_FOR_EPOCH"
     else:
@@ -43,9 +45,9 @@ def recover(plan, prior, archive_root, manifest_root):
         if (marker.get("source_sha256") != plan["source_sha256"]
                 or marker.get("trade_gate") != "BLOCKED"
                 or not isinstance(marker_indices, list)
-                or len(marker_indices) != len(set(marker_indices))
                 or any(type(i) is not int or not 0 <= i < plan["shard_count"]
-                       for i in marker_indices)):
+                       for i in marker_indices)
+                or len(marker_indices) != len(set(marker_indices))):
             raise ValueError("invalid archive marker or different source version")
         status = "NO_ORPHAN_SHARDS"
     orphan_indices = sorted(set(marker_indices) - old)
