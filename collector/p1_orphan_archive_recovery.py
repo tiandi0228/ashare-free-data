@@ -138,7 +138,7 @@ def main():
         proposed = read(args.out)
         remote = read(args.confirm_remote)
         report = confirm_durable_recovery(proposed, remote, read(args.report))
-        Path(args.report).write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\\n")
+        Path(args.report).write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
         print(json.dumps(report, ensure_ascii=False))
         return
     prior = read(args.prior) if args.prior and Path(args.prior).exists() else None
