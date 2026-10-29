@@ -111,6 +111,22 @@ class PinnedRosterTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "origin"):
             pack(raw, stale, 212)
 
+    def test_pinned_roster_still_installs_historical_data_dependency(self):
+        # The roster query is optional after a pin, but historical bars always
+        # call baostock_batch and therefore must have Baostock installed.
+        workflow=(Path(__file__).resolve().parents[1]/
+                  ".github/workflows/p1-fresh-vendor-roster.yml").read_text()
+        install=workflow.split(
+            "      - name: Install free Baostock",1)[1].split(
+            "      - name: Observe current Beijing-date mainboard roster",1)[0]
+        observe=workflow.split(
+            "      - name: Observe current Beijing-date mainboard roster",1)[1].split(
+            "      - name: Preserve failed live vendor roster receipt",1)[0]
+        self.assertNotIn("if:",install)
+        self.assertIn("python -m pip install 'baostock>=0.8,<1'",install)
+        self.assertIn("if: steps.pin.outputs.locked != 'true'",observe)
+        self.assertIn("python -u -m collector.baostock_batch",workflow)
+
     def test_large_pin_upload_uses_stdin_not_argv(self):
         raw, quality = self.source()
         lock = pack(raw, quality, 212)
