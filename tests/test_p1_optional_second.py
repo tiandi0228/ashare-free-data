@@ -39,6 +39,21 @@ class OptionalSecondTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     decide(*args)
 
+    def test_workflow_wires_effective_second_to_all_downstream_consumers(self):
+        workflow = (Path(__file__).resolve().parents[1] /
+                    ".github/workflows/p1-fresh-vendor-roster.yml").read_text()
+        start = workflow.index("      - name: Fetch next real roster shard historical bars")
+        accept = workflow.index("      - name: Accept successful optional second shard")
+        downstream = workflow[workflow.index(
+            "      - name: Capture third eight-issuer frozen P1 shard", accept):]
+        self.assertIn("id: second_fetch", workflow[start:accept])
+        self.assertIn("continue-on-error: true", workflow[start:accept])
+        self.assertIn("id: optional_second", workflow[accept:accept+500])
+        self.assertIn("steps.second_fetch.outcome", workflow[accept:accept+600])
+        self.assertNotIn("steps.pick.outputs.has_second", downstream)
+        self.assertGreaterEqual(
+            downstream.count("steps.optional_second.outputs.has_second"), 4)
+
     def test_cli_outputs_effective_acceptance(self):
         with tempfile.TemporaryDirectory() as tmp:
             out=Path(tmp)/"output.txt"
