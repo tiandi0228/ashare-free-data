@@ -86,7 +86,7 @@ jobs:
           python -m collector.p1_roster_lock --mode read --repo "${{ github.repository }}" --out evidence --github-output "$GITHUB_OUTPUT"
       - name: Install free Baostock
         id: diag_1
-        if: steps.pin.outputs.locked != 'true'
+        # Even with a pinned roster, historical bar shards still import Baostock.
         run: python -m pip install 'baostock>=0.8,<1'
       - name: Observe current Beijing-date mainboard roster from free provider
         id: roster
