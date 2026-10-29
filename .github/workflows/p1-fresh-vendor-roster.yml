@@ -101,13 +101,14 @@ jobs:
           # Bounded fallback also allows a failed downstream run with a valid snapshot.
           candidates=[r for r in runs if r['conclusion']=='success']
           candidates += [r for r in runs if r['conclusion'] in ('failure','timed_out')]
-          for run in candidates[:40]:
+          # Bound artifact probing to 12 x 15s; never consume the entire 20m job budget.
+          for run in candidates[:12]:
               rid=run['databaseId']
               dest=Path('frozen_previous')/str(rid)
               try:
                   result=subprocess.run(
                       ['gh','run','download',str(rid),'-n',f'p1-fresh-roster-{rid}','-D',str(dest)],
-                      capture_output=True,text=True,timeout=45)
+                      capture_output=True,text=True,timeout=15)
               except subprocess.TimeoutExpired:
                   print('Skipped timed-out frozen snapshot artifact',rid)
                   continue
