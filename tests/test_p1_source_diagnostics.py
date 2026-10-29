@@ -168,6 +168,18 @@ class P1SourceDiagnosticTests(unittest.TestCase):
             self.assertEqual(examine(root)["roles"][1]["status"],
                              "SECOND_POLICY_SOURCE_CONFLICT")
 
+    def test_actions_preserves_diagnostics_after_failed_acquisition(self):
+        workflow = (Path(__file__).resolve().parents[1] /
+                    ".github/workflows/p1-fresh-vendor-roster.yml").read_text()
+        marker = "      - name: Preserve per-shard Baostock source errors and timeouts"
+        self.assertEqual(workflow.count(marker), 1)
+        section = workflow.split(marker, 1)[1].split(
+            "      - name: Publish P1 run diagnostics (research only)", 1)[0]
+        self.assertIn("if: always()", section)
+        self.assertIn("python -m collector.p1_source_diagnostics", section)
+        self.assertIn("evidence/source_diagnostics.json", section)
+        self.assertIn("evidence/optional_second.json", workflow)
+
     def test_archive_progress_is_not_invented(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
