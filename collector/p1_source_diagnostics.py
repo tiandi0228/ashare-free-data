@@ -44,6 +44,10 @@ def _role_requests(root):
 def examine(root):
     root = Path(root)
     requested = _role_requests(root)
+    policy_file = root / "optional_second.json"
+    policy, policy_error = (
+        _read(policy_file) if policy_file.exists() else (None, None)
+    )
     results = []
     for role in ROLES:
         folder = root / role
@@ -107,6 +111,45 @@ def examine(root):
                     elif row["status"] != "RUNNER_TIMEOUT":
                         row["status"] = "SOURCE_INCOMPLETE"
                     row["failure_categories"] = sorted(set(categories))[:MAX_ERRORS]
+        # A successful vendor query is only an observation, never independent
+        # verification. Honor the downstream optional-second policy so a bad
+        # OHLC/CSV replay is not displayed as an accepted second shard.
+        if role == "second_shard" and policy_file.exists():
+            if (policy_error or not isinstance(policy, dict)
+                    or policy.get("phase") != "P1_OPTIONAL_SECOND_SHARD_POLICY"
+                    or policy.get("trade_gate") != "BLOCKED"
+                    or policy.get("historical_PIT_verified") is not False
+                    or policy.get("orders") != []
+                    or policy.get("executable_candidates") != []):
+                row["status"] = "INVALID_OPTIONAL_SECOND_POLICY"
+                row["failure_categories"] = sorted(set(
+                    row["failure_categories"] + ["UNSAFE_OR_INVALID_SECOND_POLICY"]))
+            elif policy.get("requested_second") is True:
+                verdict = policy.get("status")
+                row["optional_second_policy_status"] = str(verdict)[:96]
+                if (policy.get("accepted_second") is False
+                        and verdict in ("SECOND_INVALID_PRESERVE_FIRST",
+                                        "SECOND_FAILED_PRESERVE_FIRST")):
+                    row["status"] = "SECOND_REJECTED_PRESERVE_FIRST"
+                    reason = policy.get("second_rejection_type")
+                    row["failure_categories"] = sorted(set(
+                        row["failure_categories"] + (
+                            ["INDEPENDENT_REPLAY_" + str(reason)[:48]]
+                            if verdict == "SECOND_INVALID_PRESERVE_FIRST" and reason
+                            else ["SECOND_CAPTURE_FAILED"])))
+                elif (policy.get("accepted_second") is True
+                      and policy.get("second_verification_passed") is True
+                      and verdict == "SECOND_SHARD_VERIFIED"
+                      and row["status"] == "OBSERVED_UNVERIFIED"):
+                    row["status"] = "SECOND_INDEPENDENTLY_VERIFIED_UNVERIFIED"
+                else:
+                    row["status"] = "SECOND_POLICY_SOURCE_CONFLICT"
+                    row["failure_categories"] = sorted(set(
+                        row["failure_categories"] + ["SECOND_POLICY_SOURCE_CONFLICT"]))
+            elif policy.get("requested_second") is not False or row["requested"]:
+                row["status"] = "SECOND_POLICY_SOURCE_CONFLICT"
+                row["failure_categories"] = sorted(set(
+                    row["failure_categories"] + ["UNEXPECTED_SECOND_REQUEST"]))
         results.append(row)
     progress_path = root / "p1_run_progress.json"
     progress, error = _read(progress_path) if progress_path.exists() else (None, None)
