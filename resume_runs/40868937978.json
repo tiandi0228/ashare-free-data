@@ -1,0 +1,146 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 3,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 3,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1224462396",
+      "archival_pdf_path": "pdf/sh_600208/1224462396/a1600ea8b6c80ae1d8269861782903061cd791d889ce685d12b06ddc26547647.pdf",
+      "bytes": 94290,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.600208",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2025-08-13/1224462396.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "a1600ea8b6c80ae1d8269861782903061cd791d889ce685d12b06ddc26547647",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "公司股票将于2025年8月13日开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "a1600ea8b6c80ae1d8269861782903061cd791d889ce685d12b06ddc26547647",
+          "pdf_date_phrase": "2025年8月13日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-10-29T11:54:38.300602+00:00",
+      "source_halt_original_sha256": "318370940cca5268cc3f348cf3a4075db01502485aab526871a2aafaa4f2e64a",
+      "source_halt_text_day": "2025-07-30",
+      "title_unverified": "关于发行股份方式购买资产并募集配套资金事项的一般风险提示暨公司股票复牌的公告"
+    },
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1224858396",
+      "archival_pdf_path": "pdf/sh_600222/1224858396/82b66074df6891abccad6277ba3528a80388c8413391a25962a7923d0895b506.pdf",
+      "bytes": 110557,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.600222",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2025-12-09/1224858396.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "82b66074df6891abccad6277ba3528a80388c8413391a25962a7923d0895b506",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "公司股票将于2025年12月9日（星期二）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "82b66074df6891abccad6277ba3528a80388c8413391a25962a7923d0895b506",
+          "pdf_date_phrase": "2025年12月9日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-10-29T11:54:38.920180+00:00",
+      "source_halt_original_sha256": "e911f28b0984168032fc66dbad97083bb1c79e02495b8ed4d5b705a157cf4b08",
+      "source_halt_text_day": "2025-12-02",
+      "title_unverified": "太龙药业关于控股股东筹划重大事项进展暨复牌的公告"
+    },
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1225386574",
+      "archival_pdf_path": "pdf/sh_600228/1225386574/269e60d18d626efb9b0b666fa8801a8ce690042edbb2a0a0b9c69faf1e30120d.pdf",
+      "bytes": 134713,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.600228",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-06-25/1225386574.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "269e60d18d626efb9b0b666fa8801a8ce690042edbb2a0a0b9c69faf1e30120d",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "公司股票将于2026年6月25日（星期四）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "269e60d18d626efb9b0b666fa8801a8ce690042edbb2a0a0b9c69faf1e30120d",
+          "pdf_date_phrase": "2026年6月25日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-10-29T11:54:39.171227+00:00",
+      "source_halt_original_sha256": "0e17de0a92bc5b8a6857b5a7eb8e6df52f66e9488a8e139d8d988109c546c9b8",
+      "source_halt_text_day": "2026-06-17",
+      "title_unverified": "返利网数字科技股份有限公司关于筹划控制权变更事项的进展暨复牌公告"
+    }
+  ],
+  "run_id": 40868937978,
+  "source_halt_issuers_attempted": 3,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600208",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-10-28",
+      "search_window_start": "2025-07-29",
+      "source_halt_announcement_id": "1224330484",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-07-30",
+      "source_halt_original_sha256": "318370940cca5268cc3f348cf3a4075db01502485aab526871a2aafaa4f2e64a"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600222",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-03-02",
+      "search_window_start": "2025-12-01",
+      "source_halt_announcement_id": "1224840361",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-12-02",
+      "source_halt_original_sha256": "e911f28b0984168032fc66dbad97083bb1c79e02495b8ed4d5b705a157cf4b08"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600228",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-09-15",
+      "search_window_start": "2026-06-16",
+      "source_halt_announcement_id": "1225374212",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-06-17",
+      "source_halt_original_sha256": "0e17de0a92bc5b8a6857b5a7eb8e6df52f66e9488a8e139d8d988109c546c9b8"
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.600208",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    },
+    {
+      "issuer": "sh.600222",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    },
+    {
+      "issuer": "sh.600228",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
