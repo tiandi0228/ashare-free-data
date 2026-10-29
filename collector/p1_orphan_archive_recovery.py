@@ -76,6 +76,7 @@ def recover(plan, prior, archive_root, manifest_root):
         "source_sha256": plan["source_sha256"],
         "status": status,
         "checkpoint_shards_before": len(old),
+        "prior_completed_indices": sorted(old),
         "recovered_archive_indices": orphan_indices,
         "recovered_shards": len(orphan_indices),
         "checkpoint_shards_after": updated["completed_shards"],
@@ -110,6 +111,16 @@ def confirm_durable_recovery(proposed, remote, report):
             or report.get("source_sha256") != proposed["source_sha256"]
             or proposed["source_sha256"] != remote["source_sha256"]
             or proposed["shard_count"] != remote["shard_count"]):
+        raise ValueError("recovery version or count mismatch")
+    prior_indices = report.get("prior_completed_indices")
+    if (not isinstance(prior_indices, list)
+            or any(type(i) is not int for i in prior_indices)
+            or prior_indices != sorted(set(prior_indices))
+            or report.get("checkpoint_shards_before") != len(prior_indices)
+            or set(prior_indices).intersection(ids)
+            or set(prior_indices).union(ids) != {
+                row["index"] for row in proposed["completed"]
+            }):
         raise ValueError("recovery version or count mismatch")
     proposed_by_id = {row["index"]: row for row in proposed["completed"]}
     remote_by_id = {row["index"]: row for row in remote["completed"]}
