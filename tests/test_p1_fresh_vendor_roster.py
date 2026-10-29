@@ -91,6 +91,39 @@ class FreshRosterTests(unittest.TestCase):
             self.assertEqual(quality["status"],"BLOCKED_PARTIAL")
             self.assertFalse((Path(tmp)/"mainboard.csv").exists())
 
+    def test_transient_query_exception_recovers(self):
+        class Transient(Provider):
+            def query_all_stock(self,day):
+                if self.queries==0:
+                    self.queries+=1
+                    raise TimeoutError("temporary")
+                return super().query_all_stock(day)
+        with tempfile.TemporaryDirectory() as tmp:
+            api=Transient()
+            self.assertEqual(capture(tmp,api,"2026-10-22"),0)
+            q=json.loads((Path(tmp)/"quality.json").read_text())
+            self.assertEqual(q["logical_queries"],2)
+            self.assertEqual(q["last_source_error_type"],"TimeoutError")
+            self.assertEqual(q["trade_gate"],"BLOCKED")
+
+    def test_transient_login_exception_recovers(self):
+        class TransientLogin(Provider):
+            def __init__(self):
+                super().__init__()
+                self.logins=0
+            def login(self):
+                self.logins+=1
+                if self.logins==1:
+                    raise OSError("temporary")
+                return Result([])
+        with tempfile.TemporaryDirectory() as tmp:
+            api=TransientLogin()
+            self.assertEqual(capture(tmp,api,"2026-10-22"),0)
+            q=json.loads((Path(tmp)/"quality.json").read_text())
+            self.assertEqual(q["login_attempts"],2)
+            self.assertEqual(q["last_login_error_type"],"OSError")
+            self.assertEqual(q["trade_gate"],"BLOCKED")
+
     def test_one_retry_recovers_transient_vendor_error(self):
         class ErrorResult:
             error_code="10001"
