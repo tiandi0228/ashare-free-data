@@ -118,8 +118,17 @@ def main():
         print("No new shard evidence; durable checkpoint unchanged")
         return
     data=base64.b64encode((json.dumps(chosen,indent=2,ensure_ascii=False)+chr(10)).encode()).decode()
-    params=["-X","PUT",f"repos/{a.repo}/contents/{checkpoint}","-f","message=chore(p1): persist audited no-trade shard checkpoint","-f",f"content={data}","-f","branch=main"]
-    if sha:params.extend(["-f",f"sha={sha}"])
-    gh(*params)
+    # A full-market ledger approaches Linux MAX_ARG_STRLEN (128 KiB) if passed
+    # via gh -f content=...; send the entire Contents API payload through stdin.
+    # Keep GitHub's blob SHA precondition so concurrent checkpoint changes are
+    # rejected rather than silently overwriting durable research evidence.
+    payload={
+        "message":"chore(p1): persist audited no-trade shard checkpoint",
+        "content":data,
+        "branch":"main",
+    }
+    if sha:payload["sha"]=sha
+    gh("-X","PUT",f"repos/{a.repo}/contents/{checkpoint}",
+       "--input","-",input_data=json.dumps(payload))
     print("Saved durable checkpoint, completed issuers",chosen["completed_issuers"])
 if __name__=="__main__":main()
