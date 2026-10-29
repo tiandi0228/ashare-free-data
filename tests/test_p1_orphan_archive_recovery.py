@@ -237,6 +237,80 @@ class OrphanArchiveRecoveryTests(unittest.TestCase):
         self.assertTrue(confirmed["checkpoint_readback_verified"])
         self.assertEqual(confirmed["durable_recovered_indices"],[1])
 
+    def test_remote_can_validly_advance_beyond_proposed_checkpoint(self):
+        self.marker([0])
+        proposed, report = recover(
+            self.plan, None, self.archive, self.manifests)
+        # Another writer advanced the remote before our readback.
+        richer = reconcile(self.plan, [(1, self.receipts[1])], proposed)
+        confirmed = confirm_durable_recovery(proposed, richer, report)
+        self.assertEqual(confirmed["status"], "ORPHANS_DURABLY_CHECKPOINTED")
+        self.assertEqual(confirmed["durable_checkpoint_shards"], 2)
+        self.assertEqual(confirmed["durable_recovered_indices"], [0])
+
+    def test_cli_uses_remote_superset_not_stale_proposal(self):
+        from unittest.mock import patch
+        from collector.p1_orphan_archive_recovery import main
+        self.marker([0])
+        proposed, report = recover(
+            self.plan, None, self.archive, self.manifests)
+        richer = reconcile(self.plan, [(1, self.receipts[1])], proposed)
+        planned = self.root / "plan.json"
+        proposal_file = self.root / "proposed.json"
+        remote_file = self.root / "remote.json"
+        report_file = self.root / "report.json"
+        for path, item in ((planned, self.plan), (proposal_file, proposed),
+                           (remote_file, richer), (report_file, report)):
+            path.write_text(json.dumps(item))
+        argv = [
+            "p1_orphan_archive_recovery",
+            "--plan", str(planned),
+            "--root", str(self.archive),
+            "--manifest-root", str(self.manifests),
+            "--out", str(proposal_file),
+            "--report", str(report_file),
+            "--confirm-remote", str(remote_file),
+        ]
+        with patch("sys.argv", argv):
+            main()
+        authoritative = json.loads(proposal_file.read_text())
+        ack = json.loads(report_file.read_text())
+        self.assertEqual(authoritative["completed_shards"], 2)
+        self.assertEqual(authoritative["completed"], richer["completed"])
+        self.assertEqual(authoritative["pending_shards"], [])
+        self.assertEqual(ack["durable_checkpoint_shards"], 2)
+        self.assertTrue(ack["checkpoint_readback_verified"])
+        self.assertEqual(ack["trade_gate"], "BLOCKED")
+
+    def test_cli_conflicting_remote_never_replaces_proposed_ledger(self):
+        from unittest.mock import patch
+        from collector.p1_orphan_archive_recovery import main
+        self.marker([0])
+        proposed, report = recover(self.plan, None, self.archive, self.manifests)
+        richer = reconcile(self.plan, [(1, self.receipts[1])], proposed)
+        richer["completed"][0]["receipt_sha256"] = "f" * 64
+        planned = self.root / "plan.json"
+        proposal_file = self.root / "proposed.json"
+        remote_file = self.root / "remote.json"
+        report_file = self.root / "report.json"
+        for path, item in ((planned, self.plan), (proposal_file, proposed),
+                           (remote_file, richer), (report_file, report)):
+            path.write_text(json.dumps(item))
+        argv = [
+            "p1_orphan_archive_recovery",
+            "--plan", str(planned),
+            "--root", str(self.archive),
+            "--manifest-root", str(self.manifests),
+            "--out", str(proposal_file),
+            "--report", str(report_file),
+            "--confirm-remote", str(remote_file),
+        ]
+        with patch("sys.argv", argv):
+            with self.assertRaisesRegex(ValueError, "omitted or modified"):
+                main()
+        self.assertEqual(json.loads(proposal_file.read_text()), proposed)
+        self.assertEqual(json.loads(report_file.read_text()), report)
+
     def test_non_mainboard_manifest_cannot_be_recovered(self):
         self.marker([0, 1])
         self.plan["shards"][1]["count"] = 2
