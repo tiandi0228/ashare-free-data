@@ -19,7 +19,8 @@ def assess(plan, ledger, archive, selection, policy, prior=None):
     if (archive.get("source_sha256")!=current["source_sha256"]
             or archive.get("trade_gate")!="BLOCKED"
             or archive.get("historical_PIT_verified") is not False
-            or archive.get("ledger_issuers")!=current["completed_issuers"]):
+            or archive.get("ledger_issuers")!=current["completed_issuers"]
+            or archive.get("archive_csv_replay_enabled") is not True):
         raise ValueError("archive audit does not match same-epoch ledger")
     if (type(archive.get("archived_issuers")) is not int
             or type(archive.get("archive_gap_issuers")) is not int
@@ -27,6 +28,14 @@ def assess(plan, ledger, archive, selection, policy, prior=None):
             or archive["archived_issuers"]>current["completed_issuers"]
             or archive["archive_gap_issuers"]!=current["completed_issuers"]-archive["archived_issuers"]):
         raise ValueError("invalid archival coverage counters")
+    if (type(archive.get("independently_replayed_active_rows")) is not int
+            or type(archive.get("independently_replayed_suspended_rows")) is not int
+            or archive["independently_replayed_active_rows"]<0
+            or archive["independently_replayed_suspended_rows"]<0
+            or (archive["archived_issuers"]>0 and
+                archive["independently_replayed_active_rows"]+
+                archive["independently_replayed_suspended_rows"]==0)):
+        raise ValueError("invalid archived bar replay counters")
     if prior is not None:
         previous=validate_checkpoint(prior)
         if (previous["source_sha256"]!=current["source_sha256"]
@@ -73,6 +82,9 @@ def assess(plan, ledger, archive, selection, policy, prior=None):
         "effective_shard_count":effective,
         "archived_issuers":archive["archived_issuers"],
         "archive_gap_issuers":archive["archive_gap_issuers"],
+        "archive_csv_replay_enabled":True,
+        "independently_replayed_active_rows":archive["independently_replayed_active_rows"],
+        "independently_replayed_suspended_rows":archive["independently_replayed_suspended_rows"],
         "new_shards_durably_accepted":len(actual) if full_archive else 0,
         "trade_gate":"BLOCKED",
         "historical_PIT_verified":False,
