@@ -14,6 +14,31 @@ class CSVArchiveTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,"invalid or duplicate issuer"):
                 collect({"shards":[{"sha256":"a"*64,"count":1}]},[(0,path)])
 
+    def test_archive_uses_shallow_git_history_for_bounded_cloud_runtime(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from collector.p1_csv_archive import archive, BRANCH
+        with tempfile.TemporaryDirectory() as root:
+            folder=Path(root)/"receipt"
+            folder.mkdir()
+            (folder/"quality.json").write_text('{"trade_gate":"BLOCKED"}')
+            plan={"source_sha256":"a"*64}
+            def simulated_git(*args,**kwargs):
+                if args[0]=="ls-remote":
+                    return SimpleNamespace(stdout="abc refs/heads/"+BRANCH,returncode=0)
+                return SimpleNamespace(stdout="",returncode=0)
+            with patch("collector.p1_csv_archive.collect",return_value=[]):
+                with patch("collector.p1_csv_archive.git",side_effect=simulated_git) as git:
+                    archive(plan,[(0,folder)],"user/repo")
+            commands=[call.args for call in git.call_args_list]
+            clones=[args for args in commands if args[0]=="clone"]
+            fetches=[args for args in commands if args[0]=="fetch"]
+            self.assertEqual(len(clones),1)
+            self.assertIn("--depth=1",clones[0])
+            self.assertIn("--no-checkout",clones[0])
+            self.assertEqual(len(fetches),1)
+            self.assertEqual(fetches[0][:4],("fetch","--depth=1","origin",BRANCH))
+
     def test_git_operations_have_bounded_timeout(self):
         import subprocess
         from unittest.mock import patch
