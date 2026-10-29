@@ -23,6 +23,8 @@ on:
       - 'tests/test_p1_checkpoint.py'
       - 'collector/p1_csv_archive.py'
       - 'collector/p1_archive_audit.py'
+      - 'collector/p1_source_diagnostics.py'
+      - 'tests/test_p1_source_diagnostics.py'
       - 'tests/test_p1_archive_audit.py'
       - 'collector/p1_coverage_gap_diagnosis.py'
       - 'tests/test_p1_coverage_gap_diagnosis.py'
@@ -79,7 +81,7 @@ jobs:
         run: |
           mkdir -p evidence
           set -o pipefail
-          python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_roster_lock tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick tests.test_p1_coverage_gap_diagnosis tests.test_p3_p1_evidence_worklist tests.test_p1_quad_pick tests.test_p1_optional_second tests.test_p1_run_progress tests.test_p1_quad_verify tests.test_p3_all_completed_worklist tests.test_p1_epoch_compare tests.test_p1_research_readiness -v 2>&1 | tee evidence/offline_tests.log
+          python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_roster_lock tests.test_p1_source_diagnostics tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick tests.test_p1_coverage_gap_diagnosis tests.test_p3_p1_evidence_worklist tests.test_p1_quad_pick tests.test_p1_optional_second tests.test_p1_run_progress tests.test_p1_quad_verify tests.test_p3_all_completed_worklist tests.test_p1_epoch_compare tests.test_p1_research_readiness -v 2>&1 | tee evidence/offline_tests.log
       - name: Restore immutable P1 research roster pin if available
         id: pin
         env:
@@ -601,6 +603,9 @@ jobs:
           else
             python -m collector.p1_research_readiness --out evidence/research_readiness.json
           fi
+      - name: Preserve per-shard Baostock source errors and timeouts
+        if: always()
+        run: python -m collector.p1_source_diagnostics --evidence evidence --out evidence/source_diagnostics.json
       - name: Publish P1 run diagnostics (research only)
         if: always()
         env:
@@ -636,7 +641,7 @@ jobs:
           lines.append('- Archive raw CSV to durable free Git research branch: **${{ steps.diag_5.outcome }}**')
           lines.append('- Audit permanent research CSV archive against recovered ledger: **${{ steps.diag_6.outcome }}**')
           lines.append('- Persist durable no-trade checkpoint in repository: **${{ steps.diag_7.outcome }}**')
-          for name in ('p1_roster_lock.json','pilot_selection.json','optional_second.json','p1_run_progress.json','live_roster_attempt.json','quality.json','shards/plan.json','prior_ledger.json','ledger.json','archive_audit.json','epoch_comparison.json','research_readiness.json'):
+          for name in ('p1_roster_lock.json','pilot_selection.json','optional_second.json','p1_run_progress.json','source_diagnostics.json','live_roster_attempt.json','quality.json','shards/plan.json','prior_ledger.json','ledger.json','archive_audit.json','epoch_comparison.json','research_readiness.json'):
               file=root/name
               if not file.is_file():
                   lines.append(f'- `{name}`: unavailable (step did not produce it)')
