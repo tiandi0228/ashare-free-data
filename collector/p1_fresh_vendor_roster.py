@@ -23,7 +23,12 @@ def capture(out, provider, day):
         for attempt in range(2):
             report["logical_queries"]+=1
             q=provider.query_all_stock(day=day)
-            if q.error_code!="0" or tuple(q.fields)!=FIELDS:
+            if q.error_code!="0":
+                report["last_source_error_code"]=str(q.error_code)[:32]
+                if attempt==0:
+                    continue
+                raise ValueError("roster provider query failed after bounded retry")
+            if tuple(q.fields)!=FIELDS:
                 raise ValueError("roster schema")
             rows=[]
             while q.next():
