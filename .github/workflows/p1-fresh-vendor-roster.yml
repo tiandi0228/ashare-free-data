@@ -322,7 +322,7 @@ jobs:
               raise ValueError('recovered checkpoint not persisted on remote')
           validate(remote)
           Path('evidence/recovery_remote_ack.json').write_text(
-              json.dumps(remote,ensure_ascii=False,indent=2)+'\\n')
+              json.dumps(remote,ensure_ascii=False,indent=2)+'\n')
           PY
             python -m collector.p1_orphan_archive_recovery \
               --plan evidence/shards/plan.json \
