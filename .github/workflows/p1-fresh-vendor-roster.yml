@@ -309,6 +309,27 @@ jobs:
             python -m collector.p1_checkpoint --mode write \
               --source-sha "$(python -c 'import json; print(json.load(open("evidence/shards/plan.json"))["source_sha256"])')" \
               --in-file evidence/recovered_ledger.json
+            # Verify the exact epoch-scoped remote blob, not legacy fallback or
+            # merely the successful exit code of GitHub's PUT request.
+            python - <<'PY'
+          import json,os
+          from pathlib import Path
+          from collector.p1_checkpoint import remote_read,epoch_path,validate
+          proposed=json.loads(Path('evidence/recovered_ledger.json').read_text())
+          remote,blob_sha=remote_read(os.environ['GITHUB_REPOSITORY'],
+                                      epoch_path(proposed['source_sha256']))
+          if remote is None or not blob_sha:
+              raise ValueError('recovered checkpoint not persisted on remote')
+          validate(remote)
+          Path('evidence/recovery_remote_ack.json').write_text(
+              json.dumps(remote,ensure_ascii=False,indent=2)+'\\n')
+          PY
+            python -m collector.p1_orphan_archive_recovery \
+              --plan evidence/shards/plan.json \
+              --prior evidence/prior_ledger.json \
+              --root archived-preflight --manifest-root evidence/shards \
+              --out evidence/recovered_ledger.json --report evidence/orphan_recovery.json \
+              --confirm-remote evidence/recovery_remote_ack.json
           fi
           cp evidence/recovered_ledger.json evidence/prior_ledger.json
       - name: Select up to four distinct missing frozen roster shards
@@ -669,7 +690,7 @@ jobs:
           lines.append('- Archive raw CSV to durable free Git research branch: **${{ steps.diag_5.outcome }}**')
           lines.append('- Audit permanent research CSV archive against recovered ledger: **${{ steps.diag_6.outcome }}**')
           lines.append('- Persist durable no-trade checkpoint in repository: **${{ steps.diag_7.outcome }}**')
-          for name in ('p1_roster_lock.json','pilot_selection.json','optional_second.json','p1_run_progress.json','orphan_recovery.json','source_diagnostics.json','live_roster_attempt.json','quality.json','shards/plan.json','prior_ledger.json','ledger.json','archive_audit.json','epoch_comparison.json','research_readiness.json'):
+          for name in ('p1_roster_lock.json','pilot_selection.json','optional_second.json','p1_run_progress.json','orphan_recovery.json','recovery_remote_ack.json','source_diagnostics.json','live_roster_attempt.json','quality.json','shards/plan.json','prior_ledger.json','ledger.json','archive_audit.json','epoch_comparison.json','research_readiness.json'):
               file=root/name
               if not file.is_file():
                   lines.append(f'- `{name}`: unavailable (step did not produce it)')
