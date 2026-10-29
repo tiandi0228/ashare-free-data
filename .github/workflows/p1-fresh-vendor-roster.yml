@@ -44,7 +44,7 @@ on:
     - cron: '10 5 * * 1-5' # 13:10 Beijing
     - cron: '10 9 * * 1-5' # 17:10 Beijing
     - cron: '10 13 * * 1-5' # 21:10 Beijing
-    - cron: '10 15 * * 1-5' # 23:10 Beijing, additional bounded archive repair
+    - cron: '10 15 * * 1-5' # 23:10 Beijing, one controlled dual-shard pilot; other schedules stay single
     - cron: '10 0 * * 1-5' # 08:10 Beijing, extra bounded opportunity
     - cron: '10 7 * * 1-5' # 15:10 Beijing, extra bounded opportunity
     - cron: '10 11 * * 1-5' # 19:10 Beijing, extra bounded opportunity
@@ -52,7 +52,7 @@ on:
   workflow_dispatch:
     inputs:
       shards_per_run:
-        description: "P1 bounded research shards per manual run (scheduled always 1)"
+        description: "P1 bounded research shards per manual run (23:10 Beijing scheduled pilot may request 2)"
         type: choice
         required: true
         default: "1"
@@ -66,6 +66,8 @@ concurrency:
 jobs:
   roster:
     runs-on: ubuntu-latest
+    env:
+      P1_REQUESTED_SHARDS: ${{ github.event_name == 'workflow_dispatch' && inputs.shards_per_run || (github.event_name == 'schedule' && github.event.schedule == '10 15 * * 1-5' && '2' || '1') }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -284,18 +286,19 @@ jobs:
         run: |
           PRIOR_ARGS=()
           if [[ -s evidence/prior_ledger.json ]]; then PRIOR_ARGS=(--prior evidence/prior_ledger.json); fi
-          python -m collector.p1_quad_pick --plan evidence/shards/plan.json "${PRIOR_ARGS[@]}" --per-run "${{ github.event_name == 'workflow_dispatch' && inputs.shards_per_run || '1' }}" --output-file "$GITHUB_OUTPUT"
+          python -m collector.p1_quad_pick --plan evidence/shards/plan.json "${PRIOR_ARGS[@]}" --per-run "$P1_REQUESTED_SHARDS" --output-file "$GITHUB_OUTPUT"
       - name: Record bounded pilot selection for audit
         run: |
           python - <<'PY'
-          import json
+          import json,os
           from pathlib import Path
           selected=['${{ steps.pick.outputs.first }}','${{ steps.pick.outputs.second }}',
                     '${{ steps.pick.outputs.third }}','${{ steps.pick.outputs.fourth }}']
           chosen=[int(v) for v in selected if v and v!='NONE']
-          requested=int("${{ github.event_name == 'workflow_dispatch' && inputs.shards_per_run || '1' }}")
+          requested=int(os.environ["P1_REQUESTED_SHARDS"])
           assert requested in (1,2)
-          assert len(chosen)==requested and len(set(chosen))==len(chosen)
+          # Last pending shard remains safe even when pilot requested two.
+          assert 1<=len(chosen)<=requested and len(set(chosen))==len(chosen)
           receipt={'phase':'P1_BOUNDED_PILOT_SELECTION','requested_shards':requested,
                    'selected_shards':chosen,'selected_count':len(chosen),
                    'trade_gate':'BLOCKED','orders':[]}
