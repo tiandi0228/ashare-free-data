@@ -137,11 +137,13 @@ def remote_read(repo):
 def remote_create(repo, lock):
     data = json.dumps(lock, ensure_ascii=False, sort_keys=True) + "\n"
     content = base64.b64encode(data.encode("utf-8")).decode("ascii")
-    github_api(
-        "-X", "PUT", f"repos/{repo}/contents/{LOCK_PATH}",
-        "-f", "message=data(p1): pin immutable unverified vendor roster for research [NO TRADES]",
-        "-f", f"content={content}", "-f", "branch=main"
-    )
+    # Large CSV snapshots must go through stdin: Linux limits one argv item to 128 KiB.
+    payload = {
+        "message": "data(p1): pin immutable unverified vendor roster for research [NO TRADES]",
+        "content": content, "branch": "main",
+    }
+    github_api("-X", "PUT", f"repos/{repo}/contents/{LOCK_PATH}",
+               "--input", "-", input_data=json.dumps(payload))
 
 
 def materialize(lock, out, selection):
