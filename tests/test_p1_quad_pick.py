@@ -80,7 +80,12 @@ class PickTests(unittest.TestCase):
         for item in required:
             self.assertEqual(workflow.count(item),1)
         self.assertNotIn("\n,text)",workflow)
-        self.assertGreaterEqual(workflow.count("          PY\n"),18)
+        # Any opening heredoc must have a matching terminator, without assuming
+        # the workflow contains a fixed number of Python scripts.
+        opened=sum(line.strip().endswith("<<'PY'") for line in workflow.splitlines())
+        closed=sum(line.strip()=="PY" for line in workflow.splitlines())
+        self.assertEqual(opened,closed)
+        self.assertTrue(workflow.rstrip().endswith("if-no-files-found: warn"))
 
     def test_invalid_run_rotation_fails_closed(self):
         for value in (-1,True,"2"):
