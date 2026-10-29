@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from collector.baostock_batch import FIELDS
-from collector.p1_orphan_archive_recovery import recover
+from collector.p1_orphan_archive_recovery import recover, confirm_durable_recovery
 from collector.p1_shard_ledger import reconcile
 
 
@@ -147,6 +147,67 @@ class OrphanArchiveRecoveryTests(unittest.TestCase):
         ledger, report = recover(self.plan, None, self.archive, self.manifests)
         self.assertEqual(ledger["completed_shards"], 2)
         self.assertEqual(report["recovered_archive_indices"], [0, 1])
+
+    def test_remote_readback_confirms_all_orphan_receipts(self):
+        self.marker([0, 1])
+        proposed, report = recover(
+            self.plan, self.prior, self.archive, self.manifests)
+        confirmed = confirm_durable_recovery(proposed, proposed, report)
+        self.assertEqual(confirmed["status"],"ORPHANS_DURABLY_CHECKPOINTED")
+        self.assertTrue(confirmed["checkpoint_readback_verified"])
+        self.assertEqual(confirmed["durable_recovered_indices"],[1])
+        self.assertEqual(confirmed["durable_checkpoint_shards"],2)
+        self.assertEqual(confirmed["trade_gate"],"BLOCKED")
+        self.assertEqual(confirmed["orders"],[])
+
+    def test_remote_without_recovered_orphan_cannot_acknowledge(self):
+        self.marker([0,1])
+        proposed, report = recover(
+            self.plan, self.prior, self.archive, self.manifests)
+        with self.assertRaisesRegex(ValueError,"omitted or modified"):
+            confirm_durable_recovery(proposed, self.prior, report)
+
+    def test_remote_replaced_receipt_cannot_acknowledge(self):
+        self.marker([0,1])
+        proposed, report = recover(
+            self.plan, self.prior, self.archive, self.manifests)
+        remote = dict(proposed)
+        remote["completed"] = [dict(item) for item in proposed["completed"]]
+        remote["completed"][1]["receipt_sha256"] = "e"*64
+        with self.assertRaisesRegex(ValueError,"omitted or modified"):
+            confirm_durable_recovery(proposed, remote, report)
+
+    def test_wrong_remote_epoch_or_unsafe_acknowledgment_is_blocked(self):
+        self.marker([0,1])
+        proposed, report = recover(
+            self.plan, self.prior, self.archive, self.manifests)
+        wrong = dict(proposed, source_sha256="b"*64)
+        with self.assertRaisesRegex(ValueError,"version or count mismatch"):
+            confirm_durable_recovery(proposed, wrong, report)
+        untrusted = dict(report, trade_gate="OPEN")
+        with self.assertRaisesRegex(ValueError,"pending recovery acknowledgment"):
+            confirm_durable_recovery(proposed, proposed, untrusted)
+
+    def test_acknowledgment_does_not_accept_unrelated_orphan_ids(self):
+        self.marker([0,1])
+        proposed, report = recover(
+            self.plan, self.prior, self.archive, self.manifests)
+        forged = dict(report, recovered_archive_indices=[0])
+        with self.assertRaisesRegex(ValueError,"unknown checkpoint shards|version or count mismatch"):
+            confirm_durable_recovery(proposed, self.prior, forged)
+
+    def test_workflow_rechecks_remote_before_reusing_recovered_ledger(self):
+        workflow=(Path(__file__).resolve().parents[1]/
+                  ".github/workflows/p1-fresh-vendor-roster.yml").read_text()
+        start=workflow.index(
+            "      - name: Recover previously archived but uncheckpointed research shards")
+        end=workflow.index("      - name: Select up to four distinct missing frozen roster shards",start)
+        block=workflow[start:end]
+        self.assertIn("remote_read(os.environ['GITHUB_REPOSITORY']",block)
+        self.assertIn("epoch_path(proposed['source_sha256'])",block)
+        self.assertIn("--confirm-remote evidence/recovery_remote_ack.json",block)
+        self.assertLess(block.index("--confirm-remote"),block.index(
+            "cp evidence/recovered_ledger.json evidence/prior_ledger.json"))
 
     def test_non_mainboard_manifest_cannot_be_recovered(self):
         self.marker([0, 1])
