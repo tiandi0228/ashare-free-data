@@ -68,6 +68,29 @@ def assess(plan, ledger, archive, selection, policy, prior=None):
             or (effective==2 and len(indices)!=2)):
         raise ValueError("invalid effective shard acceptance")
     full_archive=archive["archive_gap_issuers"]==0
+    # A two-shard request is not proof of two durable independently
+    # checked research shards; require same-run verified ledger increments.
+    requested=selection.get("requested_shards",len(indices))
+    if type(requested) is not int or requested not in (1,2) or not 1<=len(indices)<=requested:
+        raise ValueError("invalid requested dual pilot size")
+    if requested!=2:
+        dual_pilot="NOT_DUAL_RUN"
+    elif len(indices)==1:
+        dual_pilot="ONLY_ONE_SHARD_PENDING"
+    elif not full_archive:
+        dual_pilot="ARCHIVE_GAP"
+    elif (effective==2 and
+          policy.get("status")=="SECOND_SHARD_VERIFIED" and
+          policy.get("second_verification_passed") is True and
+          set(actual)==set(indices)):
+        dual_pilot="TWO_VERIFIED_SHARDS_ARCHIVED"
+    elif (effective==1 and len(actual)==1 and
+          actual[0]==indices[0] and
+          policy.get("status") in ("SECOND_FAILED_PRESERVE_FIRST",
+                                   "SECOND_INVALID_PRESERVE_FIRST")):
+        dual_pilot="FIRST_ARCHIVED_SECOND_REJECTED"
+    else:
+        dual_pilot="DUAL_PILOT_NOT_YET_PROVEN"
     state=("DURABLE_PROGRESS" if actual and full_archive else
            "ARCHIVE_GAP" if not full_archive else "SUCCESS_NO_NEW_SHARD")
     return {
@@ -80,6 +103,7 @@ def assess(plan, ledger, archive, selection, policy, prior=None):
         "new_shard_count":len(actual),
         "selected_count":len(indices),
         "effective_shard_count":effective,
+        "dual_pilot_result":dual_pilot,
         "archived_issuers":archive["archived_issuers"],
         "archive_gap_issuers":archive["archive_gap_issuers"],
         "archive_csv_replay_enabled":True,
@@ -119,6 +143,7 @@ def main():
                 f"- Current completed: **{report['current_shards']}**\n"
                 f"- Archive gap: **{report['archive_gap_issuers']} issuers**\n"
                 f"- Result: **{report['status']}**; trading BLOCKED.\n"
+                f"- Dual pilot: **{report['dual_pilot_result']}**.\n"
             )
     print(json.dumps(report))
 
