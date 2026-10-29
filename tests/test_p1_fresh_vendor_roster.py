@@ -53,6 +53,41 @@ class FreshRosterTests(unittest.TestCase):
             self.assertEqual(q["logical_queries"],2)
             self.assertEqual(q["mainboard_prefix_rows"],3000)
             self.assertEqual(q["trade_gate"],"BLOCKED")
+    def test_one_retry_recovers_transient_vendor_error(self):
+        class ErrorResult:
+            error_code="10001"
+            fields=["code","tradeStatus","code_name"]
+        class TransientOnce(Provider):
+            def query_all_stock(self,day):
+                self.queries+=1
+                if self.queries==1:
+                    return ErrorResult()
+                return Result([[f"sh.{[600,601,603][i//1000]*1000+i%1000}","1",f"issuer{i}"] for i in range(3000)])
+        with tempfile.TemporaryDirectory() as tmp:
+            api=TransientOnce()
+            self.assertEqual(capture(tmp,api,"2026-10-22"),0)
+            receipt=json.loads((Path(tmp)/"quality.json").read_text())
+            self.assertEqual(receipt["logical_queries"],2)
+            self.assertEqual(receipt["mainboard_prefix_rows"],3000)
+            self.assertEqual(receipt["trade_gate"],"BLOCKED")
+
+    def test_two_vendor_errors_fail_closed(self):
+        class ErrorResult:
+            error_code="10001"
+            fields=["code","tradeStatus","code_name"]
+        class AlwaysError(Provider):
+            def query_all_stock(self,day):
+                self.queries+=1
+                return ErrorResult()
+        with tempfile.TemporaryDirectory() as tmp:
+            api=AlwaysError()
+            self.assertEqual(capture(tmp,api,"2026-10-22"),2)
+            receipt=json.loads((Path(tmp)/"quality.json").read_text())
+            self.assertEqual(receipt["logical_queries"],2)
+            self.assertEqual(receipt["status"],"BLOCKED_PARTIAL")
+            self.assertEqual(receipt["last_source_error_code"],"10001")
+            self.assertFalse((Path(tmp)/"mainboard.csv").exists())
+
     def test_implausibly_small_roster_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(capture(tmp,Provider(False),"2026-10-22"),2)
