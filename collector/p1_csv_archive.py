@@ -55,12 +55,13 @@ def archive(plan, selected, repository):
     if not repository or "/" not in repository:raise ValueError("GitHub repository required")
     with tempfile.TemporaryDirectory() as tmp:
         work=Path(tmp)/"archive"
-        git("clone","--no-checkout",f"https://github.com/{repository}.git",str(work))
+        # Shallow clone avoids downloading every prior research CSV commit.
+        git("clone","--no-checkout","--depth=1",f"https://github.com/{repository}.git",str(work))
         git("config","user.name","github-actions[bot]",cwd=work)
         git("config","user.email","41898282+github-actions[bot]@users.noreply.github.com",cwd=work)
         found=git("ls-remote","--heads","origin",BRANCH,cwd=work).stdout.strip()
         if found:
-            git("fetch","origin",BRANCH,cwd=work)
+            git("fetch","--depth=1","origin",BRANCH,cwd=work)
             git("checkout","-B",BRANCH,"FETCH_HEAD",cwd=work)
         else:
             git("checkout","--orphan",BRANCH,cwd=work)
