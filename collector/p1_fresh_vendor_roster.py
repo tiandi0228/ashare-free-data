@@ -48,9 +48,15 @@ def capture(out, provider, day):
             if tuple(q.fields)!=FIELDS:
                 raise ValueError("roster schema")
             rows=[]
-            while q.next():
-                rows.append(q.get_row_data())
-                if len(rows)>10000:raise ValueError("roster excessive")
+            try:
+                while q.next():
+                    rows.append(q.get_row_data())
+                    if len(rows)>10000:raise ValueError("roster excessive")
+            except (OSError,TimeoutError,ConnectionError) as exc:
+                report["last_source_error_type"]=type(exc).__name__
+                if attempt==0:
+                    continue
+                raise ValueError("roster result stream failed after bounded retry") from exc
             report["last_source_total_rows"]=len(rows)
             try:
                 main=inspect_rows(rows, minimum=2500)
