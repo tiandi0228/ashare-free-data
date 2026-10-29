@@ -209,6 +209,34 @@ class OrphanArchiveRecoveryTests(unittest.TestCase):
         self.assertLess(block.index("--confirm-remote"),block.index(
             "cp evidence/recovered_ledger.json evidence/prior_ledger.json"))
 
+    def test_cli_acknowledgment_persists_only_after_remote_readback(self):
+        from unittest.mock import patch
+        from collector.p1_orphan_archive_recovery import main
+        self.marker([0,1])
+        proposed, report = recover(
+            self.plan, self.prior, self.archive, self.manifests)
+        planned = self.root / "plan.json"
+        proposed_path = self.root / "proposed.json"
+        remote_path = self.root / "remote.json"
+        receipt_path = self.root / "recovery.json"
+        planned.write_text(json.dumps(self.plan))
+        proposed_path.write_text(json.dumps(proposed))
+        remote_path.write_text(json.dumps(proposed))
+        receipt_path.write_text(json.dumps(report))
+        args=["p1_orphan_archive_recovery",
+              "--plan",str(planned),
+              "--root",str(self.archive),
+              "--manifest-root",str(self.manifests),
+              "--out",str(proposed_path),
+              "--report",str(receipt_path),
+              "--confirm-remote",str(remote_path)]
+        with patch("sys.argv",args):
+            main()
+        confirmed=json.loads(receipt_path.read_text())
+        self.assertEqual(confirmed["status"],"ORPHANS_DURABLY_CHECKPOINTED")
+        self.assertTrue(confirmed["checkpoint_readback_verified"])
+        self.assertEqual(confirmed["durable_recovered_indices"],[1])
+
     def test_non_mainboard_manifest_cannot_be_recovered(self):
         self.marker([0, 1])
         self.plan["shards"][1]["count"] = 2
