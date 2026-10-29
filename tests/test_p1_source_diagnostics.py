@@ -19,6 +19,7 @@ class P1SourceDiagnosticTests(unittest.TestCase):
         receipt = {
             "status": status, "trade_gate": "BLOCKED",
             "issuer_count": len(results), "query_attempts": len(results),
+            "paid_api_calls": 0,
             "results": results, **extra,
         }
         (folder / "quality.json").write_text(json.dumps(receipt))
@@ -35,6 +36,30 @@ class P1SourceDiagnosticTests(unittest.TestCase):
             self.assertEqual(report["roles"][1]["status"], "NOT_REQUESTED")
             self.assertEqual(report["trade_gate"], "BLOCKED")
             self.assertEqual(report["orders"], [])
+
+    def test_provider_success_with_missing_issuers_is_not_accepted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.select(root, 1)
+            self.quality(root, "first_shard", "OBSERVED_SUBSET_UNVERIFIED", [
+                {"code": "sh.600001", "status": "OBSERVED_UNVERIFIED"}],
+                issuer_count=8, query_attempts=8)
+            first = examine(root)["roles"][0]
+            self.assertEqual(first["status"], "SOURCE_INCOMPLETE")
+            self.assertIn("SOURCE_RECEIPT_COUNT_OR_COST_MISMATCH",
+                          first["failure_categories"])
+
+    def test_provider_success_with_unverified_cost_flag_is_not_accepted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.select(root, 1)
+            self.quality(root, "first_shard", "OBSERVED_SUBSET_UNVERIFIED", [
+                {"code": "sh.600001", "status": "OBSERVED_UNVERIFIED"}],
+                paid_api_calls=1)
+            first = examine(root)["roles"][0]
+            self.assertEqual(first["status"], "SOURCE_INCOMPLETE")
+            self.assertIn("SOURCE_RECEIPT_COUNT_OR_COST_MISMATCH",
+                          first["failure_categories"])
 
     def test_second_shard_failures_are_bounded_and_explained(self):
         with tempfile.TemporaryDirectory() as directory:
