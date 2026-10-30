@@ -180,8 +180,12 @@ def verify_actions_conclusions(report, receipts, repo, *, current_run_id=None):
     ids = report["reviewed_scheduled_run_ids"]
     if len(ids) != MIN_RECORDED_SUCCESSES or len(set(ids)) != len(ids):
         raise ValueError("invalid reviewed pilot run IDs")
-    match = {r["run_id"]: r for r in receipts
-             if isinstance(r, dict) and type(r.get("run_id")) is int}
+    match = {}
+    for row in receipts:
+        if isinstance(row, dict) and type(row.get("run_id")) is int:
+            previous = match.get(row["run_id"])
+            if previous is None or row["run_attempt"] > previous["run_attempt"]:
+                match[row["run_id"]] = row
     outcomes = []
     for run_id in ids:
         receipt = match.get(run_id)
