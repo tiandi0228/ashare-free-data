@@ -485,7 +485,9 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
         self.assertIn("p1_dual_pilot_scale_review",step)
         self.assertIn("evidence/dual_pilot_scale_review.json",step)
         self.assertIn("tests.test_p1_dual_pilot_scale_review",wf)
-        self.assertIn("github.event.schedule == '10 15 * * 1-5' && '2' || '1'",wf)
+        self.assertIn("github.event.schedule == '10 15 * * 1-5'",wf)
+        self.assertIn("github.event.schedule == '10 9 * * 1-5'",wf)
+        self.assertIn("&& '2' || '1'",wf)
 
 
 if __name__=="__main__":
