@@ -211,6 +211,33 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
                          "RECORDED_PILOTS_SCHEDULE_HISTORY_INCOMPLETE")
         self.assertFalse(decision["schedule_history_complete"])
 
+    def test_missing_middle_pilot_run_still_blocks_manual_review(self):
+        receipts=[self.receipt(i) for i in (100,101,102)]
+        report=dict(inspect(receipts,self.EPOCH),
+                    status="RECORDED_PILOTS_AWAIT_SCHEDULE_HISTORY_CHECK")
+        # Oldest is present, but a newer scored pilot is absent from
+        # this bounded page: claiming complete coverage would be unsafe.
+        history={"total_count":3,"workflow_runs":[
+            self.actions_run(102),self.actions_run(100),self.actions_run(99)]}
+        with patch("collector.p1_dual_pilot_scale_review.gh",
+                   return_value=json.dumps(history)):
+            result=verify_recent_schedule_health(report,"o/r")
+        self.assertEqual(result["status"],
+                         "RECORDED_PILOTS_SCHEDULE_HISTORY_INCOMPLETE")
+        self.assertFalse(result["schedule_history_complete"])
+        self.assertFalse(result["automatic_shard_increase_authorized"])
+
+    def test_underreported_history_total_cannot_certify_complete_coverage(self):
+        receipts=[self.receipt(i) for i in (100,101,102)]
+        report=dict(inspect(receipts,self.EPOCH),
+                    status="RECORDED_PILOTS_AWAIT_SCHEDULE_HISTORY_CHECK")
+        history={"total_count":2,"workflow_runs":[
+            self.actions_run(102),self.actions_run(101),self.actions_run(100)]}
+        with patch("collector.p1_dual_pilot_scale_review.gh",
+                   return_value=json.dumps(history)):
+            with self.assertRaisesRegex(ValueError,"malformed scheduled workflow history"):
+                verify_recent_schedule_health(report,"o/r")
+
     def test_current_run_in_history_is_not_misclassified_as_failed(self):
         receipts=[self.receipt(i) for i in (100,101,102)]
         report=dict(inspect(receipts,self.EPOCH),
