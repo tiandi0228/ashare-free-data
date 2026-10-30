@@ -2,6 +2,7 @@
 Research integrity only; no fills, orders, returns, or PIT certification.
 """
 import argparse,csv,hashlib,json,re,subprocess
+from collections import deque
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -36,6 +37,49 @@ def verify(root,manifest):
             if code in source and source[code][0]!=digest:
                 raise ValueError("conflicting originals")
             source[code]=(digest,list(csv.DictReader(raw.decode("utf-8-sig").splitlines())))
+    # Independently enumerate the COMPLETE set of eligible events.
+    # Checking only listed events lets a truncated/recounted manifest pass.
+    # This uses a running 20-close window rather than the generator's
+    # per-row full-history sums, so it exercises a distinct calculation path.
+    expected=[]
+    for code,(digest,rows) in sorted(source.items()):
+        last_window_end=-1
+        previous_above=None
+        window=deque(maxlen=20)
+        running_sum=Decimal("0")
+        for i,row in enumerate(rows):
+            if row["tradestatus"]!="1":
+                previous_above=None
+                continue
+            close=Decimal(row["close"])
+            if len(window)==20:
+                running_sum-=window[0]
+            window.append(close)
+            running_sum+=close
+            if len(window)<20:
+                continue
+            above=close*20>running_sum
+            crossing=above and previous_above is False
+            previous_above=above
+            if date.fromisoformat(row["date"])<=cutoff or not crossing:
+                continue
+            if i<=last_window_end:
+                continue
+            last_window_end=i+3
+            future=rows[i+1:i+4]
+            expected.append({
+                "issuer":code,
+                "source_csv_sha256":digest,
+                "signal_completed_date":row["date"],
+                "three_future_observed_dates":[x["date"] for x in future],
+                "three_future_vendor_tradable":len(future)==3 and all(
+                    x["tradestatus"]=="1" for x in future),
+                "fill_assumed":False,
+            })
+    # Match the full event records, not merely claimed counts or membership.
+    # This rejects omitted, duplicated, reordered and substituted events.
+    if events!=expected:
+        raise ValueError("incomplete or altered MA20 event evidence manifest")
     previous={}
     ready=0
     for event in events:
