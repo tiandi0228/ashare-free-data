@@ -63,6 +63,13 @@ def build(selection, progress, policy, *, run_id, attempt, event, cron):
                                "DUAL_PILOT_NOT_YET_PROVEN",
                                "ONLY_ONE_SHARD_PENDING")):
         raise ValueError("inconsistent durable dual pilot evidence")
+    before = progress.get("previous_shards")
+    after = progress.get("current_shards")
+    if (type(before) is not int or before < 0
+            or type(after) is not int or after != before + n
+            or progress.get("status") !=
+            ("DURABLE_PROGRESS" if n else "SUCCESS_NO_NEW_SHARD")):
+        raise ValueError("pilot checkpoint delta is not durably proven")
     if outcome == "TWO_VERIFIED_SHARDS_ARCHIVED":
         if (len(selected) != 2 or set(actual) != set(selected) or n != 2
                 or effective != 2 or policy.get("second_verification_passed") is not True
@@ -92,6 +99,7 @@ def build(selection, progress, policy, *, run_id, attempt, event, cron):
         "new_shards_durably_accepted": n,
         "dual_pilot_result": outcome,
         "second_policy_status": policy.get("status"),
+        "checkpoint_shards_before": before,
         "checkpoint_shards_after": progress.get("current_shards"),
         "archive_csv_replay_enabled": True,
         "archive_gap_issuers": 0,
