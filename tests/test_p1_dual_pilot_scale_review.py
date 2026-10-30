@@ -132,6 +132,35 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,"mismatched run ID"):
                 verify_actions_conclusions(report,receipts,"o/r")
 
+    def test_cli_review_excludes_running_self_and_verifies_three_previous_runs(self):
+        import os
+        import tempfile
+        from pathlib import Path
+        from collector.p1_dual_pilot_scale_review import main
+        receipts=[self.receipt(i) for i in (101,102,103,104)]
+        with tempfile.TemporaryDirectory() as folder:
+            out=Path(folder)/"review.json"
+            argv=["p1_dual_pilot_scale_review",
+                  "--repo","o/r","--source-sha",self.EPOCH,
+                  "--out",str(out)]
+            def fetch(endpoint,*args,**kwargs):
+                run_id=int(endpoint.rsplit("/",1)[1])
+                self.assertNotEqual(run_id,104)
+                return json.dumps(self.actions_run(run_id))
+            with patch("collector.p1_dual_pilot_scale_review.load_recent_remote",
+                       return_value=receipts):
+                with patch("collector.p1_dual_pilot_scale_review.gh",
+                           side_effect=fetch) as api:
+                    with patch.dict(os.environ,{"GITHUB_RUN_ID":"104"}):
+                        with patch("sys.argv",argv):
+                            main()
+            report=json.loads(out.read_text())
+            self.assertEqual(api.call_count,3)
+            self.assertEqual(report["reviewed_scheduled_run_ids"],[103,102,101])
+            self.assertEqual(report["status"],"RECORDED_PILOTS_READY_FOR_HUMAN_REVIEW")
+            self.assertTrue(report["actions_runs_verified"])
+            self.assertFalse(report["automatic_shard_increase_authorized"])
+
     def test_manual_successes_never_count_as_scheduled(self):
         rs=[self.receipt(100),self.receipt(101,trigger="workflow_dispatch"),
             self.receipt(102,trigger="workflow_dispatch"),self.receipt(103)]
