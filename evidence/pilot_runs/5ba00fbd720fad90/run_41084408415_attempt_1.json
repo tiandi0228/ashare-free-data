@@ -1,0 +1,28 @@
+{
+  "archive_csv_replay_enabled": true,
+  "archive_gap_issuers": 0,
+  "checkpoint_shards_after": 75,
+  "checkpoint_shards_before": 73,
+  "dual_pilot_result": "TWO_VERIFIED_SHARDS_ARCHIVED",
+  "executable_candidates": [],
+  "historical_PIT_verified": false,
+  "new_selected_shards": [
+    104,
+    108
+  ],
+  "new_shards_durably_accepted": 2,
+  "orders": [],
+  "phase": "P1_DURABLE_DUAL_SHARD_PILOT_RECEIPT",
+  "requested_shards": 2,
+  "run_attempt": 1,
+  "run_id": 41084408415,
+  "second_policy_status": "SECOND_SHARD_VERIFIED",
+  "selected_shards": [
+    104,
+    108
+  ],
+  "source_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED",
+  "trigger": "schedule",
+  "trigger_cron_utc": "10 9 * * 1-5"
+}
