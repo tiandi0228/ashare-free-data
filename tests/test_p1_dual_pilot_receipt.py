@@ -19,7 +19,8 @@ class DualPilotReceiptTests(unittest.TestCase):
             "executable_candidates": [],
             "archive_csv_replay_enabled": True, "archive_gap_issuers": 0,
             "source_sha256": "a"*64, "status": "DURABLE_PROGRESS",
-            "selected_count": 2, "current_shards": 54,
+            "selected_count": 2, "previous_shards": 52,
+            "current_shards": 54,
             "new_selected_shards": [13, 14],
             "new_shards_durably_accepted": 2, "new_shard_count": 2,
             "effective_shard_count": 2,
@@ -84,6 +85,16 @@ class DualPilotReceiptTests(unittest.TestCase):
         a,b,c=self.fixtures()
         b["trade_gate"]="OPEN"
         with self.assertRaisesRegex(ValueError,"validated research-only"):
+            self.scheduled(a,b,c)
+
+    def test_claimed_growth_without_matching_checkpoint_delta_rejected(self):
+        a,b,c=self.fixtures()
+        b["current_shards"]=55
+        with self.assertRaisesRegex(ValueError,"checkpoint delta"):
+            self.scheduled(a,b,c)
+        a,b,c=self.fixtures()
+        b["status"]="SUCCESS_NO_NEW_SHARD"
+        with self.assertRaisesRegex(ValueError,"checkpoint delta"):
             self.scheduled(a,b,c)
 
     def test_wrong_schedule_is_not_mislabeled_as_2310_pilot(self):
