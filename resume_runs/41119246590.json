@@ -1,0 +1,120 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 2,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 2,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1224215912",
+      "archival_pdf_path": "pdf/sh_605008/1224215912/cf90230fa22226b8fce8dfd0b43dab8417ffd534f8c0901f7bc7c907957f4916.pdf",
+      "bytes": 90918,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.605008",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2025-07-19/1224215912.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "cf90230fa22226b8fce8dfd0b43dab8417ffd534f8c0901f7bc7c907957f4916",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "公司股票将于2025年7月21日（星期一）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "cf90230fa22226b8fce8dfd0b43dab8417ffd534f8c0901f7bc7c907957f4916",
+          "pdf_date_phrase": "2025年7月21日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-10-30T19:56:33.266702+00:00",
+      "source_halt_original_sha256": "904e66c262af1e7d2f9b9dc6a2fa78c2b1849051136a17abaa586d68e65791bf",
+      "source_halt_text_day": "2025-07-08",
+      "title_unverified": "关于披露重大资产重组预案的一般风险提示暨公司股票复牌的公告"
+    },
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1224937921",
+      "archival_pdf_path": "pdf/sh_605028/1224937921/28cd60186478df1c975288faac69254763d61470b9eb85b0ff3a90e58987b8e9.pdf",
+      "bytes": 91432,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.605028",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-01-17/1224937921.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "28cd60186478df1c975288faac69254763d61470b9eb85b0ff3a90e58987b8e9",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "公司股票自2026年1月19日（星期一）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "28cd60186478df1c975288faac69254763d61470b9eb85b0ff3a90e58987b8e9",
+          "pdf_date_phrase": "2026年1月19日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-10-30T19:56:34.063125+00:00",
+      "source_halt_original_sha256": "c9c77dbf5f11f728636587200279e40eeb8d696aa2b0ae5b73ca435024ba66a4",
+      "source_halt_text_day": "2026-01-12",
+      "title_unverified": "宁波世茂能源股份有限公司关于终止筹划控制权变更事项暨复牌的公告"
+    }
+  ],
+  "run_id": 41119246590,
+  "source_halt_issuers_attempted": 3,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.605008",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-10-06",
+      "search_window_start": "2025-07-07",
+      "source_halt_announcement_id": "1224090366",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-07-08",
+      "source_halt_original_sha256": "904e66c262af1e7d2f9b9dc6a2fa78c2b1849051136a17abaa586d68e65791bf"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.605028",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-04-12",
+      "search_window_start": "2026-01-11",
+      "source_halt_announcement_id": "1224929951",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-01-12",
+      "source_halt_original_sha256": "c9c77dbf5f11f728636587200279e40eeb8d696aa2b0ae5b73ca435024ba66a4"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.605077",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-01-26",
+      "search_window_start": "2024-10-27",
+      "source_halt_announcement_id": "1221525471",
+      "source_halt_certified": false,
+      "source_halt_date": "2024-10-28",
+      "source_halt_original_sha256": "e27e374c34a275397ce208fd7695a66f3ba3626ed6e8000d1a806e6a51b5e46f"
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.605008",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    },
+    {
+      "issuer": "sh.605028",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    },
+    {
+      "issuer": "sh.605077",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
