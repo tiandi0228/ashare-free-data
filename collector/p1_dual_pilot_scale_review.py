@@ -15,6 +15,7 @@ from pathlib import Path
 from collector.p1_checkpoint import epoch_path, gh
 
 PILOT_CRON = "10 15 * * 1-5"
+PILOT_CRONS = frozenset((PILOT_CRON, "10 9 * * 1-5"))
 FILE_NAME = re.compile(r"run_([1-9][0-9]*)_attempt_([1-9][0-9]*)\.json\Z")
 MIN_RECORDED_SUCCESSES = 3
 MAX_READS = 12
@@ -43,7 +44,7 @@ def inspect(receipts, epoch):
         is_sched = row.get("trigger") == "schedule"
         if not is_sched and row.get("trigger") != "workflow_dispatch":
             raise ValueError("unrecognized pilot trigger")
-        if (is_sched and row.get("trigger_cron_utc") != PILOT_CRON
+        if (is_sched and row.get("trigger_cron_utc") not in PILOT_CRONS
                 or not is_sched and row.get("trigger_cron_utc") is not None):
             raise ValueError("untrusted pilot schedule")
         selected,actual = row.get("selected_shards"),row.get("new_selected_shards")
