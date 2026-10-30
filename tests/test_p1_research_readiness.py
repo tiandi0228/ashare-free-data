@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 from collector.p1_research_readiness import assess, assess_or_block, unavailable
 
 
@@ -124,6 +125,25 @@ class ReadinessTests(unittest.TestCase):
         report=assess(item,audit)
         self.assertIn("CSV_ARCHIVE_NOT_CERTIFIED",report["unresolved_checks"])
         self.assertFalse(report["buy_recommendations_authorized"])
+
+    def test_readiness_code_changes_use_offline_ci_not_live_vendor_collection(self):
+        root = Path(__file__).resolve().parents[1]
+        live = (root / ".github/workflows/p1-fresh-vendor-roster.yml").read_text()
+        offline = (root / ".github/workflows/p1-readiness-contract-ci.yml").read_text()
+        live_push = live.split("  schedule:", 1)[0]
+        # Pure readiness gate edits must not consume real Baostock requests,
+        # produce cloud CSVs, or fan out into P3/P4 workflow_run jobs.
+        self.assertNotIn("      - 'collector/p1_research_readiness.py'", live_push)
+        self.assertNotIn("      - 'tests/test_p1_research_readiness.py'", live_push)
+        # Keep scheduled and explicit manual collection available.
+        self.assertIn("  schedule:", live)
+        self.assertIn("  workflow_dispatch:", live)
+        # Offline pull-request CI must cover the affected code and the
+        # source workflow itself, so trigger regressions remain testable.
+        self.assertIn("  pull_request:", offline)
+        self.assertIn("      - 'collector/p1_research_readiness.py'", offline)
+        self.assertIn("      - 'tests/test_p1_research_readiness.py'", offline)
+        self.assertIn("      - '.github/workflows/p1-fresh-vendor-roster.yml'", offline)
 
     def test_tampered_open_gate_rejected(self):
         item = self.ledger()
