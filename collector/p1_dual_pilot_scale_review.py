@@ -7,6 +7,7 @@ automated scaling, PIT certification or trading.
 import argparse
 import base64
 import json
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -91,7 +92,7 @@ def inspect(receipts, epoch):
     success=(len(recent)==MIN_RECORDED_SUCCESSES
              and all(r["dual_pilot_result"]=="TWO_VERIFIED_SHARDS_ARCHIVED"
                      for r in recent))
-    decision=("RECORDED_PILOTS_READY_FOR_HUMAN_REVIEW" if success else
+    decision=("RECORDED_PILOTS_AWAIT_ACTIONS_VERIFICATION" if success else
               "INSUFFICIENT_SCHEDULED_PILOT_RECEIPTS"
               if len(recent)<MIN_RECORDED_SUCCESSES else
               "RECENT_RECORDED_PILOT_NOT_ALL_SUCCESSFUL")
@@ -164,6 +165,68 @@ def load_recent_remote(repo,epoch):
     return result
 
 
+def verify_actions_conclusions(report, receipts, repo, *, current_run_id=None):
+    """Cross-check receipt claims against completed GitHub Actions runs.
+
+    Only completed successful scheduled runs in the exact workflow qualify.
+    The active run cannot certify its own success before it has finished.
+    Failed runs that never saved a receipt remain unknown and still require
+    separate human inspection of the workflow's full run history.
+    """
+    if report.get("status") != "RECORDED_PILOTS_AWAIT_ACTIONS_VERIFICATION":
+        return report
+    if not isinstance(repo, str) or repo.count("/") != 1:
+        raise ValueError("GitHub repository required")
+    ids = report["reviewed_scheduled_run_ids"]
+    if len(ids) != MIN_RECORDED_SUCCESSES or len(set(ids)) != len(ids):
+        raise ValueError("invalid reviewed pilot run IDs")
+    match = {r["run_id"]: r for r in receipts
+             if isinstance(r, dict) and type(r.get("run_id")) is int}
+    outcomes = []
+    for run_id in ids:
+        receipt = match.get(run_id)
+        if receipt is None:
+            raise ValueError("pilot run receipt missing from evidence")
+        if current_run_id is not None and run_id == current_run_id:
+            outcomes.append({"run_id": run_id, "status": "CURRENT_RUN_NOT_COMPLETED"})
+            continue
+        remote = json.loads(gh(f"repos/{repo}/actions/runs/{run_id}"))
+        if (not isinstance(remote, dict)
+                or type(remote.get("id")) is not int
+                or remote["id"] != run_id):
+            raise ValueError("GitHub Actions returned mismatched run ID")
+        same_workflow = (
+            remote.get("path") == ".github/workflows/p1-fresh-vendor-roster.yml"
+            or str(remote.get("path", "")).startswith(
+                ".github/workflows/p1-fresh-vendor-roster.yml@")
+        )
+        good = (same_workflow
+                and remote.get("event") == "schedule"
+                and remote.get("head_branch") == "main"
+                and remote.get("status") == "completed"
+                and remote.get("conclusion") == "success"
+                and type(remote.get("run_attempt")) is int
+                and remote["run_attempt"] == receipt["run_attempt"])
+        outcomes.append({
+            "run_id": run_id,
+            "status": ("CONFIRMED_SUCCESS" if good
+                       else "NOT_CONFIRMED_SUCCESS"),
+            "conclusion": remote.get("conclusion"),
+            "run_attempt_matches": (
+                type(remote.get("run_attempt")) is int
+                and remote["run_attempt"] == receipt["run_attempt"]),
+        })
+    proven = all(x["status"] == "CONFIRMED_SUCCESS" for x in outcomes)
+    return dict(
+        report,
+        status=("RECORDED_PILOTS_READY_FOR_HUMAN_REVIEW" if proven else
+                "RECORDED_PILOTS_ACTIONS_VERIFICATION_INCOMPLETE"),
+        actions_runs_verified=proven,
+        reviewed_actions_conclusions=outcomes,
+        automatic_shard_increase_authorized=False,
+    )
+
+
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--source-sha",required=True)
@@ -171,13 +234,21 @@ def main():
     ap.add_argument("--out",required=True)
     args=ap.parse_args()
     receipts=load_recent_remote(args.repo,args.source_sha)
-    result=inspect(receipts,args.source_sha)
+    # Exclude the currently running workflow: a job cannot independently
+    # certify its own eventual conclusion before the job finishes.
+    active=os.environ.get("GITHUB_RUN_ID")
+    current=int(active) if active else None
+    stable=[r for r in receipts if r.get("run_id")!=current]
+    result=inspect(stable,args.source_sha)
+    result=verify_actions_conclusions(
+        result,stable,args.repo,current_run_id=current)
     path=Path(args.out)
     path.parent.mkdir(parents=True,exist_ok=True)
     path.write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
     print(json.dumps({
         "status":result["status"],
         "recorded_scheduled_runs":result["recorded_scheduled_runs"],
+        "actions_runs_verified":result.get("actions_runs_verified",False),
         "automatic_shard_increase_authorized":False,
         "trade_gate":"BLOCKED"
     }))
