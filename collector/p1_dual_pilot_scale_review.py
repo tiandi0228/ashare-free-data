@@ -223,10 +223,77 @@ def verify_actions_conclusions(report, receipts, repo, *, current_run_id=None):
     proven = all(x["status"] == "CONFIRMED_SUCCESS" for x in outcomes)
     return dict(
         report,
-        status=("RECORDED_PILOTS_READY_FOR_HUMAN_REVIEW" if proven else
+        status=("RECORDED_PILOTS_AWAIT_SCHEDULE_HISTORY_CHECK" if proven else
                 "RECORDED_PILOTS_ACTIONS_VERIFICATION_INCOMPLETE"),
         actions_runs_verified=proven,
         reviewed_actions_conclusions=outcomes,
+        automatic_shard_increase_authorized=False,
+    )
+
+
+def verify_recent_schedule_health(report, repo, *, current_run_id=None):
+    """Conservative check of scheduled runs since the oldest pilot reviewed.
+
+    Even successful dual-pilot receipts do not exclude scheduled failures
+    without receipts. GitHub's workflow-scoped history is bounded to 100 runs.
+    Treat missing history, failed unrelated scheduled slots and incomplete jobs
+    as insufficient evidence for scaling; never authorize changes.
+    """
+    if report.get("status") != "RECORDED_PILOTS_AWAIT_SCHEDULE_HISTORY_CHECK":
+        return report
+    if not isinstance(repo, str) or repo.count("/") != 1:
+        raise ValueError("GitHub repository required")
+    target = report.get("reviewed_scheduled_run_ids")
+    if (not isinstance(target, list) or len(target) != MIN_RECORDED_SUCCESSES
+            or any(type(n) is not int or n <= 0 for n in target)
+            or len(set(target)) != len(target)):
+        raise ValueError("invalid reviewed scheduled pilot IDs")
+    history = json.loads(gh(
+        f"repos/{repo}/actions/workflows/p1-fresh-vendor-roster.yml/runs",
+        "-f", "event=schedule", "-f", "per_page=100", "--method", "GET"))
+    if (not isinstance(history, dict)
+            or type(history.get("total_count")) is not int
+            or not isinstance(history.get("workflow_runs"), list)
+            or len(history["workflow_runs"]) > 100):
+        raise ValueError("malformed scheduled workflow history")
+    observed = {}
+    for run in history["workflow_runs"]:
+        if (not isinstance(run, dict)
+                or type(run.get("id")) is not int or run["id"] <= 0
+                or run["id"] in observed):
+            raise ValueError("invalid scheduled run in workflow history")
+        observed[run["id"]] = run
+    oldest = min(target)
+    if oldest not in observed:
+        return dict(report,
+                    status="RECORDED_PILOTS_SCHEDULE_HISTORY_INCOMPLETE",
+                    schedule_history_complete=False,
+                    schedule_checked_run_ids=[],
+                    schedule_problem_run_ids=[],
+                    automatic_shard_increase_authorized=False)
+    watched = [
+        run for run in observed.values()
+        if run["id"] >= oldest and run["id"] != current_run_id
+    ]
+    watched.sort(key=lambda r:r["id"], reverse=True)
+    problems = []
+    for run in watched:
+        path = str(run.get("path", ""))
+        valid_path = (path == ".github/workflows/p1-fresh-vendor-roster.yml"
+                      or path.startswith(
+                          ".github/workflows/p1-fresh-vendor-roster.yml@"))
+        if (not valid_path or run.get("event") != "schedule"
+                or run.get("head_branch") != "main"
+                or run.get("status") != "completed"
+                or run.get("conclusion") != "success"):
+            problems.append(run["id"])
+    return dict(
+        report,
+        status=("RECORDED_PILOTS_READY_FOR_HUMAN_REVIEW" if not problems
+                else "RECORDED_PILOTS_INTERVENING_SCHEDULE_FAILURE"),
+        schedule_history_complete=True,
+        schedule_checked_run_ids=[r["id"] for r in watched],
+        schedule_problem_run_ids=problems,
         automatic_shard_increase_authorized=False,
     )
 
@@ -246,6 +313,8 @@ def main():
     result=inspect(stable,args.source_sha)
     result=verify_actions_conclusions(
         result,stable,args.repo,current_run_id=current)
+    result=verify_recent_schedule_health(
+        result,args.repo,current_run_id=current)
     path=Path(args.out)
     path.parent.mkdir(parents=True,exist_ok=True)
     path.write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
