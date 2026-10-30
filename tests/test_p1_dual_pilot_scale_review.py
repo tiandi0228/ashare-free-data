@@ -4,7 +4,7 @@ import subprocess
 import unittest
 from unittest.mock import patch
 
-from collector.p1_dual_pilot_scale_review import inspect,load_recent_remote
+from collector.p1_dual_pilot_scale_review import inspect,load_recent_remote,verify_actions_conclusions
 
 
 class P1DualPilotScaleReviewTests(unittest.TestCase):
@@ -45,11 +45,92 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
     def test_three_recorded_scheduled_successes_allow_manual_review_only(self):
         rs=[self.receipt(100),self.receipt(105),self.receipt(102)]
         report=inspect(rs,self.EPOCH)
-        self.assertEqual(report["status"],"RECORDED_PILOTS_READY_FOR_HUMAN_REVIEW")
+        self.assertEqual(report["status"],"RECORDED_PILOTS_AWAIT_ACTIONS_VERIFICATION")
         self.assertEqual(report["reviewed_scheduled_run_ids"],[105,102,100])
         self.assertTrue(report["unrecorded_or_failed_runs_not_excluded"])
         self.assertFalse(report["automatic_shard_increase_authorized"])
         self.assertEqual(report["trade_gate"],"BLOCKED")
+
+    def actions_run(self, run_id, *, conclusion="success", status="completed",
+                    attempt=1, path=".github/workflows/p1-fresh-vendor-roster.yml",
+                    event="schedule", branch="main"):
+        return dict(id=run_id, run_attempt=attempt, path=path, event=event,
+                    head_branch=branch, status=status, conclusion=conclusion)
+
+    def test_actions_api_proves_three_completed_scheduled_runs(self):
+        receipts=[self.receipt(i) for i in (100,101,102)]
+        report=inspect(receipts,self.EPOCH)
+        self.assertEqual(report["status"],"RECORDED_PILOTS_AWAIT_ACTIONS_VERIFICATION")
+        def fetch(endpoint,*args,**kwargs):
+            run_id=int(endpoint.rsplit("/",1)[1])
+            return json.dumps(self.actions_run(run_id))
+        with patch("collector.p1_dual_pilot_scale_review.gh",side_effect=fetch) as api:
+            approved=verify_actions_conclusions(report,receipts,"o/r")
+        self.assertEqual(api.call_count,3)
+        self.assertTrue(approved["actions_runs_verified"])
+        self.assertEqual(approved["status"],"RECORDED_PILOTS_READY_FOR_HUMAN_REVIEW")
+        self.assertFalse(approved["automatic_shard_increase_authorized"])
+        self.assertEqual([x["status"] for x in approved["reviewed_actions_conclusions"]],
+                         ["CONFIRMED_SUCCESS"]*3)
+
+    def test_actions_failure_pending_bad_workflow_and_retry_do_not_qualify(self):
+        receipts=[self.receipt(i) for i in (100,101,102)]
+        report=inspect(receipts,self.EPOCH)
+        variants=(
+            {"conclusion":"failure"},
+            {"status":"in_progress","conclusion":None},
+            {"path":".github/workflows/other.yml"},
+            {"event":"workflow_dispatch"},
+            {"branch":"feature"},
+            {"attempt":2},
+        )
+        for variant in variants:
+            with self.subTest(variant=variant):
+                def fetch(endpoint,*args,**kwargs):
+                    run_id=int(endpoint.rsplit("/",1)[1])
+                    return json.dumps(self.actions_run(
+                        run_id,**(variant if run_id==102 else {})))
+                with patch("collector.p1_dual_pilot_scale_review.gh",
+                           side_effect=fetch):
+                    reviewed=verify_actions_conclusions(report,receipts,"o/r")
+                self.assertFalse(reviewed["actions_runs_verified"])
+                self.assertEqual(reviewed["status"],
+                    "RECORDED_PILOTS_ACTIONS_VERIFICATION_INCOMPLETE")
+
+    def test_current_running_pilot_cannot_self_certify(self):
+        receipts=[self.receipt(i) for i in (100,101,102)]
+        report=inspect(receipts,self.EPOCH)
+        def fetch(endpoint,*args,**kwargs):
+            run_id=int(endpoint.rsplit("/",1)[1])
+            self.assertNotEqual(run_id,102)
+            return json.dumps(self.actions_run(run_id))
+        with patch("collector.p1_dual_pilot_scale_review.gh",side_effect=fetch) as api:
+            result=verify_actions_conclusions(
+                report,receipts,"o/r",current_run_id=102)
+        self.assertEqual(api.call_count,2)
+        self.assertFalse(result["actions_runs_verified"])
+        self.assertIn("CURRENT_RUN_NOT_COMPLETED",
+                      [x["status"] for x in result["reviewed_actions_conclusions"]])
+
+    def test_verify_latest_retry_attempt_not_older_duplicate(self):
+        receipts=[self.receipt(100),self.receipt(101),
+                  self.receipt(102,attempt=2),self.receipt(102,attempt=1)]
+        report=inspect(receipts,self.EPOCH)
+        def fetch(endpoint,*args,**kwargs):
+            run_id=int(endpoint.rsplit("/",1)[1])
+            return json.dumps(self.actions_run(run_id,
+                             attempt=2 if run_id==102 else 1))
+        with patch("collector.p1_dual_pilot_scale_review.gh",side_effect=fetch):
+            result=verify_actions_conclusions(report,receipts,"o/r")
+        self.assertTrue(result["actions_runs_verified"])
+
+    def test_actions_mismatched_run_id_fail_closed(self):
+        receipts=[self.receipt(i) for i in (100,101,102)]
+        report=inspect(receipts,self.EPOCH)
+        with patch("collector.p1_dual_pilot_scale_review.gh",
+                   return_value=json.dumps(self.actions_run(999))):
+            with self.assertRaisesRegex(ValueError,"mismatched run ID"):
+                verify_actions_conclusions(report,receipts,"o/r")
 
     def test_manual_successes_never_count_as_scheduled(self):
         rs=[self.receipt(100),self.receipt(101,trigger="workflow_dispatch"),
@@ -127,7 +208,7 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
         self.assertEqual([r["run_id"] for r in fetched],[203,202,201])
         self.assertEqual(gh.call_count,4)
         self.assertEqual(inspect(fetched,self.EPOCH)["status"],
-                         "RECORDED_PILOTS_READY_FOR_HUMAN_REVIEW")
+                         "RECORDED_PILOTS_AWAIT_ACTIONS_VERIFICATION")
 
     def test_remote_blob_run_id_attempt_and_epoch_must_match_filename(self):
         directory="evidence/pilot_runs/"+self.EPOCH[:16]
@@ -219,7 +300,7 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
         self.assertEqual(rows[-1]["run_id"],140)
         self.assertEqual(gh.call_count,13)
         self.assertEqual(inspect(rows,self.EPOCH)["status"],
-                         "RECORDED_PILOTS_READY_FOR_HUMAN_REVIEW")
+                         "RECORDED_PILOTS_AWAIT_ACTIONS_VERIFICATION")
 
     def test_actions_review_does_not_change_scheduler(self):
         from pathlib import Path
