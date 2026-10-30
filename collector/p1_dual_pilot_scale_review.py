@@ -126,8 +126,11 @@ def load_recent_remote(repo,epoch):
         if "404" in (exc.stderr or "") and "Not Found" in (exc.stderr or ""):
             return []
         raise
-    if not isinstance(listing,list) or len(listing)>=100:
-        raise ValueError("pilot directory too large for bounded first-page review")
+    # GitHub Contents permits up to 1,000 entries per directory. Reviewing
+    # only the latest 12 blobs keeps reads bounded while allowing hundreds of
+    # immutable pilot runs to accumulate before requiring a paged tree API.
+    if not isinstance(listing,list) or len(listing)>=1000:
+        raise ValueError("pilot directory exceeds GitHub Contents bounded listing")
     entries=[]
     for item in listing:
         if not isinstance(item,dict):
