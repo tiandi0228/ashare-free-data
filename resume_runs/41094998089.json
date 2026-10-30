@@ -1,0 +1,120 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 2,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 2,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1224792149",
+      "archival_pdf_path": "pdf/sh_603897/1224792149/8a7e7db9092e8aa0b2d23d0236c933f26a5dec199ebb095895439387540ca018.pdf",
+      "bytes": 89969,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.603897",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2025-11-08/1224792149.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "8a7e7db9092e8aa0b2d23d0236c933f26a5dec199ebb095895439387540ca018",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "公司股票将于2025年11月10日（星期一）上午开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "8a7e7db9092e8aa0b2d23d0236c933f26a5dec199ebb095895439387540ca018",
+          "pdf_date_phrase": "2025年11月10日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-10-30T17:01:15.506505+00:00",
+      "source_halt_original_sha256": "fd45e7b555378ae00d69d5dfec6fcd05773fd8e0dc67afde1c03c2b1931d3939",
+      "source_halt_text_day": "2025-11-03",
+      "title_unverified": "长城科技关于终止筹划控制权变更事项暨复牌的公告"
+    },
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1225082123",
+      "archival_pdf_path": "pdf/sh_603950/1225082123/f322422d486ab25ce1ca689575ff0d1c5cc4ab3f99254919bee4fc2ae97d1377.pdf",
+      "bytes": 95715,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.603950",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-04-08/1225082123.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "f322422d486ab25ce1ca689575ff0d1c5cc4ab3f99254919bee4fc2ae97d1377",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "公司股票将于2026年4月8日（星期三）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "f322422d486ab25ce1ca689575ff0d1c5cc4ab3f99254919bee4fc2ae97d1377",
+          "pdf_date_phrase": "2026年4月8日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-10-30T17:01:16.391056+00:00",
+      "source_halt_original_sha256": "51383b266bef0112136774285a0aaaebd323f6bfd569ad0d9130d48f442d032c",
+      "source_halt_text_day": "2026-03-24",
+      "title_unverified": "襄阳长源东谷实业股份有限公司关于发行股份购买资产并募集配套资金暨关联交易预案的一般风险提示暨公司股票复牌的提示性公告"
+    }
+  ],
+  "run_id": 41094998089,
+  "source_halt_issuers_attempted": 3,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603897",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-02-01",
+      "search_window_start": "2025-11-02",
+      "source_halt_announcement_id": "1224782056",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-11-03",
+      "source_halt_original_sha256": "fd45e7b555378ae00d69d5dfec6fcd05773fd8e0dc67afde1c03c2b1931d3939"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603933",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-06-24",
+      "search_window_start": "2026-03-25",
+      "source_halt_announcement_id": "1225031031",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-03-26",
+      "source_halt_original_sha256": "f6bfcd044e988b96e31b5913284664d60e93256b776e80e46c9af0f01dac800b"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603950",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-06-22",
+      "search_window_start": "2026-03-23",
+      "source_halt_announcement_id": "1225024749",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-03-24",
+      "source_halt_original_sha256": "51383b266bef0112136774285a0aaaebd323f6bfd569ad0d9130d48f442d032c"
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.603897",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    },
+    {
+      "issuer": "sh.603933",
+      "matching_titles": 0,
+      "status": "INDEX_UNAVAILABLE_NOT_NO_RESUMPTION"
+    },
+    {
+      "issuer": "sh.603950",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
