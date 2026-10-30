@@ -12,7 +12,7 @@ class IndependentEvents(unittest.TestCase):
             folder=root/"epoch"/"shard_0000";folder.mkdir(parents=True)
             dates=[(date(2025,12,16)+timedelta(days=i)).isoformat() for i in range(25)]
             rows=["date,tradestatus,close"]+[f"{day},1,{11 if i==20 else 10}" for i,day in enumerate(dates)]
-            raw=("\n".join(rows)+"\n").encode()
+            raw=bytes([10]).join(x.encode() for x in rows)+bytes([10])
             digest=hashlib.sha256(raw).hexdigest()
             (folder/"sh_600000.csv").write_bytes(raw)
             (folder/"quality.json").write_text(json.dumps({"results":[{"code":"sh.600000","sha256":digest}]}))
