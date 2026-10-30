@@ -1,0 +1,57 @@
+name: P1 archive readiness offline regression (NO TRADES)
+
+on:
+  push:
+    branches:
+      - 'fix/p1-readiness-require-csv-replay-20261030'
+    paths:
+      - 'collector/p1_research_readiness.py'
+      - 'tests/test_p1_research_readiness.py'
+      - 'collector/p1_archive_audit.py'
+      - 'tests/test_p1_archive_audit.py'
+      - '.github/workflows/p1-readiness-contract-ci.yml'
+  pull_request:
+    paths:
+      - 'collector/p1_research_readiness.py'
+      - 'tests/test_p1_research_readiness.py'
+      - 'collector/p1_archive_audit.py'
+      - 'tests/test_p1_archive_audit.py'
+      - '.github/workflows/p1-readiness-contract-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p1-readiness-offline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify research-only archive replay gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run offline readiness and CSV archive regressions
+        run: |
+          python -m unittest \
+            tests.test_p1_research_readiness \
+            tests.test_p1_archive_audit \
+            tests.test_p1_run_progress \
+            -v
+      - name: Verify research-only gate remains closed
+        run: |
+          python - <<'PY'
+          import json
+          from collector.p1_research_readiness import unavailable
+          result = unavailable()
+          assert result['trade_gate'] == 'BLOCKED'
+          assert result['orders'] == []
+          assert result['executable_candidates'] == []
+          assert result['buy_recommendations_authorized'] is False
+          print(json.dumps({'status':'PASS','trade_gate':'BLOCKED','orders':0}))
+          PY
