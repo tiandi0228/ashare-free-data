@@ -45,8 +45,6 @@ on:
       - 'tests/test_p1_shard_ledger.py'
       - 'collector/p1_epoch_compare.py'
       - 'tests/test_p1_epoch_compare.py'
-      - 'collector/p1_research_readiness.py'
-      - 'tests/test_p1_research_readiness.py'
   schedule:
     - cron: '10 1 * * 1-5' # 09:10 Beijing
     - cron: '10 3 * * 1-5' # 11:10 Beijing; additional source sampling window

@@ -10,6 +10,7 @@ on:
       - 'collector/p1_archive_audit.py'
       - 'tests/test_p1_archive_audit.py'
       - '.github/workflows/p1-readiness-contract-ci.yml'
+      - '.github/workflows/p1-fresh-vendor-roster.yml'
   pull_request:
     paths:
       - 'collector/p1_research_readiness.py'
@@ -17,6 +18,7 @@ on:
       - 'collector/p1_archive_audit.py'
       - 'tests/test_p1_archive_audit.py'
       - '.github/workflows/p1-readiness-contract-ci.yml'
+      - '.github/workflows/p1-fresh-vendor-roster.yml'
   workflow_dispatch:
 
 permissions:
