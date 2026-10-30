@@ -15,6 +15,8 @@ on:
       - 'collector/p1_optional_second.py'
       - 'collector/p1_run_progress.py'
       - 'collector/p1_dual_pilot_receipt.py'
+      - 'collector/p1_dual_pilot_scale_review.py'
+      - 'tests/test_p1_dual_pilot_scale_review.py'
       - 'tests/test_p1_dual_pilot_receipt.py'
       - 'tests/test_p1_run_progress.py'
       - 'tests/test_p1_optional_second.py'
@@ -86,7 +88,7 @@ jobs:
         run: |
           mkdir -p evidence
           set -o pipefail
-          python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_roster_lock tests.test_p1_source_diagnostics tests.test_p1_orphan_archive_recovery tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick tests.test_p1_coverage_gap_diagnosis tests.test_p3_p1_evidence_worklist tests.test_p1_quad_pick tests.test_p1_optional_second tests.test_p1_dual_end_to_end tests.test_p1_dual_pilot_receipt tests.test_p1_run_progress tests.test_p1_quad_verify tests.test_p3_all_completed_worklist tests.test_p1_epoch_compare tests.test_p1_research_readiness -v 2>&1 | tee evidence/offline_tests.log
+          python -m unittest tests.test_p1_fresh_vendor_roster tests.test_p1_fresh_shard_plan tests.test_p1_roster_lock tests.test_p1_source_diagnostics tests.test_p1_orphan_archive_recovery tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick tests.test_p1_coverage_gap_diagnosis tests.test_p3_p1_evidence_worklist tests.test_p1_quad_pick tests.test_p1_optional_second tests.test_p1_dual_end_to_end tests.test_p1_dual_pilot_receipt tests.test_p1_dual_pilot_scale_review tests.test_p1_run_progress tests.test_p1_quad_verify tests.test_p3_all_completed_worklist tests.test_p1_epoch_compare tests.test_p1_research_readiness -v 2>&1 | tee evidence/offline_tests.log
       - name: Restore immutable P1 research roster pin if available
         id: pin
         env:
@@ -600,6 +602,16 @@ jobs:
             --progress evidence/p1_run_progress.json \
             --policy evidence/optional_second.json \
             --out evidence/dual_pilot_receipt.json
+      - name: Assess recorded pilot evidence without scaling
+        if: env.P1_REQUESTED_SHARDS == '2'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m collector.p1_dual_pilot_scale_review \
+            --source-sha "$(python -c 'import json;print(json.load(open("evidence/shards/plan.json"))["source_sha256"])')" \
+            --repo "${{ github.repository }}" \
+            --out evidence/dual_pilot_scale_review.json
       - name: Independently classify P1 coverage and archive gaps
         run: |
           python -m collector.p1_coverage_gap_diagnosis --plan evidence/shards/plan.json --ledger evidence/ledger.json --archive evidence/archive_audit.json --out evidence/coverage_gap_diagnosis.json
@@ -703,7 +715,7 @@ jobs:
           lines.append('- Archive raw CSV to durable free Git research branch: **${{ steps.diag_5.outcome }}**')
           lines.append('- Audit permanent research CSV archive against recovered ledger: **${{ steps.diag_6.outcome }}**')
           lines.append('- Persist durable no-trade checkpoint in repository: **${{ steps.diag_7.outcome }}**')
-          for name in ('p1_roster_lock.json','pilot_selection.json','optional_second.json','p1_run_progress.json','dual_pilot_receipt.json','orphan_recovery.json','recovery_remote_ack.json','source_diagnostics.json','live_roster_attempt.json','quality.json','shards/plan.json','prior_ledger.json','ledger.json','archive_audit.json','epoch_comparison.json','research_readiness.json'):
+          for name in ('p1_roster_lock.json','pilot_selection.json','optional_second.json','p1_run_progress.json','dual_pilot_receipt.json','dual_pilot_scale_review.json','orphan_recovery.json','recovery_remote_ack.json','source_diagnostics.json','live_roster_attempt.json','quality.json','shards/plan.json','prior_ledger.json','ledger.json','archive_audit.json','epoch_comparison.json','research_readiness.json'):
               file=root/name
               if not file.is_file():
                   lines.append(f'- `{name}`: unavailable (step did not produce it)')
@@ -711,7 +723,7 @@ jobs:
               try:
                   obj=json.loads(file.read_text())
                   if not isinstance(obj,dict):raise ValueError('not a JSON object')
-                  keys=('status','selection','recovered_shards','checkpoint_shards_before','checkpoint_shards_after','pinned_requested_day','requested_shards','selected_count','new_shard_count','new_shards_durably_accepted','dual_pilot_result','remote_readback_verified','effective_shard_count','second_step_outcome','requested_day','source_sha256','roster_codes_sha256','mainboard_sha256','snapshot_reused','issuer_count','shard_count','completed_shards','completed_issuers','next_shard','archived_issuers','archive_gap_issuers','archive_csv_replay_enabled','independently_replayed_active_rows','independently_replayed_suspended_rows','overlapping_completed_shards','left_only_completed_shards','right_only_completed_shards','matching_manifest_shards','matching_manifest_and_receipt_shards','cross_epoch_reuse_authorized','research_data_complete','vendor_shards_complete','research_certified','realtime_execution_checks_verified','buy_recommendations_authorized','trade_gate')
+                  keys=('status','selection','recovered_shards','checkpoint_shards_before','checkpoint_shards_after','pinned_requested_day','requested_shards','selected_count','new_shard_count','new_shards_durably_accepted','dual_pilot_result','automatic_shard_increase_authorized','recorded_scheduled_runs','remote_readback_verified','effective_shard_count','second_step_outcome','requested_day','source_sha256','roster_codes_sha256','mainboard_sha256','snapshot_reused','issuer_count','shard_count','completed_shards','completed_issuers','next_shard','archived_issuers','archive_gap_issuers','archive_csv_replay_enabled','independently_replayed_active_rows','independently_replayed_suspended_rows','overlapping_completed_shards','left_only_completed_shards','right_only_completed_shards','matching_manifest_shards','matching_manifest_and_receipt_shards','cross_epoch_reuse_authorized','research_data_complete','vendor_shards_complete','research_certified','realtime_execution_checks_verified','buy_recommendations_authorized','trade_gate')
                   if name=='live_roster_attempt.json':
                       for field in ('error_type','error_detail','logical_queries','last_source_total_rows'):
                           value=obj.get(field)
