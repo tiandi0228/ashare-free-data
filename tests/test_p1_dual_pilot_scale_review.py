@@ -150,7 +150,7 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
             if endpoint.endswith(directory):
                 return json.dumps(listing)
             import re
-            match=re.search(r"run_(\\d+)_attempt_1\\.json$",endpoint)
+            match=re.search(r"run_(\d+)_attempt_1\.json$",endpoint)
             if match is None:
                 raise AssertionError(endpoint)
             receipt=self.receipt(int(match.group(1)))
