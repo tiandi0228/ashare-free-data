@@ -132,12 +132,38 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
         directory="evidence/pilot_runs/"+self.EPOCH[:16]
         malformed=[{"name":"run_1_attempt_1.json",
                     "path":directory+"/incorrect.json","type":"file"}]
-        for listing in (malformed,[{"name":"readme"}]*100):
+        for listing in (malformed,[{"name":"readme"}]*1000):
             with self.subTest(length=len(listing)):
                 with patch("collector.p1_dual_pilot_scale_review.gh",
                            return_value=json.dumps(listing)):
                     with self.assertRaises(ValueError):
                         load_recent_remote("o/r",self.EPOCH)
+
+    def test_more_than_one_hundred_receipts_still_bounded_to_twelve_reads(self):
+        directory="evidence/pilot_runs/"+self.EPOCH[:16]
+        listing=[
+            {"name":f"run_{i}_attempt_1.json",
+             "path":f"{directory}/run_{i}_attempt_1.json",
+             "type":"file"} for i in range(1,152)
+        ]
+        def fake_gh(endpoint,*args,**kwargs):
+            if endpoint.endswith(directory):
+                return json.dumps(listing)
+            import re
+            match=re.search(r"run_(\\d+)_attempt_1\\.json$",endpoint)
+            if match is None:
+                raise AssertionError(endpoint)
+            receipt=self.receipt(int(match.group(1)))
+            return json.dumps({"sha":"blob",
+                "content":base64.b64encode(json.dumps(receipt).encode()).decode()})
+        with patch("collector.p1_dual_pilot_scale_review.gh",side_effect=fake_gh) as gh:
+            rows=load_recent_remote("o/r",self.EPOCH)
+        self.assertEqual(len(rows),12)
+        self.assertEqual(rows[0]["run_id"],151)
+        self.assertEqual(rows[-1]["run_id"],140)
+        self.assertEqual(gh.call_count,13)
+        self.assertEqual(inspect(rows,self.EPOCH)["status"],
+                         "RECORDED_PILOTS_READY_FOR_HUMAN_REVIEW")
 
     def test_actions_review_does_not_change_scheduler(self):
         from pathlib import Path
