@@ -9,6 +9,10 @@ on:
       - 'tests/test_p1_research_readiness.py'
       - 'collector/p1_archive_audit.py'
       - 'tests/test_p1_archive_audit.py'
+      - 'collector/p1_dual_pilot_receipt.py'
+      - 'collector/p1_dual_pilot_scale_review.py'
+      - 'tests/test_p1_dual_pilot_receipt.py'
+      - 'tests/test_p1_dual_pilot_scale_review.py'
       - '.github/workflows/p1-readiness-contract-ci.yml'
       - '.github/workflows/p1-fresh-vendor-roster.yml'
   pull_request:
@@ -17,6 +21,10 @@ on:
       - 'tests/test_p1_research_readiness.py'
       - 'collector/p1_archive_audit.py'
       - 'tests/test_p1_archive_audit.py'
+      - 'collector/p1_dual_pilot_receipt.py'
+      - 'collector/p1_dual_pilot_scale_review.py'
+      - 'tests/test_p1_dual_pilot_receipt.py'
+      - 'tests/test_p1_dual_pilot_scale_review.py'
       - '.github/workflows/p1-readiness-contract-ci.yml'
       - '.github/workflows/p1-fresh-vendor-roster.yml'
   workflow_dispatch:
@@ -44,6 +52,10 @@ jobs:
             tests.test_p1_research_readiness \
             tests.test_p1_archive_audit \
             tests.test_p1_run_progress \
+            tests.test_p1_dual_pilot_receipt \
+            tests.test_p1_dual_pilot_scale_review \
+            tests.test_p1_optional_second \
+            tests.test_p1_quad_pick \
             -v
       - name: Verify research-only gate remains closed
         run: |

@@ -57,6 +57,38 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
         return dict(id=run_id, run_attempt=attempt, path=path, event=event,
                     head_branch=branch, status=status, conclusion=conclusion)
 
+    def test_both_daily_pilots_count_for_manual_review_only(self):
+        rs=[self.receipt(100),self.receipt(101),self.receipt(102)]
+        rs[1]["trigger_cron_utc"]="10 9 * * 1-5"
+        report=inspect(rs,self.EPOCH)
+        self.assertEqual(report["recorded_scheduled_runs"],3)
+        self.assertEqual(report["status"],"RECORDED_PILOTS_AWAIT_ACTIONS_VERIFICATION")
+        self.assertFalse(report["automatic_shard_increase_authorized"])
+        self.assertEqual(report["trade_gate"],"BLOCKED")
+
+    def test_unapproved_new_dual_cron_still_rejected(self):
+        row=self.receipt(100)
+        row["trigger_cron_utc"]="10 3 * * 1-5"
+        with self.assertRaisesRegex(ValueError,"untrusted pilot schedule"):
+            inspect([row],self.EPOCH)
+
+    def test_workflow_has_exactly_two_daily_dual_slots(self):
+        from pathlib import Path
+        workflow=(Path(__file__).resolve().parents[1]/
+                  ".github/workflows/p1-fresh-vendor-roster.yml").read_text()
+        formula=next(line for line in workflow.splitlines()
+                     if "P1_REQUESTED_SHARDS:" in line)
+        self.assertIn("github.event.schedule == '10 15 * * 1-5'",formula)
+        self.assertIn("github.event.schedule == '10 9 * * 1-5'",formula)
+        self.assertIn("&& '2' || '1'",formula)
+        self.assertIn("inputs.shards_per_run",formula)
+        # No four-shard escalation before repeated verified pilots and review.
+        self.assertIn('options: ["1", "2"]',workflow)
+        self.assertIn('assert requested in (1,2)',workflow)
+        self.assertIn('continue-on-error: true',workflow)
+        self.assertIn('python -m collector.p1_archive_audit',workflow)
+        self.assertIn('--replay',workflow)
+
     def test_actions_api_proves_three_completed_scheduled_runs(self):
         receipts=[self.receipt(i) for i in (100,101,102)]
         report=inspect(receipts,self.EPOCH)
@@ -453,7 +485,9 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
         self.assertIn("p1_dual_pilot_scale_review",step)
         self.assertIn("evidence/dual_pilot_scale_review.json",step)
         self.assertIn("tests.test_p1_dual_pilot_scale_review",wf)
-        self.assertIn("github.event.schedule == '10 15 * * 1-5' && '2' || '1'",wf)
+        self.assertIn("github.event.schedule == '10 15 * * 1-5'",wf)
+        self.assertIn("github.event.schedule == '10 9 * * 1-5'",wf)
+        self.assertIn("&& '2' || '1'",wf)
 
 
 if __name__=="__main__":

@@ -53,6 +53,27 @@ class DualPilotReceiptTests(unittest.TestCase):
         self.assertTrue(receipt_path(record).endswith(
             "/run_450123_attempt_1.json"))
 
+    def test_1710_pilot_is_bounded_and_persists_exact_trigger(self):
+        record = self.scheduled(*self.fixtures(), cron="10 9 * * 1-5")
+        self.assertEqual(record["trigger_cron_utc"],"10 9 * * 1-5")
+        self.assertEqual(record["new_shards_durably_accepted"],2)
+        self.assertEqual(record["trade_gate"],"BLOCKED")
+
+    def test_1710_second_failure_is_safely_preserved(self):
+        selection,progress,policy = self.fixtures()
+        progress.update(new_selected_shards=[13],
+                        new_shards_durably_accepted=1,
+                        new_shard_count=1,effective_shard_count=1,
+                        dual_pilot_result="FIRST_ARCHIVED_SECOND_REJECTED",
+                        current_shards=53)
+        policy.update(accepted_second=False,effective_shard_count=1,
+                      second_verification_passed=False,
+                      status="SECOND_INVALID_PRESERVE_FIRST")
+        record=self.scheduled(selection,progress,policy,cron="10 9 * * 1-5")
+        self.assertEqual(record["checkpoint_shards_after"],53)
+        self.assertEqual(record["new_shards_durably_accepted"],1)
+        self.assertEqual(record["trade_gate"],"BLOCKED")
+
     def test_manual_dual_run_distinguished_from_nightly_schedule(self):
         r = self.scheduled(*self.fixtures(), event="workflow_dispatch", cron="")
         self.assertEqual(r["trigger"], "workflow_dispatch")
