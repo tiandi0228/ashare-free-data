@@ -4,7 +4,7 @@ import subprocess
 import unittest
 from unittest.mock import patch
 
-from collector.p1_dual_pilot_scale_review import inspect,load_recent_remote,verify_actions_conclusions
+from collector.p1_dual_pilot_scale_review import inspect,load_recent_remote,verify_actions_conclusions,verify_recent_schedule_health
 
 
 class P1DualPilotScaleReviewTests(unittest.TestCase):
@@ -68,7 +68,7 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
             approved=verify_actions_conclusions(report,receipts,"o/r")
         self.assertEqual(api.call_count,3)
         self.assertTrue(approved["actions_runs_verified"])
-        self.assertEqual(approved["status"],"RECORDED_PILOTS_READY_FOR_HUMAN_REVIEW")
+        self.assertEqual(approved["status"],"RECORDED_PILOTS_AWAIT_SCHEDULE_HISTORY_CHECK")
         self.assertFalse(approved["automatic_shard_increase_authorized"])
         self.assertEqual([x["status"] for x in approved["reviewed_actions_conclusions"]],
                          ["CONFIRMED_SUCCESS"]*3)
@@ -144,6 +144,11 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
                   "--repo","o/r","--source-sha",self.EPOCH,
                   "--out",str(out)]
             def fetch(endpoint,*args,**kwargs):
+                if endpoint.endswith("/runs"):
+                    return json.dumps({"total_count":4,"workflow_runs":[
+                        self.actions_run(i,**({"status":"in_progress",
+                                               "conclusion":None} if i==104 else {}))
+                        for i in (104,103,102,101)]})
                 run_id=int(endpoint.rsplit("/",1)[1])
                 self.assertNotEqual(run_id,104)
                 return json.dumps(self.actions_run(run_id))
@@ -155,11 +160,87 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
                         with patch("sys.argv",argv):
                             main()
             report=json.loads(out.read_text())
-            self.assertEqual(api.call_count,3)
+            self.assertEqual(api.call_count,4)
             self.assertEqual(report["reviewed_scheduled_run_ids"],[103,102,101])
             self.assertEqual(report["status"],"RECORDED_PILOTS_READY_FOR_HUMAN_REVIEW")
             self.assertTrue(report["actions_runs_verified"])
             self.assertFalse(report["automatic_shard_increase_authorized"])
+
+    def test_history_detects_failed_scheduled_run_without_pilot_receipt(self):
+        receipts=[self.receipt(i) for i in (100,101,103)]
+        report=dict(inspect(receipts,self.EPOCH),
+                    status="RECORDED_PILOTS_AWAIT_SCHEDULE_HISTORY_CHECK")
+        # Scheduled 102 failed before it could write its permanent receipt.
+        history={"total_count":4,"workflow_runs":[
+            self.actions_run(103),self.actions_run(102,conclusion="failure"),
+            self.actions_run(101),self.actions_run(100)]}
+        with patch("collector.p1_dual_pilot_scale_review.gh",
+                   return_value=json.dumps(history)) as api:
+            decision=verify_recent_schedule_health(report,"o/r")
+        self.assertEqual(api.call_count,1)
+        self.assertEqual(decision["status"],
+                         "RECORDED_PILOTS_INTERVENING_SCHEDULE_FAILURE")
+        self.assertEqual(decision["schedule_problem_run_ids"],[102])
+        self.assertTrue(decision["schedule_history_complete"])
+        self.assertFalse(decision["automatic_shard_increase_authorized"])
+
+    def test_history_confirmed_completed_runs_are_only_human_review(self):
+        receipts=[self.receipt(i) for i in (100,101,102)]
+        report=dict(inspect(receipts,self.EPOCH),
+                    status="RECORDED_PILOTS_AWAIT_SCHEDULE_HISTORY_CHECK")
+        history={"total_count":3,"workflow_runs":[
+            self.actions_run(102),self.actions_run(101),self.actions_run(100)]}
+        with patch("collector.p1_dual_pilot_scale_review.gh",
+                   return_value=json.dumps(history)):
+            decision=verify_recent_schedule_health(report,"o/r")
+        self.assertEqual(decision["status"],
+                         "RECORDED_PILOTS_READY_FOR_HUMAN_REVIEW")
+        self.assertEqual(decision["schedule_checked_run_ids"],[102,101,100])
+        self.assertFalse(decision["automatic_shard_increase_authorized"])
+
+    def test_missing_oldest_run_in_first_page_blocks_review(self):
+        receipts=[self.receipt(i) for i in (100,101,102)]
+        report=dict(inspect(receipts,self.EPOCH),
+                    status="RECORDED_PILOTS_AWAIT_SCHEDULE_HISTORY_CHECK")
+        history={"total_count":101,"workflow_runs":[
+            self.actions_run(i) for i in range(201,101,-1)]}
+        with patch("collector.p1_dual_pilot_scale_review.gh",
+                   return_value=json.dumps(history)):
+            decision=verify_recent_schedule_health(report,"o/r")
+        self.assertEqual(decision["status"],
+                         "RECORDED_PILOTS_SCHEDULE_HISTORY_INCOMPLETE")
+        self.assertFalse(decision["schedule_history_complete"])
+
+    def test_current_run_in_history_is_not_misclassified_as_failed(self):
+        receipts=[self.receipt(i) for i in (100,101,102)]
+        report=dict(inspect(receipts,self.EPOCH),
+                    status="RECORDED_PILOTS_AWAIT_SCHEDULE_HISTORY_CHECK")
+        history={"total_count":4,"workflow_runs":[
+            self.actions_run(103,status="in_progress",conclusion=None),
+            self.actions_run(102),self.actions_run(101),self.actions_run(100)]}
+        with patch("collector.p1_dual_pilot_scale_review.gh",
+                   return_value=json.dumps(history)):
+            decision=verify_recent_schedule_health(
+                report,"o/r",current_run_id=103)
+        self.assertEqual(decision["status"],
+                         "RECORDED_PILOTS_READY_FOR_HUMAN_REVIEW")
+        self.assertNotIn(103,decision["schedule_checked_run_ids"])
+
+    def test_history_missing_or_malformed_run_fails_closed(self):
+        receipts=[self.receipt(i) for i in (100,101,102)]
+        report=dict(inspect(receipts,self.EPOCH),
+                    status="RECORDED_PILOTS_AWAIT_SCHEDULE_HISTORY_CHECK")
+        for history in (
+            {"total_count":3,"workflow_runs":"invalid"},
+            {"total_count":3,"workflow_runs":[self.actions_run(100)]*3},
+            {"total_count":3,"workflow_runs":[dict(self.actions_run(100),id=0)]},
+        ):
+            # Duplicate and invalid IDs cannot certify reliable history.
+            with self.subTest(history=history):
+                with patch("collector.p1_dual_pilot_scale_review.gh",
+                           return_value=json.dumps(history)):
+                    with self.assertRaises((ValueError,TypeError)):
+                        verify_recent_schedule_health(report,"o/r")
 
     def test_manual_successes_never_count_as_scheduled(self):
         rs=[self.receipt(100),self.receipt(101,trigger="workflow_dispatch"),
