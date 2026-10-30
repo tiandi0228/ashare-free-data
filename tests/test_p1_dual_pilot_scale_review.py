@@ -128,6 +128,48 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
         self.assertEqual(inspect(fetched,self.EPOCH)["status"],
                          "RECORDED_PILOTS_READY_FOR_HUMAN_REVIEW")
 
+    def test_remote_blob_run_id_attempt_and_epoch_must_match_filename(self):
+        directory="evidence/pilot_runs/"+self.EPOCH[:16]
+        name="run_801_attempt_2.json"
+        path=f"{directory}/{name}"
+        listing=[{"name":name,"path":path,"type":"file"}]
+        for record in (
+            self.receipt(802,attempt=2),
+            self.receipt(801,attempt=1),
+            dict(self.receipt(801,attempt=2),source_sha256="b"*64),
+        ):
+            with self.subTest(actual_id=record["run_id"],
+                              actual_attempt=record["run_attempt"],
+                              source=record["source_sha256"][:4]):
+                data=base64.b64encode(json.dumps(record).encode()).decode()
+                with patch("collector.p1_dual_pilot_scale_review.gh",
+                           side_effect=[json.dumps(listing),
+                                        json.dumps({"sha":"blob","content":data})]):
+                    with self.assertRaisesRegex(ValueError,"path and source identity mismatch"):
+                        load_recent_remote("o/r",self.EPOCH)
+        good=self.receipt(801,attempt=2)
+        data=base64.b64encode(json.dumps(good).encode()).decode()
+        with patch("collector.p1_dual_pilot_scale_review.gh",
+                   side_effect=[json.dumps(listing),
+                                json.dumps({"sha":"blob","content":data,
+                                            "path":path,"type":"file"})]):
+            self.assertEqual(load_recent_remote("o/r",self.EPOCH),[good])
+
+    def test_remote_pilot_blob_cannot_claim_different_contents_path(self):
+        directory="evidence/pilot_runs/"+self.EPOCH[:16]
+        name="run_801_attempt_1.json"
+        path=f"{directory}/{name}"
+        listing=[{"name":name,"path":path,"type":"file"}]
+        good=self.receipt(801)
+        data=base64.b64encode(json.dumps(good).encode()).decode()
+        with patch("collector.p1_dual_pilot_scale_review.gh",
+                   side_effect=[json.dumps(listing),
+                                json.dumps({"sha":"blob","content":data,
+                                            "path":directory+"/run_802_attempt_1.json",
+                                            "type":"file"})]):
+            with self.assertRaisesRegex(ValueError,"mismatched permanent pilot blob"):
+                load_recent_remote("o/r",self.EPOCH)
+
     def test_missing_directory_is_no_evidence_and_auth_failure_is_fatal(self):
         absent=subprocess.CalledProcessError(1,["gh","api"],
                           stderr="gh: Not Found (HTTP 404)")
