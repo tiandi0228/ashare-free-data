@@ -1,0 +1,120 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 2,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 2,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1224719629",
+      "archival_pdf_path": "pdf/sh_600243/1224719629/0f840b8f91c8bf97577f7bccbdd829f5805145406452ec23fb4f9fc7c81ee971.pdf",
+      "bytes": 110176,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.600243",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2025-10-18/1224719629.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "0f840b8f91c8bf97577f7bccbdd829f5805145406452ec23fb4f9fc7c81ee971",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "公司股票将于2025年10月20日（星期一）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "0f840b8f91c8bf97577f7bccbdd829f5805145406452ec23fb4f9fc7c81ee971",
+          "pdf_date_phrase": "2025年10月20日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-10-30T05:54:47.829167+00:00",
+      "source_halt_original_sha256": "50ea017843237d83ec4cf067ed7a2066766780aa231649d37b5910ce828bd0bd",
+      "source_halt_text_day": "2025-10-13",
+      "title_unverified": "青海华鼎关于筹划控制权变更进展暨复牌公告"
+    },
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1225067366",
+      "archival_pdf_path": "pdf/sh_600249/1225067366/f04a66b0a5d42b0267221f57d17f4060ab10a078c2bcc46f41d9e564f1019eee.pdf",
+      "bytes": 131917,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.600249",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-04-01/1225067366.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "f04a66b0a5d42b0267221f57d17f4060ab10a078c2bcc46f41d9e564f1019eee",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "公司股票将于2026年4月1日（星期三）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "f04a66b0a5d42b0267221f57d17f4060ab10a078c2bcc46f41d9e564f1019eee",
+          "pdf_date_phrase": "2026年4月1日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-10-30T05:54:48.358331+00:00",
+      "source_halt_original_sha256": "dd0bee8f679259de8c98da6d573a6b4755d44ce6f7a7a207a2450cf06afea3b6",
+      "source_halt_text_day": "2026-03-30",
+      "title_unverified": "两面针关于控股股东筹划控制权变更事项的进展暨复牌公告"
+    }
+  ],
+  "run_id": 41010995832,
+  "source_halt_issuers_attempted": 3,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600243",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-01-11",
+      "search_window_start": "2025-10-12",
+      "source_halt_announcement_id": "1224706130",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-10-13",
+      "source_halt_original_sha256": "50ea017843237d83ec4cf067ed7a2066766780aa231649d37b5910ce828bd0bd"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600249",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-06-28",
+      "search_window_start": "2026-03-29",
+      "source_halt_announcement_id": "1225040752",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-03-30",
+      "source_halt_original_sha256": "dd0bee8f679259de8c98da6d573a6b4755d44ce6f7a7a207a2450cf06afea3b6"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600250",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-02-16",
+      "search_window_start": "2024-11-17",
+      "source_halt_announcement_id": "1221740718",
+      "source_halt_certified": false,
+      "source_halt_date": "2024-11-18",
+      "source_halt_original_sha256": "5584f95ea1f6fad1660abaf80fa59bf0d9289444e1e6da183609b2f12332f8b9"
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.600243",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    },
+    {
+      "issuer": "sh.600249",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    },
+    {
+      "issuer": "sh.600250",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
