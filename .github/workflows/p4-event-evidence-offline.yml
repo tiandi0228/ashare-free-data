@@ -1,0 +1,46 @@
+name: P4 complete event inventory offline regression (NO TRADES)
+
+on:
+  pull_request:
+    paths:
+      - 'collector/p4_real_ma20_forward_observation.py'
+      - 'collector/p4_independent_event_evidence.py'
+      - 'tests/test_p4_real_ma20_forward_observation.py'
+      - 'tests/test_p4_independent_event_evidence.py'
+      - '.github/workflows/p4-event-evidence-offline.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p4_real_ma20_forward_observation.py'
+      - 'collector/p4_independent_event_evidence.py'
+      - 'tests/test_p4_real_ma20_forward_observation.py'
+      - 'tests/test_p4_independent_event_evidence.py'
+      - '.github/workflows/p4-event-evidence-offline.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p4-complete-event-offline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Independently replay complete MA20 event set (offline)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify complete event set, dropped-event regression and no-trade boundary
+        run: |
+          python -m unittest tests.test_p4_real_ma20_forward_observation tests.test_p4_independent_event_evidence -v
+          python - <<'PY'
+          from collector.p4_independent_event_evidence import verify
+          from collector.p4_real_ma20_forward_observation import audit
+          assert callable(verify) and callable(audit)
+          print("P4 OFFLINE CONTRACTS PASS: historical OOS remains uncertified; no trades")
+          PY
