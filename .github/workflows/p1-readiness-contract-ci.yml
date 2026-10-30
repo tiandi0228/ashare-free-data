@@ -3,7 +3,7 @@ name: P1 archive readiness offline regression (NO TRADES)
 on:
   push:
     branches:
-      - 'fix/p1-readiness-require-csv-replay-20261030'
+      - main
     paths:
       - 'collector/p1_research_readiness.py'
       - 'tests/test_p1_research_readiness.py'
