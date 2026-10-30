@@ -118,7 +118,8 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
                 return json.dumps(listing)
             for record in rs:
                 if endpoint.endswith(f"run_{record['run_id']}_attempt_1.json"):
-                    return json.dumps({"sha":"blob",
+                    return json.dumps({"sha":"blob","type":"file",
+                        "path":endpoint.split("/contents/",1)[1],
                         "content":base64.b64encode(json.dumps(record).encode()).decode()})
             raise AssertionError(endpoint)
         with patch("collector.p1_dual_pilot_scale_review.gh",side_effect=fake_gh) as gh:
@@ -144,7 +145,8 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
                 data=base64.b64encode(json.dumps(record).encode()).decode()
                 with patch("collector.p1_dual_pilot_scale_review.gh",
                            side_effect=[json.dumps(listing),
-                                        json.dumps({"sha":"blob","content":data})]):
+                                        json.dumps({"sha":"blob","content":data,
+                                                    "path":path,"type":"file"})]):
                     with self.assertRaisesRegex(ValueError,"path and source identity mismatch"):
                         load_recent_remote("o/r",self.EPOCH)
         good=self.receipt(801,attempt=2)
@@ -207,7 +209,8 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
             if match is None:
                 raise AssertionError(endpoint)
             receipt=self.receipt(int(match.group(1)))
-            return json.dumps({"sha":"blob",
+            return json.dumps({"sha":"blob","type":"file",
+                "path":endpoint.split("/contents/",1)[1],
                 "content":base64.b64encode(json.dumps(receipt).encode()).decode()})
         with patch("collector.p1_dual_pilot_scale_review.gh",side_effect=fake_gh) as gh:
             rows=load_recent_remote("o/r",self.EPOCH)
