@@ -18,11 +18,23 @@ def assess(ledger, archive_audit=None):
         missing.append("CSV_ARCHIVE_AUDIT_UNAVAILABLE")
     elif (not isinstance(archive_audit,dict) or
           archive_audit.get("trade_gate")!="BLOCKED" or
+          archive_audit.get("historical_PIT_verified") is not False or
           archive_audit.get("source_sha256")!=ledger["source_sha256"] or
           archive_audit.get("archive_complete") is not True or
+          archive_audit.get("archive_csv_replay_enabled") is not True or
+          type(archive_audit.get("ledger_issuers")) is not int or
+          archive_audit["ledger_issuers"]!=ledger["completed_issuers"] or
           type(archive_audit.get("archived_issuers")) is not int or
           archive_audit["archived_issuers"]!=ledger["completed_issuers"] or
-          archive_audit.get("archive_gap_issuers")!=0):
+          type(archive_audit.get("archive_gap_issuers")) is not int or
+          archive_audit["archive_gap_issuers"]!=0 or
+          type(archive_audit.get("independently_replayed_active_rows")) is not int or
+          type(archive_audit.get("independently_replayed_suspended_rows")) is not int or
+          archive_audit["independently_replayed_active_rows"]<0 or
+          archive_audit["independently_replayed_suspended_rows"]<0 or
+          (ledger["completed_issuers"]>0 and
+           archive_audit["independently_replayed_active_rows"]+
+           archive_audit["independently_replayed_suspended_rows"]==0)):
         missing.append("CSV_ARCHIVE_NOT_CERTIFIED")
     # None of these real-time execution checks can be certified from a vendor
     # history ledger. They require independently timestamped market evidence.
