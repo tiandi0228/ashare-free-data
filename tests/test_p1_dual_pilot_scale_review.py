@@ -92,9 +92,20 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
 
     def test_duplicate_attempt_conflict_rejected(self):
         a=self.receipt(101)
-        b=dict(a,second_policy_status="UNTRUSTED")
+        # Both receipts must be valid individually. A malformed success
+        # receipt would be rejected earlier as forged evidence, never reaching
+        # the duplicate-attempt conflict check.
+        b=dict(a,checkpoint_shards_before=45,checkpoint_shards_after=47)
+        self.assertEqual(inspect([a],self.EPOCH)["recorded_total_unique_runs"],1)
+        self.assertEqual(inspect([b],self.EPOCH)["recorded_total_unique_runs"],1)
         with self.assertRaisesRegex(ValueError,"conflicting receipts"):
             inspect([a,b],self.EPOCH)
+
+    def test_malformed_success_receipt_is_rejected_before_duplicate_check(self):
+        a=self.receipt(101)
+        forged=dict(a,second_policy_status="UNTRUSTED")
+        with self.assertRaisesRegex(ValueError,"forged two-shard pilot success"):
+            inspect([a,forged],self.EPOCH)
 
     def test_remote_listing_fetches_only_bounded_immutable_receipts(self):
         directory="evidence/pilot_runs/"+self.EPOCH[:16]
