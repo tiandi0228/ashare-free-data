@@ -1,0 +1,100 @@
+{
+  "phase": "BAOSTOCK_FREE_BOUNDED_BATCH",
+  "status": "OBSERVED_SUBSET_UNVERIFIED",
+  "batch_index": 0,
+  "manifest_sha256": "ba3d07c168a71b5974211373f97123a626fa16ae0c5852d36c9979165d561edc",
+  "batch_count": 1,
+  "issuer_count": 8,
+  "login_attempts": 1,
+  "query_attempts": 8,
+  "results": [
+    {
+      "code": "sh.603021",
+      "status": "OBSERVED_UNVERIFIED",
+      "rows": 485,
+      "tradable_rows": 483,
+      "suspended_status_rows": 2,
+      "first": "2024-10-21",
+      "last": "2026-10-20",
+      "sha256": "0b8acb3700b9319acbc6450cc7bf16339ce44c7cdb47cf22e28714b94384057d"
+    },
+    {
+      "code": "sh.603022",
+      "status": "OBSERVED_UNVERIFIED",
+      "rows": 485,
+      "tradable_rows": 485,
+      "suspended_status_rows": 0,
+      "first": "2024-10-21",
+      "last": "2026-10-20",
+      "sha256": "139e5404c95b59c33649749d5c43e3e798fb7028fe00a2f6e8d5593f2d67e93f"
+    },
+    {
+      "code": "sh.603023",
+      "status": "OBSERVED_UNVERIFIED",
+      "rows": 485,
+      "tradable_rows": 484,
+      "suspended_status_rows": 1,
+      "first": "2024-10-21",
+      "last": "2026-10-20",
+      "sha256": "a73ed81bc5a7ff394ee1ed9de9ca7b132bbe2e59b3a372ddf8bec15eb5077ecf"
+    },
+    {
+      "code": "sh.603025",
+      "status": "OBSERVED_UNVERIFIED",
+      "rows": 485,
+      "tradable_rows": 485,
+      "suspended_status_rows": 0,
+      "first": "2024-10-21",
+      "last": "2026-10-20",
+      "sha256": "3d90e94250e971f7606b3c884a754a45d39fddfaf08471335de5f68a2ca6a772"
+    },
+    {
+      "code": "sh.603026",
+      "status": "OBSERVED_UNVERIFIED",
+      "rows": 485,
+      "tradable_rows": 485,
+      "suspended_status_rows": 0,
+      "first": "2024-10-21",
+      "last": "2026-10-20",
+      "sha256": "d27d091da97e377175b8924ef41c89c36572b7c50981745e34c353cc88c3b24f"
+    },
+    {
+      "code": "sh.603027",
+      "status": "OBSERVED_UNVERIFIED",
+      "rows": 485,
+      "tradable_rows": 485,
+      "suspended_status_rows": 0,
+      "first": "2024-10-21",
+      "last": "2026-10-20",
+      "sha256": "6ba5036c715f4635e69ce1a6172f9de984272c7240c961fc49a970fc60a79222"
+    },
+    {
+      "code": "sh.603028",
+      "status": "OBSERVED_UNVERIFIED",
+      "rows": 485,
+      "tradable_rows": 485,
+      "suspended_status_rows": 0,
+      "first": "2024-10-21",
+      "last": "2026-10-20",
+      "sha256": "37de99fbba6170003f1777ddea7f3f7ce9084ccf5412c0f4e88230e6c3a02b18"
+    },
+    {
+      "code": "sh.603029",
+      "status": "OBSERVED_UNVERIFIED",
+      "rows": 485,
+      "tradable_rows": 485,
+      "suspended_status_rows": 0,
+      "first": "2024-10-21",
+      "last": "2026-10-20",
+      "sha256": "12c71d5af3f2976bced109757d4a28eccc2eac22ac3440ccca6ad252c53fe265"
+    }
+  ],
+  "paid_api_calls": 0,
+  "official_exchange_authenticated": false,
+  "historical_point_in_time_universe_verified": false,
+  "historical_ST_halt_delist_verified": false,
+  "full_market_history_verified": false,
+  "trade_gate": "BLOCKED",
+  "orders": [],
+  "executable_candidates": []
+}
