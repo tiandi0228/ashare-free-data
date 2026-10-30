@@ -63,14 +63,59 @@ class ReadinessTests(unittest.TestCase):
         self.assertIn("COMPLETE_ONE_MINUTE_BAR_NOT_VERIFIED", report["unresolved_checks"])
         self.assertFalse(report["buy_recommendations_authorized"])
 
+    def archive_audit(self):
+        # Same fields produced by p1_archive_audit.audit(..., replay=True).
+        return {
+            "source_sha256": "a" * 64,
+            "trade_gate": "BLOCKED",
+            "historical_PIT_verified": False,
+            "archive_complete": True,
+            "archive_csv_replay_enabled": True,
+            "ledger_issuers": 8,
+            "archived_issuers": 8,
+            "archive_gap_issuers": 0,
+            "independently_replayed_active_rows": 80,
+            "independently_replayed_suspended_rows": 4,
+        }
+
     def test_archive_audit_missing_or_incomplete_blocks_readiness(self):
-        item=self.ledger()
-        self.assertIn("CSV_ARCHIVE_AUDIT_UNAVAILABLE",assess(item)["unresolved_checks"])
-        audit={"source_sha256":"a"*64,"trade_gate":"BLOCKED","archive_complete":True,
-               "archived_issuers":8,"archive_gap_issuers":0}
-        self.assertNotIn("CSV_ARCHIVE_NOT_CERTIFIED",assess(item,audit)["unresolved_checks"])
-        audit["archived_issuers"]=7
-        self.assertIn("CSV_ARCHIVE_NOT_CERTIFIED",assess(item,audit)["unresolved_checks"])
+        item = self.ledger()
+        self.assertIn("CSV_ARCHIVE_AUDIT_UNAVAILABLE", assess(item)["unresolved_checks"])
+        audit = self.archive_audit()
+        self.assertNotIn("CSV_ARCHIVE_NOT_CERTIFIED", assess(item, audit)["unresolved_checks"])
+        audit["archived_issuers"] = 7
+        self.assertIn("CSV_ARCHIVE_NOT_CERTIFIED", assess(item, audit)["unresolved_checks"])
+
+    def test_archive_readiness_requires_independent_byte_replay(self):
+        item = self.ledger()
+        original = self.archive_audit()
+        failures = [
+            {"archive_csv_replay_enabled": False},
+            {"archive_csv_replay_enabled": None},
+            {"historical_PIT_verified": True},
+            {"historical_PIT_verified": None},
+            {"ledger_issuers": 7},
+            {"ledger_issuers": True},
+            {"archive_gap_issuers": False},
+            {"independently_replayed_active_rows": None},
+            {"independently_replayed_active_rows": -1},
+            {"independently_replayed_suspended_rows": -1},
+            {"independently_replayed_active_rows": 0,
+             "independently_replayed_suspended_rows": 0},
+        ]
+        for changes in failures:
+            with self.subTest(changes=changes):
+                audit = dict(original, **changes)
+                result = assess(item, audit)
+                self.assertIn("CSV_ARCHIVE_NOT_CERTIFIED", result["unresolved_checks"])
+                self.assertFalse(result["research_certified"])
+                self.assertFalse(result["buy_recommendations_authorized"])
+                self.assertEqual(result["trade_gate"], "BLOCKED")
+
+        missing = self.archive_audit()
+        del missing["archive_csv_replay_enabled"]
+        self.assertIn("CSV_ARCHIVE_NOT_CERTIFIED",
+                      assess(item, missing)["unresolved_checks"])
 
     def test_archive_audit_from_different_epoch_is_rejected(self):
         item=self.ledger()
