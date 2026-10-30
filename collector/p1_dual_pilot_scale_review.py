@@ -146,8 +146,8 @@ def load_recent_remote(repo,epoch):
         obj=json.loads(gh(f"repos/{repo}/contents/{path}","-f",
                           "ref=main","--method","GET"))
         if (not isinstance(obj,dict) or not obj.get("sha")
-                or obj.get("path",path)!=path
-                or obj.get("type","file")!="file"):
+                or obj.get("path")!=path
+                or obj.get("type")!="file"):
             raise ValueError("missing or mismatched permanent pilot blob")
         data=json.loads(base64.b64decode(obj["content"]).decode())
         # Filename and blob must describe the same immutable Actions run.
