@@ -1,0 +1,120 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 2,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 2,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1221626737",
+      "archival_pdf_path": "pdf/sh_603955/1221626737/b16e0e9925a996caa003a094e3293717b38fb96c5a6e4f4ab8fad8cb1753245e.pdf",
+      "bytes": 522629,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.603955",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2024-11-05/1221626737.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "b16e0e9925a996caa003a094e3293717b38fb96c5a6e4f4ab8fad8cb1753245e",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "证券简称：大千生态）将于2024年11月5日上午开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "b16e0e9925a996caa003a094e3293717b38fb96c5a6e4f4ab8fad8cb1753245e",
+          "pdf_date_phrase": "2024年11月5日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-10-30T18:34:58.484635+00:00",
+      "source_halt_original_sha256": "ab98996de4b520ce3589d397245ba10a5cc2a238940438dd439c73583a91e020",
+      "source_halt_text_day": "2024-11-04",
+      "title_unverified": "大千生态关于控股股东签署《股份转让协议》、公司控制权拟发生变更暨股票复牌公告"
+    },
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1221490009",
+      "archival_pdf_path": "pdf/sh_603991/1221490009/3bd602d27f4388a0061a106d476dca7f1292d8ef148756a1c07262ec6ece7830.pdf",
+      "bytes": 599221,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.603991",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2024-10-24/1221490009.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "3bd602d27f4388a0061a106d476dca7f1292d8ef148756a1c07262ec6ece7830",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "证券代码：603991）自2024年10月24日（星期四）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "3bd602d27f4388a0061a106d476dca7f1292d8ef148756a1c07262ec6ece7830",
+          "pdf_date_phrase": "2024年10月24日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-10-30T18:34:59.000283+00:00",
+      "source_halt_original_sha256": "cf0462fa3dbde9149a7b6b752c5345f6240195096d08f4837312e24321e4b2a1",
+      "source_halt_text_day": "2024-10-11",
+      "title_unverified": "至正股份关于披露重组预案暨公司股票复牌及一般风险提示性公告"
+    }
+  ],
+  "run_id": 41108077614,
+  "source_halt_issuers_attempted": 3,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603955",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-02-02",
+      "search_window_start": "2024-11-03",
+      "source_halt_announcement_id": "1221618486",
+      "source_halt_certified": false,
+      "source_halt_date": "2024-11-04",
+      "source_halt_original_sha256": "ab98996de4b520ce3589d397245ba10a5cc2a238940438dd439c73583a91e020"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603966",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-05-27",
+      "search_window_start": "2026-02-25",
+      "source_halt_announcement_id": "1224984495",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-02-26",
+      "source_halt_original_sha256": "7e1fc7fdb92001dc1a0ae8fc44bdb3579cb00d2ee329519ea6e1158d6398206c"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603991",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-01-09",
+      "search_window_start": "2024-10-10",
+      "source_halt_announcement_id": "1221418652",
+      "source_halt_certified": false,
+      "source_halt_date": "2024-10-11",
+      "source_halt_original_sha256": "cf0462fa3dbde9149a7b6b752c5345f6240195096d08f4837312e24321e4b2a1"
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.603955",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    },
+    {
+      "issuer": "sh.603966",
+      "matching_titles": 0,
+      "status": "INDEX_UNAVAILABLE_NOT_NO_RESUMPTION"
+    },
+    {
+      "issuer": "sh.603991",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
