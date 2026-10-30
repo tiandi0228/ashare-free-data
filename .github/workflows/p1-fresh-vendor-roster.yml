@@ -51,7 +51,7 @@ on:
     - cron: '10 5 * * 1-5' # 13:10 Beijing
     - cron: '10 9 * * 1-5' # 17:10 Beijing; second capped dual-shard pilot
     - cron: '10 13 * * 1-5' # 21:10 Beijing
-    - cron: '10 15 * * 1-5' # 23:10 Beijing, one controlled dual-shard pilot; other schedules stay single
+    - cron: '10 15 * * 1-5' # 23:10 Beijing; original capped dual-shard pilot
     - cron: '10 0 * * 1-5' # 08:10 Beijing, extra bounded opportunity
     - cron: '10 7 * * 1-5' # 15:10 Beijing, extra bounded opportunity
     - cron: '10 11 * * 1-5' # 19:10 Beijing, extra bounded opportunity
@@ -59,7 +59,7 @@ on:
   workflow_dispatch:
     inputs:
       shards_per_run:
-        description: "P1 bounded research shards per manual run (23:10 Beijing scheduled pilot may request 2)"
+        description: "Manual P1 research shards (1 or 2); 17:10/23:10 Beijing scheduled pilots may request 2"
         type: choice
         required: true
         default: "1"
