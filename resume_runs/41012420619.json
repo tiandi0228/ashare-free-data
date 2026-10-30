@@ -1,0 +1,94 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 1,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 1,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1222192857",
+      "archival_pdf_path": "pdf/sh_600322/1222192857/dd8907522c8f806f9ec11304043ce17f3c3ffc2f31949df4d82be46a43c7958e.pdf",
+      "bytes": 635926,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.600322",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2025-01-01/1222192857.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "dd8907522c8f806f9ec11304043ce17f3c3ffc2f31949df4d82be46a43c7958e",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "公司股票将于2025年1月2日开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "dd8907522c8f806f9ec11304043ce17f3c3ffc2f31949df4d82be46a43c7958e",
+          "pdf_date_phrase": "2025年1月2日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-10-30T06:09:53.310029+00:00",
+      "source_halt_original_sha256": "e37400bf2541f16e30d2b1ca50f591ddfd84884e8ecf33a9d089bd515fd532f6",
+      "source_halt_text_day": "2024-12-18",
+      "title_unverified": "津投城开关于披露重大资产重组预案的一般风险提示暨公司股票复牌的公告"
+    }
+  ],
+  "run_id": 41012420619,
+  "source_halt_issuers_attempted": 3,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600303",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-07-17",
+      "search_window_start": "2025-04-17",
+      "source_halt_announcement_id": "1223122556",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-04-18",
+      "source_halt_original_sha256": "5db7b2a068bf46a9a66a803bf33181868f9d5f442b0826a81ffa80c4c0d3e5ae"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600319",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-02-02",
+      "search_window_start": "2025-11-03",
+      "source_halt_announcement_id": "1224784062",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-11-04",
+      "source_halt_original_sha256": "fdcd6dd1890a1f6ecd41cc06f8bf16e9a7e0560a8fa494eedab0760367ac562e"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600322",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-03-18",
+      "search_window_start": "2024-12-17",
+      "source_halt_announcement_id": "1222048777",
+      "source_halt_certified": false,
+      "source_halt_date": "2024-12-18",
+      "source_halt_original_sha256": "e37400bf2541f16e30d2b1ca50f591ddfd84884e8ecf33a9d089bd515fd532f6"
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.600303",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    },
+    {
+      "issuer": "sh.600319",
+      "matching_titles": 0,
+      "status": "INDEX_UNAVAILABLE_NOT_NO_RESUMPTION"
+    },
+    {
+      "issuer": "sh.600322",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
