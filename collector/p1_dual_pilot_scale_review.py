@@ -254,7 +254,8 @@ def verify_recent_schedule_health(report, repo, *, current_run_id=None):
     if (not isinstance(history, dict)
             or type(history.get("total_count")) is not int
             or not isinstance(history.get("workflow_runs"), list)
-            or len(history["workflow_runs"]) > 100):
+            or len(history["workflow_runs"]) > 100
+            or history["total_count"] < len(history["workflow_runs"])):
         raise ValueError("malformed scheduled workflow history")
     observed = {}
     for run in history["workflow_runs"]:
@@ -264,7 +265,7 @@ def verify_recent_schedule_health(report, repo, *, current_run_id=None):
             raise ValueError("invalid scheduled run in workflow history")
         observed[run["id"]] = run
     oldest = min(target)
-    if oldest not in observed:
+    if not set(target).issubset(observed):
         return dict(report,
                     status="RECORDED_PILOTS_SCHEDULE_HISTORY_INCOMPLETE",
                     schedule_history_complete=False,
