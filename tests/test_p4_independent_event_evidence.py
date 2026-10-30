@@ -58,7 +58,7 @@ class IndependentEvents(unittest.TestCase):
             self.assertEqual(len(closes),70)
             rows=["date,tradestatus,close"]+[
                 f"{d},1,{px}" for d,px in zip(dates,closes)]
-            raw=("\\n".join(rows)+"\\n").encode()
+            raw=bytes([10]).join(x.encode() for x in rows)+bytes([10])
             digest=hashlib.sha256(raw).hexdigest()
             (folder/"sh_600000.csv").write_bytes(raw)
             (folder/"quality.json").write_text("{}")
