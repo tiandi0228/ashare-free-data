@@ -1,0 +1,94 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 1,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 1,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1222406441",
+      "archival_pdf_path": "pdf/sh_600446/1222406441/7eba783d1318e640bca3b321a4a6b59ce9162cefcede139395729ff1424b73d1.pdf",
+      "bytes": 541287,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.600446",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2025-01-23/1222406441.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "7eba783d1318e640bca3b321a4a6b59ce9162cefcede139395729ff1424b73d1",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "证券代码：600446）将于2025年1月23日（星期四）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "7eba783d1318e640bca3b321a4a6b59ce9162cefcede139395729ff1424b73d1",
+          "pdf_date_phrase": "2025年1月23日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-10-30T09:57:07.424748+00:00",
+      "source_halt_original_sha256": "01d6adc92410ee848ae0830cfe0a71e9434861c4fa7e519dbc949fe55c51be84",
+      "source_halt_text_day": "2025-01-16",
+      "title_unverified": "金证股份关于终止筹划控制权变更事项暨复牌的公告"
+    }
+  ],
+  "run_id": 41037072586,
+  "source_halt_issuers_attempted": 3,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600438",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-05-26",
+      "search_window_start": "2026-02-24",
+      "source_halt_announcement_id": "1224983625",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-02-25",
+      "source_halt_original_sha256": "71f8b4f533d3f3d23bc8ebf65e6b3947ff2ae490497c1fc4a1c07adefc53e3b3"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600439",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-10-29",
+      "search_window_start": "2026-07-30",
+      "source_halt_announcement_id": "1225449756",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-07-31",
+      "source_halt_original_sha256": "e7e2a3f9ff8d021735e94b5efb4a1b1cbf56dbd383ff322e5311699d0c679ebb"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600446",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-04-16",
+      "search_window_start": "2025-01-15",
+      "source_halt_announcement_id": "1222342860",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-01-16",
+      "source_halt_original_sha256": "01d6adc92410ee848ae0830cfe0a71e9434861c4fa7e519dbc949fe55c51be84"
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.600438",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    },
+    {
+      "issuer": "sh.600439",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    },
+    {
+      "issuer": "sh.600446",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
