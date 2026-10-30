@@ -142,12 +142,24 @@ def load_recent_remote(repo,epoch):
             entries.append((int(match.group(1)),int(match.group(2)),item["path"]))
     entries.sort(reverse=True)
     result=[]
-    for _,__,path in entries[:MAX_READS]:
+    for run_id,attempt,path in entries[:MAX_READS]:
         obj=json.loads(gh(f"repos/{repo}/contents/{path}","-f",
                           "ref=main","--method","GET"))
-        if not isinstance(obj,dict) or not obj.get("sha"):
-            raise ValueError("missing immutable pilot receipt blob SHA")
+        if (not isinstance(obj,dict) or not obj.get("sha")
+                or obj.get("path",path)!=path
+                or obj.get("type","file")!="file"):
+            raise ValueError("missing or mismatched permanent pilot blob")
         data=json.loads(base64.b64decode(obj["content"]).decode())
+        # Filename and blob must describe the same immutable Actions run.
+        # Otherwise one run could be wrongly credited with another run's
+        # verified shards.  This also catches swapped/misrouted blobs.
+        if (not isinstance(data,dict)
+                or type(data.get("run_id")) is not int
+                or data["run_id"]!=run_id
+                or type(data.get("run_attempt")) is not int
+                or data["run_attempt"]!=attempt
+                or data.get("source_sha256")!=epoch):
+            raise ValueError("pilot receipt path and source identity mismatch")
         result.append(data)
     return result
 
