@@ -15,8 +15,6 @@ on:
       - 'collector/p1_optional_second.py'
       - 'collector/p1_run_progress.py'
       - 'collector/p1_dual_pilot_receipt.py'
-      - 'collector/p1_dual_pilot_scale_review.py'
-      - 'tests/test_p1_dual_pilot_scale_review.py'
       - 'tests/test_p1_dual_pilot_receipt.py'
       - 'tests/test_p1_run_progress.py'
       - 'tests/test_p1_optional_second.py'
