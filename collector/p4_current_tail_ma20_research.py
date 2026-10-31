@@ -12,6 +12,10 @@ from zoneinfo import ZoneInfo
 from collector.baostock_batch import FIELDS,END
 from collector.p2_independent_bars import assess,audit_csv
 
+# Archived originals and quality receipt verified on 2026-10-31.
+# Pin this RESEARCH pilot cohort: filling other P1 shards cannot rotate it.
+PILOT_SHARD="shard_0098"
+
 def safe_day(now=None):
     clock=now or datetime.now(ZoneInfo("Asia/Shanghai"))
     if clock.tzinfo is None:raise ValueError("naive timestamp")
@@ -31,8 +35,9 @@ def baseline_items(root,limit=8):
     if (not isinstance(sha,str) or not re.fullmatch("[a-f0-9]{64}",sha)
         or epoch.name!=sha[:16] or status.get("trade_gate")!="BLOCKED"):
         raise ValueError("archive epoch provenance mismatch")
-    receipts=sorted(epoch.glob("shard_*/quality.json"))
-    if not receipts:raise ValueError("no archived P1 originals")
+    receipt=epoch/PILOT_SHARD/"quality.json"
+    if not receipt.is_file():raise ValueError("missing frozen P4 pilot shard")
+    receipts=[receipt]
     picked=[]
     seen=set()
     for receipt in receipts:
@@ -82,6 +87,7 @@ def run(root,out,bs,as_of=None,limit=8,now=None,archive_commit=None):
         "as_of_day":asof.isoformat(),"frozen_p1_end":END,
         "source_archive_commit":archive_commit,
         "source_epoch_sha256":epoch_sha,
+        "pilot_shard":PILOT_SHARD,
         "scope":"AT_MOST_EIGHT_ALREADY_ARCHIVED_ISSUERS",
         "selected_codes":[c for c,_,_ in selected],
         "selected_issuers":len(selected),"results":[],
@@ -161,6 +167,7 @@ def verify(root,out):
         or report.get("strategy_buy_signals_certified")!=0
         or report.get("complete_mainboard_coverage") is not False
         or report.get("historical_PIT_verified") is not False
+        or report.get("pilot_shard")!=PILOT_SHARD
         or report.get("status")!="OBSERVED_BOUNDED_RESEARCH"):
         raise ValueError("unsafe or incomplete research capture")
     if not re.fullmatch("[0-9]{4}-[0-9]{2}-[0-9]{2}",str(report.get("as_of_day",""))):
