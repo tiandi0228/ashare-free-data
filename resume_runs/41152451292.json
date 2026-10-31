@@ -1,0 +1,94 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 1,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 1,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1222355440",
+      "archival_pdf_path": "pdf/sz_000408/1222355440/04b274aadc1d083e5bed96550cb824da63cb06c32a5aa99683e0b98f2f63d400.pdf",
+      "bytes": 261389,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sz.000408",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2025-01-17/1222355440.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "04b274aadc1d083e5bed96550cb824da63cb06c32a5aa99683e0b98f2f63d400",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "证券代码：000408）自2025年1月17日（星期五）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "04b274aadc1d083e5bed96550cb824da63cb06c32a5aa99683e0b98f2f63d400",
+          "pdf_date_phrase": "2025年1月17日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-10-31T00:52:22.497734+00:00",
+      "source_halt_original_sha256": "4837e54bfc8975b71a9f4ef6b82b8b820be87f6cc14e1d3d955a04ec734917b6",
+      "source_halt_text_day": "2025-01-10",
+      "title_unverified": "关于筹划公司控制权变更事项的复牌公告"
+    }
+  ],
+  "run_id": 41152451292,
+  "source_halt_issuers_attempted": 3,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.605199",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-07-28",
+      "search_window_start": "2025-04-28",
+      "source_halt_announcement_id": "1223387331",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-04-29",
+      "source_halt_original_sha256": "1ca36d78c00b463b20b681bdc6d200f2ef3694a9bde1541fa9e9ef99675d6228"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.605255",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-03-22",
+      "search_window_start": "2025-12-21",
+      "source_halt_announcement_id": "1224888819",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-12-22",
+      "source_halt_original_sha256": "9e821eb2ce59c6bc90a7982f8764eb6e0de4ce056e6ec074bc3d3e3bf0a14560"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sz.000408",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-04-10",
+      "search_window_start": "2025-01-09",
+      "source_halt_announcement_id": "1222286144",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-01-10",
+      "source_halt_original_sha256": "4837e54bfc8975b71a9f4ef6b82b8b820be87f6cc14e1d3d955a04ec734917b6"
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.605199",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    },
+    {
+      "issuer": "sh.605255",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    },
+    {
+      "issuer": "sz.000408",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
