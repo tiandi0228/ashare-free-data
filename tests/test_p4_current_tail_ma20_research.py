@@ -97,6 +97,22 @@ class CurrentTailTests(unittest.TestCase):
         f.write_bytes(f.read_bytes().replace(b"2026-10-26",b"2026-10-27"))
         with self.assertRaisesRegex(ValueError,"source hash"):
             verify(self.archive,self.out)
+    def test_old_vendor_latest_row_cannot_claim_zero_research_signals(self):
+        self.vendor.rows=self.tail[:-1]
+        result=self.capture()
+        self.assertEqual(result["status"],"BLOCKED_PARTIAL")
+        self.assertEqual(result["captured_issuer_count"],0)
+        self.assertEqual(result["non_executable_ma20_crossing_events"],[])
+        with self.assertRaisesRegex(ValueError,"unsafe or incomplete"):
+            verify(self.archive,self.out)
+
+    def test_stale_capture_forged_to_success_rejected_on_replay(self):
+        report=self.capture()
+        report["results"][0]["observed_last_date"]="2026-10-29"
+        (self.out/"current_tail_report.json").write_text(json.dumps(report))
+        with self.assertRaisesRegex(ValueError,"overlap, date or row-count"):
+            verify(self.archive,self.out)
+
     def test_conflicting_source_anchor_cannot_create_signal(self):
         self.vendor.rows[0][5]="99"
         report=self.capture()
