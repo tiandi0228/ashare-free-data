@@ -77,6 +77,26 @@ def stage(work,folder_name,files):
         dest.write_bytes(raw)
     return target
 
+def readback(archive_root,epoch,run_id,attempt,archive_sha):
+    """Recompute and compare every permanent byte against archived originals."""
+    if not SHA40.fullmatch(str(archive_sha)):
+        raise ValueError("invalid source archive sha")
+    epoch_sha=json.loads((Path(epoch)/"archive_status.json").read_text())["source_sha256"]
+    root=Path(archive_root)/"p4-current-tail"/epoch_sha[:16]
+    target=root/f"run_{int(run_id)}_attempt_{attempt}"
+    folder_name,files,record=prepare(epoch,target,run_id,attempt,archive_sha)
+    if target!=Path(archive_root)/folder_name:
+        raise ValueError("archive research path mismatch")
+    if not target.is_dir() or {p.name for p in target.iterdir()}!=set(files):
+        raise ValueError("permanent archive files incomplete or unexpected")
+    for name,raw in files.items():
+        if (target/name).read_bytes()!=raw:
+            raise ValueError("permanent archive bytes mismatch")
+    return {"status":"PERMANENT_READBACK_VERIFIED","path":folder_name,
+            "verified_issuers":record["observed_issuers"],
+            "verified_non_executable_crossings":record["non_executable_ma20_crossings"],
+            "trade_gate":"BLOCKED","orders":[]}
+
 def persist(epoch,source,repository,run_id,attempt,archive_sha):
     if (not isinstance(repository,str) or
         not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+",repository)):
@@ -115,12 +135,19 @@ def persist(epoch,source,repository,run_id,attempt,archive_sha):
 
 def main():
     p=argparse.ArgumentParser()
-    p.add_argument("--epoch",required=True);p.add_argument("--source",required=True)
+    p.add_argument("--mode",choices=("archive","readback"),required=True)
+    p.add_argument("--epoch",required=True);p.add_argument("--source")
+    p.add_argument("--archive-root")
     p.add_argument("--repository",default=os.getenv("GITHUB_REPOSITORY"))
     p.add_argument("--source-run",required=True)
     p.add_argument("--run-attempt",required=True,type=int)
     p.add_argument("--archive-sha",required=True)
     a=p.parse_args()
-    result=persist(a.epoch,a.source,a.repository,a.source_run,a.run_attempt,a.archive_sha)
+    if a.mode=="archive":
+        if not a.source:p.error("--source is required for archive")
+        result=persist(a.epoch,a.source,a.repository,a.source_run,a.run_attempt,a.archive_sha)
+    else:
+        if not a.archive_root:p.error("--archive-root is required for readback")
+        result=readback(a.archive_root,a.epoch,a.source_run,a.run_attempt,a.archive_sha)
     print(json.dumps(result,sort_keys=True))
 if __name__=="__main__":main()
