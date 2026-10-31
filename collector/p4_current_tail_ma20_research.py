@@ -23,7 +23,10 @@ def safe_day(now=None):
 def baseline_items(root,limit=8):
     if type(limit) is not int or not 1<=limit<=8:raise ValueError("max eight issuers")
     epoch=Path(root)
-    status=json.loads((epoch/"archive_status.json").read_text())
+    try:
+        status=json.loads((epoch/"archive_status.json").read_text())
+    except (OSError,ValueError) as exc:
+        raise ValueError("no archived P1 originals") from exc
     sha=status.get("source_sha256")
     if (not isinstance(sha,str) or not re.fullmatch("[a-f0-9]{64}",sha)
         or epoch.name!=sha[:16] or status.get("trade_gate")!="BLOCKED"):
