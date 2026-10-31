@@ -35,7 +35,7 @@ class DailySignalQueryTests(unittest.TestCase):
         self.root=Path(temp.name)
         self.archive=self.root/"perm"
         self.epoch=self.root/"original"/"5ba00fbd720fad90"
-        folder=self.epoch/"shard_0000";folder.mkdir(parents=True)
+        folder=self.epoch/"shard_0098";folder.mkdir(parents=True)
         self.commit="a"*40
         (self.epoch/"archive_status.json").write_text(json.dumps({
             "source_sha256":"5ba00fbd720fad90"+"a"*48,"trade_gate":"BLOCKED"}))
