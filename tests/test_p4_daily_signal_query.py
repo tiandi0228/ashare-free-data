@@ -132,6 +132,18 @@ class DailySignalQueryTests(unittest.TestCase):
             with self.subTest(start=start,end=end):
                 with self.assertRaisesRegex(ValueError,"1 to 31 days"):
                     query(self.archive,self.epoch,start,end)
+    def test_weekly_query_stays_offline_and_after_permanent_replay(self):
+        workflow=(Path(__file__).resolve().parents[1]/
+                  ".github/workflows/p4-current-tail-ma20-pilot.yml").read_text()
+        self.assertIn("tests.test_p4_daily_signal_query -v",workflow)
+        self.assertIn("'collector/p4_daily_signal_query.py'",workflow)
+        self.assertIn("'tests/test_p4_daily_signal_query.py'",workflow)
+        self.assertLess(workflow.index("--mode readback"),
+                        workflow.index("--start\",start.isoformat()"))
+        self.assertIn("--archive-root\",\"archived-readback",workflow)
+        self.assertIn("missing_days_are_not_zero_signals",workflow)
+        self.assertIn("if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}",workflow)
+
     def test_unexpected_archive_dir_rejected(self):
         self.archive.joinpath("p4-current-tail","5ba00fbd720fad90","bad_object").mkdir(parents=True)
         with self.assertRaisesRegex(ValueError,"unexpected archived"):
