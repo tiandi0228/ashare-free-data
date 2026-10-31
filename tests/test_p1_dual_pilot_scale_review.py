@@ -95,6 +95,32 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"untrusted pilot schedule"):
             inspect([row],self.EPOCH)
 
+    def test_two_weekend_crons_are_strictly_one_shard(self):
+        from pathlib import Path
+        import re
+        folder=Path(__file__).resolve().parents[1]
+        w=(folder/".github/workflows/p1-fresh-vendor-roster.yml").read_text()
+        schedule=w.split("  schedule:",1)[1].split("  workflow_dispatch:",1)[0]
+        crons=re.findall(r"^\\s*- cron: '([^']+)'",schedule,re.M)
+        self.assertEqual(len(crons),12)
+        self.assertEqual({c for c in crons if c.endswith("6,0")},
+                         {"10 11 * * 6,0","10 15 * * 6,0"})
+        formula=next(x for x in w.splitlines() if "P1_REQUESTED_SHARDS:" in x)
+        self.assertNotIn("6,0",formula)
+        self.assertIn("github.event.schedule == '10 9 * * 1-5'",formula)
+        self.assertIn("github.event.schedule == '10 15 * * 1-5'",formula)
+        self.assertIn("&& '2' || '1'",formula)
+        self.assertIn("assert requested in (1,2)",w)
+        self.assertIn("group: p1-fresh-mainboard-roster-serial",w)
+        self.assertIn("cancel-in-progress: false",w)
+        self.assertIn("python -m collector.p1_archive_audit",w)
+        self.assertIn("--replay",w)
+        for weekend in ("10 11 * * 6,0","10 15 * * 6,0"):
+            receipt=self.receipt(100)
+            receipt["trigger_cron_utc"]=weekend
+            with self.assertRaisesRegex(ValueError,"untrusted pilot schedule"):
+                inspect([receipt],self.EPOCH)
+
     def test_workflow_has_exactly_two_daily_dual_slots(self):
         from pathlib import Path
         workflow=(Path(__file__).resolve().parents[1]/
