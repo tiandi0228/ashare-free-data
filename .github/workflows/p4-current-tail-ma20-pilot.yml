@@ -8,6 +8,8 @@ on:
       - 'tests/test_p4_current_tail_permanent_archive.py'
       - 'collector/p4_daily_signal_query.py'
       - 'tests/test_p4_daily_signal_query.py'
+      - 'collector/p4_real_archive_preflight.py'
+      - 'tests/test_p4_real_archive_preflight.py'
       - '.github/workflows/p4-current-tail-ma20-pilot.yml'
   push:
     branches: [main]
@@ -18,6 +20,8 @@ on:
       - 'tests/test_p4_current_tail_permanent_archive.py'
       - 'collector/p4_daily_signal_query.py'
       - 'tests/test_p4_daily_signal_query.py'
+      - 'collector/p4_real_archive_preflight.py'
+      - 'tests/test_p4_real_archive_preflight.py'
       - '.github/workflows/p4-current-tail-ma20-pilot.yml'
   schedule:
     - cron: '30 11 * * 1-5' # 19:30 Beijing, after completed mainland session
@@ -40,7 +44,17 @@ jobs:
         with:
           python-version: '3.11'
       - name: Verify date, frozen overlap, full crossing inventory and no-trade boundaries
-        run: python -m unittest tests.test_p4_current_tail_ma20_research tests.test_p4_current_tail_permanent_archive tests.test_p4_daily_signal_query -v
+        run: python -m unittest tests.test_p4_current_tail_ma20_research tests.test_p4_current_tail_permanent_archive tests.test_p4_daily_signal_query tests.test_p4_real_archive_preflight -v
+
+      - name: Read-only integration proof against REAL pinned P1 archival originals
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
+        run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-source-smoke FETCH_HEAD
+          python -m collector.p4_real_archive_preflight \
+            --root archived-source-smoke/5ba00fbd720fad90 \
+            --archive-commit "$(git -C archived-source-smoke rev-parse HEAD)" \
+            --out evidence/p4-real-source-preflight.json
 
   capture_observation:
     if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
@@ -54,13 +68,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install only the free market-data SDK
-        run: python -m pip install 'baostock>=0.8,<1'
       - name: Pin immutable audited historical originals (NO P1 MUTATION)
         run: |
           git fetch --depth=1 origin research-csv-archive
           git worktree add --detach archived-research FETCH_HEAD
           git -C archived-research rev-parse HEAD > evidence-pilot-archive-sha.txt
+      - name: Independent frozen-source preflight before provider access
+        run: |
+          python -m collector.p4_real_archive_preflight \
+            --root archived-research/5ba00fbd720fad90 \
+            --archive-commit "$(cat evidence-pilot-archive-sha.txt)" \
+            --out evidence/p4-real-source-preflight.json
+      - name: Install only the free market-data SDK
+        run: python -m pip install 'baostock>=0.8,<1'
       - name: Collect at most eight archived issuers after frozen end date
         run: |
           mkdir -p evidence/p4-current-tail
@@ -125,6 +145,7 @@ jobs:
           name: p4-current-tail-RESEARCH-ONLY-${{ github.run_id }}
           path: |
             evidence-pilot-archive-sha.txt
+            evidence/p4-real-source-preflight.json
             evidence/p4-current-tail/
           retention-days: 14
           if-no-files-found: warn
