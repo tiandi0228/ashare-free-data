@@ -49,52 +49,80 @@ def collect(plan, selected):
             raise ValueError("archive issuer membership differs from original shard manifest")
     return files
 
+MAX_PUSH_ATTEMPTS=3
+
+def is_concurrent_push_rejection(result):
+    """Retry ONLY when Git explicitly reports another writer advanced branch."""
+    if result.returncode==0:
+        return False
+    reason=((result.stderr or "")+"\n"+(result.stdout or "")).lower()
+    return any(marker in reason for marker in (
+        "non-fast-forward", "(fetch first)", "stale info",
+    ))
+
 def archive(plan, selected, repository):
+    # The complete, unmodified local P1 original receipts are validated once.
+    # A retry always stages these same bytes onto a freshly fetched archive.
     entries=collect(plan,selected)
     prefix=plan["source_sha256"][:16]
     if not repository or "/" not in repository:raise ValueError("GitHub repository required")
     with tempfile.TemporaryDirectory() as tmp:
-        work=Path(tmp)/"archive"
-        # Shallow clone avoids downloading every prior research CSV commit.
-        git("clone","--no-checkout","--depth=1",f"https://github.com/{repository}.git",str(work))
-        git("config","user.name","github-actions[bot]",cwd=work)
-        git("config","user.email","41898282+github-actions[bot]@users.noreply.github.com",cwd=work)
-        found=git("ls-remote","--heads","origin",BRANCH,cwd=work).stdout.strip()
-        if found:
-            git("fetch","--depth=1","origin",BRANCH,cwd=work)
-            git("checkout","-B",BRANCH,"FETCH_HEAD",cwd=work)
-        else:
-            git("checkout","--orphan",BRANCH,cwd=work)
-            for item in work.iterdir():
-                if item.name!=".git":
-                    if item.is_dir():shutil.rmtree(item)
-                    else:item.unlink()
-        for index,folder in selected:
-            receipt_source=folder/"quality.json"
-            receipt_dest=work/prefix/f"shard_{index:04d}"/"quality.json"
-            receipt_dest.parent.mkdir(parents=True,exist_ok=True)
-            if receipt_dest.exists() and receipt_dest.read_bytes()!=receipt_source.read_bytes():
-                raise ValueError("refuse to overwrite archived receipt")
-            shutil.copyfile(receipt_source,receipt_dest)
-        for index,source,digest in entries:
-            destination=work/prefix/f"shard_{index:04d}"/source.name
-            destination.parent.mkdir(parents=True,exist_ok=True)
-            if destination.exists() and hashlib.sha256(destination.read_bytes()).hexdigest()!=digest:
-                raise ValueError("refuse to overwrite archived CSV")
-            shutil.copyfile(source,destination)
-        manifest=work/prefix/"archive_status.json"
-        previous=json.loads(manifest.read_text()) if manifest.exists() else {"source_sha256":plan["source_sha256"],"trade_gate":"BLOCKED","archived_shards":[]}
-        if previous["source_sha256"]!=plan["source_sha256"] or previous["trade_gate"]!="BLOCKED":
-            raise ValueError("archive epoch mismatch")
-        previous["archived_shards"]=sorted(set(previous["archived_shards"])|{i for i,_,_ in entries})
-        manifest.write_text(json.dumps(previous,indent=2)+chr(10))
-        git("add",".",cwd=work)
-        if git("diff","--cached","--quiet",cwd=work,check=False).returncode==0:
-            print("Archive already up to date")
-            return
-        git("commit","-m","data(p1): archive SHA-verified research CSV shards [NO TRADES]",cwd=work)
-        git("push","origin",f"HEAD:refs/heads/{BRANCH}",cwd=work)
-        print("Archived",len(entries),"SHA-verified CSV files to",BRANCH)
+        for attempt in range(1,MAX_PUSH_ATTEMPTS+1):
+            work=Path(tmp)/f"archive_attempt_{attempt}"
+            # Shallow clone avoids downloading the full history each attempt.
+            git("clone","--no-checkout","--depth=1",f"https://github.com/{repository}.git",str(work))
+            git("config","user.name","github-actions[bot]",cwd=work)
+            git("config","user.email","41898282+github-actions[bot]@users.noreply.github.com",cwd=work)
+            found=git("ls-remote","--heads","origin",BRANCH,cwd=work).stdout.strip()
+            if found:
+                git("fetch","--depth=1","origin",BRANCH,cwd=work)
+                git("checkout","-B",BRANCH,"FETCH_HEAD",cwd=work)
+            else:
+                git("checkout","--orphan",BRANCH,cwd=work)
+                for item in work.iterdir():
+                    if item.name!=".git":
+                        if item.is_dir():shutil.rmtree(item)
+                        else:item.unlink()
+            for index,folder in selected:
+                receipt_source=folder/"quality.json"
+                receipt_dest=work/prefix/f"shard_{index:04d}"/"quality.json"
+                receipt_dest.parent.mkdir(parents=True,exist_ok=True)
+                if receipt_dest.exists() and receipt_dest.read_bytes()!=receipt_source.read_bytes():
+                    raise ValueError("refuse to overwrite archived receipt")
+                shutil.copyfile(receipt_source,receipt_dest)
+            for index,source,digest in entries:
+                destination=work/prefix/f"shard_{index:04d}"/source.name
+                destination.parent.mkdir(parents=True,exist_ok=True)
+                if destination.exists() and hashlib.sha256(destination.read_bytes()).hexdigest()!=digest:
+                    raise ValueError("refuse to overwrite archived CSV")
+                shutil.copyfile(source,destination)
+            manifest=work/prefix/"archive_status.json"
+            previous=(json.loads(manifest.read_text()) if manifest.exists() else
+                      {"source_sha256":plan["source_sha256"],
+                       "trade_gate":"BLOCKED","archived_shards":[]})
+            if previous["source_sha256"]!=plan["source_sha256"] or previous["trade_gate"]!="BLOCKED":
+                raise ValueError("archive epoch mismatch")
+            previous["archived_shards"]=sorted(set(previous["archived_shards"])|
+                                               {i for i,_,_ in entries})
+            manifest.write_text(json.dumps(previous,indent=2)+chr(10))
+            git("add",".",cwd=work)
+            if git("diff","--cached","--quiet",cwd=work,check=False).returncode==0:
+                print("Archive already up to date on latest remote version")
+                return
+            git("commit","-m","data(p1): archive SHA-verified research CSV shards [NO TRADES]",cwd=work)
+            result=git("push","origin",f"HEAD:refs/heads/{BRANCH}",cwd=work,check=False)
+            if result.returncode==0:
+                print("Archived",len(entries),"SHA-verified CSV files to",BRANCH,
+                      "on write attempt",attempt)
+                return
+            if is_concurrent_push_rejection(result):
+                if attempt<MAX_PUSH_ATTEMPTS:
+                    print("P1 archive concurrent update; refreshing latest Git snapshot",
+                          "next attempt",attempt+1,flush=True)
+                    continue
+                raise ValueError("immutable P1 archive concurrent writes exhausted bounded retries")
+            raise ValueError("immutable P1 archive push rejected; not retryable as concurrent update")
+        raise ValueError("P1 archive has no accepted remote write")
 
 def main():
     p=argparse.ArgumentParser()
