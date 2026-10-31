@@ -38,8 +38,11 @@ class CurrentTailTests(unittest.TestCase):
         tmp=tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
         self.root=Path(tmp.name)
-        self.arc=self.root/"archive"/"5ba00fbd720fad90"/"shard_0000"
+        self.archive=self.root/"archive"/"5ba00fbd720fad90"
+        self.arc=self.archive/"shard_0000"
         self.arc.mkdir(parents=True)
+        (self.archive/"archive_status.json").write_text(json.dumps({
+            "source_sha256":"5ba00fbd720fad90"+"a"*48,"trade_gate":"BLOCKED"}))
         self.out=self.root/"out"
         dates=[]
         d=date(2026,10,20)
@@ -59,7 +62,7 @@ class CurrentTailTests(unittest.TestCase):
                            return_value={"details":[{"code":"sh.600000"}]})
         self.patcher.start();self.addCleanup(self.patcher.stop)
     def capture(self):
-        return run(self.root/"archive",self.out,self.vendor,
+        return run(self.archive,self.out,self.vendor,
                    as_of="2026-10-30",now=self.now,
                    archive_commit="a"*40)
     def test_crossing_independently_replayed_without_buy(self):
@@ -74,7 +77,7 @@ class CurrentTailTests(unittest.TestCase):
         self.assertEqual(manifest["trade_gate"],"BLOCKED")
         self.assertEqual(manifest["orders"],[])
         self.assertEqual(manifest["executable_candidates"],[])
-        result=verify(self.root/"archive",self.out)
+        result=verify(self.archive,self.out)
         self.assertEqual(result["verified_non_executable_crossings"],2)
         self.assertEqual(result["new_rows_verified"],4)
         self.assertFalse(result["complete_mainboard_coverage"])
@@ -87,13 +90,13 @@ class CurrentTailTests(unittest.TestCase):
         manifest["non_executable_ma20_crossing_events"].pop(0)
         (self.out/"current_tail_report.json").write_text(json.dumps(manifest))
         with self.assertRaisesRegex(ValueError,"incomplete or altered"):
-            verify(self.root/"archive",self.out)
+            verify(self.archive,self.out)
     def test_altered_source_bytes_even_with_report_not_edited_rejected(self):
         self.capture()
         f=self.out/"sh_600000_current.csv"
         f.write_bytes(f.read_bytes().replace(b"2026-10-26",b"2026-10-27"))
         with self.assertRaisesRegex(ValueError,"source hash"):
-            verify(self.root/"archive",self.out)
+            verify(self.archive,self.out)
     def test_conflicting_source_anchor_cannot_create_signal(self):
         self.vendor.rows[0][5]="99"
         report=self.capture()
@@ -101,12 +104,12 @@ class CurrentTailTests(unittest.TestCase):
         self.assertEqual(report["captured_issuer_count"],0)
         self.assertEqual(report["non_executable_ma20_crossing_events"],[])
         with self.assertRaisesRegex(ValueError,"unsafe or incomplete"):
-            verify(self.root/"archive",self.out)
+            verify(self.archive,self.out)
     def test_unfinished_asof_and_unsafe_clock_rejected(self):
         for day in ("2026-11-02","2026-10-20"):
             with self.subTest(day=day):
                 with self.assertRaisesRegex(ValueError,"as-of"):
-                    run(self.root/"archive",self.out,self.vendor,
+                    run(self.archive,self.out,self.vendor,
                         as_of=day,now=self.now)
         with self.assertRaisesRegex(ValueError,"naive"):
             safe_day(datetime(2026,10,30,20))
@@ -117,8 +120,21 @@ class CurrentTailTests(unittest.TestCase):
     def test_90day_rebase_prevents_stale_history_pilot(self):
         later=datetime(2027,2,5,19,tzinfo=ZoneInfo("Asia/Shanghai"))
         with self.assertRaisesRegex(ValueError,"rebase required"):
-            run(self.root/"archive",self.out,self.vendor,
+            run(self.archive,self.out,self.vendor,
                 as_of="2027-02-05",now=later)
+    def test_cross_epoch_mixing_and_forged_provenance_rejected(self):
+        self.capture()
+        report_path=self.out/"current_tail_report.json"
+        report=json.loads(report_path.read_text())
+        report["source_epoch_sha256"]="b"*64
+        report_path.write_text(json.dumps(report))
+        with self.assertRaisesRegex(ValueError,"source epoch changed"):
+            verify(self.archive,self.out)
+        self.archive.joinpath("archive_status.json").write_text(json.dumps({
+            "source_sha256":"b"*64,"trade_gate":"BLOCKED"}))
+        with self.assertRaisesRegex(ValueError,"archive epoch provenance"):
+            run(self.archive,self.out,self.vendor,as_of="2026-10-30",now=self.now)
+
     def test_suspended_row_breaks_crossing_continuity(self):
         prior=[dict(zip(FIELDS,r)) for r in self.base]
         future=[dict(zip(FIELDS,r)) for r in self.tail[1:]]
