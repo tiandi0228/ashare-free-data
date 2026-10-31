@@ -90,13 +90,20 @@ def inspect(receipts, epoch):
     ordered=sorted(by_run.values(),key=lambda row:row["run_id"],reverse=True)
     scheduled=[r for r in ordered if r["trigger"]=="schedule"]
     recent=scheduled[:MIN_RECORDED_SUCCESSES]
+    recent_crons={r["trigger_cron_utc"] for r in recent}
+    both_slots_covered=recent_crons==PILOT_CRONS
+    all_success=all(r["dual_pilot_result"]=="TWO_VERIFIED_SHARDS_ARCHIVED"
+                    for r in recent)
+    # Three wins from the SAME clock slot must not certify both new pilot
+    # slots. This read-only review never permits automatic scaling.
     success=(len(recent)==MIN_RECORDED_SUCCESSES
-             and all(r["dual_pilot_result"]=="TWO_VERIFIED_SHARDS_ARCHIVED"
-                     for r in recent))
+             and all_success and both_slots_covered)
     decision=("RECORDED_PILOTS_AWAIT_ACTIONS_VERIFICATION" if success else
               "INSUFFICIENT_SCHEDULED_PILOT_RECEIPTS"
               if len(recent)<MIN_RECORDED_SUCCESSES else
-              "RECENT_RECORDED_PILOT_NOT_ALL_SUCCESSFUL")
+              "RECENT_RECORDED_PILOT_NOT_ALL_SUCCESSFUL"
+              if not all_success else
+              "RECENT_SCHEDULED_PILOT_CRON_COVERAGE_INCOMPLETE")
     return {
         "phase":"P1_DUAL_PILOT_READ_ONLY_SCALE_REVIEW",
         "source_sha256":epoch,
@@ -106,6 +113,8 @@ def inspect(receipts, epoch):
         "required_recent_recorded_successes":MIN_RECORDED_SUCCESSES,
         "reviewed_scheduled_run_ids":[r["run_id"] for r in recent],
         "reviewed_scheduled_results":[r["dual_pilot_result"] for r in recent],
+        "reviewed_scheduled_crons":[r["trigger_cron_utc"] for r in recent],
+        "both_scheduled_pilot_slots_observed":both_slots_covered,
         "status":decision,
         "unrecorded_or_failed_runs_not_excluded":True,
         "automatic_shard_increase_authorized":False,
