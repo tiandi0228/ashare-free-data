@@ -6,7 +6,6 @@ on:
       - '.github/workflows/p1-fresh-vendor-roster.yml'
       - 'collector/p1_fresh_vendor_roster.py'
       - 'collector/baostock_batch.py'
-      - 'tests/test_baostock_batch.py'
       - 'collector/p1_fresh_shard_plan.py'
       - 'collector/p1_roster_lock.py'
       - 'collector/p1_shard_ledger.py'
