@@ -15,6 +15,24 @@ on:
       - 'tests/test_p1_dual_pilot_scale_review.py'
       - '.github/workflows/p1-readiness-contract-ci.yml'
       - '.github/workflows/p1-fresh-vendor-roster.yml'
+      - 'tests/test_p1_fresh_vendor_roster.py'
+      - 'tests/test_p1_roster_lock.py'
+      - 'tests/test_p1_fresh_shard_plan.py'
+      - 'tests/test_p1_run_progress.py'
+      - 'tests/test_p1_optional_second.py'
+      - 'tests/test_p1_dual_end_to_end.py'
+      - 'tests/test_p1_quad_pick.py'
+      - 'tests/test_p1_quad_verify.py'
+      - 'tests/test_p1_orphan_archive_recovery.py'
+      - 'tests/test_p1_checkpoint.py'
+      - 'tests/test_p1_source_diagnostics.py'
+      - 'tests/test_p1_coverage_gap_diagnosis.py'
+      - 'tests/test_p3_all_completed_worklist.py'
+      - 'tests/test_p3_p1_evidence_worklist.py'
+      - 'tests/test_p1_repair_pick.py'
+      - 'tests/test_p1_csv_archive.py'
+      - 'tests/test_p1_shard_ledger.py'
+      - 'tests/test_p1_epoch_compare.py'
   pull_request:
     paths:
       - 'collector/p1_research_readiness.py'
@@ -27,6 +45,24 @@ on:
       - 'tests/test_p1_dual_pilot_scale_review.py'
       - '.github/workflows/p1-readiness-contract-ci.yml'
       - '.github/workflows/p1-fresh-vendor-roster.yml'
+      - 'tests/test_p1_fresh_vendor_roster.py'
+      - 'tests/test_p1_roster_lock.py'
+      - 'tests/test_p1_fresh_shard_plan.py'
+      - 'tests/test_p1_run_progress.py'
+      - 'tests/test_p1_optional_second.py'
+      - 'tests/test_p1_dual_end_to_end.py'
+      - 'tests/test_p1_quad_pick.py'
+      - 'tests/test_p1_quad_verify.py'
+      - 'tests/test_p1_orphan_archive_recovery.py'
+      - 'tests/test_p1_checkpoint.py'
+      - 'tests/test_p1_source_diagnostics.py'
+      - 'tests/test_p1_coverage_gap_diagnosis.py'
+      - 'tests/test_p3_all_completed_worklist.py'
+      - 'tests/test_p3_p1_evidence_worklist.py'
+      - 'tests/test_p1_repair_pick.py'
+      - 'tests/test_p1_csv_archive.py'
+      - 'tests/test_p1_shard_ledger.py'
+      - 'tests/test_p1_epoch_compare.py'
   workflow_dispatch:
 
 permissions:
@@ -49,13 +85,28 @@ jobs:
       - name: Run offline readiness and CSV archive regressions
         run: |
           python -m unittest \
-            tests.test_p1_research_readiness \
+            tests.test_p1_fresh_vendor_roster \
+            tests.test_p1_fresh_shard_plan \
+            tests.test_p1_roster_lock \
+            tests.test_p1_source_diagnostics \
+            tests.test_p1_orphan_archive_recovery \
+            tests.test_p1_shard_ledger \
+            tests.test_p1_checkpoint \
+            tests.test_p1_csv_archive \
             tests.test_p1_archive_audit \
-            tests.test_p1_run_progress \
+            tests.test_p1_repair_pick \
+            tests.test_p1_coverage_gap_diagnosis \
+            tests.test_p3_p1_evidence_worklist \
+            tests.test_p1_quad_pick \
+            tests.test_p1_optional_second \
+            tests.test_p1_dual_end_to_end \
             tests.test_p1_dual_pilot_receipt \
             tests.test_p1_dual_pilot_scale_review \
-            tests.test_p1_optional_second \
-            tests.test_p1_quad_pick \
+            tests.test_p1_run_progress \
+            tests.test_p1_quad_verify \
+            tests.test_p3_all_completed_worklist \
+            tests.test_p1_epoch_compare \
+            tests.test_p1_research_readiness \
             -v
       - name: Verify research-only gate remains closed
         run: |

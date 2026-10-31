@@ -494,6 +494,32 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
         self.assertEqual(inspect(rows,self.EPOCH)["status"],
                          "RECORDED_PILOTS_AWAIT_ACTIONS_VERIFICATION")
 
+    def test_all_p1_unit_tests_run_offline_without_triggering_vendor(self):
+        from pathlib import Path
+        root=Path(__file__).resolve().parents[1]
+        live=(root/".github/workflows/p1-fresh-vendor-roster.yml").read_text()
+        offline=(root/".github/workflows/p1-readiness-contract-ci.yml").read_text()
+        live_push=live.split("  schedule:",1)[0]
+        self.assertNotIn("      - 'tests/",live_push)
+        live_cmd=next(line for line in live.splitlines()
+                      if "python -m unittest tests.test_p1_fresh_vendor_roster" in line)
+        modules=live_cmd.split("python -m unittest ",1)[1].split(" -v",1)[0].split()
+        self.assertGreaterEqual(len(modules),22)
+        self.assertEqual(len(modules),len(set(modules)))
+        for module in modules:
+            self.assertTrue(module.startswith("tests.test_"))
+            self.assertIn("            "+module,offline)
+            file_path=module.replace(".","/")+".py"
+            self.assertEqual(
+                offline.count("      - '"+file_path+"'"),2,
+                "missing push and pull_request offline paths: "+file_path)
+        self.assertIn("  schedule:",live)
+        self.assertIn("  workflow_dispatch:",live)
+        self.assertIn("      - 'collector/p1_quad_verify.py'",live_push)
+        self.assertIn("      - '.github/workflows/p1-fresh-vendor-roster.yml'",live_push)
+        self.assertIn("            tests.test_p1_research_readiness \\\n            -v",offline)
+        self.assertIn("assert result['trade_gate'] == 'BLOCKED'",offline)
+
     def test_read_only_scale_review_edits_use_offline_ci_not_vendor_capture(self):
         from pathlib import Path
         root=Path(__file__).resolve().parents[1]
