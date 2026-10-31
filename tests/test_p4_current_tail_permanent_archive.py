@@ -26,6 +26,8 @@ class DurableCurrentTailEvidenceTests(unittest.TestCase):
             "trade_gate":"BLOCKED","orders":[],
             "non_executable_ma20_crossing_events":[],
             "strategy_buy_signals_certified":0}
+        (self.epoch/"archive_status.json").write_text(json.dumps({
+            "source_sha256":self.report["source_epoch_sha256"],"trade_gate":"BLOCKED"}))
         self.write_report()
         self.checked={"phase":"P4_CURRENT_TAIL_INDEPENDENT_REPLAY",
             "trade_gate":"BLOCKED","orders":[],"executable_candidates":[],
