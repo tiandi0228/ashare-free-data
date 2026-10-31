@@ -6,6 +6,9 @@ on:
       - '.github/workflows/baostock-batch.yml'
       - 'collector/baostock_batch.py'
       - 'manifests/baostock_pilot.txt'
+  pull_request:
+    paths:
+      - '.github/workflows/baostock-batch.yml'
   schedule:
     - cron: '35 8 * * 1-5' # 16:35 Beijing weekday research sample
   workflow_dispatch:
@@ -39,8 +42,10 @@ jobs:
       - name: Offline contract tests
         run: python -m unittest discover -s tests -v
       - name: Install no-cost historical provider
+        if: github.event_name != 'pull_request'
         run: python -m pip install 'baostock>=0.8,<1'
       - name: Select bounded research shard
+        if: github.event_name != 'pull_request'
         id: select
         env:
           EVENT_NAME: ${{ github.event_name }}
@@ -59,9 +64,10 @@ jobs:
           print('manifest='+('manifests/baostock_delisted_8_pilot.txt' if new else 'manifests/baostock_pilot.txt'))
           PY
       - name: Fetch at most eight issuer histories, at most one transient retry each
+        if: github.event_name != 'pull_request'
         run: timeout 155s python -m collector.baostock_batch --manifest "${{ steps.select.outputs.manifest }}" --batch-index "${{ steps.select.outputs.index }}" --out evidence
       - name: Preserve original CSVs and SHA256 receipt
-        if: always()
+        if: ${{ always() && github.event_name != 'pull_request' }}
         uses: actions/upload-artifact@v4
         with:
           name: ashare-BAOSTOCK-${{ steps.select.outputs.index }}-${{ github.run_id }}-BLOCKED
@@ -69,7 +75,7 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
       - name: Fail closed on partial or invalid source
-        if: always()
+        if: ${{ always() && github.event_name != 'pull_request' }}
         run: |
           python - <<'PY'
           import hashlib,json
