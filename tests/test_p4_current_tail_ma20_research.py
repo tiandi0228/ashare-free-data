@@ -52,7 +52,9 @@ class CurrentTailTests(unittest.TestCase):
         dates=sorted(dates)
         self.base=[row(day,9 if i==24 else 10) for i,day in enumerate(dates)]
         self.tail=[self.base[-1],row("2026-10-21",12),row("2026-10-22",12),
-                   row("2026-10-23",8),row("2026-10-26",13)]
+                   row("2026-10-23",8),row("2026-10-26",13),
+                   row("2026-10-27",13),row("2026-10-28",13),
+                   row("2026-10-29",13),row("2026-10-30",13)]
         self.arc.joinpath("sh_600000.csv").write_text(
             ",".join(FIELDS)+"\n"+"".join(",".join(r)+"\n" for r in self.base))
         self.arc.joinpath("quality.json").write_text("{}")
@@ -71,7 +73,7 @@ class CurrentTailTests(unittest.TestCase):
         self.assertEqual([x["completed_close_day"] for x in
             manifest["non_executable_ma20_crossing_events"]],
             ["2026-10-21","2026-10-26"])
-        self.assertEqual(manifest["new_source_rows"],4)
+        self.assertEqual(manifest["new_source_rows"],8)
         self.assertEqual(manifest["captured_issuer_count"],1)
         self.assertEqual(manifest["strategy_buy_signals_certified"],0)
         self.assertEqual(manifest["trade_gate"],"BLOCKED")
@@ -79,7 +81,7 @@ class CurrentTailTests(unittest.TestCase):
         self.assertEqual(manifest["executable_candidates"],[])
         result=verify(self.archive,self.out)
         self.assertEqual(result["verified_non_executable_crossings"],2)
-        self.assertEqual(result["new_rows_verified"],4)
+        self.assertEqual(result["new_rows_verified"],8)
         self.assertFalse(result["complete_mainboard_coverage"])
         self.assertEqual(len(self.vendor.calls),1)
         self.assertEqual(self.vendor.calls[0][1]["start_date"],"2026-10-20")
@@ -97,6 +99,22 @@ class CurrentTailTests(unittest.TestCase):
         f.write_bytes(f.read_bytes().replace(b"2026-10-26",b"2026-10-27"))
         with self.assertRaisesRegex(ValueError,"source hash"):
             verify(self.archive,self.out)
+    def test_old_vendor_latest_row_cannot_claim_zero_research_signals(self):
+        self.vendor.rows=self.tail[:-1]
+        result=self.capture()
+        self.assertEqual(result["status"],"BLOCKED_PARTIAL")
+        self.assertEqual(result["captured_issuer_count"],0)
+        self.assertEqual(result["non_executable_ma20_crossing_events"],[])
+        with self.assertRaisesRegex(ValueError,"unsafe or incomplete"):
+            verify(self.archive,self.out)
+
+    def test_stale_capture_forged_to_success_rejected_on_replay(self):
+        report=self.capture()
+        report["results"][0]["observed_last_date"]="2026-10-29"
+        (self.out/"current_tail_report.json").write_text(json.dumps(report))
+        with self.assertRaisesRegex(ValueError,"overlap, date or row-count"):
+            verify(self.archive,self.out)
+
     def test_conflicting_source_anchor_cannot_create_signal(self):
         self.vendor.rows[0][5]="99"
         report=self.capture()

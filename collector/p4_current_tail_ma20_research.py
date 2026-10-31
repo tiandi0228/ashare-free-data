@@ -118,8 +118,8 @@ def run(root,out,bs,as_of=None,limit=8,now=None,archive_commit=None):
                 tail_raw=(",".join(FIELDS)+"\n"+
                           "".join(",".join(row)+"\n" for row in values)).encode()
                 stats=audit_csv(tail_raw,code)
-                if stats["first"]!=anchor or stats["last"]>asof.isoformat():
-                    raise ValueError("out-of-range or missing overlap")
+                if stats["first"]!=anchor or stats["last"]!=asof.isoformat():
+                    raise ValueError("missing overlap or stale research as-of close")
                 source_rows=list(csv.DictReader(tail_raw.decode().splitlines()))
                 if source_rows[0]!=baseline[-1]:
                     raise ValueError("immutable source anchor differs from provider")
@@ -186,7 +186,7 @@ def verify(root,out):
         anchor=baseline[-1]["date"]
         if (rows[0]!=baseline[-1] or item.get("anchor_date")!=anchor
             or stats["last"]!=item.get("observed_last_date")
-            or stats["last"]>report["as_of_day"]
+            or stats["last"]!=report["as_of_day"]
             or item.get("fresh_rows")!=len(rows)-1):
             raise ValueError("overlap, date or row-count mismatch")
         signal_days=crossings(baseline,rows[1:],anchor)
