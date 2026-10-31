@@ -39,7 +39,7 @@ class CurrentTailTests(unittest.TestCase):
         self.addCleanup(tmp.cleanup)
         self.root=Path(tmp.name)
         self.archive=self.root/"archive"/"5ba00fbd720fad90"
-        self.arc=self.archive/"shard_0000"
+        self.arc=self.archive/"shard_0098"
         self.arc.mkdir(parents=True)
         (self.archive/"archive_status.json").write_text(json.dumps({
             "source_sha256":"5ba00fbd720fad90"+"a"*48,"trade_gate":"BLOCKED"}))
@@ -131,6 +131,22 @@ class CurrentTailTests(unittest.TestCase):
                         as_of=day,now=self.now)
         with self.assertRaisesRegex(ValueError,"naive"):
             safe_day(datetime(2026,10,30,20))
+    def test_later_lower_index_archives_cannot_rotate_eight_issuer_pilot(self):
+        earlier=self.archive/"shard_0001"
+        earlier.mkdir()
+        (earlier/"quality.json").write_text("{}")
+        report=self.capture()
+        self.assertEqual(report["status"],"OBSERVED_BOUNDED_RESEARCH")
+        self.assertEqual(report["pilot_shard"],"shard_0098")
+        self.assertEqual(report["selected_codes"],["sh.600000"])
+        self.assertEqual(self.vendor.calls[0][0],"sh.600000")
+        self.assertEqual(verify(self.archive,self.out)["verified_issuers"],1)
+
+    def test_missing_original_frozen_pilot_shard_blocks_replacement(self):
+        self.arc.rename(self.archive/"shard_0100")
+        with self.assertRaisesRegex(ValueError,"missing frozen P4 pilot shard"):
+            self.capture()
+
     def test_no_archive_is_not_claimed_as_zero_signals(self):
         with self.assertRaisesRegex(ValueError,"no archived"):
             run(self.root/"empty",self.out,self.vendor,as_of="2026-10-30",
