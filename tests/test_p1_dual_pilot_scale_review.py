@@ -101,7 +101,7 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
         folder=Path(__file__).resolve().parents[1]
         w=(folder/".github/workflows/p1-fresh-vendor-roster.yml").read_text()
         schedule=w.split("  schedule:",1)[1].split("  workflow_dispatch:",1)[0]
-        crons=re.findall(r"^\\s*- cron: '([^']+)'",schedule,re.M)
+        crons=re.findall(r"^\s*- cron: '([^']+)'",schedule,re.M)
         self.assertEqual(len(crons),12)
         self.assertEqual({c for c in crons if c.endswith("6,0")},
                          {"10 11 * * 6,0","10 15 * * 6,0"})
