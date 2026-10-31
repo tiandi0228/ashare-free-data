@@ -4,12 +4,16 @@ on:
     paths:
       - 'collector/p4_current_tail_ma20_research.py'
       - 'tests/test_p4_current_tail_ma20_research.py'
+      - 'collector/p4_current_tail_permanent_archive.py'
+      - 'tests/test_p4_current_tail_permanent_archive.py'
       - '.github/workflows/p4-current-tail-ma20-pilot.yml'
   push:
     branches: [main]
     paths:
       - 'collector/p4_current_tail_ma20_research.py'
       - 'tests/test_p4_current_tail_ma20_research.py'
+      - 'collector/p4_current_tail_permanent_archive.py'
+      - 'tests/test_p4_current_tail_permanent_archive.py'
       - '.github/workflows/p4-current-tail-ma20-pilot.yml'
   schedule:
     - cron: '30 11 * * 1-5' # 19:30 Beijing, after completed mainland session
@@ -32,11 +36,13 @@ jobs:
         with:
           python-version: '3.11'
       - name: Verify date, frozen overlap, full crossing inventory and no-trade boundaries
-        run: python -m unittest tests.test_p4_current_tail_ma20_research -v
+        run: python -m unittest tests.test_p4_current_tail_ma20_research tests.test_p4_current_tail_permanent_archive -v
 
   capture_observation:
     if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     needs: offline_contracts
+    permissions:
+      contents: write # only the real bounded capture job archives permanent verified originals
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -65,6 +71,28 @@ jobs:
             --mode verify \
             --root archived-research/5ba00fbd720fad90 \
             --out evidence/p4-current-tail
+      - name: Persist only independently verified observations to immutable free Git archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m collector.p4_current_tail_permanent_archive \
+            --mode archive \
+            --epoch archived-research/5ba00fbd720fad90 \
+            --source evidence/p4-current-tail \
+            --source-run "${{ github.run_id }}" \
+            --run-attempt "${{ github.run_attempt }}" \
+            --archive-sha "$(cat evidence-pilot-archive-sha.txt)"
+      - name: Re-fetch permanent Git branch and replay every archived source byte
+        run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-readback FETCH_HEAD
+          python -m collector.p4_current_tail_permanent_archive \
+            --mode readback \
+            --epoch archived-research/5ba00fbd720fad90 \
+            --archive-root archived-readback \
+            --source-run "${{ github.run_id }}" \
+            --run-attempt "${{ github.run_attempt }}" \
+            --archive-sha "$(cat evidence-pilot-archive-sha.txt)"
       - name: Preserve source originals and audit for 14 days (NO TRADES)
         if: always()
         uses: actions/upload-artifact@v4
