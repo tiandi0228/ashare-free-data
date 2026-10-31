@@ -171,7 +171,14 @@ class CSVArchiveTests(unittest.TestCase):
                 if cmd=="diff":
                     return SimpleNamespace(stdout="",stderr="",returncode=1)
                 if cmd=="push":
-                    work=Path(cwd);pushes.append(work)
+                    work=Path(cwd)
+                    snapshot={
+                        "work":str(work),
+                        "marker":json.loads((work/("a"*16)/"archive_status.json").read_text()),
+                        "prior":(work/("a"*16)/"shard_0009"/"quality.json").read_text(),
+                        "p4":(work/"p4-current-tail"/"run_sample"/"original.json").read_text(),
+                    }
+                    pushes.append(snapshot)
                     if len(pushes)==1:
                         return SimpleNamespace(stdout="",stderr="[rejected] (fetch first)",returncode=1)
                 return SimpleNamespace(stdout="",stderr="",returncode=0)
@@ -181,13 +188,10 @@ class CSVArchiveTests(unittest.TestCase):
             self.assertEqual(len(clones),2)
             self.assertEqual(len(pushes),2)
             self.assertNotEqual(clones[0],clones[1])
-            target=pushes[-1]
-            final=json.loads((target/("a"*16)/"archive_status.json").read_text())
-            self.assertEqual(final["archived_shards"],[1,9,10])
-            self.assertEqual((target/("a"*16)/"shard_0009"/"quality.json").read_text(),
-                             "unaltered-old-source")
-            self.assertEqual((target/"p4-current-tail"/"run_sample"/"original.json").read_text(),
-                             "p4_concurrent")
+            accepted=pushes[-1]
+            self.assertEqual(accepted["marker"]["archived_shards"],[1,9,10])
+            self.assertEqual(accepted["prior"],"unaltered-old-source")
+            self.assertEqual(accepted["p4"],"p4_concurrent")
             push_calls=[c for c in mocked.call_args_list if c.args[0]=="push"]
             self.assertEqual(len(push_calls),2)
             self.assertTrue(all(c.kwargs.get("check") is False for c in push_calls))
