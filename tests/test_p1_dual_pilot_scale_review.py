@@ -494,6 +494,27 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
         self.assertEqual(inspect(rows,self.EPOCH)["status"],
                          "RECORDED_PILOTS_AWAIT_ACTIONS_VERIFICATION")
 
+    def test_read_only_scale_review_edits_use_offline_ci_not_vendor_capture(self):
+        from pathlib import Path
+        root=Path(__file__).resolve().parents[1]
+        live=(root/".github/workflows/p1-fresh-vendor-roster.yml").read_text()
+        offline=(root/".github/workflows/p1-readiness-contract-ci.yml").read_text()
+        push=live.split("  schedule:",1)[0]
+        # Editing a read-only pilot report or its tests must never call the
+        # free vendor, persist a new shard or cascade into P3/P4 research jobs.
+        for path in ("collector/p1_dual_pilot_scale_review.py",
+                     "tests/test_p1_dual_pilot_scale_review.py"):
+            needle="      - '"+path+"'"
+            self.assertNotIn(needle,push)
+            self.assertIn(needle,offline)
+        self.assertIn("  pull_request:",offline)
+        self.assertIn("  schedule:",live)
+        self.assertIn("  workflow_dispatch:",live)
+        # Genuine data-source and receipt logic still reach live P1 when edited.
+        self.assertIn("      - 'collector/p1_fresh_vendor_roster.py'",push)
+        self.assertIn("      - 'collector/p1_dual_pilot_receipt.py'",push)
+        self.assertIn("  workflow_run:",(root/".github/workflows/p4-real-ma20-forward-observation.yml").read_text())
+
     def test_actions_review_does_not_change_scheduler(self):
         from pathlib import Path
         wf=(Path(__file__).resolve().parents[1]/
