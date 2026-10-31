@@ -135,7 +135,8 @@ class DailySignalQueryTests(unittest.TestCase):
     def test_weekly_query_stays_offline_and_after_permanent_replay(self):
         workflow=(Path(__file__).resolve().parents[1]/
                   ".github/workflows/p4-current-tail-ma20-pilot.yml").read_text()
-        self.assertIn("tests.test_p4_daily_signal_query -v",workflow)
+        self.assertIn("tests.test_p4_daily_signal_query",workflow)
+        self.assertIn("tests.test_p4_real_archive_preflight -v",workflow)
         self.assertIn("'collector/p4_daily_signal_query.py'",workflow)
         self.assertIn("'tests/test_p4_daily_signal_query.py'",workflow)
         self.assertLess(workflow.index("--mode readback"),
