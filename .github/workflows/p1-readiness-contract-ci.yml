@@ -106,7 +106,7 @@ jobs:
             tests.test_p1_quad_verify \
             tests.test_p3_all_completed_worklist \
             tests.test_p1_epoch_compare \
-            tests.test_p1_research_readiness
+            tests.test_p1_research_readiness \
             -v
       - name: Verify research-only gate remains closed
         run: |
