@@ -86,6 +86,8 @@ jobs:
           python-version: '3.11'
       - name: Compile offline source-contract modules
         run: python -m py_compile collector/baostock_dated_universe.py collector/baostock_batch.py collector/p1_roster_shard_manifest.py collector/research_24_coverage_gate.py collector/vendor_historical_st_probe.py collector/source_retention_gate.py collector/reacquire_source_digest.py collector/reacquire_24_pilot.py collector/p1_early_only_recovery.py collector/audit_dated_rosters.py collector/audit_24_reacquisition.py collector/p4_prospective_handoff.py collector/p3_typed_event_research_ledger.py collector/p3_multi_issuer_research_events.py
+      - name: Install free local parser used by P3 PDF text regression
+        run: python -m pip install 'pypdf>=5,<7'
       - name: Verify fail-closed source tests without installing a provider or contacting markets
         run: python -m unittest discover -s tests -v
       - name: Audit real CNINFO two-PDF receipt against frozen P3 decision days
