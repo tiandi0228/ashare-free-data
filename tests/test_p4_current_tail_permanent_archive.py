@@ -2,7 +2,7 @@ import hashlib,json,tempfile,unittest
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
-from collector.p4_current_tail_permanent_archive import prepare,stage,persist
+from collector.p4_current_tail_permanent_archive import prepare,stage,persist,readback
 
 class DurableCurrentTailEvidenceTests(unittest.TestCase):
     def setUp(self):
@@ -61,6 +61,24 @@ class DurableCurrentTailEvidenceTests(unittest.TestCase):
         dest.joinpath("sh_600000_current.csv").write_bytes(b"forged")
         with self.assertRaisesRegex(ValueError,"immutable current-tail archive conflict"):
             stage(self.root/"archive",path,files)
+    def test_permanent_readback_recomputes_all_source_bytes(self):
+        path,files,_=self.prepared()
+        stage(self.root/"archive",path,files)
+        result=readback(self.root/"archive",self.epoch,41158581207,1,self.commit)
+        self.assertEqual(result["status"],"PERMANENT_READBACK_VERIFIED")
+        self.assertEqual(result["verified_issuers"],1)
+        self.assertEqual(result["trade_gate"],"BLOCKED")
+        (self.root/"archive"/path/"independent_verification.json").write_text("tampered")
+        with self.assertRaisesRegex(ValueError,"permanent archive bytes mismatch"):
+            readback(self.root/"archive",self.epoch,41158581207,1,self.commit)
+
+    def test_missing_permanent_report_cannot_be_read_back(self):
+        path,files,_=self.prepared()
+        stage(self.root/"archive",path,files)
+        (self.root/"archive"/path/"permanent_receipt.json").unlink()
+        with self.assertRaisesRegex(ValueError,"permanent archive files incomplete"):
+            readback(self.root/"archive",self.epoch,41158581207,1,self.commit)
+
     def test_staged_extra_unlisted_file_rejected(self):
         path,files,_=self.prepared()
         dest=stage(self.root/"archive",path,files)
