@@ -1,0 +1,77 @@
+name: P4 bounded current tail MA20 research pilot (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p4_current_tail_ma20_research.py'
+      - 'tests/test_p4_current_tail_ma20_research.py'
+      - '.github/workflows/p4-current-tail-ma20-pilot.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p4_current_tail_ma20_research.py'
+      - 'tests/test_p4_current_tail_ma20_research.py'
+      - '.github/workflows/p4-current-tail-ma20-pilot.yml'
+  schedule:
+    - cron: '30 11 * * 1-5' # 19:30 Beijing, after completed mainland session
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p4-current-tail-bounded-pilot-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  offline_contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify date, frozen overlap, full crossing inventory and no-trade boundaries
+        run: python -m unittest tests.test_p4_current_tail_ma20_research -v
+
+  capture_observation:
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    needs: offline_contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install only the free market-data SDK
+        run: python -m pip install 'baostock>=0.8,<1'
+      - name: Pin immutable audited historical originals (NO P1 MUTATION)
+        run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-research FETCH_HEAD
+          git -C archived-research rev-parse HEAD > evidence-pilot-archive-sha.txt
+      - name: Collect at most eight archived issuers after frozen end date
+        run: |
+          mkdir -p evidence/p4-current-tail
+          timeout 320s python -m collector.p4_current_tail_ma20_research \
+            --mode capture \
+            --root archived-research/5ba00fbd720fad90 \
+            --out evidence/p4-current-tail \
+            --archive-commit "$(cat evidence-pilot-archive-sha.txt)"
+      - name: Independently recompute complete after-close research events
+        run: |
+          python -m collector.p4_current_tail_ma20_research \
+            --mode verify \
+            --root archived-research/5ba00fbd720fad90 \
+            --out evidence/p4-current-tail
+      - name: Preserve source originals and audit for 14 days (NO TRADES)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p4-current-tail-RESEARCH-ONLY-${{ github.run_id }}
+          path: |
+            evidence-pilot-archive-sha.txt
+            evidence/p4-current-tail/
+          retention-days: 14
+          if-no-files-found: warn
