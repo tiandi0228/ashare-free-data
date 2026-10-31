@@ -22,7 +22,13 @@ def safe_day(now=None):
 
 def baseline_items(root,limit=8):
     if type(limit) is not int or not 1<=limit<=8:raise ValueError("max eight issuers")
-    receipts=sorted(Path(root).glob("*/shard_*/quality.json"))
+    epoch=Path(root)
+    status=json.loads((epoch/"archive_status.json").read_text())
+    sha=status.get("source_sha256")
+    if (not isinstance(sha,str) or not re.fullmatch("[a-f0-9]{64}",sha)
+        or epoch.name!=sha[:16] or status.get("trade_gate")!="BLOCKED"):
+        raise ValueError("archive epoch provenance mismatch")
+    receipts=sorted(epoch.glob("shard_*/quality.json"))
     if not receipts:raise ValueError("no archived P1 originals")
     picked=[]
     seen=set()
@@ -63,6 +69,7 @@ def run(root,out,bs,as_of=None,limit=8,now=None,archive_commit=None):
     if not date.fromisoformat(END)<asof<=safe_day(now):
         raise ValueError("as-of is not a completed post-baseline day")
     selected=baseline_items(root,limit)
+    epoch_sha=json.loads((Path(root)/"archive_status.json").read_text())["source_sha256"]
     if not selected:raise ValueError("empty verified pilot")
     for code,raw,rows in selected:
         if (asof-date.fromisoformat(rows[-1]["date"])).days>90:
@@ -71,7 +78,7 @@ def run(root,out,bs,as_of=None,limit=8,now=None,archive_commit=None):
     report={"phase":"P4_BOUNDED_CURRENT_TAIL_MA20_RESEARCH",
         "as_of_day":asof.isoformat(),"frozen_p1_end":END,
         "source_archive_commit":archive_commit,
-        "source_epoch_dir":selected and Path(root).as_posix(),
+        "source_epoch_sha256":epoch_sha,
         "scope":"AT_MOST_EIGHT_ALREADY_ARCHIVED_ISSUERS",
         "selected_codes":[c for c,_,_ in selected],
         "selected_issuers":len(selected),"results":[],
@@ -155,6 +162,8 @@ def verify(root,out):
         raise ValueError("unsafe or incomplete research capture")
     if not re.fullmatch("[0-9]{4}-[0-9]{2}-[0-9]{2}",str(report.get("as_of_day",""))):
         raise ValueError("missing research as-of date")
+    if report.get("source_epoch_sha256")!=json.loads((Path(root)/"archive_status.json").read_text())["source_sha256"]:
+        raise ValueError("source epoch changed")
     selected=baseline_items(root,len(report["selected_codes"]))
     if [x[0] for x in selected]!=report["selected_codes"]:
         raise ValueError("baseline membership changed")
