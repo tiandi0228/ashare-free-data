@@ -120,7 +120,7 @@ def persist(epoch,source,repository,run_id,attempt,archive_sha):
         root=Path(temp)
         helper=root/"askpass.sh"
         # Never place GitHub authentication data in remote URL or process args.
-        helper.write_text('#!/bin/sh\\ncase "$1" in\\n  *Username*) printf "x-access-token";;\\n  *Password*) printf "%s" "$GH_TOKEN";;\\nesac\\n')
+        helper.write_text('#!/bin/sh\ncase "$1" in\n  *Username*) printf "x-access-token";;\n  *Password*) printf "%s" "$GH_TOKEN";;\nesac\n')
         helper.chmod(0o700)
         env={**os.environ,"GIT_ASKPASS":str(helper),"GIT_TERMINAL_PROMPT":"0"}
         for try_index in range(1,MAX_ARCHIVE_PUSH_ATTEMPTS+1):
