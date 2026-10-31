@@ -26,7 +26,7 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
             "source_sha256":self.EPOCH,
             "run_id":run_id,"run_attempt":attempt,
             "trigger":trigger,
-            "trigger_cron_utc":"10 15 * * 1-5" if trigger=="schedule" else None,
+            "trigger_cron_utc":("10 9 * * 1-5" if run_id%2==0 else "10 15 * * 1-5") if trigger=="schedule" else None,
             "requested_shards":2,
             "selected_shards":selected,
             "new_selected_shards":accepted,
@@ -59,12 +59,35 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
 
     def test_both_daily_pilots_count_for_manual_review_only(self):
         rs=[self.receipt(100),self.receipt(101),self.receipt(102)]
-        rs[1]["trigger_cron_utc"]="10 9 * * 1-5"
         report=inspect(rs,self.EPOCH)
         self.assertEqual(report["recorded_scheduled_runs"],3)
         self.assertEqual(report["status"],"RECORDED_PILOTS_AWAIT_ACTIONS_VERIFICATION")
         self.assertFalse(report["automatic_shard_increase_authorized"])
         self.assertEqual(report["trade_gate"],"BLOCKED")
+
+    def test_three_successes_from_only_one_pilot_slot_cannot_scale(self):
+        rows=[self.receipt(i) for i in (100,101,102)]
+        for row in rows:
+            row["trigger_cron_utc"]="10 15 * * 1-5"
+        result=inspect(rows,self.EPOCH)
+        self.assertEqual(result["recorded_scheduled_runs"],3)
+        self.assertEqual(result["status"],
+                         "RECENT_SCHEDULED_PILOT_CRON_COVERAGE_INCOMPLETE")
+        self.assertFalse(result["both_scheduled_pilot_slots_observed"])
+        self.assertEqual(set(result["reviewed_scheduled_crons"]),
+                         {"10 15 * * 1-5"})
+        self.assertFalse(result["automatic_shard_increase_authorized"])
+        self.assertEqual(result["trade_gate"],"BLOCKED")
+
+    def test_both_pilot_slots_required_but_never_auto_authorized(self):
+        rows=[self.receipt(i) for i in (100,101,102)]
+        result=inspect(rows,self.EPOCH)
+        self.assertTrue(result["both_scheduled_pilot_slots_observed"])
+        self.assertEqual(set(result["reviewed_scheduled_crons"]),
+                         {"10 15 * * 1-5","10 9 * * 1-5"})
+        self.assertEqual(result["status"],
+                         "RECORDED_PILOTS_AWAIT_ACTIONS_VERIFICATION")
+        self.assertFalse(result["automatic_shard_increase_authorized"])
 
     def test_unapproved_new_dual_cron_still_rejected(self):
         row=self.receipt(100)
