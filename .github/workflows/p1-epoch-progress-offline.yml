@@ -1,0 +1,37 @@
+name: P1 epoch progress offline guard (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p1_epoch_coverage_report.py'
+      - 'collector/p1_checkpoint.py'
+      - 'tests/test_p1_epoch_coverage_report.py'
+      - '.github/workflows/p1-epoch-progress-offline.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Five offline tests only; no vendor access
+        run: python -m unittest tests.test_p1_epoch_coverage_report -v
+      - name: Real frozen epoch checkpoint display, trading still blocked
+        run: |
+          python -m collector.p1_epoch_coverage_report \
+            --source-sha 5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022 \
+            --checkpoint evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json \
+            --out /tmp/p1_epoch_readonly.json
+          python - <<'PY'
+          import json
+          v=json.load(open('/tmp/p1_epoch_readonly.json'))
+          assert v['completed_shards'] >= 86 and v['total_shards']==400
+          assert v['completed_issuers'] >= 688
+          assert v['trade_gate']=='BLOCKED' and v['orders']==[] and v['executable_candidates']==[]
+          assert v['historical_PIT_verified'] is False
+          print('PASS: explicit epoch progress; never trade-ready')
+          PY
