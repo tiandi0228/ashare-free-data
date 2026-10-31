@@ -6,6 +6,8 @@ on:
       - 'tests/test_p4_current_tail_ma20_research.py'
       - 'collector/p4_current_tail_permanent_archive.py'
       - 'tests/test_p4_current_tail_permanent_archive.py'
+      - 'collector/p4_daily_signal_query.py'
+      - 'tests/test_p4_daily_signal_query.py'
       - '.github/workflows/p4-current-tail-ma20-pilot.yml'
   push:
     branches: [main]
@@ -14,6 +16,8 @@ on:
       - 'tests/test_p4_current_tail_ma20_research.py'
       - 'collector/p4_current_tail_permanent_archive.py'
       - 'tests/test_p4_current_tail_permanent_archive.py'
+      - 'collector/p4_daily_signal_query.py'
+      - 'tests/test_p4_daily_signal_query.py'
       - '.github/workflows/p4-current-tail-ma20-pilot.yml'
   schedule:
     - cron: '30 11 * * 1-5' # 19:30 Beijing, after completed mainland session
@@ -36,7 +40,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Verify date, frozen overlap, full crossing inventory and no-trade boundaries
-        run: python -m unittest tests.test_p4_current_tail_ma20_research tests.test_p4_current_tail_permanent_archive -v
+        run: python -m unittest tests.test_p4_current_tail_ma20_research tests.test_p4_current_tail_permanent_archive tests.test_p4_daily_signal_query -v
 
   capture_observation:
     if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
@@ -93,6 +97,27 @@ jobs:
             --source-run "${{ github.run_id }}" \
             --run-attempt "${{ github.run_attempt }}" \
             --archive-sha "$(cat evidence-pilot-archive-sha.txt)"
+      - name: Query last seven calendar days from verified permanent Git originals
+        run: |
+          python - <<'PY'
+          import json,subprocess
+          from datetime import date,timedelta
+          from pathlib import Path
+          report=json.loads(Path("evidence/p4-current-tail/current_tail_report.json").read_text())
+          end=date.fromisoformat(report["as_of_day"])
+          start=max(end-timedelta(days=6),date(2026,10,21))
+          args=["python","-m","collector.p4_daily_signal_query",
+                "--archive-root","archived-readback",
+                "--epoch","archived-research/5ba00fbd720fad90",
+                "--start",start.isoformat(),"--end",end.isoformat(),
+                "--out","evidence/p4-current-tail/last_7_day_research_query.json"]
+          subprocess.run(args,check=True)
+          result=json.loads(Path(args[-1]).read_text())
+          assert result["trade_gate"]=="BLOCKED" and result["orders"]==[]
+          assert not result["full_market_scan_performed"]
+          assert result["strategy_buy_signals_authorized"]==0
+          assert result["missing_days_are_not_zero_signals"] is True
+          PY
       - name: Preserve source originals and audit for 14 days (NO TRADES)
         if: always()
         uses: actions/upload-artifact@v4
