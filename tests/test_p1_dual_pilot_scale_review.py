@@ -95,16 +95,20 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"untrusted pilot schedule"):
             inspect([row],self.EPOCH)
 
-    def test_two_weekend_crons_are_strictly_one_shard(self):
+    def test_all_four_weekend_crons_are_strictly_one_shard(self):
         from pathlib import Path
         import re
         folder=Path(__file__).resolve().parents[1]
         w=(folder/".github/workflows/p1-fresh-vendor-roster.yml").read_text()
         schedule=w.split("  schedule:",1)[1].split("  workflow_dispatch:",1)[0]
         crons=re.findall(r"^\s*- cron: '([^']+)'",schedule,re.M)
-        self.assertEqual(len(crons),12)
-        self.assertEqual({c for c in crons if c.endswith("6,0")},
-                         {"10 11 * * 6,0","10 15 * * 6,0"})
+        self.assertEqual(len(crons),14)
+        self.assertEqual(len(set(crons)),14)
+        weekend={c for c in crons if c.endswith("6,0")}
+        self.assertEqual(weekend,{
+            "10 1 * * 6,0","10 7 * * 6,0",
+            "10 11 * * 6,0","10 15 * * 6,0"})
+        self.assertEqual(len(crons)-len(weekend),10)
         formula=next(x for x in w.splitlines() if "P1_REQUESTED_SHARDS:" in x)
         self.assertNotIn("6,0",formula)
         self.assertIn("github.event.schedule == '10 9 * * 1-5'",formula)
@@ -115,11 +119,27 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
         self.assertIn("cancel-in-progress: false",w)
         self.assertIn("python -m collector.p1_archive_audit",w)
         self.assertIn("--replay",w)
-        for weekend in ("10 11 * * 6,0","10 15 * * 6,0"):
+        for cron in sorted(weekend):
             receipt=self.receipt(100)
-            receipt["trigger_cron_utc"]=weekend
-            with self.assertRaisesRegex(ValueError,"untrusted pilot schedule"):
-                inspect([receipt],self.EPOCH)
+            receipt["trigger_cron_utc"]=cron
+            with self.subTest(cron=cron):
+                with self.assertRaisesRegex(ValueError,"untrusted pilot schedule"):
+                    inspect([receipt],self.EPOCH)
+
+    def test_weekend_time_mapping_is_china_saturday_sunday(self):
+        from datetime import datetime,timezone
+        from zoneinfo import ZoneInfo
+        for day in (31,):
+            for utc_hour,local_hour in ((1,9),(7,15),(11,19),(15,23)):
+                when=datetime(2026,10,day,utc_hour,10,tzinfo=timezone.utc)
+                actual=when.astimezone(ZoneInfo("Asia/Shanghai"))
+                self.assertEqual((actual.weekday(),actual.hour,actual.minute),
+                                 (5,local_hour,10))
+        for utc_hour,local_hour in ((1,9),(7,15),(11,19),(15,23)):
+            when=datetime(2026,11,1,utc_hour,10,tzinfo=timezone.utc)
+            actual=when.astimezone(ZoneInfo("Asia/Shanghai"))
+            self.assertEqual((actual.weekday(),actual.hour,actual.minute),
+                             (6,local_hour,10))
 
     def test_workflow_has_exactly_two_daily_dual_slots(self):
         from pathlib import Path
