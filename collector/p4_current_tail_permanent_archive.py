@@ -97,6 +97,16 @@ def readback(archive_root,epoch,run_id,attempt,archive_sha):
             "verified_non_executable_crossings":record["non_executable_ma20_crossings"],
             "trade_gate":"BLOCKED","orders":[]}
 
+MAX_ARCHIVE_PUSH_ATTEMPTS=3
+
+def is_non_fast_forward_push(result):
+    """Only a proven concurrent branch advancement is eligible for retry."""
+    if result.returncode==0:
+        return False
+    message=((result.stderr or "")+"\\n"+(result.stdout or "")).lower()
+    return ("non-fast-forward" in message or "(fetch first)" in message
+            or "stale info" in message)
+
 def persist(epoch,source,repository,run_id,attempt,archive_sha):
     if (not isinstance(repository,str) or
         not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+",repository)):
@@ -104,34 +114,51 @@ def persist(epoch,source,repository,run_id,attempt,archive_sha):
     if not os.environ.get("GH_TOKEN"):raise ValueError("archive write token unavailable")
     actual=git("rev-parse","HEAD",cwd=epoch).stdout.strip()
     if actual!=archive_sha:raise ValueError("pinned baseline Git commit mismatch")
+    # Perform immutable source verification only once against the pinned epoch.
     folder_name,files,record=prepare(epoch,source,run_id,attempt,archive_sha)
     with tempfile.TemporaryDirectory() as temp:
         root=Path(temp)
-        work=root/"archive"
-        # Avoid embedding the secret in command arguments or Git remote URLs.
         helper=root/"askpass.sh"
-        helper.write_text('#!/bin/sh\ncase "$1" in\n  *Username*) printf "x-access-token";;\n  *Password*) printf "%s" "$GH_TOKEN";;\nesac\n')
+        # Never place GitHub authentication data in remote URL or process args.
+        helper.write_text('#!/bin/sh\\ncase "$1" in\\n  *Username*) printf "x-access-token";;\\n  *Password*) printf "%s" "$GH_TOKEN";;\\nesac\\n')
         helper.chmod(0o700)
         env={**os.environ,"GIT_ASKPASS":str(helper),"GIT_TERMINAL_PROMPT":"0"}
-        git("clone","--depth=1","--branch",BRANCH,"--single-branch",
-            "https://github.com/"+repository+".git",str(work),env=env)
-        git("config","user.name","github-actions[bot]",cwd=work)
-        git("config","user.email","41898282+github-actions[bot]@users.noreply.github.com",cwd=work)
-        stage(work,folder_name,files)
-        git("add",folder_name,cwd=work)
-        dirty=git("diff","--cached","--quiet",cwd=work,check=False).returncode!=0
-        if dirty:
-            git("commit","-m","data(p4): immutable current-tail MA20 research evidence [NO TRADES]",cwd=work)
-            # Concurrent P1 writers must cause a rejected non-fast-forward, never force push.
-            git("push","origin",f"HEAD:refs/heads/{BRANCH}",cwd=work,env=env)
-        commit=git("rev-parse","HEAD",cwd=work).stdout.strip()
-        remote=git("ls-remote","origin",f"refs/heads/{BRANCH}",cwd=work,env=env).stdout.strip().split()[0]
-        if remote!=commit:raise ValueError("permanent archive remote readback mismatch")
-        return {"persisted":True,"branch":BRANCH,"path":folder_name,
-            "archive_commit_sha":commit,"observed_issuers":record["observed_issuers"],
-            "verified_new_vendor_rows":record["verified_new_vendor_rows"],
-            "non_executable_ma20_crossings":record["non_executable_ma20_crossings"],
-            "historical_PIT_verified":False,"trade_gate":"BLOCKED","orders":[]}
+        for try_index in range(1,MAX_ARCHIVE_PUSH_ATTEMPTS+1):
+            # Starting from a fresh latest remote tree preserves *every* P1
+            # shard and any other immutable P4 evidence added concurrently.
+            work=root/("archive_"+str(try_index))
+            git("clone","--depth=1","--branch",BRANCH,"--single-branch",
+                "https://github.com/"+repository+".git",str(work),env=env)
+            git("config","user.name","github-actions[bot]",cwd=work)
+            git("config","user.email","41898282+github-actions[bot]@users.noreply.github.com",cwd=work)
+            stage(work,folder_name,files)
+            git("add",folder_name,cwd=work)
+            dirty=git("diff","--cached","--quiet",cwd=work,check=False).returncode!=0
+            if dirty:
+                git("commit","-m",
+                    "data(p4): immutable current-tail MA20 research evidence [NO TRADES]",
+                    cwd=work)
+                push=git("push","origin",f"HEAD:refs/heads/{BRANCH}",
+                         cwd=work,env=env,check=False)
+                if push.returncode!=0:
+                    if (is_non_fast_forward_push(push)
+                        and try_index<MAX_ARCHIVE_PUSH_ATTEMPTS):
+                        continue
+                    if is_non_fast_forward_push(push):
+                        raise ValueError("concurrent immutable archive writes exhausted bounded retry")
+                    raise ValueError("immutable research archive push rejected (not a retryable concurrent update)")
+            commit=git("rev-parse","HEAD",cwd=work).stdout.strip()
+            remote_out=git("ls-remote","origin",f"refs/heads/{BRANCH}",
+                           cwd=work,env=env).stdout.strip().split()
+            if not remote_out or remote_out[0]!=commit:
+                raise ValueError("permanent archive remote readback mismatch")
+            return {"persisted":True,"branch":BRANCH,"path":folder_name,
+                "archive_commit_sha":commit,"attempted_git_writes":try_index,
+                "observed_issuers":record["observed_issuers"],
+                "verified_new_vendor_rows":record["verified_new_vendor_rows"],
+                "non_executable_ma20_crossings":record["non_executable_ma20_crossings"],
+                "historical_PIT_verified":False,"trade_gate":"BLOCKED","orders":[]}
+        raise ValueError("permanent archive not confirmed")
 
 def main():
     p=argparse.ArgumentParser()
