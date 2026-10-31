@@ -146,6 +146,9 @@ class CSVArchiveTests(unittest.TestCase):
             source=root/"fresh"
             source.mkdir()
             (source/"quality.json").write_text('{"trade_gate":"BLOCKED"}')
+            original=b"date,code,close\\n2026-10-20,sh.600000,10\\n"
+            (source/"sh_600000.csv").write_bytes(original)
+            wanted=(1,source/"sh_600000.csv",hashlib.sha256(original).hexdigest())
             def fake_git(*args,cwd=None,check=True):
                 cmd=args[0]
                 if cmd=="clone":
@@ -182,7 +185,7 @@ class CSVArchiveTests(unittest.TestCase):
                     if len(pushes)==1:
                         return SimpleNamespace(stdout="",stderr="[rejected] (fetch first)",returncode=1)
                 return SimpleNamespace(stdout="",stderr="",returncode=0)
-            with patch("collector.p1_csv_archive.collect",return_value=[]):
+            with patch("collector.p1_csv_archive.collect",return_value=[wanted]):
                 with patch("collector.p1_csv_archive.git",side_effect=fake_git) as mocked:
                     archive({"source_sha256":"a"*64},[(1,source)],"owner/repo")
             self.assertEqual(len(clones),2)
