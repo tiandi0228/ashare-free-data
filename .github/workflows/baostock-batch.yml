@@ -34,6 +34,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Install free local parser required by P3 offline PDF tests
+        run: python -m pip install 'pypdf>=5,<7'
       - name: Offline contract tests
         run: python -m unittest discover -s tests -v
       - name: Install no-cost historical provider
@@ -56,7 +58,7 @@ jobs:
           print('index='+str(i))
           print('manifest='+('manifests/baostock_delisted_8_pilot.txt' if new else 'manifests/baostock_pilot.txt'))
           PY
-      - name: Fetch at most eight issuer histories, no retries
+      - name: Fetch at most eight issuer histories, at most one transient retry each
         run: timeout 155s python -m collector.baostock_batch --manifest "${{ steps.select.outputs.manifest }}" --batch-index "${{ steps.select.outputs.index }}" --out evidence
       - name: Preserve original CSVs and SHA256 receipt
         if: always()
@@ -78,6 +80,10 @@ jobs:
           assert r['phase']=='BAOSTOCK_FREE_BOUNDED_BATCH'
           assert r['status']=='OBSERVED_SUBSET_UNVERIFIED'
           assert 1<=r['issuer_count']<=8 and r['query_attempts']==r['issuer_count']
+          assert r['provider_attempts']>=r['query_attempts']
+          assert r['provider_attempts']<=2*r['query_attempts']
+          assert 0<=r['transient_retries']<=r['query_attempts']
+          assert r['provider_attempts']==r['query_attempts']+r['transient_retries']
           assert r['trade_gate']=='BLOCKED' and not r['orders'] and not r['executable_candidates']
           assert r['paid_api_calls']==0 and r['historical_point_in_time_universe_verified'] is False
           for x in r['results']:
