@@ -2,7 +2,7 @@ import hashlib,json,tempfile,unittest
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
-from collector.p4_current_tail_permanent_archive import prepare,stage,persist,readback
+from collector.p4_current_tail_permanent_archive import prepare,stage,persist,readback,is_non_fast_forward_push
 
 class DurableCurrentTailEvidenceTests(unittest.TestCase):
     def setUp(self):
@@ -132,6 +132,97 @@ class DurableCurrentTailEvidenceTests(unittest.TestCase):
             self.assertNotIn("super_secret_value"," ".join(cmd))
         push=next(x for x in commands if x[0][0]=="push")
         self.assertIn("GIT_ASKPASS",push[2])
+    def test_parallel_p1_archive_write_retries_only_confirmed_non_fast_forward(self):
+        from unittest.mock import patch
+        commands=[]
+        pushes=0
+        def fake_git(*args,cwd=None,env=None,check=True):
+            nonlocal pushes
+            commands.append((args,cwd,env,check))
+            if args[0]=="rev-parse":
+                return SimpleNamespace(stdout=self.commit+"\n",returncode=0)
+            if args[0]=="clone":
+                Path(args[-1]).mkdir(parents=True)
+            if args[0]=="diff":
+                return SimpleNamespace(stdout="",returncode=1)
+            if args[0]=="push":
+                pushes+=1
+                if pushes==1:
+                    return SimpleNamespace(stdout="",returncode=1,
+                                           stderr="[rejected] (fetch first)")
+            if args[0]=="ls-remote":
+                return SimpleNamespace(stdout=self.commit+" refs/heads/research-csv-archive\n",
+                                       returncode=0)
+            return SimpleNamespace(stdout="",returncode=0)
+        with patch("collector.p4_current_tail_permanent_archive.git",side_effect=fake_git):
+            with patch.dict("os.environ",{"GH_TOKEN":"secret_only_env"}):
+                result=persist(self.epoch,self.source,"owner/repo",103,2,self.commit)
+        self.assertEqual(result["attempted_git_writes"],2)
+        self.assertEqual(pushes,2)
+        clones=[x for x in commands if x[0][0]=="clone"]
+        self.assertEqual(len(clones),2)
+        self.assertNotEqual(clones[0][0][-1],clones[1][0][-1])
+        self.assertEqual(len([x for x in commands if x[0][0]=="commit"]),2)
+        self.assertTrue(all(x[3] is False for x in commands if x[0][0]=="push"))
+        self.assertTrue(all("secret_only_env" not in " ".join(x[0]) for x in commands))
+
+    def test_non_fast_forward_retry_bound_fails_closed(self):
+        from unittest.mock import patch
+        counts={"clone":0,"push":0}
+        def fake_git(*args,cwd=None,env=None,check=True):
+            if args[0]=="rev-parse":
+                return SimpleNamespace(stdout=self.commit+"\n",returncode=0)
+            if args[0]=="clone":
+                counts["clone"]+=1
+                Path(args[-1]).mkdir(parents=True)
+            if args[0]=="diff":
+                return SimpleNamespace(stdout="",returncode=1)
+            if args[0]=="push":
+                counts["push"]+=1
+                return SimpleNamespace(stdout="",returncode=1,
+                    stderr="[rejected] (non-fast-forward)")
+            return SimpleNamespace(stdout="",returncode=0)
+        with patch("collector.p4_current_tail_permanent_archive.git",side_effect=fake_git):
+            with patch.dict("os.environ",{"GH_TOKEN":"secret"}):
+                with self.assertRaisesRegex(ValueError,"exhausted bounded retry"):
+                    persist(self.epoch,self.source,"owner/repo",100,1,self.commit)
+        self.assertEqual(counts,{"clone":3,"push":3})
+
+    def test_permission_failure_never_retried_as_concurrent_update(self):
+        from unittest.mock import patch
+        counts={"clone":0,"push":0}
+        def fake_git(*args,cwd=None,env=None,check=True):
+            if args[0]=="rev-parse":
+                return SimpleNamespace(stdout=self.commit+"\n",returncode=0)
+            if args[0]=="clone":
+                counts["clone"]+=1
+                Path(args[-1]).mkdir(parents=True)
+            if args[0]=="diff":
+                return SimpleNamespace(stdout="",returncode=1)
+            if args[0]=="push":
+                counts["push"]+=1
+                return SimpleNamespace(stdout="",returncode=128,
+                    stderr="403 Permission to repository denied")
+            return SimpleNamespace(stdout="",returncode=0)
+        with patch("collector.p4_current_tail_permanent_archive.git",side_effect=fake_git):
+            with patch.dict("os.environ",{"GH_TOKEN":"secret"}):
+                with self.assertRaisesRegex(ValueError,"not a retryable"):
+                    persist(self.epoch,self.source,"owner/repo",100,1,self.commit)
+        self.assertEqual(counts,{"clone":1,"push":1})
+
+    def test_non_fast_forward_classifier_requires_explicit_evidence(self):
+        for stderr in ("[rejected] (fetch first)",
+                       "! [rejected] (non-fast-forward)",
+                       "stale info"):
+            self.assertTrue(is_non_fast_forward_push(SimpleNamespace(
+                returncode=1,stderr=stderr,stdout="")))
+        for stderr in ("403 forbidden","connection reset","authentication failed",
+                       "failed to push some refs"):
+            self.assertFalse(is_non_fast_forward_push(SimpleNamespace(
+                returncode=1,stderr=stderr,stdout="")))
+        self.assertFalse(is_non_fast_forward_push(SimpleNamespace(
+            returncode=0,stderr="(fetch first)",stdout="")))
+
     def test_pinned_commit_mismatch_rejected_before_clone(self):
         with patch("collector.p4_current_tail_permanent_archive.git",
                    return_value=SimpleNamespace(stdout="b"*40,returncode=0)) as g:
