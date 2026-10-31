@@ -84,9 +84,16 @@ class LiveArchivePreflightTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"pilot shard status"):
             inspect(self.root)
     def test_extra_false_issuer_is_not_accepted_into_fixed_research_sample(self):
-        self.receipt["results"][0]["code"]="sh.600000"
+        # Fully valid but unauthorized issuer: independent P2 must pass,
+        # then the locked research-cohort membership must reject it.
+        original=COHORT[0]
+        raw=(self.shard/(original.replace(".","_")+".csv")).read_bytes()
+        changed=raw.replace(original.encode(),b"sh.600000")
+        (self.shard/"sh_600000.csv").write_bytes(changed)
+        self.receipt["results"][0].update(
+            code="sh.600000",sha256=hashlib.sha256(changed).hexdigest())
         self.write_receipt()
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(ValueError,"eight-issuer roster differs"):
             inspect(self.root)
     def test_read_only_workflow_preflight_runs_before_vendor_fetch(self):
         wf=(Path(__file__).resolve().parents[1]/
