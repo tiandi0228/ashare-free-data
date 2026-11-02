@@ -64,6 +64,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      # Cache only pip downloads/wheels; never market data, source receipts or secrets.
+      - name: Cache free Python package downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-python311-p1-pip-baostock-v1
+          restore-keys: |
+            ${{ runner.os }}-python311-p1-pip-
       - name: Offline source tests
         id: diag_0
         run: |
