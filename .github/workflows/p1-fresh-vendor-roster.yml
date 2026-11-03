@@ -24,6 +24,8 @@ on:
       - 'collector/p3_all_completed_worklist.py'
       - 'collector/p1_repair_pick.py'
       - 'collector/p1_epoch_compare.py'
+      - 'collector/p1_recovery_origin_token.py'
+      - 'tests/test_p1_recovery_origin_token.py'
   schedule:
     - cron: '10 1 * * 1-5' # 09:10 Beijing
     - cron: '10 3 * * 1-5' # 11:10 Beijing; additional source sampling window
@@ -47,6 +49,11 @@ on:
         required: true
         default: "1"
         options: ["1", "2"]
+      recovery_token:
+        description: "Optional non-secret per-slot recovery correlation token (research only)"
+        type: string
+        required: false
+        default: ""
 permissions:
   contents: write
   actions: read
@@ -57,6 +64,7 @@ jobs:
   roster:
     runs-on: ubuntu-latest
     env:
+      P1_RECOVERY_TOKEN: ${{ github.event_name == 'workflow_dispatch' && inputs.recovery_token || '' }}
       P1_REQUESTED_SHARDS: ${{ github.event_name == 'workflow_dispatch' && inputs.shards_per_run || (github.event_name == 'schedule' && (github.event.schedule == '10 15 * * 1-5' || github.event.schedule == '10 9 * * 1-5' || github.event.schedule == '10 5 * * 1-5') && '2' || '1') }}
     timeout-minutes: 20
     steps:
@@ -72,12 +80,14 @@ jobs:
           key: ${{ runner.os }}-python311-p1-pip-baostock-v1
           restore-keys: |
             ${{ runner.os }}-python311-p1-pip-
+      - name: Record recovery origin input receipt (never certifies archive)
+        run: python -m collector.p1_recovery_origin_token --out evidence/recovery_origin.json
       - name: Offline source tests
         id: diag_0
         run: |
           mkdir -p evidence
           set -o pipefail
-          python -m unittest tests.test_p1_fresh_vendor_roster tests.test_baostock_batch tests.test_p1_fresh_shard_plan tests.test_p1_roster_lock tests.test_p1_source_diagnostics tests.test_p1_orphan_archive_recovery tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick tests.test_p1_coverage_gap_diagnosis tests.test_p3_p1_evidence_worklist tests.test_p1_quad_pick tests.test_p1_optional_second tests.test_p1_dual_end_to_end tests.test_p1_dual_pilot_receipt tests.test_p1_dual_pilot_scale_review tests.test_p1_run_progress tests.test_p1_quad_verify tests.test_p3_all_completed_worklist tests.test_p1_epoch_compare tests.test_p1_research_readiness -v 2>&1 | tee evidence/offline_tests.log
+          python -m unittest tests.test_p1_fresh_vendor_roster tests.test_baostock_batch tests.test_p1_fresh_shard_plan tests.test_p1_roster_lock tests.test_p1_source_diagnostics tests.test_p1_orphan_archive_recovery tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick tests.test_p1_coverage_gap_diagnosis tests.test_p3_p1_evidence_worklist tests.test_p1_quad_pick tests.test_p1_optional_second tests.test_p1_dual_end_to_end tests.test_p1_dual_pilot_receipt tests.test_p1_dual_pilot_scale_review tests.test_p1_run_progress tests.test_p1_quad_verify tests.test_p3_all_completed_worklist tests.test_p1_epoch_compare tests.test_p1_research_readiness tests.test_p1_recovery_origin_token -v 2>&1 | tee evidence/offline_tests.log
       - name: Restore immutable P1 research roster pin if available
         id: pin
         env:
