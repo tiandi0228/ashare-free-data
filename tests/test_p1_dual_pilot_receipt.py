@@ -59,6 +59,13 @@ class DualPilotReceiptTests(unittest.TestCase):
         self.assertEqual(r["new_shards_durably_accepted"],2)
         self.assertEqual(r["trade_gate"],"BLOCKED")
 
+    def test_1510_fourth_pilot_is_bounded_and_archived(self):
+        record=self.scheduled(*self.fixtures(),cron="10 7 * * 1-5")
+        self.assertEqual(record["trigger_cron_utc"],"10 7 * * 1-5")
+        self.assertEqual(record["new_shards_durably_accepted"],2)
+        self.assertEqual(record["checkpoint_shards_after"],54)
+        self.assertEqual(record["trade_gate"],"BLOCKED")
+
     def test_1710_pilot_is_bounded_and_persists_exact_trigger(self):
         record = self.scheduled(*self.fixtures(), cron="10 9 * * 1-5")
         self.assertEqual(record["trigger_cron_utc"],"10 9 * * 1-5")
