@@ -1,0 +1,27 @@
+name: Real P2 archived bar features offline CI (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p2_real_archive_features.py'
+      - 'tests/test_p2_real_archive_features.py'
+      - '.github/workflows/p2-real-archive-features-ci.yml'
+  pull_request:
+    paths:
+      - 'collector/p2_real_archive_features.py'
+      - 'tests/test_p2_real_archive_features.py'
+      - '.github/workflows/p2-real-archive-features-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify archived original replay and point-in-time research-only feature extraction
+        run: python -m unittest tests.test_p2_independent_bars tests.test_p2_real_archive_features -v
