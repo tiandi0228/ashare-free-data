@@ -1,7 +1,8 @@
 """Offline source schema, stale quote, symbol and no-trade tests."""
-import datetime as dt,json,unittest
+import datetime as dt,json,unittest,urllib.error
+from unittest.mock import patch
 from zoneinfo import ZoneInfo
-from collector.intraday_public_snapshot import parse_tencent,parse_eastmoney,quality
+from collector.intraday_public_snapshot import parse_tencent,parse_eastmoney,quality,observe,fetch,SourceFailure
 
 NOW=dt.datetime(2026,11,3,10,34,25,tzinfo=ZoneInfo("Asia/Shanghai"))
 def quote(ts="20261103103418",code="002249",ratio="1.49"):
@@ -68,6 +69,40 @@ class IntradaySnapshotTests(unittest.TestCase):
         self.assertIn("MINUTE_COMPLETENESS_UNVERIFIED",result["validation_issues"])
         self.assertEqual(result["trade_gate"],"BLOCKED")
         self.assertEqual(result["orders"],[])
+    def test_tencent_source_failure_classified(self):
+        with patch("collector.intraday_public_snapshot.fetch",side_effect=TimeoutError()):
+            with self.assertRaises(SourceFailure) as result:
+                observe("002249",NOW)
+        self.assertEqual(result.exception.stage,"TENCENT_QUOTE")
+        self.assertEqual(result.exception.error_type,"TimeoutError")
+
+    def test_eastmoney_source_failure_classified(self):
+        with patch("collector.intraday_public_snapshot.fetch",
+                   side_effect=[quote().encode("gbk"),TimeoutError()]):
+            with self.assertRaises(SourceFailure) as result:
+                observe("002249",NOW)
+        self.assertEqual(result.exception.stage,"EASTMONEY_MINUTES")
+
+    def test_transient_transport_retried_once_only(self):
+        from io import BytesIO
+        with patch("collector.intraday_public_snapshot.urllib.request.urlopen",
+                   side_effect=[urllib.error.URLError("network"),BytesIO(b"ok")]) as urlopen:
+            self.assertEqual(fetch("https://qt.gtimg.cn/q=sz002249"),b"ok")
+        self.assertEqual(urlopen.call_count,2)
+        with patch("collector.intraday_public_snapshot.urllib.request.urlopen",
+                   side_effect=urllib.error.URLError("network")) as urlopen:
+            with self.assertRaises(urllib.error.URLError):
+                fetch("https://qt.gtimg.cn/q=sz002249")
+        self.assertEqual(urlopen.call_count,2)
+
+    def test_permanent_http_error_not_retried(self):
+        err=urllib.error.HTTPError("https://example.invalid",403,"Forbidden",{},None)
+        with patch("collector.intraday_public_snapshot.urllib.request.urlopen",
+                   side_effect=err) as urlopen:
+            with self.assertRaises(urllib.error.HTTPError):
+                fetch("https://example.invalid")
+        self.assertEqual(urlopen.call_count,1)
+
     def test_stale_quote_is_rejected(self):
         q=parse_tencent(quote(ts="20261103103000"),"002249")
         m=parse_eastmoney(minutes(),"002249",NOW)
