@@ -59,6 +59,11 @@ def simulation(req):
             action=e["type"]
             d=e.get("date")
             if d not in dates:raise ValueError("EVENT_DATE_NOT_IN_CALENDAR")
+            # Day orders do not carry across trading sessions. Requiring an
+            # explicit CANCEL before moving to a later day prevents stale
+            # pending quantities from silently surviving as valid orders.
+            if pending is not None and pending["date"]!=d:
+                raise ValueError("PREVIOUS_DAY_ORDER_NOT_CLOSED")
             key=(dates.index(d),i)
             if last_event_key and key<=last_event_key:raise ValueError("EVENT_ORDER_INVALID")
             last_event_key=key
@@ -171,7 +176,7 @@ def simulation(req):
             "NO_ACTIVE_SELL_ORDER","SELL_FILL_OUTSIDE_LIMIT_OR_SETTLED_SHARES",
             "EXIT_TRIGGER_WITHOUT_SETTLED_HOLDINGS","INVALID_EXIT_REASON",
             "T_PLUS_ONE_EXIT_NOT_ALLOWED","AMBIGUOUS_INTRABAR_EXIT",
-            "TIME_EXIT_NOT_3_TO_5_TRADING_DAYS",
+            "TIME_EXIT_NOT_3_TO_5_TRADING_DAYS","PREVIOUS_DAY_ORDER_NOT_CLOSED",
         } else "INVALID_OR_UNVERIFIABLE_EVENT_EVIDENCE"
         return dict(base,reason=safe)
 
