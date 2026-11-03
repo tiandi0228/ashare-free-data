@@ -17,7 +17,53 @@ from collector.p2_real_archive_features import observe
 PAGE_SHARDS=16
 PHASE="P2_PAGED_REAL_ARCHIVE_FEATURE_REPLAY"
 
-def run(archive_root,checkpoint_root,out,page=None,run_number=1):
+def select_page(mapped,source_epoch,run_number,page=None,coverage=None):
+    """Use verified existing durable coverage as a *hint*, never as source truth.
+
+    Priority: most unobserved archived shards, then most gap shards, then
+    deterministic rotation when everything has been observed. Any malformed
+    or cross-epoch summary is ignored rather than trusted as progress.
+    """
+    pages=(len(mapped)+PAGE_SHARDS-1)//PAGE_SHARDS
+    if page is not None:
+        if type(page) is not int or not 0<=page<pages:
+            raise ValueError("PAGE_OUT_OF_RANGE")
+        return page,"EXPLICIT_PAGE"
+    fallback=(run_number-1)%pages
+    if not isinstance(coverage,dict) or coverage.get("source_epoch_sha256")!=source_epoch or (
+        coverage.get("phase")!="P2_PERSISTENT_ARCHIVE_FEATURE_COVERAGE"
+        or coverage.get("status")!="DURABLE_RESEARCH_PAGE_COVERAGE_NOT_CERTIFIED"
+        or coverage.get("trade_gate")!="BLOCKED"
+        or coverage.get("historical_PIT_verified") is not False
+        or coverage.get("coverage_certified_for_trading") is not False
+        or coverage.get("orders")!=[]):
+        return fallback,"NO_VALID_DURABLE_COVERAGE_ROTATION"
+    known={f"shard_{i:04d}" for i,_ in mapped}
+    unseen=coverage.get("unobserved_shard_ids")
+    gaps=coverage.get("gap_shard_ids")
+    if (not isinstance(unseen,list) or not isinstance(gaps,list)
+        or any(not isinstance(i,str) for i in unseen+gaps)
+        or len(set(unseen))!=len(unseen)
+        or len(set(gaps))!=len(gaps)
+        or not set(unseen).issubset(known)
+        or not set(gaps).issubset(known)
+        or set(unseen)&set(gaps)):
+        return fallback,"INVALID_COVERAGE_HINT_ROTATION"
+    if unseen:
+        scores=[sum(f"shard_{i:04d}" in unseen
+                    for i,_ in mapped[p*PAGE_SHARDS:(p+1)*PAGE_SHARDS])
+                for p in range(pages)]
+        best=max(scores)
+        return next(p for p in range(pages) if scores[p]==best),"PRIORITIZE_UNOBSERVED_SHARDS"
+    if gaps:
+        scores=[sum(f"shard_{i:04d}" in gaps
+                    for i,_ in mapped[p*PAGE_SHARDS:(p+1)*PAGE_SHARDS])
+                for p in range(pages)]
+        best=max(scores)
+        return next(p for p in range(pages) if scores[p]==best),"RECHECK_FEATURE_GAP_SHARDS"
+    return fallback,"ALL_ARCHIVED_SHARDS_OBSERVED_ROTATION"
+
+def run(archive_root,checkpoint_root,out,page=None,run_number=1,coverage_summary=None):
     root=Path(archive_root)
     output=Path(out)
     base={"phase":PHASE,"status":"REJECTED","trade_gate":"BLOCKED",
@@ -68,8 +114,8 @@ def run(archive_root,checkpoint_root,out,page=None,run_number=1):
             return reject("DUPLICATE_ARCHIVED_SHARDS")
         mapped.sort()
         pages=(len(mapped)+PAGE_SHARDS-1)//PAGE_SHARDS
-        selected_page=(run_number-1)%pages if page is None else page
-        if selected_page>=pages:return reject("PAGE_OUT_OF_RANGE")
+        selected_page,selection_method=select_page(
+            mapped,sha,run_number,page,coverage_summary)
         selection=mapped[selected_page*PAGE_SHARDS:(selected_page+1)*PAGE_SHARDS]
         stage=output.parent/("p2_paged_input_"+commit[:12])/epoch.name
         if stage.exists():shutil.rmtree(stage)
@@ -88,7 +134,7 @@ def run(archive_root,checkpoint_root,out,page=None,run_number=1):
         report=dict(base,status="PAGED_REAL_ARCHIVE_RESEARCH_ONLY",
             source_epoch_sha256=sha,archive_commit_sha=commit,
             asof_completed_day=END,page_index=selected_page,
-            total_pages=pages,selection_method=("RUN_NUMBER_ROTATION" if page is None else "EXPLICIT_PAGE"),
+            total_pages=pages,selection_method=selection_method,
             archived_shards_in_selected_epoch=len(mapped),
             checkpoint_completed_shards=ledger["completed_shards"],
             checkpoint_total_shards=ledger["shard_count"],
@@ -118,10 +164,14 @@ def main():
     p.add_argument("--out",required=True)
     p.add_argument("--page",type=int)
     p.add_argument("--run-number",type=int,default=1)
+    p.add_argument("--coverage-summary")
     a=p.parse_args()
-    result=run(a.archive_root,a.checkpoints,a.out,a.page,a.run_number)
+    try:
+        coverage=json.loads(Path(a.coverage_summary).read_text()) if a.coverage_summary else None
+    except (OSError,ValueError,UnicodeError):coverage=None
+    result=run(a.archive_root,a.checkpoints,a.out,a.page,a.run_number,coverage)
     print(json.dumps({k:result.get(k) for k in (
-        "status","reason","page_index","total_pages",
+        "status","reason","page_index","selection_method","total_pages",
         "archived_shards_in_selected_epoch","processed_shards",
         "scoped_verified_issuers","computed_feature_issuers","trade_gate")}))
     if result["status"]=="REJECTED":raise SystemExit(1)
