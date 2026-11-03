@@ -1,0 +1,41 @@
+name: P1 five-stock public intraday snapshot (RESEARCH ONLY)
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'collector/intraday_public_snapshot.py'
+      - 'tests/test_intraday_public_snapshot.py'
+      - '.github/workflows/p1-public-intraday-snapshot.yml'
+  schedule:
+    # UTC: Beijing 10:05, 10:35, 11:05, 13:35, 14:05 and 14:35 weekdays.
+    # GitHub Actions cron is best effort: never a 15-second execution feed.
+    - cron: '5,35 2 * * 1-5'
+    - cron: '5 3 * * 1-5'
+    - cron: '35 5 * * 1-5'
+    - cron: '5,35 6 * * 1-5'
+permissions:
+  contents: read
+concurrency:
+  group: p1-public-intraday-research-snapshot
+  cancel-in-progress: false
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test unofficial source parsing and immutable BLOCKED gate
+        run: python -m unittest tests.test_intraday_public_snapshot -v
+      - name: Observe five research-only intraday snapshots (no orders)
+        if: github.event_name != 'pull_request'
+        run: python -m collector.intraday_public_snapshot --out evidence/intraday/latest.json
+      - uses: actions/upload-artifact@v4
+        if: always() && github.event_name != 'pull_request'
+        with:
+          name: p1-public-intraday-${{ github.run_id }}
+          path: evidence/intraday/latest.json
+          retention-days: 14
+          if-no-files-found: warn
