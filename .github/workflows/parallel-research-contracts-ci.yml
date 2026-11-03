@@ -1,0 +1,42 @@
+name: Parallel research lanes offline contract CI (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/parallel_research_contracts.py'
+      - 'tests/test_parallel_research_contracts.py'
+      - '.github/workflows/parallel-research-contracts-ci.yml'
+  pull_request:
+    paths:
+      - 'collector/parallel_research_contracts.py'
+      - 'tests/test_parallel_research_contracts.py'
+      - '.github/workflows/parallel-research-contracts-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: parallel-research-offline-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check all four research contracts stay non-executable
+        run: |
+          python -m unittest tests.test_parallel_research_contracts -v
+          python - <<'PY'
+          from collector.parallel_research_contracts import LANES
+          for name, assess in LANES.items():
+              result = assess(None)
+              assert result["trade_gate"] == "BLOCKED"
+              assert result["orders"] == []
+              assert result["executable_candidates"] == []
+              assert result["actionable_buy_signals"] == []
+              assert result["certified"] is False
+          print("ALL_LANES_FAIL_CLOSED")
+          PY
