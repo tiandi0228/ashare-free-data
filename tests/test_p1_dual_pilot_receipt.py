@@ -53,6 +53,12 @@ class DualPilotReceiptTests(unittest.TestCase):
         self.assertTrue(receipt_path(record).endswith(
             "/run_450123_attempt_1.json"))
 
+    def test_reviewed_1310_slot_persists_with_safe_gate(self):
+        r=self.scheduled(*self.fixtures(),cron="10 5 * * 1-5")
+        self.assertEqual(r["trigger_cron_utc"],"10 5 * * 1-5")
+        self.assertEqual(r["new_shards_durably_accepted"],2)
+        self.assertEqual(r["trade_gate"],"BLOCKED")
+
     def test_1710_pilot_is_bounded_and_persists_exact_trigger(self):
         record = self.scheduled(*self.fixtures(), cron="10 9 * * 1-5")
         self.assertEqual(record["trigger_cron_utc"],"10 9 * * 1-5")
