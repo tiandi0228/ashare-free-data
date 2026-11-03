@@ -2,6 +2,7 @@
 import argparse,datetime as dt,json,math,re,urllib.error,urllib.parse,urllib.request
 from pathlib import Path
 from zoneinfo import ZoneInfo
+from collector.intraday_minute_coverage import audit_minute_coverage
 
 TZ=ZoneInfo("Asia/Shanghai")
 WATCHLIST=("002249","002696","301015","300015","300896")
@@ -68,6 +69,7 @@ def parse_eastmoney(raw,code,now):
             gaps.append(dict(after=left.isoformat(),before=right.isoformat(),
                              minutes_missing=max(0,delta-1)))
     completed=[x for x in items if x[0]<now.replace(second=0,microsecond=0)]
+    coverage=audit_minute_coverage([x[0] for x in items],now)
     # A-share vendor volume is in lots (100 shares). Reconcile against turnover
     # to catch silent unit drift without treating it as a regulatory proof.
     unit_mismatch=False
@@ -79,6 +81,10 @@ def parse_eastmoney(raw,code,now):
     issues=list(dict.fromkeys(session_issues))
     if gaps: issues.append("OBSERVED_MINUTE_GAPS")
     if unit_mismatch: issues.append("VOLUME_AMOUNT_UNIT_MISMATCH")
+    if coverage["source_has_future_labels"]:
+        issues.append("OBSERVED_FUTURE_MINUTE_LABEL")
+    if coverage["missing_expected_completed_labels"]:
+        issues.append("EXPECTED_COMPLETED_MINUTES_MISSING")
     return dict(source="eastmoney_unofficial",rows_today=len(items),
                 completed_minutes=len(completed),
                 last_minute_time=items[-1][0].isoformat(),
@@ -86,6 +92,7 @@ def parse_eastmoney(raw,code,now):
                 completed_minute_volume_lots=sum(x[1] for x in completed),
                 completed_minute_amount_cny=round(sum(x[2] for x in completed),2),
                 minute_unit="lots_100_shares",observed_gaps=gaps,
+                expected_minute_coverage=coverage,
                 minute_validation_issues=issues,
                 minute_data_complete=False)
 
