@@ -12,7 +12,7 @@ from collector.p1_schedule_watchdog import audit,iso,slots,TARGET,TZ
 def eligibility(now,runs,*,total_count=None):
     if now.tzinfo is None or not isinstance(runs,list) or not runs:
         return refusal(now,"RUN_COVERAGE_UNVERIFIED")
-    if type(total_count) is not int or total_count<0 or total_count>len(runs):
+    if type(total_count) is not int or total_count<0 or total_count<len(runs):
         return refusal(now,"RUN_LIST_TRUNCATED_OR_INVALID")
     # The target workflow may have >100 historical runs, so listing is capped by
     # the lookback, not by historical total; require at least 24h of recent records.
@@ -32,6 +32,13 @@ def eligibility(now,runs,*,total_count=None):
     most_recent=max(t for t,_ in parsed)
     if now.astimezone(TZ)-most_recent>dt.timedelta(hours=24):
         return refusal(now,"RUN_HISTORY_TOO_OLD")
+    # If the first page is saturated, a second unseen page may contain runs
+    # around the target slot; require the oldest returned run predates it.
+    candidate_slots=slots(now)
+    if not candidate_slots:
+        return refusal(now,"NO_ELIGIBLE_SLOT")
+    if min(t for t,_ in parsed)>candidate_slots[0]-dt.timedelta(minutes=2):
+        return refusal(now,"RUN_HISTORY_DOES_NOT_COVER_SLOT",slot=candidate_slots[0])
     watchdog=audit(now,runs)
     slot=iso(watchdog["scheduled_slot_beijing"]).astimezone(TZ)
     if watchdog["state"]!="SUSPECTED_MISSED_SCHEDULE":
