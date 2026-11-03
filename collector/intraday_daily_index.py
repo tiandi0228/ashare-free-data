@@ -7,6 +7,7 @@ runner-local cache. No brokerage actions or trading signals are implemented.
 import argparse,base64,datetime as dt,hashlib,json,os,re
 from pathlib import Path
 from collector.intraday_snapshot_archive import api,validate,BRANCH,WATCHLIST,REPO_RE
+from collector.intraday_source_health import source_health
 
 DAY=re.compile(r"20\d{2}-\d{2}-\d{2}\Z")
 ENTRY=re.compile(r"run_([1-9]\d*)_attempt_([1-9]\d*)\.json\Z")
@@ -59,6 +60,8 @@ def build(repo,day):
                     raise ValueError("invalid quality issue list")
             summary[code]={
                 "status":status,
+                "error_stage":row.get("error_stage") if status=="SOURCE_UNAVAILABLE" else None,
+                "error_type":row.get("error_type") if status=="SOURCE_UNAVAILABLE" else None,
                 "quote_time":quote.get("quote_time"),
                 "observed_price_cny":quote.get("price"),
                 "reported_volume_ratio":quote.get("volume_ratio"),
@@ -77,6 +80,7 @@ def build(repo,day):
         "date":day,"source_branch":BRANCH,"entries_count":len(rows),
         "entries":rows,"latest_run":latest["run_id"],
         "latest_by_symbol":latest["symbols"],
+        "source_reliability_sample":source_health(rows),
         "index_is_not_live_quote":True,
         "minute_data_complete_certified":False,
         "cross_source_price_certified":False,
