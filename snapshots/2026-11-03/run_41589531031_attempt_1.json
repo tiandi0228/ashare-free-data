@@ -1,0 +1,327 @@
+{
+  "phase": "P1_PUBLIC_INTRADAY_RESEARCH_SNAPSHOT",
+  "asof": "2026-11-03T14:23:26.084389+08:00",
+  "provider_type": "UNOFFICIAL_WEB_ENDPOINTS",
+  "trade_gate": "BLOCKED",
+  "orders": [],
+  "executable_candidates": [],
+  "symbols": {
+    "002249": {
+      "quote": {
+        "source": "tencent_unofficial",
+        "code": "002249",
+        "name": "大洋电机",
+        "price": 7.64,
+        "prev_close": 7.36,
+        "volume_lots": 2169651,
+        "volume_ratio": 0.93,
+        "quote_time": "2026-11-03T14:23:24+08:00"
+      },
+      "minute": {
+        "source": "eastmoney_unofficial",
+        "rows_today": 205,
+        "completed_minutes": 203,
+        "last_minute_time": "2026-11-03T14:24:00+08:00",
+        "last_completed_minute_time": "2026-11-03T14:22:00+08:00",
+        "completed_minute_volume_lots": 2161584.0,
+        "completed_minute_amount_cny": 1608711495.0,
+        "minute_unit": "lots_100_shares",
+        "observed_gaps": [],
+        "expected_minute_coverage": {
+          "convention": "OBSERVED_VENDOR_LABELS_0930_1130_AND_1301_1500",
+          "expected_completed_labels": 203,
+          "covered_expected_completed_labels": 203,
+          "missing_expected_completed_labels": 0,
+          "coverage_ratio_observed": 1.0,
+          "missing_labels": [],
+          "forming_labels": [
+            "2026-11-03T14:23:00+08:00"
+          ],
+          "future_labels": [
+            "2026-11-03T14:24:00+08:00"
+          ],
+          "source_has_future_labels": true,
+          "minute_data_complete_certified": false,
+          "limitations": [
+            "UNOFFICIAL_VENDOR_LABEL_CONVENTION_OBSERVED_FIVE_SYMBOLS_SINGLE_DAY_NOT_INDEPENDENTLY_VERIFIED",
+            "NOT_A_POINT_IN_TIME_COMPLETE_MINUTE_RECORD",
+            "NOT_AN_EXECUTABLE_TRADING_QUOTE"
+          ]
+        },
+        "minute_validation_issues": [
+          "OBSERVED_FUTURE_MINUTE_LABEL"
+        ],
+        "minute_data_complete": false
+      },
+      "checked_at": "2026-11-03T14:23:41.464781+08:00",
+      "validation": {
+        "status": "RESEARCH_ONLY",
+        "quote_age_seconds": 17.46,
+        "validation_issues": [
+          "QUOTE_STALE_OR_FUTURE",
+          "OBSERVED_FUTURE_MINUTE_LABEL",
+          "MINUTE_COMPLETENESS_UNVERIFIED"
+        ],
+        "cross_source_price_verified": false,
+        "executable_quote": false,
+        "trade_gate": "BLOCKED",
+        "orders": [],
+        "executable_candidates": []
+      }
+    },
+    "002696": {
+      "quote": {
+        "source": "tencent_unofficial",
+        "code": "002696",
+        "name": "百洋股份",
+        "price": 12.36,
+        "prev_close": 11.24,
+        "volume_lots": 802150,
+        "volume_ratio": 0.87,
+        "quote_time": "2026-11-03T14:23:39+08:00"
+      },
+      "minute": {
+        "source": "eastmoney_unofficial",
+        "rows_today": 205,
+        "completed_minutes": 203,
+        "last_minute_time": "2026-11-03T14:24:00+08:00",
+        "last_completed_minute_time": "2026-11-03T14:22:00+08:00",
+        "completed_minute_volume_lots": 802002.0,
+        "completed_minute_amount_cny": 941383270.0,
+        "minute_unit": "lots_100_shares",
+        "observed_gaps": [],
+        "expected_minute_coverage": {
+          "convention": "OBSERVED_VENDOR_LABELS_0930_1130_AND_1301_1500",
+          "expected_completed_labels": 203,
+          "covered_expected_completed_labels": 203,
+          "missing_expected_completed_labels": 0,
+          "coverage_ratio_observed": 1.0,
+          "missing_labels": [],
+          "forming_labels": [
+            "2026-11-03T14:23:00+08:00"
+          ],
+          "future_labels": [
+            "2026-11-03T14:24:00+08:00"
+          ],
+          "source_has_future_labels": true,
+          "minute_data_complete_certified": false,
+          "limitations": [
+            "UNOFFICIAL_VENDOR_LABEL_CONVENTION_OBSERVED_FIVE_SYMBOLS_SINGLE_DAY_NOT_INDEPENDENTLY_VERIFIED",
+            "NOT_A_POINT_IN_TIME_COMPLETE_MINUTE_RECORD",
+            "NOT_AN_EXECUTABLE_TRADING_QUOTE"
+          ]
+        },
+        "minute_validation_issues": [
+          "OBSERVED_FUTURE_MINUTE_LABEL"
+        ],
+        "minute_data_complete": false
+      },
+      "checked_at": "2026-11-03T14:23:56.681720+08:00",
+      "validation": {
+        "status": "RESEARCH_ONLY",
+        "quote_age_seconds": 17.68,
+        "validation_issues": [
+          "QUOTE_STALE_OR_FUTURE",
+          "OBSERVED_FUTURE_MINUTE_LABEL",
+          "MINUTE_COMPLETENESS_UNVERIFIED"
+        ],
+        "cross_source_price_verified": false,
+        "executable_quote": false,
+        "trade_gate": "BLOCKED",
+        "orders": [],
+        "executable_candidates": []
+      }
+    },
+    "301015": {
+      "quote": {
+        "source": "tencent_unofficial",
+        "code": "301015",
+        "name": "百洋医药",
+        "price": 26.15,
+        "prev_close": 24.89,
+        "volume_lots": 220949,
+        "volume_ratio": 1.26,
+        "quote_time": "2026-11-03T14:23:54+08:00"
+      },
+      "minute": {
+        "source": "eastmoney_unofficial",
+        "rows_today": 206,
+        "completed_minutes": 203,
+        "last_minute_time": "2026-11-03T14:25:00+08:00",
+        "last_completed_minute_time": "2026-11-03T14:22:00+08:00",
+        "completed_minute_volume_lots": 219475.0,
+        "completed_minute_amount_cny": 566713063.0,
+        "minute_unit": "lots_100_shares",
+        "observed_gaps": [],
+        "expected_minute_coverage": {
+          "convention": "OBSERVED_VENDOR_LABELS_0930_1130_AND_1301_1500",
+          "expected_completed_labels": 203,
+          "covered_expected_completed_labels": 203,
+          "missing_expected_completed_labels": 0,
+          "coverage_ratio_observed": 1.0,
+          "missing_labels": [],
+          "forming_labels": [
+            "2026-11-03T14:23:00+08:00"
+          ],
+          "future_labels": [
+            "2026-11-03T14:24:00+08:00",
+            "2026-11-03T14:25:00+08:00"
+          ],
+          "source_has_future_labels": true,
+          "minute_data_complete_certified": false,
+          "limitations": [
+            "UNOFFICIAL_VENDOR_LABEL_CONVENTION_OBSERVED_FIVE_SYMBOLS_SINGLE_DAY_NOT_INDEPENDENTLY_VERIFIED",
+            "NOT_A_POINT_IN_TIME_COMPLETE_MINUTE_RECORD",
+            "NOT_AN_EXECUTABLE_TRADING_QUOTE"
+          ]
+        },
+        "minute_validation_issues": [
+          "OBSERVED_FUTURE_MINUTE_LABEL"
+        ],
+        "minute_data_complete": false
+      },
+      "checked_at": "2026-11-03T14:24:23.624397+08:00",
+      "validation": {
+        "status": "RESEARCH_ONLY",
+        "quote_age_seconds": 29.62,
+        "validation_issues": [
+          "QUOTE_STALE_OR_FUTURE",
+          "OBSERVED_FUTURE_MINUTE_LABEL",
+          "MINUTE_COMPLETENESS_UNVERIFIED"
+        ],
+        "cross_source_price_verified": false,
+        "executable_quote": false,
+        "trade_gate": "BLOCKED",
+        "orders": [],
+        "executable_candidates": []
+      }
+    },
+    "300015": {
+      "quote": {
+        "source": "tencent_unofficial",
+        "code": "300015",
+        "name": "爱尔眼科",
+        "price": 8.91,
+        "prev_close": 8.68,
+        "volume_lots": 1051922,
+        "volume_ratio": 1.21,
+        "quote_time": "2026-11-03T14:24:18+08:00"
+      },
+      "minute": {
+        "source": "eastmoney_unofficial",
+        "rows_today": 206,
+        "completed_minutes": 203,
+        "last_minute_time": "2026-11-03T14:25:00+08:00",
+        "last_completed_minute_time": "2026-11-03T14:22:00+08:00",
+        "completed_minute_volume_lots": 1039773.0,
+        "completed_minute_amount_cny": 918986189.0,
+        "minute_unit": "lots_100_shares",
+        "observed_gaps": [],
+        "expected_minute_coverage": {
+          "convention": "OBSERVED_VENDOR_LABELS_0930_1130_AND_1301_1500",
+          "expected_completed_labels": 203,
+          "covered_expected_completed_labels": 203,
+          "missing_expected_completed_labels": 0,
+          "coverage_ratio_observed": 1.0,
+          "missing_labels": [],
+          "forming_labels": [
+            "2026-11-03T14:23:00+08:00"
+          ],
+          "future_labels": [
+            "2026-11-03T14:24:00+08:00",
+            "2026-11-03T14:25:00+08:00"
+          ],
+          "source_has_future_labels": true,
+          "minute_data_complete_certified": false,
+          "limitations": [
+            "UNOFFICIAL_VENDOR_LABEL_CONVENTION_OBSERVED_FIVE_SYMBOLS_SINGLE_DAY_NOT_INDEPENDENTLY_VERIFIED",
+            "NOT_A_POINT_IN_TIME_COMPLETE_MINUTE_RECORD",
+            "NOT_AN_EXECUTABLE_TRADING_QUOTE"
+          ]
+        },
+        "minute_validation_issues": [
+          "OBSERVED_FUTURE_MINUTE_LABEL"
+        ],
+        "minute_data_complete": false
+      },
+      "checked_at": "2026-11-03T14:24:26.106279+08:00",
+      "validation": {
+        "status": "RESEARCH_ONLY",
+        "quote_age_seconds": 8.11,
+        "validation_issues": [
+          "OBSERVED_FUTURE_MINUTE_LABEL",
+          "MINUTE_COMPLETENESS_UNVERIFIED"
+        ],
+        "cross_source_price_verified": false,
+        "executable_quote": false,
+        "trade_gate": "BLOCKED",
+        "orders": [],
+        "executable_candidates": []
+      }
+    },
+    "300896": {
+      "quote": {
+        "source": "tencent_unofficial",
+        "code": "300896",
+        "name": "爱美客",
+        "price": 88.89,
+        "prev_close": 85.86,
+        "volume_lots": 34676,
+        "volume_ratio": 1.07,
+        "quote_time": "2026-11-03T14:24:21+08:00"
+      },
+      "minute": {
+        "source": "eastmoney_unofficial",
+        "rows_today": 206,
+        "completed_minutes": 203,
+        "last_minute_time": "2026-11-03T14:25:00+08:00",
+        "last_completed_minute_time": "2026-11-03T14:22:00+08:00",
+        "completed_minute_volume_lots": 34366.0,
+        "completed_minute_amount_cny": 301985979.0,
+        "minute_unit": "lots_100_shares",
+        "observed_gaps": [],
+        "expected_minute_coverage": {
+          "convention": "OBSERVED_VENDOR_LABELS_0930_1130_AND_1301_1500",
+          "expected_completed_labels": 203,
+          "covered_expected_completed_labels": 203,
+          "missing_expected_completed_labels": 0,
+          "coverage_ratio_observed": 1.0,
+          "missing_labels": [],
+          "forming_labels": [
+            "2026-11-03T14:23:00+08:00"
+          ],
+          "future_labels": [
+            "2026-11-03T14:24:00+08:00",
+            "2026-11-03T14:25:00+08:00"
+          ],
+          "source_has_future_labels": true,
+          "minute_data_complete_certified": false,
+          "limitations": [
+            "UNOFFICIAL_VENDOR_LABEL_CONVENTION_OBSERVED_FIVE_SYMBOLS_SINGLE_DAY_NOT_INDEPENDENTLY_VERIFIED",
+            "NOT_A_POINT_IN_TIME_COMPLETE_MINUTE_RECORD",
+            "NOT_AN_EXECUTABLE_TRADING_QUOTE"
+          ]
+        },
+        "minute_validation_issues": [
+          "OBSERVED_FUTURE_MINUTE_LABEL"
+        ],
+        "minute_data_complete": false
+      },
+      "checked_at": "2026-11-03T14:24:54.721210+08:00",
+      "validation": {
+        "status": "RESEARCH_ONLY",
+        "quote_age_seconds": 33.72,
+        "validation_issues": [
+          "QUOTE_STALE_OR_FUTURE",
+          "OBSERVED_FUTURE_MINUTE_LABEL",
+          "MINUTE_COMPLETENESS_UNVERIFIED"
+        ],
+        "cross_source_price_verified": false,
+        "executable_quote": false,
+        "trade_gate": "BLOCKED",
+        "orders": [],
+        "executable_candidates": []
+      }
+    }
+  }
+}
