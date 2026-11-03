@@ -1,0 +1,200 @@
+{
+  "phase": "P1_PUBLIC_INTRADAY_RESEARCH_SNAPSHOT",
+  "asof": "2026-11-03T13:44:38.683678+08:00",
+  "provider_type": "UNOFFICIAL_WEB_ENDPOINTS",
+  "trade_gate": "BLOCKED",
+  "orders": [],
+  "executable_candidates": [],
+  "symbols": {
+    "002249": {
+      "quote": {
+        "source": "tencent_unofficial",
+        "code": "002249",
+        "name": "大洋电机",
+        "price": 7.43,
+        "prev_close": 7.36,
+        "volume_lots": 1707805,
+        "volume_ratio": 0.9,
+        "quote_time": "2026-11-03T13:44:36+08:00"
+      },
+      "minute": {
+        "source": "eastmoney_unofficial",
+        "rows_today": 166,
+        "completed_minutes": 164,
+        "last_minute_time": "2026-11-03T13:45:00+08:00",
+        "last_completed_minute_time": "2026-11-03T13:43:00+08:00",
+        "completed_minute_volume_lots": 1701329.0,
+        "completed_minute_amount_cny": 1257589944.0,
+        "minute_unit": "lots_100_shares",
+        "observed_gaps": [],
+        "minute_validation_issues": [],
+        "minute_data_complete": false
+      },
+      "checked_at": "2026-11-03T13:44:42.069250+08:00",
+      "validation": {
+        "status": "RESEARCH_ONLY",
+        "quote_age_seconds": 6.07,
+        "validation_issues": [
+          "MINUTE_COMPLETENESS_UNVERIFIED"
+        ],
+        "cross_source_price_verified": false,
+        "executable_quote": false,
+        "trade_gate": "BLOCKED",
+        "orders": [],
+        "executable_candidates": []
+      }
+    },
+    "002696": {
+      "quote": {
+        "source": "tencent_unofficial",
+        "code": "002696",
+        "name": "百洋股份",
+        "price": 12.36,
+        "prev_close": 11.24,
+        "volume_lots": 796459,
+        "volume_ratio": 1.07,
+        "quote_time": "2026-11-03T13:44:39+08:00"
+      },
+      "minute": {
+        "source": "eastmoney_unofficial",
+        "rows_today": 166,
+        "completed_minutes": 164,
+        "last_minute_time": "2026-11-03T13:45:00+08:00",
+        "last_completed_minute_time": "2026-11-03T13:43:00+08:00",
+        "completed_minute_volume_lots": 796286.0,
+        "completed_minute_amount_cny": 934318294.0,
+        "minute_unit": "lots_100_shares",
+        "observed_gaps": [],
+        "minute_validation_issues": [],
+        "minute_data_complete": false
+      },
+      "checked_at": "2026-11-03T13:44:44.820101+08:00",
+      "validation": {
+        "status": "RESEARCH_ONLY",
+        "quote_age_seconds": 5.82,
+        "validation_issues": [
+          "MINUTE_COMPLETENESS_UNVERIFIED"
+        ],
+        "cross_source_price_verified": false,
+        "executable_quote": false,
+        "trade_gate": "BLOCKED",
+        "orders": [],
+        "executable_candidates": []
+      }
+    },
+    "301015": {
+      "quote": {
+        "source": "tencent_unofficial",
+        "code": "301015",
+        "name": "百洋医药",
+        "price": 25.88,
+        "prev_close": 24.89,
+        "volume_lots": 207963,
+        "volume_ratio": 1.47,
+        "quote_time": "2026-11-03T13:44:39+08:00"
+      },
+      "minute": {
+        "source": "eastmoney_unofficial",
+        "rows_today": 166,
+        "completed_minutes": 164,
+        "last_minute_time": "2026-11-03T13:45:00+08:00",
+        "last_completed_minute_time": "2026-11-03T13:43:00+08:00",
+        "completed_minute_volume_lots": 207704.0,
+        "completed_minute_amount_cny": 536293006.0,
+        "minute_unit": "lots_100_shares",
+        "observed_gaps": [],
+        "minute_validation_issues": [],
+        "minute_data_complete": false
+      },
+      "checked_at": "2026-11-03T13:44:47.908577+08:00",
+      "validation": {
+        "status": "RESEARCH_ONLY",
+        "quote_age_seconds": 8.91,
+        "validation_issues": [
+          "MINUTE_COMPLETENESS_UNVERIFIED"
+        ],
+        "cross_source_price_verified": false,
+        "executable_quote": false,
+        "trade_gate": "BLOCKED",
+        "orders": [],
+        "executable_candidates": []
+      }
+    },
+    "300015": {
+      "quote": {
+        "source": "tencent_unofficial",
+        "code": "300015",
+        "name": "爱尔眼科",
+        "price": 8.89,
+        "prev_close": 8.68,
+        "volume_lots": 900035,
+        "volume_ratio": 1.29,
+        "quote_time": "2026-11-03T13:44:45+08:00"
+      },
+      "minute": {
+        "source": "eastmoney_unofficial",
+        "rows_today": 166,
+        "completed_minutes": 164,
+        "last_minute_time": "2026-11-03T13:45:00+08:00",
+        "last_completed_minute_time": "2026-11-03T13:43:00+08:00",
+        "completed_minute_volume_lots": 892285.0,
+        "completed_minute_amount_cny": 787846090.0,
+        "minute_unit": "lots_100_shares",
+        "observed_gaps": [],
+        "minute_validation_issues": [],
+        "minute_data_complete": false
+      },
+      "checked_at": "2026-11-03T13:44:50.739013+08:00",
+      "validation": {
+        "status": "RESEARCH_ONLY",
+        "quote_age_seconds": 5.74,
+        "validation_issues": [
+          "MINUTE_COMPLETENESS_UNVERIFIED"
+        ],
+        "cross_source_price_verified": false,
+        "executable_quote": false,
+        "trade_gate": "BLOCKED",
+        "orders": [],
+        "executable_candidates": []
+      }
+    },
+    "300896": {
+      "quote": {
+        "source": "tencent_unofficial",
+        "code": "300896",
+        "name": "爱美客",
+        "price": 88.47,
+        "prev_close": 85.86,
+        "volume_lots": 31387,
+        "volume_ratio": 1.2,
+        "quote_time": "2026-11-03T13:44:48+08:00"
+      },
+      "minute": {
+        "source": "eastmoney_unofficial",
+        "rows_today": 166,
+        "completed_minutes": 164,
+        "last_minute_time": "2026-11-03T13:45:00+08:00",
+        "last_completed_minute_time": "2026-11-03T13:43:00+08:00",
+        "completed_minute_volume_lots": 31291.0,
+        "completed_minute_amount_cny": 274743930.0,
+        "minute_unit": "lots_100_shares",
+        "observed_gaps": [],
+        "minute_validation_issues": [],
+        "minute_data_complete": false
+      },
+      "checked_at": "2026-11-03T13:44:53.781094+08:00",
+      "validation": {
+        "status": "RESEARCH_ONLY",
+        "quote_age_seconds": 5.78,
+        "validation_issues": [
+          "MINUTE_COMPLETENESS_UNVERIFIED"
+        ],
+        "cross_source_price_verified": false,
+        "executable_quote": false,
+        "trade_gate": "BLOCKED",
+        "orders": [],
+        "executable_candidates": []
+      }
+    }
+  }
+}
