@@ -203,80 +203,142 @@
           "status": "RESEARCH_ONLY"
         }
       }
+    },
+    {
+      "asof": "2026-11-03T14:02:14.676216+08:00",
+      "path": "snapshots/2026-11-03/run_41587356996_attempt_1.json",
+      "run_attempt": 1,
+      "run_id": 41587356996,
+      "sha256": "6a410c343deaa93080ee284c01cb06afdcbfa5ecd29c0eae845656aff8813616",
+      "symbols": {
+        "002249": {
+          "executable_quote": false,
+          "minute_rows_today": null,
+          "observed_price_cny": null,
+          "quality_issues": [
+            "SOURCE_UNAVAILABLE"
+          ],
+          "quote_time": null,
+          "reported_volume_ratio": null,
+          "status": "SOURCE_UNAVAILABLE"
+        },
+        "002696": {
+          "executable_quote": false,
+          "minute_rows_today": 184,
+          "observed_price_cny": 12.36,
+          "quality_issues": [
+            "OBSERVED_FUTURE_MINUTE_LABEL",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T14:02:39+08:00",
+          "reported_volume_ratio": 0.97,
+          "status": "RESEARCH_ONLY"
+        },
+        "300015": {
+          "executable_quote": false,
+          "minute_rows_today": 184,
+          "observed_price_cny": 8.89,
+          "quality_issues": [
+            "OBSERVED_FUTURE_MINUTE_LABEL",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T14:02:51+08:00",
+          "reported_volume_ratio": 1.22,
+          "status": "RESEARCH_ONLY"
+        },
+        "300896": {
+          "executable_quote": false,
+          "minute_rows_today": 184,
+          "observed_price_cny": 88.54,
+          "quality_issues": [
+            "OBSERVED_FUTURE_MINUTE_LABEL",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T14:02:51+08:00",
+          "reported_volume_ratio": 1.11,
+          "status": "RESEARCH_ONLY"
+        },
+        "301015": {
+          "executable_quote": false,
+          "minute_rows_today": 184,
+          "observed_price_cny": 25.87,
+          "quality_issues": [
+            "OBSERVED_FUTURE_MINUTE_LABEL",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T14:02:48+08:00",
+          "reported_volume_ratio": 1.36,
+          "status": "RESEARCH_ONLY"
+        }
+      }
     }
   ],
-  "entries_count": 3,
+  "entries_count": 4,
   "executable_candidates": [],
   "historical_PIT_verified": false,
   "index_is_not_live_quote": true,
   "latest_by_symbol": {
     "002249": {
       "executable_quote": false,
-      "minute_rows_today": 181,
-      "observed_price_cny": 7.72,
+      "minute_rows_today": null,
+      "observed_price_cny": null,
       "quality_issues": [
-        "OBSERVED_FUTURE_MINUTE_LABEL",
-        "EXPECTED_COMPLETED_MINUTES_MISSING",
-        "MINUTE_COMPLETENESS_UNVERIFIED"
+        "SOURCE_UNAVAILABLE"
       ],
-      "quote_time": "2026-11-03T13:59:21+08:00",
-      "reported_volume_ratio": 0.94,
-      "status": "RESEARCH_ONLY"
+      "quote_time": null,
+      "reported_volume_ratio": null,
+      "status": "SOURCE_UNAVAILABLE"
     },
     "002696": {
       "executable_quote": false,
-      "minute_rows_today": 181,
+      "minute_rows_today": 184,
       "observed_price_cny": 12.36,
       "quality_issues": [
         "OBSERVED_FUTURE_MINUTE_LABEL",
-        "EXPECTED_COMPLETED_MINUTES_MISSING",
         "MINUTE_COMPLETENESS_UNVERIFIED"
       ],
-      "quote_time": "2026-11-03T13:59:21+08:00",
-      "reported_volume_ratio": 0.98,
+      "quote_time": "2026-11-03T14:02:39+08:00",
+      "reported_volume_ratio": 0.97,
       "status": "RESEARCH_ONLY"
     },
     "300015": {
       "executable_quote": false,
-      "minute_rows_today": 181,
-      "observed_price_cny": 8.88,
+      "minute_rows_today": 184,
+      "observed_price_cny": 8.89,
       "quality_issues": [
         "OBSERVED_FUTURE_MINUTE_LABEL",
-        "EXPECTED_COMPLETED_MINUTES_MISSING",
         "MINUTE_COMPLETENESS_UNVERIFIED"
       ],
-      "quote_time": "2026-11-03T13:59:30+08:00",
+      "quote_time": "2026-11-03T14:02:51+08:00",
       "reported_volume_ratio": 1.22,
       "status": "RESEARCH_ONLY"
     },
     "300896": {
       "executable_quote": false,
-      "minute_rows_today": 181,
-      "observed_price_cny": 88.35,
+      "minute_rows_today": 184,
+      "observed_price_cny": 88.54,
       "quality_issues": [
         "OBSERVED_FUTURE_MINUTE_LABEL",
-        "EXPECTED_COMPLETED_MINUTES_MISSING",
         "MINUTE_COMPLETENESS_UNVERIFIED"
       ],
-      "quote_time": "2026-11-03T13:59:30+08:00",
-      "reported_volume_ratio": 1.12,
+      "quote_time": "2026-11-03T14:02:51+08:00",
+      "reported_volume_ratio": 1.11,
       "status": "RESEARCH_ONLY"
     },
     "301015": {
       "executable_quote": false,
-      "minute_rows_today": 181,
-      "observed_price_cny": 25.79,
+      "minute_rows_today": 184,
+      "observed_price_cny": 25.87,
       "quality_issues": [
         "OBSERVED_FUTURE_MINUTE_LABEL",
-        "EXPECTED_COMPLETED_MINUTES_MISSING",
         "MINUTE_COMPLETENESS_UNVERIFIED"
       ],
-      "quote_time": "2026-11-03T13:59:24+08:00",
-      "reported_volume_ratio": 1.38,
+      "quote_time": "2026-11-03T14:02:48+08:00",
+      "reported_volume_ratio": 1.36,
       "status": "RESEARCH_ONLY"
     }
   },
-  "latest_run": 41587063687,
+  "latest_run": 41587356996,
   "minute_data_complete_certified": false,
   "orders": [],
   "phase": "P1_READ_ONLY_DAILY_SNAPSHOT_INDEX",
