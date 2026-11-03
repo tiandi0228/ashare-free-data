@@ -41,7 +41,7 @@ class DailyIndexTests(unittest.TestCase):
         self.assertEqual(result["latest_by_symbol"]["002249"]["status"],
                          "SOURCE_UNAVAILABLE")
         self.assertIsNone(result["latest_by_symbol"]["002249"]["observed_price_cny"])
-        self.assertFalse(result["index_is_not_live_quote"] is False)
+        self.assertTrue(result["index_is_not_live_quote"])
         self.assertFalse(result["minute_data_complete_certified"])
         self.assertFalse(result["cross_source_price_certified"])
         self.assertEqual(result["trade_gate"],"BLOCKED")
@@ -66,7 +66,7 @@ class DailyIndexTests(unittest.TestCase):
         meta,saved=archived(100)
         with patch("collector.intraday_daily_index.api",
                    side_effect=[[meta],saved]):
-            with self.assertRaisesRegex(ValueError,"identity changed"):
+            with self.assertRaisesRegex(ValueError,"unrecognized"):
                 build(REPO,"2026-11-04")
 
     def test_index_create_readback(self):
