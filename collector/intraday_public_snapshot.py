@@ -1,11 +1,18 @@
 """Free, bounded, read-only Tencent/Eastmoney A-share research snapshot. NO TRADES."""
-import argparse,datetime as dt,json,math,re,urllib.parse,urllib.request
+import argparse,datetime as dt,json,math,re,urllib.error,urllib.parse,urllib.request
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 TZ=ZoneInfo("Asia/Shanghai")
 WATCHLIST=("002249","002696","301015","300015","300896")
 CODE=re.compile(r"^(?:00|30|60|68)\d{4}$")
+class SourceFailure(ValueError):
+    """Sanitized failure stage without exposing provider response or tokens."""
+    def __init__(self,stage,cause):
+        self.stage=stage
+        self.error_type=type(cause).__name__
+        super().__init__(stage+" failed")
+
 
 def parse_tencent(raw,code):
     ticker=("sh" if code.startswith("6") else "sz")+code
@@ -101,7 +108,18 @@ def quality(q,m,now):
 
 def fetch(url):
     req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0","Accept":"*/*"})
-    with urllib.request.urlopen(req,timeout=12) as response: return response.read()
+    for attempt in range(2):
+        try:
+            with urllib.request.urlopen(req,timeout=12) as response:
+                return response.read()
+        except urllib.error.HTTPError as exc:
+            # Never retry permanent HTTP errors such as 403 or 404.
+            if attempt or exc.code not in (429,500,502,503,504):
+                raise
+        except (urllib.error.URLError,TimeoutError,ConnectionError,OSError):
+            if attempt:
+                raise
+    raise RuntimeError("unreachable retry state")
 
 def observe(code,now):
     if not CODE.fullmatch(code): raise ValueError("Bad symbol")
@@ -110,9 +128,15 @@ def observe(code,now):
                 ndays="1",iscr="0",
                 fields1="f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13",
                 fields2="f51,f52,f53,f54,f55,f56,f57,f58")
-    q=parse_tencent(fetch("https://qt.gtimg.cn/q="+ticker).decode("gbk"),code)
+    try:
+        q=parse_tencent(fetch("https://qt.gtimg.cn/q="+ticker).decode("gbk"),code)
+    except (OSError,UnicodeError,ValueError,TimeoutError) as exc:
+        raise SourceFailure("TENCENT_QUOTE",exc) from exc
     url="https://push2.eastmoney.com/api/qt/stock/trends2/get?"+urllib.parse.urlencode(params)
-    m=parse_eastmoney(fetch(url).decode("utf-8"),code,now)
+    try:
+        m=parse_eastmoney(fetch(url).decode("utf-8"),code,now)
+    except (OSError,UnicodeError,ValueError,TimeoutError) as exc:
+        raise SourceFailure("EASTMONEY_MINUTES",exc) from exc
     checked_at=dt.datetime.now(TZ)
     return dict(quote=q,minute=m,checked_at=checked_at.isoformat(),
                 validation=quality(q,m,checked_at))
@@ -130,8 +154,14 @@ def main():
                 orders=[],executable_candidates=[],symbols={})
     for code in a.codes:
         try: result["symbols"][code]=observe(code,now)
+        except SourceFailure as e:
+            result["symbols"][code]=dict(status="SOURCE_UNAVAILABLE",error_stage=e.stage,
+                                         error_type=e.error_type,
+                                         executable_quote=False,trade_gate="BLOCKED",
+                                         orders=[],executable_candidates=[])
         except (OSError,UnicodeError,ValueError,KeyError,TimeoutError) as e:
-            result["symbols"][code]=dict(status="SOURCE_UNAVAILABLE",error_type=type(e).__name__,
+            result["symbols"][code]=dict(status="SOURCE_UNAVAILABLE",error_stage="UNKNOWN",
+                                         error_type=type(e).__name__,
                                          executable_quote=False,trade_gate="BLOCKED",
                                          orders=[],executable_candidates=[])
     dest=Path(a.out);dest.parent.mkdir(parents=True,exist_ok=True)
