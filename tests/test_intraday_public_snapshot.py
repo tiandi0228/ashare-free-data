@@ -32,6 +32,34 @@ class IntradaySnapshotTests(unittest.TestCase):
         for bad in [minutes("2026-11-02"),minutes().replace("10:34","10:33")]:
             with self.subTest(data=bad[:30]):
                 with self.assertRaises(ValueError):parse_eastmoney(bad,"002249",NOW)
+    def test_gap_in_observed_minute_sequence_is_reported(self):
+        raw=minutes().replace("10:34","10:35")
+        m=parse_eastmoney(raw,"002249",NOW)
+        self.assertIn("OBSERVED_MINUTE_GAPS",m["minute_validation_issues"])
+        self.assertEqual(m["observed_gaps"][0]["minutes_missing"],1)
+        q=parse_tencent(quote(),"002249")
+        self.assertIn("OBSERVED_MINUTE_GAPS",quality(q,m,NOW)["validation_issues"])
+
+    def test_lunch_break_is_not_a_false_minute_gap(self):
+        raw=json.dumps({"rc":0,"data":{"code":"002249","trends":[
+            "2026-11-03 11:30,7.47,7.47,7.48,7.45,100,74700,7.4",
+            "2026-11-03 13:01,7.47,7.54,7.55,7.46,200,150000,7.5"]}})
+        now=dt.datetime(2026,11,3,13,2,25,tzinfo=NOW.tzinfo)
+        m=parse_eastmoney(raw,"002249",now)
+        self.assertEqual(m["observed_gaps"],[])
+        self.assertNotIn("OBSERVED_MINUTE_GAPS",m["minute_validation_issues"])
+
+    def test_minutes_outside_session_flagged(self):
+        raw=minutes().replace("10:33","12:33").replace("10:34","12:34")
+        m=parse_eastmoney(raw,"002249",NOW)
+        self.assertIn("OUTSIDE_CN_A_SHARE_SESSION",m["minute_validation_issues"])
+
+    def test_volume_amount_unit_mismatch_flagged(self):
+        raw=minutes().replace("100,74700","100,747")
+        m=parse_eastmoney(raw,"002249",NOW)
+        self.assertIn("VOLUME_AMOUNT_UNIT_MISMATCH",m["minute_validation_issues"])
+        self.assertEqual(m["minute_unit"],"lots_100_shares")
+
     def test_no_trade_even_fresh(self):
         q=parse_tencent(quote(),"002249")
         m=parse_eastmoney(minutes(),"002249",NOW)
