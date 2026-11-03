@@ -1,5 +1,11 @@
 name: P1 five-stock public intraday snapshot (RESEARCH ONLY)
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p1-public-intraday-snapshot.yml'
+      - 'collector/intraday_public_snapshot.py'
+      - 'tests/test_intraday_public_snapshot.py'
   workflow_dispatch:
   pull_request:
     paths:
