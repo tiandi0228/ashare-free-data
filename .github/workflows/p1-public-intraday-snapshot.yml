@@ -5,12 +5,16 @@ on:
     paths:
       - '.github/workflows/p1-public-intraday-snapshot.yml'
       - 'collector/intraday_public_snapshot.py'
+      - 'collector/intraday_snapshot_archive.py'
       - 'tests/test_intraday_public_snapshot.py'
+      - 'tests/test_intraday_snapshot_archive.py'
   workflow_dispatch:
   pull_request:
     paths:
       - 'collector/intraday_public_snapshot.py'
+      - 'collector/intraday_snapshot_archive.py'
       - 'tests/test_intraday_public_snapshot.py'
+      - 'tests/test_intraday_snapshot_archive.py'
       - '.github/workflows/p1-public-intraday-snapshot.yml'
   schedule:
     # UTC: Beijing 10:05, 10:35, 11:05, 13:35, 14:05 and 14:35 weekdays.
@@ -20,7 +24,7 @@ on:
     - cron: '35 5 * * 1-5'
     - cron: '5,35 6 * * 1-5'
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: p1-public-intraday-research-snapshot
   cancel-in-progress: false
@@ -34,14 +38,25 @@ jobs:
         with:
           python-version: '3.11'
       - name: Test unofficial source parsing and immutable BLOCKED gate
-        run: python -m unittest tests.test_intraday_public_snapshot -v
+        run: python -m unittest tests.test_intraday_public_snapshot tests.test_intraday_snapshot_archive -v
       - name: Observe five research-only intraday snapshots (no orders)
         if: github.event_name != 'pull_request'
         run: python -m collector.intraday_public_snapshot --out evidence/intraday/latest.json
+      - name: Archive immutable research snapshots in separate branch
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m collector.intraday_snapshot_archive \
+            --snapshot evidence/intraday/latest.json \
+            --repo "${{ github.repository }}" \
+            --out evidence/intraday/archive_ack.json
       - uses: actions/upload-artifact@v4
         if: always() && github.event_name != 'pull_request'
         with:
           name: p1-public-intraday-${{ github.run_id }}
-          path: evidence/intraday/latest.json
+          path: |
+            evidence/intraday/latest.json
+            evidence/intraday/archive_ack.json
           retention-days: 14
           if-no-files-found: warn
