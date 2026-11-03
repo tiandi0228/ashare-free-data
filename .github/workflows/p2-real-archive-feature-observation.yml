@@ -5,7 +5,9 @@ on:
     paths:
       - '.github/workflows/p2-real-archive-feature-observation.yml'
       - 'collector/p2_real_archive_features.py'
+      - 'collector/p2_paged_real_archive.py'
       - 'collector/p2_independent_bars.py'
+      - 'tests/test_p2_paged_real_archive.py'
   pull_request:
     paths:
       - '.github/workflows/p2-real-archive-feature-observation.yml'
@@ -15,6 +17,12 @@ on:
     workflows: ["P1 fresh Baostock mainboard roster observation (NO TRADES)"]
     types: [completed]
   workflow_dispatch:
+    inputs:
+      page:
+        description: 'Optional zero-based archived research page (blank rotates automatically)'
+        type: string
+        required: false
+        default: ''
 permissions:
   contents: read
 concurrency:
@@ -31,74 +39,25 @@ jobs:
         with:
           python-version: '3.11'
       - name: Verify original CSV research feature adapter
-        run: python -m unittest tests.test_p2_independent_bars tests.test_p2_real_archive_features -v
+        run: python -m unittest tests.test_p2_independent_bars tests.test_p2_real_archive_features tests.test_p2_paged_real_archive -v
       - name: Fetch immutable-original research archive branch
         run: |
           git fetch --depth=1 origin research-csv-archive
           git worktree add --detach archived-research FETCH_HEAD
-      - name: Replay four bounded real archived shards at frozen P1 date
+      - name: Replay bounded rotating archived shards at frozen P1 date
+        env:
+          P2_EXPLICIT_PAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.page || '' }}
         run: |
-          python - <<'PY'
-          import json,subprocess,shutil
-          from pathlib import Path
-          from collector.baostock_batch import END
-          from collector.p2_real_archive_features import observe
-
-          archive=Path("archived-research")
-          commit=subprocess.check_output(
-              ["git","-C",str(archive),"rev-parse","HEAD"],text=True).strip()
-          from collector.p1_checkpoint import validate
-          candidates=[]
-          for file in sorted(Path("evidence/checkpoints").glob("*.json")):
-              checkpoint=json.loads(file.read_text())
-              validate(checkpoint)
-              if file.stem!=checkpoint["source_sha256"]:
-                  raise SystemExit("Frozen checkpoint filename SHA mismatch")
-              epoch=archive/checkpoint["source_sha256"][:16]
-              if (epoch/"archive_status.json").is_file():
-                  candidates.append((checkpoint["completed_shards"],
-                                     checkpoint["source_sha256"],epoch))
-          if not candidates:
-              raise SystemExit("No frozen checkpoint matches archived originals")
-          # Multiple epochs are retained intentionally. Prefer the largest
-          # validated, archived historical checkpoint, never legacy aliases.
-          _,chosen_sha,src=max(candidates)
-          status=json.loads((src/"archive_status.json").read_text())
-          if (status.get("source_sha256")!=chosen_sha
-                  or status.get("trade_gate")!="BLOCKED"):
-              raise SystemExit("Unsafe frozen research epoch")
-          shards=sorted(p for p in src.glob("shard_*/quality.json") if p.is_file())
-          if not shards:raise SystemExit("No archived original receipts")
-          sample=shards[:4]
-          staging=Path("evidence/p2_replay_sample")/src.name
-          staging.mkdir(parents=True,exist_ok=True)
-          for original in sample:
-              shutil.copytree(original.parent,staging/original.parent.name)
-          result=observe("evidence/p2_replay_sample",END,max_issuers=32)
-          if (result.get("status")!="REAL_ARCHIVED_BAR_FEATURES_RESEARCH_ONLY"
-                  or result.get("trade_gate")!="BLOCKED"
-                  or result.get("orders")!=[]
-                  or result.get("actionable_buy_signals")!=[]
-                  or result.get("full_market_universe_verified") is not False
-                  or result.get("historical_PIT_verified") is not False):
-              raise SystemExit("Real data research feature replay blocked")
-          result["archive_commit_sha"]=commit
-          result["frozen_source_sha256"]=status["source_sha256"]
-          result["sample_shard_ids"]=[p.parent.name for p in sample]
-          result["archived_original_shards_observed"]=len(shards)
-          result["sampling_scope"]="FIRST_FOUR_ARCHIVED_SHARDS_ONLY_NOT_FULL_MARKET"
-          result["source_is_official_historical_pit"]=False
-          dest=Path("evidence/p2_real_archive_feature_observation.json")
-          dest.parent.mkdir(parents=True,exist_ok=True)
-          dest.write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
-          print(json.dumps({
-              "archive_commit_sha":commit,
-              "sampled_shards":len(sample),
-              "sampled_issuers":result["scoped_verified_issuers"],
-              "feature_issuers":result["feature_issuers"],
-              "evidence_gaps":result["insufficient_evidence_issuers"],
-              "trade_gate":"BLOCKED"},ensure_ascii=False))
-          PY
+          ARGS=()
+          if [ -n "$P2_EXPLICIT_PAGE" ]; then
+            ARGS+=(--page "$P2_EXPLICIT_PAGE")
+          fi
+          python -m collector.p2_paged_real_archive \
+            --archive-root archived-research \
+            --checkpoints evidence/checkpoints \
+            --run-number "${{ github.run_number }}" \
+            "${ARGS[@]}" \
+            --out evidence/p2_real_archive_feature_observation.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
