@@ -1,0 +1,94 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 1,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 1,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1224792149",
+      "archival_pdf_path": "pdf/sh_603897/1224792149/8a7e7db9092e8aa0b2d23d0236c933f26a5dec199ebb095895439387540ca018.pdf",
+      "bytes": 89969,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.603897",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2025-11-08/1224792149.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "8a7e7db9092e8aa0b2d23d0236c933f26a5dec199ebb095895439387540ca018",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "公司股票将于2025年11月10日（星期一）上午开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "8a7e7db9092e8aa0b2d23d0236c933f26a5dec199ebb095895439387540ca018",
+          "pdf_date_phrase": "2025年11月10日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-11-03T07:24:09.987742+00:00",
+      "source_halt_original_sha256": "fd45e7b555378ae00d69d5dfec6fcd05773fd8e0dc67afde1c03c2b1931d3939",
+      "source_halt_text_day": "2025-11-03",
+      "title_unverified": "长城科技关于终止筹划控制权变更事项暨复牌的公告"
+    }
+  ],
+  "run_id": 41596014498,
+  "source_halt_issuers_attempted": 3,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603863",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-09-25",
+      "search_window_start": "2025-06-26",
+      "source_halt_announcement_id": "1223999039",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-06-27",
+      "source_halt_original_sha256": "4c03605d6780d28a83f4e84d90cda39571d1390dda662f232f2f97afa5012ff6"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603879",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-07-29",
+      "search_window_start": "2025-04-29",
+      "source_halt_announcement_id": "1223423243",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-04-30",
+      "source_halt_original_sha256": "616cd7c4e9222b26c83276c619fd235e8e5a8924d7a8e7a49099b110feaf11d8"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603897",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-02-01",
+      "search_window_start": "2025-11-02",
+      "source_halt_announcement_id": "1224782056",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-11-03",
+      "source_halt_original_sha256": "fd45e7b555378ae00d69d5dfec6fcd05773fd8e0dc67afde1c03c2b1931d3939"
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.603863",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    },
+    {
+      "issuer": "sh.603879",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    },
+    {
+      "issuer": "sh.603897",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
