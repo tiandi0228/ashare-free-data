@@ -6,6 +6,7 @@ on:
       - '.github/workflows/p1-public-intraday-snapshot.yml'
       - 'collector/intraday_public_snapshot.py'
       - 'collector/intraday_minute_coverage.py'
+      - 'collector/intraday_cross_source_audit.py'
       - 'collector/intraday_snapshot_archive.py'
       - 'collector/intraday_daily_index.py'
       - 'collector/intraday_source_health.py'
@@ -20,6 +21,7 @@ on:
       - 'collector/p1_recovery_run_reconciliation.py'
       - 'tests/test_intraday_public_snapshot.py'
       - 'tests/test_intraday_minute_coverage.py'
+      - 'tests/test_intraday_cross_source_audit.py'
       - 'tests/test_intraday_snapshot_archive.py'
       - 'tests/test_intraday_daily_index.py'
       - 'tests/test_intraday_source_health.py'
@@ -37,6 +39,7 @@ on:
     paths:
       - 'collector/intraday_public_snapshot.py'
       - 'collector/intraday_minute_coverage.py'
+      - 'collector/intraday_cross_source_audit.py'
       - 'collector/intraday_snapshot_archive.py'
       - 'collector/intraday_daily_index.py'
       - 'collector/intraday_source_health.py'
@@ -51,6 +54,7 @@ on:
       - 'collector/p1_recovery_run_reconciliation.py'
       - 'tests/test_intraday_public_snapshot.py'
       - 'tests/test_intraday_minute_coverage.py'
+      - 'tests/test_intraday_cross_source_audit.py'
       - 'tests/test_intraday_snapshot_archive.py'
       - 'tests/test_intraday_daily_index.py'
       - 'tests/test_intraday_source_health.py'
@@ -87,7 +91,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Test unofficial source parsing and immutable BLOCKED gate
-        run: python -m unittest tests.test_intraday_public_snapshot tests.test_intraday_minute_coverage tests.test_intraday_snapshot_archive tests.test_intraday_daily_index tests.test_intraday_source_health tests.test_p1_schedule_watchdog tests.test_p1_safe_recovery tests.test_p1_recovery_claim tests.test_p1_recovery_dispatch_preflight tests.test_p1_recovery_dispatch_once tests.test_p1_recovery_origin_token tests.test_p1_recovery_run_reconciliation tests.test_ashare_trade_risk_preflight tests.test_p1_pit_time_consistency -v
+        run: python -m unittest tests.test_intraday_public_snapshot tests.test_intraday_minute_coverage tests.test_intraday_cross_source_audit tests.test_intraday_snapshot_archive tests.test_intraday_daily_index tests.test_intraday_source_health tests.test_p1_schedule_watchdog tests.test_p1_safe_recovery tests.test_p1_recovery_claim tests.test_p1_recovery_dispatch_preflight tests.test_p1_recovery_dispatch_once tests.test_p1_recovery_origin_token tests.test_p1_recovery_run_reconciliation tests.test_ashare_trade_risk_preflight tests.test_p1_pit_time_consistency -v
       - name: Audit P1 historical scheduler (no dispatch or orders)
         if: github.event_name != 'pull_request'
         continue-on-error: true
