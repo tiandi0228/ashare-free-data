@@ -10,6 +10,9 @@ FOLDER="snapshots/"+DAY
 
 def archived(run_id,*,lost=False):
     snap=sample()
+    for symbol in snap["symbols"].values():
+        if "validation" in symbol:
+            symbol["validation"]["validation_issues"]=[]
     if not lost:
         row=snap["symbols"]["002249"]
         row["quote"]={"quote_time":"2026-11-03T13:37:36+08:00",
