@@ -45,15 +45,42 @@ def parse_eastmoney(raw,code,now):
                 or min(o,c,h,l)<=0 or l>min(o,c,h) or h<max(o,c,l)
                 or v<0 or amt<0): raise ValueError("Invalid minute OHLC/volume")
         seen.add(ts);items.append((ts,v,amt))
-    # The still-running minute is excluded from volume totals.
+    # Session-aware gaps: 11:30 -> 13:00/13:01 is a lunch break, not a gap.
+    # We do not infer the full 241-minute source coverage from a short sample.
+    session_issues=[]
+    gaps=[]
+    for ts,_,_ in items:
+        if not (dt.time(9,30)<=ts.time()<=dt.time(11,30)
+                or dt.time(13)<=ts.time()<=dt.time(15)):
+            session_issues.append("OUTSIDE_CN_A_SHARE_SESSION")
+    for (left,_,_),(right,_,_) in zip(items,items[1:]):
+        if left.time()<=dt.time(11,30)<right.time():
+            continue
+        delta=int((right-left).total_seconds()/60)
+        if delta!=1:
+            gaps.append(dict(after=left.isoformat(),before=right.isoformat(),
+                             minutes_missing=max(0,delta-1)))
     completed=[x for x in items if x[0]<now.replace(second=0,microsecond=0)]
+    # A-share vendor volume is in lots (100 shares). Reconcile against turnover
+    # to catch silent unit drift without treating it as a regulatory proof.
+    unit_mismatch=False
+    for line,(ts,volume,amount) in zip(lines,items):
+        fields=line.split(",")
+        low,high=float(fields[4]),float(fields[3])
+        if volume>0 and not (low*volume*100*0.95<=amount<=high*volume*100*1.05):
+            unit_mismatch=True
+    issues=list(dict.fromkeys(session_issues))
+    if gaps: issues.append("OBSERVED_MINUTE_GAPS")
+    if unit_mismatch: issues.append("VOLUME_AMOUNT_UNIT_MISMATCH")
     return dict(source="eastmoney_unofficial",rows_today=len(items),
                 completed_minutes=len(completed),
                 last_minute_time=items[-1][0].isoformat(),
                 last_completed_minute_time=completed[-1][0].isoformat() if completed else None,
                 completed_minute_volume_lots=sum(x[1] for x in completed),
                 completed_minute_amount_cny=round(sum(x[2] for x in completed),2),
-                minute_unit="lots_100_shares",minute_data_complete=False)
+                minute_unit="lots_100_shares",observed_gaps=gaps,
+                minute_validation_issues=issues,
+                minute_data_complete=False)
 
 def quality(q,m,now):
     age=(now-dt.datetime.fromisoformat(q["quote_time"])).total_seconds()
@@ -65,6 +92,7 @@ def quality(q,m,now):
         reasons.append("OLD_TRADING_DAY")
     if not -5<=age<=15: reasons.append("QUOTE_STALE_OR_FUTURE")
     if not m["completed_minutes"]: reasons.append("NO_COMPLETED_MINUTE")
+    reasons.extend(m.get("minute_validation_issues",[]))
     if not m["minute_data_complete"]: reasons.append("MINUTE_COMPLETENESS_UNVERIFIED")
     return dict(status="RESEARCH_ONLY",quote_age_seconds=round(age,2),
                 validation_issues=reasons,cross_source_price_verified=False,
