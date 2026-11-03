@@ -1,0 +1,94 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 1,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 1,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1224921545",
+      "archival_pdf_path": "pdf/sh_603508/1224921545/f280400d8582f5892ae68be80efd3962c50c7507856c2fae219fd208ea0804c9.pdf",
+      "bytes": 106029,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.603508",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-01-07/1224921545.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "f280400d8582f5892ae68be80efd3962c50c7507856c2fae219fd208ea0804c9",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "公司股票将于2026年1月7日（星期三）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "f280400d8582f5892ae68be80efd3962c50c7507856c2fae219fd208ea0804c9",
+          "pdf_date_phrase": "2026年1月7日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-11-03T06:37:50.167673+00:00",
+      "source_halt_original_sha256": "6385251f6b15c29b5b74de0df705a145155549bb61347eaf8d420e5a97f5add7",
+      "source_halt_text_day": "2025-12-29",
+      "title_unverified": "思维列控：关于终止筹划控制权变更事项暨复牌的公告"
+    }
+  ],
+  "run_id": 41591028720,
+  "source_halt_issuers_attempted": 3,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600500",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-10-14",
+      "search_window_start": "2025-07-15",
+      "source_halt_announcement_id": "1224176869",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-07-16",
+      "source_halt_original_sha256": "087ba3646d99acb953ddfc567c588d6eb900a28f40dcb7fdd82c316ff3d73713"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603508",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-03-29",
+      "search_window_start": "2025-12-28",
+      "source_halt_announcement_id": "1224902964",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-12-29",
+      "source_halt_original_sha256": "6385251f6b15c29b5b74de0df705a145155549bb61347eaf8d420e5a97f5add7"
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603557",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-07-29",
+      "search_window_start": "2026-04-29",
+      "source_halt_announcement_id": "1225257194",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-04-30",
+      "source_halt_original_sha256": "59232a6891afae48b3a1a4bbdaeb21866198d3b45e9b4f612f3177a18e8b5ba8"
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.600500",
+      "matching_titles": 0,
+      "status": "INDEX_UNAVAILABLE_NOT_NO_RESUMPTION"
+    },
+    {
+      "issuer": "sh.603508",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    },
+    {
+      "issuer": "sh.603557",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
