@@ -6,6 +6,8 @@ on:
       - '.github/workflows/p2-real-archive-feature-observation.yml'
       - 'collector/p2_real_archive_features.py'
       - 'collector/p2_paged_real_archive.py'
+      - 'collector/p2_feature_coverage_ledger.py'
+      - 'tests/test_p2_feature_coverage_ledger.py'
       - 'collector/p2_independent_bars.py'
       - 'tests/test_p2_paged_real_archive.py'
   pull_request:
@@ -24,7 +26,7 @@ on:
         required: false
         default: ''
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: p2-real-archived-feature-observation
   cancel-in-progress: false
@@ -39,7 +41,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Verify original CSV research feature adapter
-        run: python -m unittest tests.test_p2_independent_bars tests.test_p2_real_archive_features tests.test_p2_paged_real_archive -v
+        run: python -m unittest tests.test_p2_independent_bars tests.test_p2_real_archive_features tests.test_p2_paged_real_archive tests.test_p2_feature_coverage_ledger -v
       - name: Fetch immutable-original research archive branch
         run: |
           git fetch --depth=1 origin research-csv-archive
@@ -58,10 +60,88 @@ jobs:
             --run-number "${{ github.run_number }}" \
             "${ARGS[@]}" \
             --out evidence/p2_real_archive_feature_observation.json
+      - name: Merge and independently audit durable research page receipts
+        env:
+          GH_RUN_ID: ${{ github.run_id }}
+          GH_EVENT: ${{ github.event_name }}
+        run: |
+          python - <<'PY'
+          import json,os,re,subprocess,shutil
+          from pathlib import Path
+
+          current=Path('evidence/p2_real_archive_feature_observation.json')
+          report=json.loads(current.read_text())
+          if report.get('status')!='PAGED_REAL_ARCHIVE_RESEARCH_ONLY' or report.get('trade_gate')!='BLOCKED' or report.get('orders')!=[]:
+              raise SystemExit('Invalid current research receipt')
+          epoch=report['source_epoch_sha256']
+          if not re.fullmatch(r'[0-9a-f]{64}',epoch):
+              raise SystemExit('Invalid source epoch')
+          if not re.fullmatch(r'[1-9][0-9]*',os.environ['GH_RUN_ID']):
+              raise SystemExit('Invalid GitHub run ID')
+          store=Path('feature-coverage-store')
+          # The branch stores compact, immutable research receipts only.
+          # Original P1 CSV and P1 checkpoint remain on their own branches.
+          found=subprocess.run(
+              ['git','ls-remote','--exit-code','--heads','origin','p2-feature-coverage'],
+              capture_output=True,text=True,timeout=30)
+          if found.returncode==0:
+              subprocess.run(['git','fetch','--depth=1','origin','p2-feature-coverage'],check=True)
+              subprocess.run(['git','worktree','add','--detach',str(store),'FETCH_HEAD'],check=True)
+              subprocess.run(['git','-C',str(store),'switch','-C','p2-feature-coverage'],check=True)
+          elif found.returncode==2:
+              subprocess.run(['git','worktree','add','--detach',str(store),'HEAD'],check=True)
+              subprocess.run(['git','-C',str(store),'switch','--orphan','p2-feature-coverage'],check=True)
+          else:
+              raise SystemExit('Cannot read durable research coverage branch')
+          folder=store/'reports'/epoch[:16]
+          folder.mkdir(parents=True,exist_ok=True)
+          destination=folder/(os.environ['GH_RUN_ID']+'.json')
+          if destination.exists() and destination.read_bytes()!=current.read_bytes():
+              raise SystemExit('Refuse overwrite of immutable research run receipt')
+          shutil.copyfile(current,destination)
+          checkpoint=Path('evidence/checkpoints')/(epoch+'.json')
+          if not checkpoint.exists():raise SystemExit('Missing matching P1 frozen checkpoint')
+          archive=Path('archived-research')/epoch[:16]
+          out=store/'summaries'/(epoch[:16]+'.json')
+          cmd=['python','-m','collector.p2_feature_coverage_ledger',
+               '--archive-epoch',str(archive),
+               '--checkpoint',str(checkpoint),
+               '--receipts',str(folder),
+               '--out',str(out)]
+          subprocess.run(cmd,check=True)
+          summary=json.loads(out.read_text())
+          if summary.get('trade_gate')!='BLOCKED' or summary.get('coverage_certified_for_trading') is not False:
+              raise SystemExit('Unsafe coverage summary')
+          Path('evidence/p2_real_archive_feature_coverage.json').write_text(
+              json.dumps(summary,ensure_ascii=False,indent=2)+'\n')
+          print('DURABLE_FEATURE_COVERAGE',json.dumps({
+              k:summary.get(k) for k in (
+                 'observed_archived_shards','feature_complete_shards',
+                 'observed_with_feature_gaps_shards','unobserved_archived_shards',
+                 'feature_issuer_count','issuer_evidence_gap_count',
+                 'full_archive_feature_coverage','trade_gate')}))
+          if os.environ['GH_EVENT']!='pull_request':
+              subprocess.run(['git','-C',str(store),'config','user.name','github-actions[bot]'],check=True)
+              subprocess.run(['git','-C',str(store),'config','user.email',
+                  '41898282+github-actions[bot]@users.noreply.github.com'],check=True)
+              subprocess.run(['git','-C',str(store),'add','reports','summaries'],check=True)
+              changed=subprocess.run(['git','-C',str(store),'diff','--cached','--quiet'])
+              if changed.returncode==1:
+                  subprocess.run(['git','-C',str(store),'commit','-m',
+                      'research(p2): retain one SHA-checked page coverage receipt [BLOCKED]'],check=True)
+                  subprocess.run(['git','-C',str(store),'push','origin',
+                      'HEAD:refs/heads/p2-feature-coverage'],check=True,timeout=90)
+              elif changed.returncode!=0:
+                  raise SystemExit('Cannot audit research coverage branch diff')
+          else:
+              print('PR_DRY_RUN_COVERAGE_NOT_PERSISTED')
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: p2-real-archive-feature-observation-${{ github.run_id }}
-          path: evidence/p2_real_archive_feature_observation.json
+          path: |
+            evidence/p2_real_archive_feature_observation.json
+            evidence/p2_real_archive_feature_coverage.json
           retention-days: 14
           if-no-files-found: warn
