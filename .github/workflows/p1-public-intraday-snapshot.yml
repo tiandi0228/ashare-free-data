@@ -9,11 +9,13 @@ on:
       - 'collector/intraday_snapshot_archive.py'
       - 'collector/intraday_daily_index.py'
       - 'collector/intraday_source_health.py'
+      - 'collector/p1_schedule_watchdog.py'
       - 'tests/test_intraday_public_snapshot.py'
       - 'tests/test_intraday_minute_coverage.py'
       - 'tests/test_intraday_snapshot_archive.py'
       - 'tests/test_intraday_daily_index.py'
       - 'tests/test_intraday_source_health.py'
+      - 'tests/test_p1_schedule_watchdog.py'
   workflow_dispatch:
   pull_request:
     paths:
@@ -22,11 +24,13 @@ on:
       - 'collector/intraday_snapshot_archive.py'
       - 'collector/intraday_daily_index.py'
       - 'collector/intraday_source_health.py'
+      - 'collector/p1_schedule_watchdog.py'
       - 'tests/test_intraday_public_snapshot.py'
       - 'tests/test_intraday_minute_coverage.py'
       - 'tests/test_intraday_snapshot_archive.py'
       - 'tests/test_intraday_daily_index.py'
       - 'tests/test_intraday_source_health.py'
+      - 'tests/test_p1_schedule_watchdog.py'
       - '.github/workflows/p1-public-intraday-snapshot.yml'
   schedule:
     # UTC: Beijing 10:05, 10:35, 11:05, 13:35, 14:05 and 14:35 weekdays.
@@ -37,6 +41,7 @@ on:
     - cron: '5,35 6 * * 1-5'
 permissions:
   contents: write
+  actions: read
 concurrency:
   group: p1-public-intraday-research-snapshot
   cancel-in-progress: false
@@ -50,7 +55,16 @@ jobs:
         with:
           python-version: '3.11'
       - name: Test unofficial source parsing and immutable BLOCKED gate
-        run: python -m unittest tests.test_intraday_public_snapshot tests.test_intraday_minute_coverage tests.test_intraday_snapshot_archive tests.test_intraday_daily_index tests.test_intraday_source_health -v
+        run: python -m unittest tests.test_intraday_public_snapshot tests.test_intraday_minute_coverage tests.test_intraday_snapshot_archive tests.test_intraday_daily_index tests.test_intraday_source_health tests.test_p1_schedule_watchdog -v
+      - name: Audit P1 historical scheduler (no dispatch or orders)
+        if: github.event_name != 'pull_request'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m collector.p1_schedule_watchdog \
+            --repo "${{ github.repository }}" \
+            --out evidence/intraday/p1_schedule_watchdog.json
       - name: Observe five research-only intraday snapshots (no orders)
         if: github.event_name != 'pull_request'
         run: python -m collector.intraday_public_snapshot --out evidence/intraday/latest.json
@@ -80,5 +94,6 @@ jobs:
             evidence/intraday/latest.json
             evidence/intraday/archive_ack.json
             evidence/intraday/index_ack.json
+            evidence/intraday/p1_schedule_watchdog.json
           retention-days: 14
           if-no-files-found: warn
