@@ -4,12 +4,16 @@ on:
     branches: [main]
     paths:
       - 'collector/parallel_research_contracts.py'
+      - 'collector/parallel_readiness_matrix.py'
       - 'tests/test_parallel_research_contracts.py'
+      - 'tests/test_parallel_readiness_matrix.py'
       - '.github/workflows/parallel-research-contracts-ci.yml'
   pull_request:
     paths:
       - 'collector/parallel_research_contracts.py'
+      - 'collector/parallel_readiness_matrix.py'
       - 'tests/test_parallel_research_contracts.py'
+      - 'tests/test_parallel_readiness_matrix.py'
       - '.github/workflows/parallel-research-contracts-ci.yml'
   workflow_dispatch:
 permissions:
@@ -28,7 +32,7 @@ jobs:
           python-version: '3.11'
       - name: Check all four research contracts stay non-executable
         run: |
-          python -m unittest tests.test_parallel_research_contracts -v
+          python -m unittest tests.test_parallel_research_contracts tests.test_parallel_readiness_matrix -v
           python - <<'PY'
           from collector.parallel_research_contracts import LANES
           for name, assess in LANES.items():
