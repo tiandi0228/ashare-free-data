@@ -1,0 +1,201 @@
+{
+  "cross_source_price_certified": false,
+  "date": "2026-11-03",
+  "entries": [
+    {
+      "asof": "2026-11-03T13:44:38.683678+08:00",
+      "path": "snapshots/2026-11-03/run_41585667618_attempt_1.json",
+      "run_attempt": 1,
+      "run_id": 41585667618,
+      "sha256": "de7a853f6fe6627cba2b55fc11ad37e0793c4ad5c4d9a08e46f20aecdf62a1f5",
+      "symbols": {
+        "002249": {
+          "executable_quote": false,
+          "minute_rows_today": 166,
+          "observed_price_cny": 7.43,
+          "quality_issues": [
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T13:44:36+08:00",
+          "reported_volume_ratio": 0.9,
+          "status": "RESEARCH_ONLY"
+        },
+        "002696": {
+          "executable_quote": false,
+          "minute_rows_today": 166,
+          "observed_price_cny": 12.36,
+          "quality_issues": [
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T13:44:39+08:00",
+          "reported_volume_ratio": 1.07,
+          "status": "RESEARCH_ONLY"
+        },
+        "300015": {
+          "executable_quote": false,
+          "minute_rows_today": 166,
+          "observed_price_cny": 8.89,
+          "quality_issues": [
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T13:44:45+08:00",
+          "reported_volume_ratio": 1.29,
+          "status": "RESEARCH_ONLY"
+        },
+        "300896": {
+          "executable_quote": false,
+          "minute_rows_today": 166,
+          "observed_price_cny": 88.47,
+          "quality_issues": [
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T13:44:48+08:00",
+          "reported_volume_ratio": 1.2,
+          "status": "RESEARCH_ONLY"
+        },
+        "301015": {
+          "executable_quote": false,
+          "minute_rows_today": 166,
+          "observed_price_cny": 25.88,
+          "quality_issues": [
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T13:44:39+08:00",
+          "reported_volume_ratio": 1.47,
+          "status": "RESEARCH_ONLY"
+        }
+      }
+    },
+    {
+      "asof": "2026-11-03T13:52:34.396518+08:00",
+      "path": "snapshots/2026-11-03/run_41586428547_attempt_1.json",
+      "run_attempt": 1,
+      "run_id": 41586428547,
+      "sha256": "7c4d4108b68edd69e13c194cf6cba2f0451424de2934512b03cf04abcfcfec3a",
+      "symbols": {
+        "002249": {
+          "executable_quote": false,
+          "minute_rows_today": 174,
+          "observed_price_cny": 7.47,
+          "quality_issues": [
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T13:52:33+08:00",
+          "reported_volume_ratio": 0.87,
+          "status": "RESEARCH_ONLY"
+        },
+        "002696": {
+          "executable_quote": false,
+          "minute_rows_today": 174,
+          "observed_price_cny": 12.36,
+          "quality_issues": [
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T13:52:36+08:00",
+          "reported_volume_ratio": 1.02,
+          "status": "RESEARCH_ONLY"
+        },
+        "300015": {
+          "executable_quote": false,
+          "minute_rows_today": 174,
+          "observed_price_cny": 8.86,
+          "quality_issues": [
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T13:52:42+08:00",
+          "reported_volume_ratio": 1.25,
+          "status": "RESEARCH_ONLY"
+        },
+        "300896": {
+          "executable_quote": false,
+          "minute_rows_today": 174,
+          "observed_price_cny": 88.3,
+          "quality_issues": [
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T13:52:45+08:00",
+          "reported_volume_ratio": 1.16,
+          "status": "RESEARCH_ONLY"
+        },
+        "301015": {
+          "executable_quote": false,
+          "minute_rows_today": 174,
+          "observed_price_cny": 25.8,
+          "quality_issues": [
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T13:52:36+08:00",
+          "reported_volume_ratio": 1.42,
+          "status": "RESEARCH_ONLY"
+        }
+      }
+    }
+  ],
+  "entries_count": 2,
+  "executable_candidates": [],
+  "historical_PIT_verified": false,
+  "index_is_not_live_quote": true,
+  "latest_by_symbol": {
+    "002249": {
+      "executable_quote": false,
+      "minute_rows_today": 174,
+      "observed_price_cny": 7.47,
+      "quality_issues": [
+        "MINUTE_COMPLETENESS_UNVERIFIED"
+      ],
+      "quote_time": "2026-11-03T13:52:33+08:00",
+      "reported_volume_ratio": 0.87,
+      "status": "RESEARCH_ONLY"
+    },
+    "002696": {
+      "executable_quote": false,
+      "minute_rows_today": 174,
+      "observed_price_cny": 12.36,
+      "quality_issues": [
+        "MINUTE_COMPLETENESS_UNVERIFIED"
+      ],
+      "quote_time": "2026-11-03T13:52:36+08:00",
+      "reported_volume_ratio": 1.02,
+      "status": "RESEARCH_ONLY"
+    },
+    "300015": {
+      "executable_quote": false,
+      "minute_rows_today": 174,
+      "observed_price_cny": 8.86,
+      "quality_issues": [
+        "MINUTE_COMPLETENESS_UNVERIFIED"
+      ],
+      "quote_time": "2026-11-03T13:52:42+08:00",
+      "reported_volume_ratio": 1.25,
+      "status": "RESEARCH_ONLY"
+    },
+    "300896": {
+      "executable_quote": false,
+      "minute_rows_today": 174,
+      "observed_price_cny": 88.3,
+      "quality_issues": [
+        "MINUTE_COMPLETENESS_UNVERIFIED"
+      ],
+      "quote_time": "2026-11-03T13:52:45+08:00",
+      "reported_volume_ratio": 1.16,
+      "status": "RESEARCH_ONLY"
+    },
+    "301015": {
+      "executable_quote": false,
+      "minute_rows_today": 174,
+      "observed_price_cny": 25.8,
+      "quality_issues": [
+        "MINUTE_COMPLETENESS_UNVERIFIED"
+      ],
+      "quote_time": "2026-11-03T13:52:36+08:00",
+      "reported_volume_ratio": 1.42,
+      "status": "RESEARCH_ONLY"
+    }
+  },
+  "latest_run": 41586428547,
+  "minute_data_complete_certified": false,
+  "orders": [],
+  "phase": "P1_READ_ONLY_DAILY_SNAPSHOT_INDEX",
+  "source_branch": "research-intraday-snapshots",
+  "trade_gate": "BLOCKED"
+}
