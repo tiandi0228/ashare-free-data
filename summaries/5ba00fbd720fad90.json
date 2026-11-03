@@ -12,17 +12,12 @@
   "checkpoint_completed_shards": 115,
   "checkpoint_total_shards": 400,
   "archived_original_shards": 115,
-  "coverage_report_count": 1,
-  "observed_archived_shards": 3,
-  "feature_complete_shards": 3,
-  "observed_with_feature_gaps_shards": 0,
-  "unobserved_archived_shards": 112,
+  "coverage_report_count": 2,
+  "observed_archived_shards": 19,
+  "feature_complete_shards": 18,
+  "observed_with_feature_gaps_shards": 1,
+  "unobserved_archived_shards": 96,
   "observed_shard_ids": [
-    "shard_0222",
-    "shard_0223",
-    "shard_0224"
-  ],
-  "unobserved_shard_ids": [
     "shard_0068",
     "shard_0069",
     "shard_0070",
@@ -39,6 +34,11 @@
     "shard_0081",
     "shard_0082",
     "shard_0083",
+    "shard_0222",
+    "shard_0223",
+    "shard_0224"
+  ],
+  "unobserved_shard_ids": [
     "shard_0084",
     "shard_0085",
     "shard_0086",
@@ -136,9 +136,11 @@
     "shard_0207",
     "shard_0221"
   ],
-  "gap_shard_ids": [],
-  "feature_issuer_count": 24,
-  "issuer_evidence_gap_count": 0,
+  "gap_shard_ids": [
+    "shard_0078"
+  ],
+  "feature_issuer_count": 151,
+  "issuer_evidence_gap_count": 1,
   "full_archive_feature_coverage": false,
   "limitations": [
     "CROSS_RUN_RECEIPTS_NOT_EXCHANGE_ATTESTED",
