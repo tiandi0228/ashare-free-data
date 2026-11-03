@@ -129,70 +129,154 @@
           "status": "RESEARCH_ONLY"
         }
       }
+    },
+    {
+      "asof": "2026-11-03T13:59:21.615649+08:00",
+      "path": "snapshots/2026-11-03/run_41587063687_attempt_1.json",
+      "run_attempt": 1,
+      "run_id": 41587063687,
+      "sha256": "03d21b9a28fcf930cd64eea10fcce79e9d76bb5502cb2fef788b02910717469b",
+      "symbols": {
+        "002249": {
+          "executable_quote": false,
+          "minute_rows_today": 181,
+          "observed_price_cny": 7.72,
+          "quality_issues": [
+            "OBSERVED_FUTURE_MINUTE_LABEL",
+            "EXPECTED_COMPLETED_MINUTES_MISSING",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T13:59:21+08:00",
+          "reported_volume_ratio": 0.94,
+          "status": "RESEARCH_ONLY"
+        },
+        "002696": {
+          "executable_quote": false,
+          "minute_rows_today": 181,
+          "observed_price_cny": 12.36,
+          "quality_issues": [
+            "OBSERVED_FUTURE_MINUTE_LABEL",
+            "EXPECTED_COMPLETED_MINUTES_MISSING",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T13:59:21+08:00",
+          "reported_volume_ratio": 0.98,
+          "status": "RESEARCH_ONLY"
+        },
+        "300015": {
+          "executable_quote": false,
+          "minute_rows_today": 181,
+          "observed_price_cny": 8.88,
+          "quality_issues": [
+            "OBSERVED_FUTURE_MINUTE_LABEL",
+            "EXPECTED_COMPLETED_MINUTES_MISSING",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T13:59:30+08:00",
+          "reported_volume_ratio": 1.22,
+          "status": "RESEARCH_ONLY"
+        },
+        "300896": {
+          "executable_quote": false,
+          "minute_rows_today": 181,
+          "observed_price_cny": 88.35,
+          "quality_issues": [
+            "OBSERVED_FUTURE_MINUTE_LABEL",
+            "EXPECTED_COMPLETED_MINUTES_MISSING",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T13:59:30+08:00",
+          "reported_volume_ratio": 1.12,
+          "status": "RESEARCH_ONLY"
+        },
+        "301015": {
+          "executable_quote": false,
+          "minute_rows_today": 181,
+          "observed_price_cny": 25.79,
+          "quality_issues": [
+            "OBSERVED_FUTURE_MINUTE_LABEL",
+            "EXPECTED_COMPLETED_MINUTES_MISSING",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T13:59:24+08:00",
+          "reported_volume_ratio": 1.38,
+          "status": "RESEARCH_ONLY"
+        }
+      }
     }
   ],
-  "entries_count": 2,
+  "entries_count": 3,
   "executable_candidates": [],
   "historical_PIT_verified": false,
   "index_is_not_live_quote": true,
   "latest_by_symbol": {
     "002249": {
       "executable_quote": false,
-      "minute_rows_today": 174,
-      "observed_price_cny": 7.47,
+      "minute_rows_today": 181,
+      "observed_price_cny": 7.72,
       "quality_issues": [
+        "OBSERVED_FUTURE_MINUTE_LABEL",
+        "EXPECTED_COMPLETED_MINUTES_MISSING",
         "MINUTE_COMPLETENESS_UNVERIFIED"
       ],
-      "quote_time": "2026-11-03T13:52:33+08:00",
-      "reported_volume_ratio": 0.87,
+      "quote_time": "2026-11-03T13:59:21+08:00",
+      "reported_volume_ratio": 0.94,
       "status": "RESEARCH_ONLY"
     },
     "002696": {
       "executable_quote": false,
-      "minute_rows_today": 174,
+      "minute_rows_today": 181,
       "observed_price_cny": 12.36,
       "quality_issues": [
+        "OBSERVED_FUTURE_MINUTE_LABEL",
+        "EXPECTED_COMPLETED_MINUTES_MISSING",
         "MINUTE_COMPLETENESS_UNVERIFIED"
       ],
-      "quote_time": "2026-11-03T13:52:36+08:00",
-      "reported_volume_ratio": 1.02,
+      "quote_time": "2026-11-03T13:59:21+08:00",
+      "reported_volume_ratio": 0.98,
       "status": "RESEARCH_ONLY"
     },
     "300015": {
       "executable_quote": false,
-      "minute_rows_today": 174,
-      "observed_price_cny": 8.86,
+      "minute_rows_today": 181,
+      "observed_price_cny": 8.88,
       "quality_issues": [
+        "OBSERVED_FUTURE_MINUTE_LABEL",
+        "EXPECTED_COMPLETED_MINUTES_MISSING",
         "MINUTE_COMPLETENESS_UNVERIFIED"
       ],
-      "quote_time": "2026-11-03T13:52:42+08:00",
-      "reported_volume_ratio": 1.25,
+      "quote_time": "2026-11-03T13:59:30+08:00",
+      "reported_volume_ratio": 1.22,
       "status": "RESEARCH_ONLY"
     },
     "300896": {
       "executable_quote": false,
-      "minute_rows_today": 174,
-      "observed_price_cny": 88.3,
+      "minute_rows_today": 181,
+      "observed_price_cny": 88.35,
       "quality_issues": [
+        "OBSERVED_FUTURE_MINUTE_LABEL",
+        "EXPECTED_COMPLETED_MINUTES_MISSING",
         "MINUTE_COMPLETENESS_UNVERIFIED"
       ],
-      "quote_time": "2026-11-03T13:52:45+08:00",
-      "reported_volume_ratio": 1.16,
+      "quote_time": "2026-11-03T13:59:30+08:00",
+      "reported_volume_ratio": 1.12,
       "status": "RESEARCH_ONLY"
     },
     "301015": {
       "executable_quote": false,
-      "minute_rows_today": 174,
-      "observed_price_cny": 25.8,
+      "minute_rows_today": 181,
+      "observed_price_cny": 25.79,
       "quality_issues": [
+        "OBSERVED_FUTURE_MINUTE_LABEL",
+        "EXPECTED_COMPLETED_MINUTES_MISSING",
         "MINUTE_COMPLETENESS_UNVERIFIED"
       ],
-      "quote_time": "2026-11-03T13:52:36+08:00",
-      "reported_volume_ratio": 1.42,
+      "quote_time": "2026-11-03T13:59:24+08:00",
+      "reported_volume_ratio": 1.38,
       "status": "RESEARCH_ONLY"
     }
   },
-  "latest_run": 41586428547,
+  "latest_run": 41587063687,
   "minute_data_complete_certified": false,
   "orders": [],
   "phase": "P1_READ_ONLY_DAILY_SNAPSHOT_INDEX",
