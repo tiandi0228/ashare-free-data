@@ -84,7 +84,8 @@ class RecoveryDispatchTests(unittest.TestCase):
         self.assertEqual(status,"DISPATCH_REQUEST_ACCEPTED_NOT_COLLECTION_VERIFIED")
         self.assertEqual(run.call_count,1)
         data=json.loads(run.call_args.kwargs["input"])
-        self.assertEqual(data["inputs"],{"shards_per_run":"1"})
+        self.assertEqual(data["inputs"],{"shards_per_run":"1",
+                                         "recovery_token":"p1r-20261103-1310-500"})
     def test_failed_request_not_retried(self):
         record,_=prepare("test/repo",preflight(),NOW,runs(),1,500)
         from unittest.mock import Mock
