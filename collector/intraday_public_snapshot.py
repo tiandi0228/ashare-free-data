@@ -85,7 +85,9 @@ def observe(code,now):
     q=parse_tencent(fetch("https://qt.gtimg.cn/q="+ticker).decode("gbk"),code)
     url="https://push2.eastmoney.com/api/qt/stock/trends2/get?"+urllib.parse.urlencode(params)
     m=parse_eastmoney(fetch(url).decode("utf-8"),code,now)
-    return dict(quote=q,minute=m,validation=quality(q,m,now))
+    checked_at=dt.datetime.now(TZ)
+    return dict(quote=q,minute=m,checked_at=checked_at.isoformat(),
+                validation=quality(q,m,checked_at))
 
 def main():
     p=argparse.ArgumentParser()
