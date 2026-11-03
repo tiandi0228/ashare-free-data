@@ -14,6 +14,7 @@ on:
       - 'collector/p1_recovery_claim.py'
       - 'collector/p1_recovery_dispatch_preflight.py'
       - 'collector/p1_recovery_dispatch_once.py'
+      - 'collector/p1_recovery_run_reconciliation.py'
       - 'tests/test_intraday_public_snapshot.py'
       - 'tests/test_intraday_minute_coverage.py'
       - 'tests/test_intraday_snapshot_archive.py'
@@ -24,6 +25,7 @@ on:
       - 'tests/test_p1_recovery_claim.py'
       - 'tests/test_p1_recovery_dispatch_preflight.py'
       - 'tests/test_p1_recovery_dispatch_once.py'
+      - 'tests/test_p1_recovery_run_reconciliation.py'
   workflow_dispatch:
   pull_request:
     paths:
@@ -37,6 +39,7 @@ on:
       - 'collector/p1_recovery_claim.py'
       - 'collector/p1_recovery_dispatch_preflight.py'
       - 'collector/p1_recovery_dispatch_once.py'
+      - 'collector/p1_recovery_run_reconciliation.py'
       - 'tests/test_intraday_public_snapshot.py'
       - 'tests/test_intraday_minute_coverage.py'
       - 'tests/test_intraday_snapshot_archive.py'
@@ -47,6 +50,7 @@ on:
       - 'tests/test_p1_recovery_claim.py'
       - 'tests/test_p1_recovery_dispatch_preflight.py'
       - 'tests/test_p1_recovery_dispatch_once.py'
+      - 'tests/test_p1_recovery_run_reconciliation.py'
       - '.github/workflows/p1-public-intraday-snapshot.yml'
   schedule:
     # UTC: Beijing 10:05, 10:35, 11:05, 13:35, 14:05 and 14:35 weekdays.
@@ -71,7 +75,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Test unofficial source parsing and immutable BLOCKED gate
-        run: python -m unittest tests.test_intraday_public_snapshot tests.test_intraday_minute_coverage tests.test_intraday_snapshot_archive tests.test_intraday_daily_index tests.test_intraday_source_health tests.test_p1_schedule_watchdog tests.test_p1_safe_recovery tests.test_p1_recovery_claim tests.test_p1_recovery_dispatch_preflight tests.test_p1_recovery_dispatch_once -v
+        run: python -m unittest tests.test_intraday_public_snapshot tests.test_intraday_minute_coverage tests.test_intraday_snapshot_archive tests.test_intraday_daily_index tests.test_intraday_source_health tests.test_p1_schedule_watchdog tests.test_p1_safe_recovery tests.test_p1_recovery_claim tests.test_p1_recovery_dispatch_preflight tests.test_p1_recovery_dispatch_once tests.test_p1_recovery_run_reconciliation -v
       - name: Audit P1 historical scheduler (no dispatch or orders)
         if: github.event_name != 'pull_request'
         continue-on-error: true
@@ -121,6 +125,15 @@ jobs:
             --preflight evidence/intraday/p1_dispatch_preflight.json \
             --repo "${{ github.repository }}" \
             --out evidence/intraday/p1_dispatch_attempt.json
+      - name: Reconcile bounded P1 recovery attempts with possible historical runs
+        if: github.event_name != 'pull_request'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m collector.p1_recovery_run_reconciliation \
+            --repo "${{ github.repository }}" \
+            --out evidence/intraday/p1_recovery_reconciliation.json
       - name: Observe five research-only intraday snapshots (no orders)
         if: github.event_name != 'pull_request'
         run: python -m collector.intraday_public_snapshot --out evidence/intraday/latest.json
@@ -155,5 +168,6 @@ jobs:
             evidence/intraday/p1_recovery_claim.json
             evidence/intraday/p1_dispatch_preflight.json
             evidence/intraday/p1_dispatch_attempt.json
+            evidence/intraday/p1_recovery_reconciliation.json
           retention-days: 14
           if-no-files-found: warn
