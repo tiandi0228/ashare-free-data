@@ -114,6 +114,8 @@ def run(archive_root,checkpoint_root,out,page=None,run_number=1,coverage_summary
             return reject("DUPLICATE_ARCHIVED_SHARDS")
         mapped.sort()
         pages=(len(mapped)+PAGE_SHARDS-1)//PAGE_SHARDS
+        if page is not None and page>=pages:
+            return reject("PAGE_OUT_OF_RANGE")
         selected_page,selection_method=select_page(
             mapped,sha,run_number,page,coverage_summary)
         selection=mapped[selected_page*PAGE_SHARDS:(selected_page+1)*PAGE_SHARDS]
