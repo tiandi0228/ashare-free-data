@@ -72,10 +72,6 @@ def main():
             raise ValueError("invalid repo")
         # Only recent origin attempts: no past inferred missing-slot receipts.
         runs,total=workflow_runs(a.repo)
-        attempts=[]
-        for run in runs:
-            if run.get("event")=="workflow_dispatch":
-                continue
         # Read today's independent recovery-attempt directory, if present.
         today=dt.datetime.now(TZ).date().isoformat()
         listing=api(a.repo,f"contents/recovery-dispatch-attempts/{today}?ref={BRANCH}")
