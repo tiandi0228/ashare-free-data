@@ -1,0 +1,92 @@
+name: P2 real archived research features observation (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p2-real-archive-feature-observation.yml'
+      - 'collector/p2_real_archive_features.py'
+      - 'collector/p2_independent_bars.py'
+  workflow_run:
+    workflows: ["P1 fresh Baostock mainboard roster observation (NO TRADES)"]
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: p2-real-archived-feature-observation
+  cancel-in-progress: false
+jobs:
+  observe:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify original CSV research feature adapter
+        run: python -m unittest tests.test_p2_independent_bars tests.test_p2_real_archive_features -v
+      - name: Fetch immutable-original research archive branch
+        run: |
+          git fetch --depth=1 origin research-csv-archive
+          git worktree add --detach archived-research FETCH_HEAD
+      - name: Replay four bounded real archived shards at frozen P1 date
+        run: |
+          python - <<'PY'
+          import json,subprocess,shutil
+          from pathlib import Path
+          from collector.baostock_batch import END
+          from collector.p2_real_archive_features import observe
+
+          archive=Path("archived-research")
+          commit=subprocess.check_output(
+              ["git","-C",str(archive),"rev-parse","HEAD"],text=True).strip()
+          prefixes=sorted(p for p in archive.iterdir()
+                          if p.is_dir() and (p/"archive_status.json").exists())
+          if len(prefixes)!=1:
+              raise SystemExit("Expected one frozen P1 epoch; fail closed")
+          src=prefixes[0]
+          status=json.loads((src/"archive_status.json").read_text())
+          if (status.get("source_sha256","")[:16]!=src.name
+                  or status.get("trade_gate")!="BLOCKED"):
+              raise SystemExit("Unsafe frozen research epoch")
+          shards=sorted(p for p in src.glob("shard_*/quality.json") if p.is_file())
+          if not shards:raise SystemExit("No archived original receipts")
+          sample=shards[:4]
+          staging=Path("evidence/p2_replay_sample")/src.name
+          staging.mkdir(parents=True,exist_ok=True)
+          for original in sample:
+              shutil.copytree(original.parent,staging/original.parent.name)
+          result=observe("evidence/p2_replay_sample",END,max_issuers=32)
+          if (result.get("status")!="REAL_ARCHIVED_BAR_FEATURES_RESEARCH_ONLY"
+                  or result.get("trade_gate")!="BLOCKED"
+                  or result.get("orders")!=[]
+                  or result.get("actionable_buy_signals")!=[]
+                  or result.get("full_market_universe_verified") is not False
+                  or result.get("historical_PIT_verified") is not False):
+              raise SystemExit("Real data research feature replay blocked")
+          result["archive_commit_sha"]=commit
+          result["frozen_source_sha256"]=status["source_sha256"]
+          result["sample_shard_ids"]=[p.parent.name for p in sample]
+          result["archived_original_shards_observed"]=len(shards)
+          result["sampling_scope"]="FIRST_FOUR_ARCHIVED_SHARDS_ONLY_NOT_FULL_MARKET"
+          result["source_is_official_historical_pit"]=False
+          dest=Path("evidence/p2_real_archive_feature_observation.json")
+          dest.parent.mkdir(parents=True,exist_ok=True)
+          dest.write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
+          print(json.dumps({
+              "archive_commit_sha":commit,
+              "sampled_shards":len(sample),
+              "sampled_issuers":result["scoped_verified_issuers"],
+              "feature_issuers":result["feature_issuers"],
+              "evidence_gaps":result["insufficient_evidence_issuers"],
+              "trade_gate":"BLOCKED"},ensure_ascii=False))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p2-real-archive-feature-observation-${{ github.run_id }}
+          path: evidence/p2_real_archive_feature_observation.json
+          retention-days: 14
+          if-no-files-found: warn
