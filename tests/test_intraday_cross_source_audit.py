@@ -12,7 +12,7 @@ class CrossSourceTests(unittest.TestCase):
     def test_equal_prices_never_certify_executable_quotes(self):
         x=evaluate(q(),m(),NOW)
         self.assertEqual(x["status"],"RESEARCH_PRICE_PROXIMITY_ONLY")
-        self.assertEqual(x["absolute_difference_cny"],"0.0")
+        self.assertEqual(x["absolute_difference_cny"],"0.00")
         self.assertFalse(x["cross_source_price_verified"])
         self.assertFalse(x["executable_quote"])
         self.assertEqual(x["trade_gate"],"BLOCKED")
