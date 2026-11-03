@@ -3,6 +3,7 @@ import argparse,datetime as dt,json,math,re,urllib.error,urllib.parse,urllib.req
 from pathlib import Path
 from zoneinfo import ZoneInfo
 from collector.intraday_minute_coverage import audit_minute_coverage
+from collector.intraday_cross_source_audit import evaluate as cross_source_diagnostic
 
 TZ=ZoneInfo("Asia/Shanghai")
 WATCHLIST=("002249","002696","301015","300015","300896")
@@ -86,6 +87,7 @@ def parse_eastmoney(raw,code,now):
     if coverage["missing_expected_completed_labels"]:
         issues.append("EXPECTED_COMPLETED_MINUTES_MISSING")
     return dict(source="eastmoney_unofficial",rows_today=len(items),
+                last_completed_minute_close=(float(lines[len(completed)-1].split(",")[2]) if completed else None),
                 completed_minutes=len(completed),
                 last_minute_time=items[-1][0].isoformat(),
                 last_completed_minute_time=completed[-1][0].isoformat() if completed else None,
@@ -146,6 +148,7 @@ def observe(code,now):
         raise SourceFailure("EASTMONEY_MINUTES",exc) from exc
     checked_at=dt.datetime.now(TZ)
     return dict(quote=q,minute=m,checked_at=checked_at.isoformat(),
+                cross_source_diagnostic=cross_source_diagnostic(q,m,checked_at.isoformat()),
                 validation=quality(q,m,checked_at))
 
 def main():
