@@ -20,14 +20,28 @@ class CoverageTests(unittest.TestCase):
     def test_lunch_has_no_expected_labels(self):
         self.assertEqual(len(expected_minute_labels(at(12,10).date(),at(12,10))),121)
     def test_afternoon_expected_labels_and_close(self):
-        self.assertEqual(len(expected_minute_labels(at(13,45).date(),at(13,45))),166)
-        self.assertEqual(len(expected_minute_labels(at(15,5).date(),at(15,5))),242)
+        self.assertEqual(len(expected_minute_labels(at(13,45).date(),at(13,45))),165)
+        self.assertEqual(len(expected_minute_labels(at(15,5).date(),at(15,5))),241)
+    def test_observed_afternoon_vendor_starts_at_1301(self):
+        now=at(13,3)
+        labels=expected_minute_labels(now.date(),now)
+        self.assertNotIn(at(13,0,0),labels)
+        self.assertIn(at(13,1,0),labels)
+        self.assertIn(at(13,2,0),labels)
+        morning=[at(9,30,0)+dt.timedelta(minutes=m) for m in range(121)]
+        completed=morning+[at(13,1,0),at(13,2,0)]
+        cov=audit_minute_coverage(completed,now)
+        self.assertEqual(cov["expected_completed_labels"],123)
+        self.assertEqual(cov["covered_expected_completed_labels"],123)
+        self.assertEqual(cov["missing_expected_completed_labels"],0)
+        self.assertFalse(cov["minute_data_complete_certified"])
+
     def test_future_minute_is_not_completed(self):
         now=at(13,44)
         c=audit_minute_coverage([at(13,43,0),at(13,45,0)],now)
         self.assertEqual(c["future_labels"],["2026-11-03T13:45:00+08:00"])
         self.assertEqual(c["covered_expected_completed_labels"],1)
-        self.assertEqual(c["missing_expected_completed_labels"],164)
+        self.assertEqual(c["missing_expected_completed_labels"],163)
         self.assertFalse(c["minute_data_complete_certified"])
     def test_morning_missing_open_detected(self):
         now=at(9,34)
