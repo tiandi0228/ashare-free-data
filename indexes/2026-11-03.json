@@ -632,92 +632,171 @@
           "status": "SOURCE_UNAVAILABLE"
         }
       }
+    },
+    {
+      "asof": "2026-11-03T14:36:08.544745+08:00",
+      "path": "snapshots/2026-11-03/run_41590890173_attempt_1.json",
+      "run_attempt": 1,
+      "run_id": 41590890173,
+      "sha256": "2ec13af80293415aa7e5400918b7301f7827386536116c23dfa3d008e0c8e8c2",
+      "symbols": {
+        "002249": {
+          "error_stage": null,
+          "error_type": null,
+          "executable_quote": false,
+          "minute_rows_today": 218,
+          "observed_price_cny": 8.1,
+          "quality_issues": [
+            "OBSERVED_FUTURE_MINUTE_LABEL",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T14:36:06+08:00",
+          "reported_volume_ratio": 1.01,
+          "status": "RESEARCH_ONLY"
+        },
+        "002696": {
+          "error_stage": null,
+          "error_type": null,
+          "executable_quote": false,
+          "minute_rows_today": 218,
+          "observed_price_cny": 12.36,
+          "quality_issues": [
+            "OBSERVED_FUTURE_MINUTE_LABEL",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T14:36:09+08:00",
+          "reported_volume_ratio": 0.82,
+          "status": "RESEARCH_ONLY"
+        },
+        "300015": {
+          "error_stage": null,
+          "error_type": null,
+          "executable_quote": false,
+          "minute_rows_today": 218,
+          "observed_price_cny": 8.93,
+          "quality_issues": [
+            "OBSERVED_FUTURE_MINUTE_LABEL",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T14:36:15+08:00",
+          "reported_volume_ratio": 1.21,
+          "status": "RESEARCH_ONLY"
+        },
+        "300896": {
+          "error_stage": null,
+          "error_type": null,
+          "executable_quote": false,
+          "minute_rows_today": 218,
+          "observed_price_cny": 89.13,
+          "quality_issues": [
+            "OBSERVED_FUTURE_MINUTE_LABEL",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T14:36:18+08:00",
+          "reported_volume_ratio": 1.08,
+          "status": "RESEARCH_ONLY"
+        },
+        "301015": {
+          "error_stage": null,
+          "error_type": null,
+          "executable_quote": false,
+          "minute_rows_today": 218,
+          "observed_price_cny": 26.3,
+          "quality_issues": [
+            "OBSERVED_FUTURE_MINUTE_LABEL",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T14:36:12+08:00",
+          "reported_volume_ratio": 1.24,
+          "status": "RESEARCH_ONLY"
+        }
+      }
     }
   ],
-  "entries_count": 8,
+  "entries_count": 9,
   "executable_candidates": [],
   "historical_PIT_verified": false,
   "index_is_not_live_quote": true,
   "latest_by_symbol": {
     "002249": {
-      "error_stage": "EASTMONEY_MINUTES",
-      "error_type": "URLError",
+      "error_stage": null,
+      "error_type": null,
       "executable_quote": false,
-      "minute_rows_today": null,
-      "observed_price_cny": null,
+      "minute_rows_today": 218,
+      "observed_price_cny": 8.1,
       "quality_issues": [
-        "SOURCE_UNAVAILABLE"
+        "OBSERVED_FUTURE_MINUTE_LABEL",
+        "MINUTE_COMPLETENESS_UNVERIFIED"
       ],
-      "quote_time": null,
-      "reported_volume_ratio": null,
-      "status": "SOURCE_UNAVAILABLE"
+      "quote_time": "2026-11-03T14:36:06+08:00",
+      "reported_volume_ratio": 1.01,
+      "status": "RESEARCH_ONLY"
     },
     "002696": {
       "error_stage": null,
       "error_type": null,
       "executable_quote": false,
-      "minute_rows_today": 213,
+      "minute_rows_today": 218,
       "observed_price_cny": 12.36,
       "quality_issues": [
-        "QUOTE_STALE_OR_FUTURE",
         "OBSERVED_FUTURE_MINUTE_LABEL",
         "MINUTE_COMPLETENESS_UNVERIFIED"
       ],
-      "quote_time": "2026-11-03T14:31:09+08:00",
-      "reported_volume_ratio": 0.84,
+      "quote_time": "2026-11-03T14:36:09+08:00",
+      "reported_volume_ratio": 0.82,
       "status": "RESEARCH_ONLY"
     },
     "300015": {
       "error_stage": null,
       "error_type": null,
       "executable_quote": false,
-      "minute_rows_today": 214,
-      "observed_price_cny": 8.92,
+      "minute_rows_today": 218,
+      "observed_price_cny": 8.93,
       "quality_issues": [
-        "QUOTE_STALE_OR_FUTURE",
         "OBSERVED_FUTURE_MINUTE_LABEL",
         "MINUTE_COMPLETENESS_UNVERIFIED"
       ],
-      "quote_time": "2026-11-03T14:31:48+08:00",
-      "reported_volume_ratio": 1.22,
+      "quote_time": "2026-11-03T14:36:15+08:00",
+      "reported_volume_ratio": 1.21,
       "status": "RESEARCH_ONLY"
     },
     "300896": {
       "error_stage": null,
       "error_type": null,
       "executable_quote": false,
-      "minute_rows_today": 214,
-      "observed_price_cny": 89.01,
+      "minute_rows_today": 218,
+      "observed_price_cny": 89.13,
       "quality_issues": [
         "OBSERVED_FUTURE_MINUTE_LABEL",
         "MINUTE_COMPLETENESS_UNVERIFIED"
       ],
-      "quote_time": "2026-11-03T14:31:54+08:00",
-      "reported_volume_ratio": 1.07,
+      "quote_time": "2026-11-03T14:36:18+08:00",
+      "reported_volume_ratio": 1.08,
       "status": "RESEARCH_ONLY"
     },
     "301015": {
-      "error_stage": "EASTMONEY_MINUTES",
-      "error_type": "URLError",
+      "error_stage": null,
+      "error_type": null,
       "executable_quote": false,
-      "minute_rows_today": null,
-      "observed_price_cny": null,
+      "minute_rows_today": 218,
+      "observed_price_cny": 26.3,
       "quality_issues": [
-        "SOURCE_UNAVAILABLE"
+        "OBSERVED_FUTURE_MINUTE_LABEL",
+        "MINUTE_COMPLETENESS_UNVERIFIED"
       ],
-      "quote_time": null,
-      "reported_volume_ratio": null,
-      "status": "SOURCE_UNAVAILABLE"
+      "quote_time": "2026-11-03T14:36:12+08:00",
+      "reported_volume_ratio": 1.24,
+      "status": "RESEARCH_ONLY"
     }
   },
-  "latest_run": 41590298560,
+  "latest_run": 41590890173,
   "minute_data_complete_certified": false,
   "orders": [],
   "phase": "P1_READ_ONLY_DAILY_SNAPSHOT_INDEX",
   "source_branch": "research-intraday-snapshots",
   "source_reliability_sample": {
     "002249": {
-      "consecutive_failures_at_latest_sample": 1,
+      "consecutive_failures_at_latest_sample": 0,
       "cross_source_price_verified": false,
       "error_types": {
         "URLError": 2
@@ -726,19 +805,19 @@
         "EASTMONEY_MINUTES": 2
       },
       "last_failed_run": 41590298560,
-      "latest_status": "SOURCE_UNAVAILABLE",
+      "latest_status": "RESEARCH_ONLY",
       "max_consecutive_sample_failures": 1,
-      "observed_sample_success_ratio": 0.75,
+      "observed_sample_success_ratio": 0.777778,
       "provider_sla_certified": false,
       "quality_issue_samples": {
         "EXPECTED_COMPLETED_MINUTES_MISSING": 1,
-        "MINUTE_COMPLETENESS_UNVERIFIED": 6,
-        "OBSERVED_FUTURE_MINUTE_LABEL": 4,
+        "MINUTE_COMPLETENESS_UNVERIFIED": 7,
+        "OBSERVED_FUTURE_MINUTE_LABEL": 5,
         "QUOTE_STALE_OR_FUTURE": 1
       },
-      "recoveries_after_failed_sample": 1,
-      "research_snapshots": 6,
-      "samples": 8,
+      "recoveries_after_failed_sample": 2,
+      "research_snapshots": 7,
+      "samples": 9,
       "source_failures": 2,
       "trade_gate": "BLOCKED"
     },
@@ -754,13 +833,13 @@
       "provider_sla_certified": false,
       "quality_issue_samples": {
         "EXPECTED_COMPLETED_MINUTES_MISSING": 1,
-        "MINUTE_COMPLETENESS_UNVERIFIED": 8,
-        "OBSERVED_FUTURE_MINUTE_LABEL": 6,
+        "MINUTE_COMPLETENESS_UNVERIFIED": 9,
+        "OBSERVED_FUTURE_MINUTE_LABEL": 7,
         "QUOTE_STALE_OR_FUTURE": 3
       },
       "recoveries_after_failed_sample": 0,
-      "research_snapshots": 8,
-      "samples": 8,
+      "research_snapshots": 9,
+      "samples": 9,
       "source_failures": 0,
       "trade_gate": "BLOCKED"
     },
@@ -776,13 +855,13 @@
       "provider_sla_certified": false,
       "quality_issue_samples": {
         "EXPECTED_COMPLETED_MINUTES_MISSING": 1,
-        "MINUTE_COMPLETENESS_UNVERIFIED": 8,
-        "OBSERVED_FUTURE_MINUTE_LABEL": 6,
+        "MINUTE_COMPLETENESS_UNVERIFIED": 9,
+        "OBSERVED_FUTURE_MINUTE_LABEL": 7,
         "QUOTE_STALE_OR_FUTURE": 1
       },
       "recoveries_after_failed_sample": 0,
-      "research_snapshots": 8,
-      "samples": 8,
+      "research_snapshots": 9,
+      "samples": 9,
       "source_failures": 0,
       "trade_gate": "BLOCKED"
     },
@@ -798,18 +877,18 @@
       "provider_sla_certified": false,
       "quality_issue_samples": {
         "EXPECTED_COMPLETED_MINUTES_MISSING": 1,
-        "MINUTE_COMPLETENESS_UNVERIFIED": 8,
-        "OBSERVED_FUTURE_MINUTE_LABEL": 6,
+        "MINUTE_COMPLETENESS_UNVERIFIED": 9,
+        "OBSERVED_FUTURE_MINUTE_LABEL": 7,
         "QUOTE_STALE_OR_FUTURE": 1
       },
       "recoveries_after_failed_sample": 0,
-      "research_snapshots": 8,
-      "samples": 8,
+      "research_snapshots": 9,
+      "samples": 9,
       "source_failures": 0,
       "trade_gate": "BLOCKED"
     },
     "301015": {
-      "consecutive_failures_at_latest_sample": 1,
+      "consecutive_failures_at_latest_sample": 0,
       "cross_source_price_verified": false,
       "error_types": {
         "URLError": 1
@@ -818,19 +897,19 @@
         "EASTMONEY_MINUTES": 1
       },
       "last_failed_run": 41590298560,
-      "latest_status": "SOURCE_UNAVAILABLE",
+      "latest_status": "RESEARCH_ONLY",
       "max_consecutive_sample_failures": 1,
-      "observed_sample_success_ratio": 0.875,
+      "observed_sample_success_ratio": 0.888889,
       "provider_sla_certified": false,
       "quality_issue_samples": {
         "EXPECTED_COMPLETED_MINUTES_MISSING": 1,
-        "MINUTE_COMPLETENESS_UNVERIFIED": 7,
-        "OBSERVED_FUTURE_MINUTE_LABEL": 5,
+        "MINUTE_COMPLETENESS_UNVERIFIED": 8,
+        "OBSERVED_FUTURE_MINUTE_LABEL": 6,
         "QUOTE_STALE_OR_FUTURE": 1
       },
-      "recoveries_after_failed_sample": 0,
-      "research_snapshots": 7,
-      "samples": 8,
+      "recoveries_after_failed_sample": 1,
+      "research_snapshots": 8,
+      "samples": 9,
       "source_failures": 1,
       "trade_gate": "BLOCKED"
     }
