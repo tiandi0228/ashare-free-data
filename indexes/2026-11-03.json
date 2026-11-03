@@ -948,25 +948,108 @@
           "status": "SOURCE_UNAVAILABLE"
         }
       }
+    },
+    {
+      "asof": "2026-11-03T15:32:19.103649+08:00",
+      "path": "snapshots/2026-11-03/run_41596935439_attempt_1.json",
+      "run_attempt": 1,
+      "run_id": 41596935439,
+      "sha256": "a38d7013b203e73dfad0088fd2490304f73feb2eea7b778442f44b682dba04a2",
+      "symbols": {
+        "002249": {
+          "error_stage": null,
+          "error_type": null,
+          "executable_quote": false,
+          "minute_rows_today": 241,
+          "observed_price_cny": 7.87,
+          "quality_issues": [
+            "OUTSIDE_CONTINUOUS_TRADING",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T15:32:18+08:00",
+          "reported_volume_ratio": 1.05,
+          "status": "RESEARCH_ONLY"
+        },
+        "002696": {
+          "error_stage": null,
+          "error_type": null,
+          "executable_quote": false,
+          "minute_rows_today": 241,
+          "observed_price_cny": 12.36,
+          "quality_issues": [
+            "OUTSIDE_CONTINUOUS_TRADING",
+            "QUOTE_STALE_OR_FUTURE",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T15:31:45+08:00",
+          "reported_volume_ratio": 0.75,
+          "status": "RESEARCH_ONLY"
+        },
+        "300015": {
+          "error_stage": null,
+          "error_type": null,
+          "executable_quote": false,
+          "minute_rows_today": 241,
+          "observed_price_cny": 8.93,
+          "quality_issues": [
+            "OUTSIDE_CONTINUOUS_TRADING",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T15:32:45+08:00",
+          "reported_volume_ratio": 1.28,
+          "status": "RESEARCH_ONLY"
+        },
+        "300896": {
+          "error_stage": null,
+          "error_type": null,
+          "executable_quote": false,
+          "minute_rows_today": 241,
+          "observed_price_cny": 88.78,
+          "quality_issues": [
+            "OUTSIDE_CONTINUOUS_TRADING",
+            "QUOTE_STALE_OR_FUTURE",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T15:32:45+08:00",
+          "reported_volume_ratio": 1.05,
+          "status": "RESEARCH_ONLY"
+        },
+        "301015": {
+          "error_stage": null,
+          "error_type": null,
+          "executable_quote": false,
+          "minute_rows_today": 241,
+          "observed_price_cny": 26.25,
+          "quality_issues": [
+            "OUTSIDE_CONTINUOUS_TRADING",
+            "QUOTE_STALE_OR_FUTURE",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-03T15:31:54+08:00",
+          "reported_volume_ratio": 1.24,
+          "status": "RESEARCH_ONLY"
+        }
+      }
     }
   ],
-  "entries_count": 12,
+  "entries_count": 13,
   "executable_candidates": [],
   "historical_PIT_verified": false,
   "index_is_not_live_quote": true,
   "latest_by_symbol": {
     "002249": {
-      "error_stage": "EASTMONEY_MINUTES",
-      "error_type": "URLError",
+      "error_stage": null,
+      "error_type": null,
       "executable_quote": false,
-      "minute_rows_today": null,
-      "observed_price_cny": null,
+      "minute_rows_today": 241,
+      "observed_price_cny": 7.87,
       "quality_issues": [
-        "SOURCE_UNAVAILABLE"
+        "OUTSIDE_CONTINUOUS_TRADING",
+        "MINUTE_COMPLETENESS_UNVERIFIED"
       ],
-      "quote_time": null,
-      "reported_volume_ratio": null,
-      "status": "SOURCE_UNAVAILABLE"
+      "quote_time": "2026-11-03T15:32:18+08:00",
+      "reported_volume_ratio": 1.05,
+      "status": "RESEARCH_ONLY"
     },
     "002696": {
       "error_stage": null,
@@ -976,9 +1059,10 @@
       "observed_price_cny": 12.36,
       "quality_issues": [
         "OUTSIDE_CONTINUOUS_TRADING",
+        "QUOTE_STALE_OR_FUTURE",
         "MINUTE_COMPLETENESS_UNVERIFIED"
       ],
-      "quote_time": "2026-11-03T15:05:15+08:00",
+      "quote_time": "2026-11-03T15:31:45+08:00",
       "reported_volume_ratio": 0.75,
       "status": "RESEARCH_ONLY"
     },
@@ -990,10 +1074,9 @@
       "observed_price_cny": 8.93,
       "quality_issues": [
         "OUTSIDE_CONTINUOUS_TRADING",
-        "QUOTE_STALE_OR_FUTURE",
         "MINUTE_COMPLETENESS_UNVERIFIED"
       ],
-      "quote_time": "2026-11-03T15:06:00+08:00",
+      "quote_time": "2026-11-03T15:32:45+08:00",
       "reported_volume_ratio": 1.28,
       "status": "RESEARCH_ONLY"
     },
@@ -1008,32 +1091,34 @@
         "QUOTE_STALE_OR_FUTURE",
         "MINUTE_COMPLETENESS_UNVERIFIED"
       ],
-      "quote_time": "2026-11-03T15:05:45+08:00",
+      "quote_time": "2026-11-03T15:32:45+08:00",
       "reported_volume_ratio": 1.05,
       "status": "RESEARCH_ONLY"
     },
     "301015": {
-      "error_stage": "EASTMONEY_MINUTES",
-      "error_type": "URLError",
+      "error_stage": null,
+      "error_type": null,
       "executable_quote": false,
-      "minute_rows_today": null,
-      "observed_price_cny": null,
+      "minute_rows_today": 241,
+      "observed_price_cny": 26.25,
       "quality_issues": [
-        "SOURCE_UNAVAILABLE"
+        "OUTSIDE_CONTINUOUS_TRADING",
+        "QUOTE_STALE_OR_FUTURE",
+        "MINUTE_COMPLETENESS_UNVERIFIED"
       ],
-      "quote_time": null,
-      "reported_volume_ratio": null,
-      "status": "SOURCE_UNAVAILABLE"
+      "quote_time": "2026-11-03T15:31:54+08:00",
+      "reported_volume_ratio": 1.24,
+      "status": "RESEARCH_ONLY"
     }
   },
-  "latest_run": 41593909057,
+  "latest_run": 41596935439,
   "minute_data_complete_certified": false,
   "orders": [],
   "phase": "P1_READ_ONLY_DAILY_SNAPSHOT_INDEX",
   "source_branch": "research-intraday-snapshots",
   "source_reliability_sample": {
     "002249": {
-      "consecutive_failures_at_latest_sample": 1,
+      "consecutive_failures_at_latest_sample": 0,
       "cross_source_price_verified": false,
       "error_types": {
         "URLError": 3
@@ -1042,19 +1127,20 @@
         "EASTMONEY_MINUTES": 3
       },
       "last_failed_run": 41593909057,
-      "latest_status": "SOURCE_UNAVAILABLE",
+      "latest_status": "RESEARCH_ONLY",
       "max_consecutive_sample_failures": 1,
-      "observed_sample_success_ratio": 0.75,
+      "observed_sample_success_ratio": 0.769231,
       "provider_sla_certified": false,
       "quality_issue_samples": {
         "EXPECTED_COMPLETED_MINUTES_MISSING": 1,
-        "MINUTE_COMPLETENESS_UNVERIFIED": 9,
+        "MINUTE_COMPLETENESS_UNVERIFIED": 10,
         "OBSERVED_FUTURE_MINUTE_LABEL": 7,
+        "OUTSIDE_CONTINUOUS_TRADING": 1,
         "QUOTE_STALE_OR_FUTURE": 1
       },
-      "recoveries_after_failed_sample": 2,
-      "research_snapshots": 9,
-      "samples": 12,
+      "recoveries_after_failed_sample": 3,
+      "research_snapshots": 10,
+      "samples": 13,
       "source_failures": 3,
       "trade_gate": "BLOCKED"
     },
@@ -1070,14 +1156,14 @@
       "provider_sla_certified": false,
       "quality_issue_samples": {
         "EXPECTED_COMPLETED_MINUTES_MISSING": 1,
-        "MINUTE_COMPLETENESS_UNVERIFIED": 12,
+        "MINUTE_COMPLETENESS_UNVERIFIED": 13,
         "OBSERVED_FUTURE_MINUTE_LABEL": 9,
-        "OUTSIDE_CONTINUOUS_TRADING": 1,
-        "QUOTE_STALE_OR_FUTURE": 3
+        "OUTSIDE_CONTINUOUS_TRADING": 2,
+        "QUOTE_STALE_OR_FUTURE": 4
       },
       "recoveries_after_failed_sample": 0,
-      "research_snapshots": 12,
-      "samples": 12,
+      "research_snapshots": 13,
+      "samples": 13,
       "source_failures": 0,
       "trade_gate": "BLOCKED"
     },
@@ -1093,14 +1179,14 @@
       "provider_sla_certified": false,
       "quality_issue_samples": {
         "EXPECTED_COMPLETED_MINUTES_MISSING": 1,
-        "MINUTE_COMPLETENESS_UNVERIFIED": 12,
+        "MINUTE_COMPLETENESS_UNVERIFIED": 13,
         "OBSERVED_FUTURE_MINUTE_LABEL": 9,
-        "OUTSIDE_CONTINUOUS_TRADING": 1,
+        "OUTSIDE_CONTINUOUS_TRADING": 2,
         "QUOTE_STALE_OR_FUTURE": 2
       },
       "recoveries_after_failed_sample": 0,
-      "research_snapshots": 12,
-      "samples": 12,
+      "research_snapshots": 13,
+      "samples": 13,
       "source_failures": 0,
       "trade_gate": "BLOCKED"
     },
@@ -1116,19 +1202,19 @@
       "provider_sla_certified": false,
       "quality_issue_samples": {
         "EXPECTED_COMPLETED_MINUTES_MISSING": 1,
-        "MINUTE_COMPLETENESS_UNVERIFIED": 12,
+        "MINUTE_COMPLETENESS_UNVERIFIED": 13,
         "OBSERVED_FUTURE_MINUTE_LABEL": 9,
-        "OUTSIDE_CONTINUOUS_TRADING": 1,
-        "QUOTE_STALE_OR_FUTURE": 2
+        "OUTSIDE_CONTINUOUS_TRADING": 2,
+        "QUOTE_STALE_OR_FUTURE": 3
       },
       "recoveries_after_failed_sample": 0,
-      "research_snapshots": 12,
-      "samples": 12,
+      "research_snapshots": 13,
+      "samples": 13,
       "source_failures": 0,
       "trade_gate": "BLOCKED"
     },
     "301015": {
-      "consecutive_failures_at_latest_sample": 1,
+      "consecutive_failures_at_latest_sample": 0,
       "cross_source_price_verified": false,
       "error_types": {
         "URLError": 2
@@ -1137,19 +1223,20 @@
         "EASTMONEY_MINUTES": 2
       },
       "last_failed_run": 41593909057,
-      "latest_status": "SOURCE_UNAVAILABLE",
+      "latest_status": "RESEARCH_ONLY",
       "max_consecutive_sample_failures": 1,
-      "observed_sample_success_ratio": 0.833333,
+      "observed_sample_success_ratio": 0.846154,
       "provider_sla_certified": false,
       "quality_issue_samples": {
         "EXPECTED_COMPLETED_MINUTES_MISSING": 1,
-        "MINUTE_COMPLETENESS_UNVERIFIED": 10,
+        "MINUTE_COMPLETENESS_UNVERIFIED": 11,
         "OBSERVED_FUTURE_MINUTE_LABEL": 8,
-        "QUOTE_STALE_OR_FUTURE": 1
+        "OUTSIDE_CONTINUOUS_TRADING": 1,
+        "QUOTE_STALE_OR_FUTURE": 2
       },
-      "recoveries_after_failed_sample": 1,
-      "research_snapshots": 10,
-      "samples": 12,
+      "recoveries_after_failed_sample": 2,
+      "research_snapshots": 11,
+      "samples": 13,
       "source_failures": 2,
       "trade_gate": "BLOCKED"
     }
