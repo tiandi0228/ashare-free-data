@@ -47,13 +47,24 @@ jobs:
           archive=Path("archived-research")
           commit=subprocess.check_output(
               ["git","-C",str(archive),"rev-parse","HEAD"],text=True).strip()
-          prefixes=sorted(p for p in archive.iterdir()
-                          if p.is_dir() and (p/"archive_status.json").exists())
-          if len(prefixes)!=1:
-              raise SystemExit("Expected one frozen P1 epoch; fail closed")
-          src=prefixes[0]
+          from collector.p1_checkpoint import validate
+          candidates=[]
+          for file in sorted(Path("evidence/checkpoints").glob("*.json")):
+              checkpoint=json.loads(file.read_text())
+              validate(checkpoint)
+              if file.stem!=checkpoint["source_sha256"]:
+                  raise SystemExit("Frozen checkpoint filename SHA mismatch")
+              epoch=archive/checkpoint["source_sha256"][:16]
+              if (epoch/"archive_status.json").is_file():
+                  candidates.append((checkpoint["completed_shards"],
+                                     checkpoint["source_sha256"],epoch))
+          if not candidates:
+              raise SystemExit("No frozen checkpoint matches archived originals")
+          # Multiple epochs are retained intentionally. Prefer the largest
+          # validated, archived historical checkpoint, never legacy aliases.
+          _,chosen_sha,src=max(candidates)
           status=json.loads((src/"archive_status.json").read_text())
-          if (status.get("source_sha256","")[:16]!=src.name
+          if (status.get("source_sha256")!=chosen_sha
                   or status.get("trade_gate")!="BLOCKED"):
               raise SystemExit("Unsafe frozen research epoch")
           shards=sorted(p for p in src.glob("shard_*/quality.json") if p.is_file())
