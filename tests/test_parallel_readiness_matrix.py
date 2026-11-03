@@ -16,7 +16,7 @@ def ledger(done):
             "full_market_bars_certified":False,"historical_PIT_verified":False,
             "trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
 def reports():
-    return {k:blocked(v,"STRUCTURAL_TEST_ONLY",["NOT_VERIFIED"],lane=v)
+    return {k:blocked(v,"STRUCTURAL_TEST_ONLY",["NOT_VERIFIED"])
             for k,v in LANES.items()}
 class ReadinessMatrixTests(unittest.TestCase):
     def test_complete_ingestion_never_unblocks_anything(self):
