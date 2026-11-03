@@ -33,7 +33,7 @@ class RecoveryClaimTests(unittest.TestCase):
 
     def test_marker_created_without_overwrite_and_readback(self):
         q=report();path=claim_path(q)
-        def respond(endpoint,*,method="GET",data=None):
+        def respond(repo_name,endpoint,*,method="GET",data=None):
             if method=="PUT":
                 self.assertNotIn("sha",data)
                 self.assertEqual(data["branch"],"research-intraday-snapshots")
