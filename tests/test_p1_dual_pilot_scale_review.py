@@ -152,7 +152,7 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
             self.assertEqual((actual.weekday(),actual.hour,actual.minute),
                              (6,local_hour,10))
 
-    def test_workflow_has_exactly_three_bounded_daily_dual_slots(self):
+    def test_workflow_has_exactly_four_bounded_daily_dual_slots(self):
         from pathlib import Path
         workflow=(Path(__file__).resolve().parents[1]/
                   ".github/workflows/p1-fresh-vendor-roster.yml").read_text()
@@ -161,6 +161,7 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
         self.assertIn("github.event.schedule == '10 15 * * 1-5'",formula)
         self.assertIn("github.event.schedule == '10 9 * * 1-5'",formula)
         self.assertIn("github.event.schedule == '10 5 * * 1-5'",formula)
+        self.assertIn("github.event.schedule == '10 7 * * 1-5'",formula)
         self.assertIn("&& '2' || '1'",formula)
         self.assertIn("inputs.shards_per_run",formula)
         # No four-shard escalation before repeated verified pilots and review.

@@ -15,7 +15,7 @@ PILOT_CRON = "10 15 * * 1-5"
 # Explicitly scoped 17:10 pilot; 23:10 remains the original daily pilot.
 PILOT_CRONS = frozenset((PILOT_CRON, "10 9 * * 1-5"))
 # One reviewed expansion, still bounded to a second eight-issuer shard.
-APPROVED_EXTRA_CRONS = frozenset(("10 5 * * 1-5",))
+APPROVED_EXTRA_CRONS = frozenset(("10 5 * * 1-5", "10 7 * * 1-5"))
 ALLOWED_DUAL_CRONS = PILOT_CRONS | APPROVED_EXTRA_CRONS
 
 
