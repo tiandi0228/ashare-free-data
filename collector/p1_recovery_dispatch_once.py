@@ -9,6 +9,7 @@ from pathlib import Path
 from collector.intraday_snapshot_archive import api,BRANCH,REPO_RE
 from collector.p1_safe_recovery import eligibility,workflow_runs,TZ
 from collector.p1_recovery_claim import claim_path
+from collector.p1_recovery_origin_token import token_for_attempt
 
 TARGET="p1-fresh-vendor-roster.yml"
 ATTEMPT_PHASE="P1_SINGLE_SHARD_DISPATCH_ATTEMPT"
@@ -81,7 +82,8 @@ def request_once(repo,record,*,enabled=False):
         return "ALREADY_RESERVED_NO_RETRY"
     # Non-idempotent network request: no retries, regardless of failure reason.
     # A request accepted by GitHub does not mean its workflow completed.
-    payload=json.dumps({"ref":"main","inputs":{"shards_per_run":"1"}})
+    token=token_for_attempt(record)
+    payload=json.dumps({"ref":"main","inputs":{"shards_per_run":"1","recovery_token":token}})
     call=subprocess.run(
         ["gh","api",f"repos/{repo}/actions/workflows/{TARGET}/dispatches",
          "--method","POST","--input","-"],input=payload,text=True,
