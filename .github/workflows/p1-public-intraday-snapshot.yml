@@ -18,6 +18,7 @@ on:
       - 'collector/p1_recovery_origin_token.py'
       - 'collector/ashare_trade_risk_preflight.py'
       - 'collector/p2_signal_admission.py'
+      - 'collector/p2_offline_fill_machine.py'
       - 'collector/p1_pit_time_consistency.py'
       - 'collector/p1_recovery_run_reconciliation.py'
       - 'tests/test_intraday_public_snapshot.py'
@@ -34,6 +35,7 @@ on:
       - 'tests/test_p1_recovery_origin_token.py'
       - 'tests/test_ashare_trade_risk_preflight.py'
       - 'tests/test_p2_signal_admission.py'
+      - 'tests/test_p2_offline_fill_machine.py'
       - 'tests/test_p1_pit_time_consistency.py'
       - 'tests/test_p1_recovery_run_reconciliation.py'
   workflow_dispatch:
@@ -53,6 +55,7 @@ on:
       - 'collector/p1_recovery_origin_token.py'
       - 'collector/ashare_trade_risk_preflight.py'
       - 'collector/p2_signal_admission.py'
+      - 'collector/p2_offline_fill_machine.py'
       - 'collector/p1_pit_time_consistency.py'
       - 'collector/p1_recovery_run_reconciliation.py'
       - 'tests/test_intraday_public_snapshot.py'
@@ -69,6 +72,7 @@ on:
       - 'tests/test_p1_recovery_origin_token.py'
       - 'tests/test_ashare_trade_risk_preflight.py'
       - 'tests/test_p2_signal_admission.py'
+      - 'tests/test_p2_offline_fill_machine.py'
       - 'tests/test_p1_pit_time_consistency.py'
       - 'tests/test_p1_recovery_run_reconciliation.py'
       - '.github/workflows/p1-public-intraday-snapshot.yml'
@@ -95,7 +99,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Test unofficial source parsing and immutable BLOCKED gate
-        run: python -m unittest tests.test_intraday_public_snapshot tests.test_intraday_minute_coverage tests.test_intraday_cross_source_audit tests.test_intraday_snapshot_archive tests.test_intraday_daily_index tests.test_intraday_source_health tests.test_p1_schedule_watchdog tests.test_p1_safe_recovery tests.test_p1_recovery_claim tests.test_p1_recovery_dispatch_preflight tests.test_p1_recovery_dispatch_once tests.test_p1_recovery_origin_token tests.test_p1_recovery_run_reconciliation tests.test_ashare_trade_risk_preflight tests.test_p2_signal_admission tests.test_p1_pit_time_consistency -v
+        run: python -m unittest tests.test_intraday_public_snapshot tests.test_intraday_minute_coverage tests.test_intraday_cross_source_audit tests.test_intraday_snapshot_archive tests.test_intraday_daily_index tests.test_intraday_source_health tests.test_p1_schedule_watchdog tests.test_p1_safe_recovery tests.test_p1_recovery_claim tests.test_p1_recovery_dispatch_preflight tests.test_p1_recovery_dispatch_once tests.test_p1_recovery_origin_token tests.test_p1_recovery_run_reconciliation tests.test_ashare_trade_risk_preflight tests.test_p2_signal_admission tests.test_p2_offline_fill_machine tests.test_p1_pit_time_consistency -v
       - name: Audit P1 historical scheduler (no dispatch or orders)
         if: github.event_name != 'pull_request'
         continue-on-error: true
