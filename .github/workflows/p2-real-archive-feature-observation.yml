@@ -8,6 +8,7 @@ on:
       - 'collector/p2_paged_real_archive.py'
       - 'collector/p2_feature_coverage_ledger.py'
       - 'tests/test_p2_feature_coverage_ledger.py'
+      - 'tests/test_p2_priority_archive_pages.py'
       - 'collector/p2_independent_bars.py'
       - 'tests/test_p2_paged_real_archive.py'
   pull_request:
@@ -15,6 +16,8 @@ on:
       - '.github/workflows/p2-real-archive-feature-observation.yml'
       - 'collector/p2_real_archive_features.py'
       - 'collector/p2_independent_bars.py'
+      - 'collector/p2_paged_real_archive.py'
+      - 'tests/test_p2_priority_archive_pages.py'
   workflow_run:
     workflows: ["P1 fresh Baostock mainboard roster observation (NO TRADES)"]
     types: [completed]
@@ -41,11 +44,41 @@ jobs:
         with:
           python-version: '3.11'
       - name: Verify original CSV research feature adapter
-        run: python -m unittest tests.test_p2_independent_bars tests.test_p2_real_archive_features tests.test_p2_paged_real_archive tests.test_p2_feature_coverage_ledger -v
+        run: python -m unittest tests.test_p2_independent_bars tests.test_p2_real_archive_features tests.test_p2_paged_real_archive tests.test_p2_feature_coverage_ledger tests.test_p2_priority_archive_pages -v
       - name: Fetch immutable-original research archive branch
         run: |
           git fetch --depth=1 origin research-csv-archive
           git worktree add --detach archived-research FETCH_HEAD
+      - name: Read prior durable coverage as a non-authoritative scheduling hint
+        run: |
+          if git ls-remote --exit-code --heads origin p2-feature-coverage >/dev/null 2>&1; then
+            git fetch --depth=1 origin p2-feature-coverage
+            git worktree add --detach previous-p2-coverage FETCH_HEAD
+            python - <<'PY'
+          import json,shutil
+          from pathlib import Path
+          from collector.p1_checkpoint import validate
+          candidates=[]
+          for file in Path('evidence/checkpoints').glob('*.json'):
+              q=json.loads(file.read_text())
+              validate(q)
+              if file.stem!=q['source_sha256']:
+                  raise SystemExit('Unsafe checkpoint filename')
+              archive=Path('archived-research')/q['source_sha256'][:16]/'archive_status.json'
+              if archive.exists():
+                  candidates.append((q['completed_shards'],q['source_sha256']))
+          if not candidates:raise SystemExit('No validated archived checkpoint')
+          _,sha=max(candidates)
+          old=Path('previous-p2-coverage')/'summaries'/(sha[:16]+'.json')
+          if old.is_file():
+              shutil.copyfile(old,'evidence/p2_prior_feature_coverage.json')
+              print('PRIOR_COVERAGE_HINT_FOUND',sha[:16])
+          else:
+              print('NO_PRIOR_COVERAGE_HINT')
+          PY
+          else
+            echo "Coverage branch unavailable; rotation fallback remains safe"
+          fi
       - name: Replay bounded rotating archived shards at frozen P1 date
         env:
           P2_EXPLICIT_PAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.page || '' }}
@@ -54,11 +87,16 @@ jobs:
           if [ -n "$P2_EXPLICIT_PAGE" ]; then
             ARGS+=(--page "$P2_EXPLICIT_PAGE")
           fi
+          COVERAGE_ARGS=()
+          if [ -f evidence/p2_prior_feature_coverage.json ]; then
+            COVERAGE_ARGS+=(--coverage-summary evidence/p2_prior_feature_coverage.json)
+          fi
           python -m collector.p2_paged_real_archive \
             --archive-root archived-research \
             --checkpoints evidence/checkpoints \
             --run-number "${{ github.run_number }}" \
             "${ARGS[@]}" \
+            "${COVERAGE_ARGS[@]}" \
             --out evidence/p2_real_archive_feature_observation.json
       - name: Merge and independently audit durable research page receipts
         env:
