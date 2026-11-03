@@ -16,6 +16,9 @@ from collector.p1_checkpoint import epoch_path, gh
 
 PILOT_CRON = "10 15 * * 1-5"
 PILOT_CRONS = frozenset((PILOT_CRON, "10 9 * * 1-5"))
+# Expanded slots have receipts, but cannot self-certify the original pilot.
+APPROVED_EXTRA_CRONS = frozenset(("10 5 * * 1-5",))
+ALLOWED_DUAL_CRONS = PILOT_CRONS | APPROVED_EXTRA_CRONS
 FILE_NAME = re.compile(r"run_([1-9][0-9]*)_attempt_([1-9][0-9]*)\.json\Z")
 MIN_RECORDED_SUCCESSES = 3
 MAX_READS = 12
@@ -44,7 +47,7 @@ def inspect(receipts, epoch):
         is_sched = row.get("trigger") == "schedule"
         if not is_sched and row.get("trigger") != "workflow_dispatch":
             raise ValueError("unrecognized pilot trigger")
-        if (is_sched and row.get("trigger_cron_utc") not in PILOT_CRONS
+        if (is_sched and row.get("trigger_cron_utc") not in ALLOWED_DUAL_CRONS
                 or not is_sched and row.get("trigger_cron_utc") is not None):
             raise ValueError("untrusted pilot schedule")
         selected,actual = row.get("selected_shards"),row.get("new_selected_shards")
@@ -88,7 +91,10 @@ def inspect(receipts, epoch):
         elif existing["run_attempt"]==attempt and existing!=row:
             raise ValueError("same run attempt has conflicting receipts")
     ordered=sorted(by_run.values(),key=lambda row:row["run_id"],reverse=True)
-    scheduled=[r for r in ordered if r["trigger"]=="schedule"]
+    scheduled=[r for r in ordered if r["trigger"]=="schedule"
+               and r["trigger_cron_utc"] in PILOT_CRONS]
+    expanded=[r for r in ordered if r["trigger"]=="schedule"
+              and r["trigger_cron_utc"] in APPROVED_EXTRA_CRONS]
     recent=scheduled[:MIN_RECORDED_SUCCESSES]
     recent_crons={r["trigger_cron_utc"] for r in recent}
     both_slots_covered=recent_crons==PILOT_CRONS
@@ -109,7 +115,8 @@ def inspect(receipts, epoch):
         "source_sha256":epoch,
         "recorded_total_unique_runs":len(ordered),
         "recorded_scheduled_runs":len(scheduled),
-        "recorded_manual_runs":len(ordered)-len(scheduled),
+        "recorded_expanded_scheduled_runs":len(expanded),
+        "recorded_manual_runs":len(ordered)-len(scheduled)-len(expanded),
         "required_recent_recorded_successes":MIN_RECORDED_SUCCESSES,
         "reviewed_scheduled_run_ids":[r["run_id"] for r in recent],
         "reviewed_scheduled_results":[r["dual_pilot_result"] for r in recent],

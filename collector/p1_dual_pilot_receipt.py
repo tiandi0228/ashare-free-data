@@ -14,13 +14,16 @@ from collector.p1_checkpoint import gh, epoch_path
 PILOT_CRON = "10 15 * * 1-5"
 # Explicitly scoped 17:10 pilot; 23:10 remains the original daily pilot.
 PILOT_CRONS = frozenset((PILOT_CRON, "10 9 * * 1-5"))
+# One reviewed expansion, still bounded to a second eight-issuer shard.
+APPROVED_EXTRA_CRONS = frozenset(("10 5 * * 1-5",))
+ALLOWED_DUAL_CRONS = PILOT_CRONS | APPROVED_EXTRA_CRONS
 
 
 def build(selection, progress, policy, *, run_id, attempt, event, cron):
     if (type(run_id) is not int or run_id <= 0 or
             type(attempt) is not int or attempt <= 0 or
             event not in ("schedule", "workflow_dispatch") or
-            (event == "schedule" and cron not in PILOT_CRONS) or
+            (event == "schedule" and cron not in ALLOWED_DUAL_CRONS) or
             (event == "workflow_dispatch" and cron not in ("", None))):
         raise ValueError("invalid pilot run identity or scheduled trigger")
     if (selection.get("trade_gate") != "BLOCKED"
