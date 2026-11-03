@@ -1,13 +1,13 @@
 """Conservative expected minute-label audit for CN A-share research snapshots.
 
-Minute labels are assumed to include 09:30..11:30 and 13:00..15:00 inclusive
+Minute labels are assumed to include 09:30..11:30 and 13:01..15:00 inclusive
 for *audit only*. Vendors can label the final/opening bar differently.
 Never use this calculation alone to certify complete data or enable trades.
 """
 import datetime as dt
 
 SESSION_BOUNDS=((dt.time(9,30),dt.time(11,30)),
-                (dt.time(13,0),dt.time(15,0)))
+                (dt.time(13,1),dt.time(15,0)))
 
 def expected_minute_labels(day, now):
     """Expected labels whose nominal minute has ended as of now."""
@@ -37,7 +37,7 @@ def audit_minute_coverage(stamps, now):
     missing_iso=[x.isoformat() for x in missing]
     # This is an expected-label ratio, not a vendor-certified completeness value.
     return {
-        "convention":"ASSUMED_CN_STOCK_MINUTE_LABELS_INCLUSIVE",
+        "convention":"OBSERVED_VENDOR_LABELS_0930_1130_AND_1301_1500",
         "expected_completed_labels":len(expected),
         "covered_expected_completed_labels":len(covered),
         "missing_expected_completed_labels":len(missing),
@@ -48,7 +48,7 @@ def audit_minute_coverage(stamps, now):
         "source_has_future_labels":bool(future),
         "minute_data_complete_certified":False,
         "limitations":[
-            "UNOFFICIAL_VENDOR_LABEL_CONVENTION_NOT_INDEPENDENTLY_VERIFIED",
+            "UNOFFICIAL_VENDOR_LABEL_CONVENTION_OBSERVED_FIVE_SYMBOLS_SINGLE_DAY_NOT_INDEPENDENTLY_VERIFIED",
             "NOT_A_POINT_IN_TIME_COMPLETE_MINUTE_RECORD",
             "NOT_AN_EXECUTABLE_TRADING_QUOTE",
         ],
