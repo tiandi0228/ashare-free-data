@@ -1,4 +1,4 @@
-"""Exact P1 scheduled-cron provenance from GitHub run identity (NO TRADES).
+"""Literal P1 scheduled-cron provenance from GitHub run identity (NO TRADES).
 
 GitHub Actions creates scheduled jobs on a best-effort basis: a job created
 late must NOT be attributed to whichever different cron is nearest. Bind the
@@ -18,7 +18,7 @@ from collector.p1_checkpoint import epoch_path, gh
 
 UTC = dt.timezone.utc
 TZ_CST = dt.timezone(dt.timedelta(hours=8))
-PHASE = "P1_EXACT_SCHEDULE_PROVENANCE_PENDING_ACTIONS_CONCLUSION"
+PHASE = "P1_LITERAL_CRON_RUN_CREATION_PROVENANCE_PENDING_CONCLUSION"
 MAIN_PATH = ".github/workflows/p1-fresh-vendor-roster.yml"
 DUAL_HOURS = frozenset((3, 5, 7, 9, 11, 15))
 WEEKDAY_HOURS = frozenset((0, 1, 3, 5, 7, 9, 11, 13, 15))
@@ -116,6 +116,7 @@ def build(run, progress, *, cron, run_id, attempt, sha):
         "trigger_cron_utc": cron,
         "requested_shards": expected_shards,
         "nominal_slot_utc": planned.isoformat(),
+        "nominal_slot_date_is_inferred_not_authenticated": True,
         "nominal_slot_beijing": planned.astimezone(TZ_CST).isoformat(),
         "github_run_created_at_utc": created.isoformat(),
         "github_queue_creation_delay_minutes": delay,
@@ -134,6 +135,7 @@ def build(run, progress, *, cron, run_id, attempt, sha):
         "limitations": [
             "GITHUB_RUN_CREATED_AT_IS_QUEUE_CREATION_NOT_RUNNER_STEP_START",
             "LITERAL_EVENT_CRON_DOES_NOT_PROVE_FUTURE_SCHEDULE_RELIABILITY",
+            "SCHEDULED_NOMINAL_DATE_INFERRED_FROM_CREATED_AT_NOT_SIGNED_BY_GITHUB",
             "IN_FLIGHT_SOURCE_RECEIPT_NOT_FINAL_ACTIONS_SUCCESS_ATTESTATION",
             "SOURCE_BARS_NOT_HISTORICAL_PIT_OR_TRADING_ELIGIBILITY",
         ],
