@@ -129,6 +129,17 @@ jobs:
               outcome=horizon['horizon_sessions_after_hypothetical_entry'][h]
               assert sum(outcome.values())==horizon['hypothetical_entry_price_pairs']
           assert sum(horizon['friday_mandatory_exit_conflicts'].values())==horizon['hypothetical_entry_price_pairs']
+          gate=horizon['friday_and_minimum_holding_compatibility_research']
+          friday=horizon['friday_mandatory_exit_conflicts']
+          assert sum(gate.values())==horizon['hypothetical_entry_price_pairs']
+          assert gate.get('NO_GO_ENTRY_FRIDAY_TPLUS1',0)==friday.get('ENTRY_FRIDAY_TPLUS1_CANNOT_CLEAR_SAME_FRIDAY',0)
+          assert gate.get('NO_GO_MINIMUM_HOLD_VS_FRIDAY',0)==friday.get('FRIDAY_BEFORE_MINIMUM_THREE_VENDOR_SESSIONS',0)
+          assert gate.get('OBSERVED_FRIDAY_WINDOW_ONLY_NOT_TRADABLE',0)+gate.get('UNKNOWN_VENDOR_STATUS_BEFORE_FRIDAY',0)==friday.get('FRIDAY_AT_THREE_TO_FIVE_VENDOR_SESSIONS',0)
+          assert gate.get('UNKNOWN_FIRST_FRIDAY_NOT_IN_ARCHIVE_WINDOW',0)==friday.get('FIRST_FRIDAY_NOT_OBSERVED_IN_BOUNDED_WINDOW',0)
+          assert not horizon['pre_entry_friday_policy_trade_permission_certified']
+          assert not horizon['lookahead_data_used_for_entry_screening']
+          assert not horizon['prospective_friday_calendar_rule_frozen']
+          print('P4 FRIDAY AND MINIMUM HOLD RESEARCH:',gate,'NO TRADES')
           assert horizon['broker_fills_confirmed']==0 and not horizon['historical_PIT_verified']
           assert not horizon['trading_calendar_certified'] and not horizon['historical_OOS_validated']
           assert not horizon['trade_authorized'] and not horizon['strategy_backtest_certified']

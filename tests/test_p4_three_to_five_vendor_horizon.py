@@ -32,7 +32,8 @@ def fixture(folder, mode="full", start="2026-01-05"):
         dates = dates[:4]  # signal + 3 vendor days: old P4 maturity only
     rows = []
     for i, d in enumerate(dates):
-        status = "0" if mode == "halt" and i == 5 else "1"
+        status = "0" if ((mode == "halt" and i == 5) or
+                         (mode == "friday_halt" and i == 4)) else "1"
         rows.append((d,"10.00","10.40","9.80","10.05",status))
     root = Path(folder)/"raw"
     folder_shard = root/"epoch"/"shard_0000"
@@ -112,6 +113,17 @@ class HorizonTests(unittest.TestCase):
                                  [horizon]["vendor_observations_available_not_fills"],1)
             self.assertEqual(r["friday_mandatory_exit_conflicts"]
                              ["FRIDAY_AT_THREE_TO_FIVE_VENDOR_SESSIONS"],1)
+            self.assertEqual(r["friday_and_minimum_holding_compatibility_research"]
+                             ["OBSERVED_FRIDAY_WINDOW_ONLY_NOT_TRADABLE"],1)
+            self.assertEqual(
+                r["samples"][0]["first_friday_vendor_date_unverified"],
+                "2026-01-09")
+            self.assertEqual(
+                r["samples"][0]["friday_minimum_holding_compatibility"],
+                "OBSERVED_FRIDAY_WINDOW_ONLY_NOT_TRADABLE")
+            self.assertFalse(r["pre_entry_friday_policy_trade_permission_certified"])
+            self.assertFalse(r["lookahead_data_used_for_entry_screening"])
+            self.assertFalse(r["prospective_friday_calendar_rule_frozen"])
             self.assertEqual(r["samples"][0]["vendor_day_after_entry_3_4_5"],
                              {"3":"2026-01-09","4":"2026-01-12",
                               "5":"2026-01-13"})
@@ -134,6 +146,9 @@ class HorizonTests(unittest.TestCase):
                                  [horizon]["insufficient_original_rows_censored"],1)
             self.assertEqual(r["friday_mandatory_exit_conflicts"]
                              ["FIRST_FRIDAY_NOT_OBSERVED_IN_BOUNDED_WINDOW"],1)
+            self.assertEqual(
+                r["friday_and_minimum_holding_compatibility_research"][
+                    "UNKNOWN_FIRST_FRIDAY_NOT_IN_ARCHIVE_WINDOW"], 1)
 
     @patch("collector.p4_three_to_five_vendor_horizon.verify",
            side_effect=lambda *a: independent())
@@ -146,19 +161,48 @@ class HorizonTests(unittest.TestCase):
                 self.assertEqual(r["horizon_sessions_after_hypothetical_entry"]
                                  [horizon]["vendor_status_blocked"],1)
             self.assertEqual(r["broker_fills_confirmed"],0)
+            self.assertEqual(
+                r["friday_and_minimum_holding_compatibility_research"][
+                    "OBSERVED_FRIDAY_WINDOW_ONLY_NOT_TRADABLE"],1)
+
+    @patch("collector.p4_three_to_five_vendor_horizon.verify",
+           side_effect=lambda *a: independent())
+    def test_friday_vendor_halt_cannot_be_mislabeled_compatible(self, proof):
+        with tempfile.TemporaryDirectory() as folder:
+            r=audit(*fixture(folder,mode="friday_halt"))
+            self.assertEqual(r["status"],
+                             "THREE_TO_FIVE_VENDOR_COVERAGE_ONLY_NO_BACKTEST")
+            self.assertEqual(
+                r["friday_mandatory_exit_conflicts"][
+                    "FRIDAY_AT_THREE_TO_FIVE_VENDOR_SESSIONS"],1)
+            self.assertEqual(
+                r["friday_and_minimum_holding_compatibility_research"][
+                    "UNKNOWN_VENDOR_STATUS_BEFORE_FRIDAY"],1)
+            self.assertEqual(r["horizon_sessions_after_hypothetical_entry"]
+                             ["3"]["vendor_status_blocked"],1)
+            self.assertEqual(r["orders"],[])
+            self.assertEqual(r["trade_gate"],"BLOCKED")
 
     @patch("collector.p4_three_to_five_vendor_horizon.verify",
            side_effect=lambda *a: independent())
     def test_entry_friday_and_early_friday_are_distinct(self, proof):
-        for start, category in (
-            ("thursday","ENTRY_FRIDAY_TPLUS1_CANNOT_CLEAR_SAME_FRIDAY"),
-            ("wednesday","FRIDAY_BEFORE_MINIMUM_THREE_VENDOR_SESSIONS"),
+        for start, category, screening in (
+            ("thursday","ENTRY_FRIDAY_TPLUS1_CANNOT_CLEAR_SAME_FRIDAY",
+             "NO_GO_ENTRY_FRIDAY_TPLUS1"),
+            ("wednesday","FRIDAY_BEFORE_MINIMUM_THREE_VENDOR_SESSIONS",
+             "NO_GO_MINIMUM_HOLD_VS_FRIDAY"),
         ):
             with self.subTest(start=start):
                 with tempfile.TemporaryDirectory() as folder:
                     r=audit(*fixture(folder,start=start))
                     self.assertEqual(r["friday_mandatory_exit_conflicts"]
                                      [category],1)
+                    self.assertEqual(
+                        r["friday_and_minimum_holding_compatibility_research"]
+                         [screening],1)
+                    self.assertFalse(
+                        r["pre_entry_friday_policy_trade_permission_certified"])
+                    self.assertFalse(r["historical_PIT_verified"])
                     self.assertEqual(r["trade_gate"],"BLOCKED")
 
     @patch("collector.p4_three_to_five_vendor_horizon.verify",
