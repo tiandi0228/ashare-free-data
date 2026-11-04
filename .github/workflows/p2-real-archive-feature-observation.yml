@@ -7,6 +7,8 @@ on:
       - 'collector/p2_real_archive_features.py'
       - 'collector/p2_paged_real_archive.py'
       - 'collector/p2_feature_coverage_ledger.py'
+      - 'collector/p2_historical_receipt_backfill.py'
+      - 'tests/test_p2_historical_receipt_backfill.py'
       - 'tests/test_p2_feature_coverage_ledger.py'
       - 'tests/test_p2_priority_archive_pages.py'
       - 'collector/p2_independent_bars.py'
@@ -30,6 +32,7 @@ on:
         default: ''
 permissions:
   contents: write
+  actions: read
 concurrency:
   group: p2-real-archived-feature-observation
   cancel-in-progress: false
@@ -44,7 +47,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Verify original CSV research feature adapter
-        run: python -m unittest tests.test_p2_independent_bars tests.test_p2_real_archive_features tests.test_p2_paged_real_archive tests.test_p2_feature_coverage_ledger tests.test_p2_priority_archive_pages -v
+        run: python -m unittest tests.test_p2_independent_bars tests.test_p2_real_archive_features tests.test_p2_paged_real_archive tests.test_p2_feature_coverage_ledger tests.test_p2_priority_archive_pages tests.test_p2_historical_receipt_backfill -v
       - name: Fetch immutable-original research archive branch
         run: |
           git fetch --depth=1 origin research-csv-archive
@@ -102,6 +105,7 @@ jobs:
         env:
           GH_RUN_ID: ${{ github.run_id }}
           GH_EVENT: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           python - <<'PY'
           import json,os,re,subprocess,shutil
@@ -140,6 +144,18 @@ jobs:
           checkpoint=Path('evidence/checkpoints')/(epoch+'.json')
           if not checkpoint.exists():raise SystemExit('Missing matching P1 frozen checkpoint')
           archive=Path('archived-research')/epoch[:16]
+          # Recover a few historical main-branch artifact receipts only after
+          # matching current frozen P1 checkpoint and original archive epoch.
+          subprocess.run([
+              'python','-m','collector.p2_historical_receipt_backfill',
+              '--repo',os.environ['GITHUB_REPOSITORY'],
+              '--source-epoch',epoch,
+              '--archive-epoch',str(archive),
+              '--checkpoint',str(checkpoint),
+              '--receipts',str(folder),
+              '--run-id',os.environ['GH_RUN_ID'],
+              '--out','evidence/p2_historical_receipt_backfill.json',
+          ],check=True,timeout=300)
           out=store/'summaries'/(epoch[:16]+'.json')
           cmd=['python','-m','collector.p2_feature_coverage_ledger',
                '--archive-epoch',str(archive),
@@ -181,5 +197,6 @@ jobs:
           path: |
             evidence/p2_real_archive_feature_observation.json
             evidence/p2_real_archive_feature_coverage.json
+            evidence/p2_historical_receipt_backfill.json
           retention-days: 14
           if-no-files-found: warn
