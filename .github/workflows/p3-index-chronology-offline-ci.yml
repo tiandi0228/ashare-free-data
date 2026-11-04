@@ -4,6 +4,8 @@ on:
     paths:
       - 'collector/p3_index_chronology_guard.py'
       - 'collector/p3_event_proof_gap_queue.py'
+      - 'collector/p3_archived_event_episode_ledger.py'
+      - 'tests/test_p3_archived_event_episode_ledger.py'
       - 'tests/test_p3_event_proof_gap_queue.py'
       - 'tests/test_p3_index_chronology_guard.py'
       - 'collector/p3_official_original_archive.py'
@@ -16,6 +18,8 @@ on:
     paths:
       - 'collector/p3_index_chronology_guard.py'
       - 'collector/p3_event_proof_gap_queue.py'
+      - 'collector/p3_archived_event_episode_ledger.py'
+      - 'tests/test_p3_archived_event_episode_ledger.py'
       - 'tests/test_p3_event_proof_gap_queue.py'
       - 'tests/test_p3_index_chronology_guard.py'
       - '.github/workflows/p3-index-chronology-offline-ci.yml'
@@ -36,7 +40,8 @@ jobs:
             tests.test_p3_index_chronology_guard \
             tests.test_p3_official_original_archive \
             tests.test_p3_persisted_temporal_risk_triage \
-            tests.test_p3_event_proof_gap_queue -v
+            tests.test_p3_event_proof_gap_queue \
+            tests.test_p3_archived_event_episode_ledger -v
       - name: Prove no research source can authorize historical trading
         run: |
           python - <<'PY'
