@@ -60,6 +60,45 @@ def select_page(mapped,source_epoch,run_number,page=None,coverage=None):
         return fallback,"KNOWN_ASOF_GAPS_ROTATION"
     return fallback,"ALL_ARCHIVED_SHARDS_OBSERVED_ROTATION"
 
+
+def select_catchup_shards(mapped,source_epoch,coverage):
+    """Use durable coverage only as a hint; replay selected originals afresh.
+
+    Include new same-epoch archived shards not present in the previous summary.
+    Invalid or cross-epoch hints fall back to the normal page rotation.
+    """
+    if (not isinstance(coverage,dict)
+            or coverage.get("phase")!="P2_PERSISTENT_ARCHIVE_FEATURE_COVERAGE"
+            or coverage.get("status")!="DURABLE_RESEARCH_PAGE_COVERAGE_NOT_CERTIFIED"
+            or coverage.get("source_epoch_sha256")!=source_epoch
+            or coverage.get("trade_gate")!="BLOCKED"
+            or coverage.get("historical_PIT_verified") is not False
+            or coverage.get("full_market_universe_verified") is not False
+            or coverage.get("coverage_certified_for_trading") is not False
+            or coverage.get("orders")!=[]
+            or coverage.get("executable_candidates")!=[]
+            or coverage.get("actionable_buy_signals")!=[]):
+        return []
+    observed=coverage.get("observed_shard_ids")
+    unseen=coverage.get("unobserved_shard_ids")
+    gaps=coverage.get("gap_shard_ids")
+    if (not all(isinstance(v,list) for v in (observed,unseen,gaps))
+            or any(not isinstance(s,str) for s in observed+unseen+gaps)
+            or any(len(set(v))!=len(v) for v in (observed,unseen,gaps))
+            or set(observed)&set(unseen)
+            or not set(gaps).issubset(observed)
+            or type(coverage.get("archived_original_shards")) is not int
+            or coverage["archived_original_shards"]!=len(observed)+len(unseen)
+            or coverage.get("observed_archived_shards")!=len(observed)
+            or coverage.get("unobserved_archived_shards")!=len(unseen)):
+        return []
+    known={f"shard_{i:04d}" for i,_ in mapped}
+    if not (set(observed)|set(unseen)).issubset(known):
+        return []
+    pending=[(i,source) for i,source in mapped
+             if f"shard_{i:04d}" not in observed]
+    return pending[:PAGE_SHARDS]
+
 def run(archive_root,checkpoint_root,out,page=None,run_number=1,coverage_summary=None):
     root=Path(archive_root)
     output=Path(out)
@@ -113,9 +152,19 @@ def run(archive_root,checkpoint_root,out,page=None,run_number=1,coverage_summary
         pages=(len(mapped)+PAGE_SHARDS-1)//PAGE_SHARDS
         if page is not None and page>=pages:
             return reject("PAGE_OUT_OF_RANGE")
-        selected_page,selection_method=select_page(
-            mapped,sha,run_number,page,coverage_summary)
-        selection=mapped[selected_page*PAGE_SHARDS:(selected_page+1)*PAGE_SHARDS]
+        catchup=(select_catchup_shards(mapped,sha,coverage_summary)
+                 if page is None else [])
+        if catchup:
+            selection=catchup
+            selection_method="PRIORITIZE_UNOBSERVED_ACROSS_PAGES"
+            selected_page=next(pos//PAGE_SHARDS for pos,row in enumerate(mapped)
+                               if row[0]==selection[0][0])
+        else:
+            selected_page,selection_method=select_page(
+                mapped,sha,run_number,page,coverage_summary)
+            selection=mapped[selected_page*PAGE_SHARDS:(selected_page+1)*PAGE_SHARDS]
+        positions={index:pos//PAGE_SHARDS for pos,(index,_) in enumerate(mapped)}
+        selected_page_indices=sorted({positions[index] for index,_ in selection})
         stage=output.parent/("p2_paged_input_"+commit[:12])/epoch.name
         if stage.exists():shutil.rmtree(stage)
         stage.mkdir(parents=True)
@@ -134,6 +183,7 @@ def run(archive_root,checkpoint_root,out,page=None,run_number=1,coverage_summary
             source_epoch_sha256=sha,archive_commit_sha=commit,
             asof_completed_day=END,page_index=selected_page,
             total_pages=pages,selection_method=selection_method,
+            selected_page_indices=selected_page_indices,
             archived_shards_in_selected_epoch=len(mapped),
             checkpoint_completed_shards=ledger["completed_shards"],
             checkpoint_total_shards=ledger["shard_count"],
@@ -145,7 +195,7 @@ def run(archive_root,checkpoint_root,out,page=None,run_number=1,coverage_summary
             features=result["features"],
             evidence_gaps=result["evidence_gaps"],
             reasons=[
-                "SINGLE_ARCHIVE_PAGE_NOT_ALL_MARKET",
+                "BOUNDED_ARCHIVED_SHARD_SAMPLE_NOT_ALL_MARKET",
                 "RESEARCH_ARCHIVE_ORIGINALS_NOT_OFFICIAL_PIT",
                 "NO_SOURCE_CERTIFIED_SECTOR_CLASSIFICATION",
                 "NOT_AN_EXECUTABLE_STRATEGY_OR_RETURN_BACKTEST",
