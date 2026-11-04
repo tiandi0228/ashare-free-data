@@ -122,6 +122,12 @@ def audit(root, manifest_file, proxy_file):
                 or len(pairs) != proxy["observed_next_open_to_third_close"]
                 or independently.get("independently_verified_forward_ready") != len(pairs)):
             return reject("UNRECONCILED_MATURE_EVENT_PAIRS")
+        censored = proxy.get("censored_events")
+        status_blocked = proxy.get("future_vendor_status_blocked")
+        if (type(censored) is not int or type(status_blocked) is not int
+                or censored < 0 or status_blocked < 0
+                or len(pairs) + censored + status_blocked != len(events)):
+            return reject("UNRECONCILED_CENSORED_OR_STATUS_BLOCKED_EVENTS")
         expected = {
             (e["issuer"], e["signal_completed_date"]): e
             for e in events if e["three_future_vendor_tradable"]
