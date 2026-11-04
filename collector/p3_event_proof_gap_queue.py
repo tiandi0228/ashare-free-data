@@ -203,8 +203,14 @@ def build(source):
                     c["claimed_event_day"], c["original_pdf_sha256"]))
             ]
         if (not isinstance(old, str) or not isinstance(new, str)
-                or not old or not new or old == new):
-            raise ValueError("unrelated or circular repeated halt announcement")
+                or not old or not new):
+            raise ValueError("missing overlapping halt notice identity")
+        # Some PDF text extractors emit repeated HALT_START clauses from the
+        # SAME announcement. A duplicate clause is not a second legal halt,
+        # but it is an unresolved evidence conflict requiring manual review.
+        # Preserve the SHA and date(s); never reject the entire archival
+        # pipeline or certify a fabricated second independent publication.
+        same_announcement = old == new
         preceding = halt_source_candidates(old)
         following = halt_source_candidates(new)
         chronology = all(
@@ -217,11 +223,15 @@ def build(source):
             "next_announcement_id": new,
             "previous_halt_original_sha_and_text_day_candidates": preceding,
             "next_halt_original_sha_and_text_day_candidates": following,
+            "same_announcement_id_reused_in_halt_conflict": same_announcement,
+            "separate_original_announcements_authenticated": False,
             "multiple_halt_clauses_need_manual_disambiguation": (
-                len(preceding) > 1 or len(following) > 1),
-            "text_date_order_unverified_consistent": chronology,
+                same_announcement or len(preceding) > 1 or len(following) > 1),
+            "text_date_order_unverified_consistent": (
+                chronology if not same_announcement else None),
             "independently_verified_official_state_continuity": False,
             "missing_independent_proofs": [
+                "SAME_ANNOUNCEMENT_CLAUSE_REPETITION_NOT_TWO_INDEPENDENT_EVENTS",
                 "REVIEW_BOTH_SHA_PINNED_ORIGINAL_PDF_CLAUSES_AND_REVISIONS",
                 "RESOLVE_OVERLAPPING_OR_REPEATED_HALT_NOTICES",
                 "INDEPENDENT_FIRST_PUBLICATION_TIMESTAMP_FOR_BOTH_ORIGINALS",

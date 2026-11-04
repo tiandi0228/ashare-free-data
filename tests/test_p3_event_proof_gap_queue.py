@@ -139,8 +139,6 @@ class P3ProofQueueTests(unittest.TestCase):
             lambda s:s["official_resumption_followups"][0].update(original_pdf_sha256="0"*64),
             lambda s:s["orphan_resume_texts"][0].update(issuer="sz.002999"),
             lambda s:s["overlap_conflicts"][0].update(next_announcement="untrusted"),
-            lambda s:s["overlap_conflicts"][0].update(
-                previous_announcement="116",next_announcement="116"),
             lambda s:s["research_text_event_claims"][5].update(
                 textual_direction="RESUME_START"),
         )
@@ -150,6 +148,31 @@ class P3ProofQueueTests(unittest.TestCase):
                 change(sample)
                 with self.assertRaises(ValueError):
                     build(sample)
+    def test_same_announcement_text_repetition_is_ambiguous_not_two_origins(self):
+        s=fixture()
+        s["overlap_conflicts"][0].update(
+            previous_announcement="115",next_announcement="115")
+        r=build(s)
+        conflicts=[x for x in r["work_items"]
+                   if x["kind"]=="CONFLICTING_HALTS_MANUAL_REVIEW_FIRST"]
+        self.assertEqual(len(conflicts),1)
+        problem=conflicts[0]
+        self.assertTrue(problem["same_announcement_id_reused_in_halt_conflict"])
+        self.assertTrue(problem["multiple_halt_clauses_need_manual_disambiguation"])
+        self.assertIsNone(problem["text_date_order_unverified_consistent"])
+        self.assertFalse(problem["separate_original_announcements_authenticated"])
+        self.assertEqual(problem["previous_halt_original_sha_and_text_day_candidates"],
+                         problem["next_halt_original_sha_and_text_day_candidates"])
+        self.assertEqual(problem["previous_halt_original_sha_and_text_day_candidates"]
+                         [0]["original_pdf_sha256"],"e"*64)
+        self.assertIn(
+            "SAME_ANNOUNCEMENT_CLAUSE_REPETITION_NOT_TWO_INDEPENDENT_EVENTS",
+            problem["missing_independent_proofs"])
+        self.assertFalse(problem["historical_PIT_verified"])
+        self.assertFalse(r["historical_PIT_verified"])
+        self.assertEqual(r["trade_gate"],"BLOCKED")
+        self.assertEqual(r["orders"],[])
+
     def test_multiple_sha_claims_are_not_silently_promoted_to_one_date(self):
         s=fixture()
         duplicate=copy.deepcopy(s["research_text_event_claims"][4])
