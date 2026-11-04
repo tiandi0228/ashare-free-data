@@ -65,7 +65,7 @@ def nominal(cron, created):
     raise ValueError("cannot match declared cron to same or previous UTC day")
 
 
-def build(run, progress, *, cron, run_id, attempt, sha):
+def build(run, progress, *, cron, run_id, attempt, sha, actual_requested_shards):
     if (not isinstance(run, dict) or type(run_id) is not int or run_id < 1
             or type(attempt) is not int or attempt < 1
             or not isinstance(sha, str) or not SHA.fullmatch(sha)
@@ -80,6 +80,9 @@ def build(run, progress, *, cron, run_id, attempt, sha):
     created = parse_utc(run.get("created_at"))
     planned, delay = nominal(cron, created)
     expected_shards = 2 if cron in DUAL_CRONS else 1
+    if (type(actual_requested_shards) is not int
+            or actual_requested_shards != expected_shards):
+        raise ValueError("literal schedule and actual requested shard count differ")
     source = progress.get("source_sha256")
     epoch_path(source)
     before = progress.get("previous_shards")
@@ -104,7 +107,9 @@ def build(run, progress, *, cron, run_id, attempt, sha):
             or after - before != accepted
             or progress.get("new_shard_count") != accepted
             or progress.get("effective_shard_count") not in (1, 2)
-            or progress.get("effective_shard_count") > expected_shards):
+            or progress.get("effective_shard_count") > expected_shards
+            or progress.get("status") != (
+                "DURABLE_PROGRESS" if accepted else "SUCCESS_NO_NEW_SHARD")):
         raise ValueError("research checkpoint growth or trade gate not proven")
     return {
         "phase": PHASE,
@@ -192,6 +197,7 @@ def main():
         run_id=run_id,
         attempt=int(os.environ["GITHUB_RUN_ATTEMPT"]),
         sha=os.environ["GITHUB_SHA"],
+        actual_requested_shards=int(os.environ["P1_REQUESTED_SHARDS"]),
     )
     location = persist(args.repo, result)
     dest = Path(args.out)
