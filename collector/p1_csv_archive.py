@@ -51,6 +51,79 @@ def collect(plan, selected):
 
 MAX_PUSH_ATTEMPTS=3
 
+class P1ArchivePushError(ValueError):
+    """Classified bounded archive transport failure; never contains raw stderr."""
+    def __init__(self,message,category,attempts):
+        self.category=category
+        self.attempts=attempts
+        super().__init__(message+" ["+category+"]")
+
+
+def classify_push_failure(result):
+    """Enumerated diagnosis only. NEVER export git stderr/URLs/tokens into logs."""
+    output=((getattr(result,"stderr","") or "")+"\n"+
+            (getattr(result,"stdout","") or "")).lower()
+    if is_concurrent_push_rejection(result):
+        return "CONCURRENT_NON_FAST_FORWARD"
+    if any(x in output for x in (
+        "permission denied", "http 403", "403 forbidden",
+        "authentication failed", "bad credentials",
+        "write access to repository not granted",
+        "could not read username", "http 401", "401 unauthorized",
+    )):
+        return "PUSH_AUTH_OR_CONTENTS_WRITE_DENIED"
+    if any(x in output for x in (
+        "protected branch", "repository rule", "ruleset",
+        "push declined due to repository rule",
+    )):
+        return "BRANCH_PROTECTION_OR_RULESET"
+    if any(x in output for x in (
+        "exceeds github's file size limit", "file size limit",
+        "exceeds file size", "large files detected",
+        "pack exceeds maximum", "repository size limit",
+    )):
+        return "REMOTE_SIZE_QUOTA_OR_FILE_LIMIT"
+    if any(x in output for x in (
+        "internal server error", "http 500", "http 502", "http 503",
+        "service unavailable", "remote end hung up",
+    )):
+        return "REMOTE_SERVICE_OR_TRANSPORT_FAILURE"
+    if any(x in output for x in (
+        "connection reset", "could not resolve host",
+        "connection timed out", "failed to connect",
+        "tls handshake", "ssl connection",
+    )):
+        return "NETWORK_OR_TLS_FAILURE"
+    if any(x in output for x in (
+        "pre-receive hook declined", "hook declined",
+        "failed to push some refs",
+    )):
+        return "REMOTE_REJECTED_UNCLASSIFIED"
+    return "PUSH_REJECTED_REASON_NOT_AVAILABLE"
+
+
+def failed_push_receipt(exc,plan,a):
+    """No-success immutable diagnostic artifact, never change P1 checkpoint."""
+    selected=[x for x in (a.first,a.second,a.third,a.fourth) if x is not None]
+    return {
+        "phase":"P1_ARCHIVE_PUSH_FAILURE_DIAGNOSTIC_NO_TRADES",
+        "status":"FAILED_NO_ARCHIVE_DURABILITY_ATTESTATION",
+        "reason_category":exc.category,
+        "attempts":exc.attempts,
+        "source_sha256":plan.get("source_sha256"),
+        "attempted_shard_indices":selected,
+        "github_run_id":os.getenv("GITHUB_RUN_ID"),
+        "github_run_event":os.getenv("GITHUB_EVENT_NAME"),
+        "raw_git_stderr_recorded":False,
+        "permanent_csv_durability_certified":False,
+        "new_completed_shards_certified":0,
+        "historical_PIT_verified":False,
+        "trade_gate":"BLOCKED",
+        "orders":[],
+        "executable_candidates":[],
+        "buy_recommendations_authorized":False,
+    }
+
 def is_concurrent_push_rejection(result):
     """Retry ONLY when Git explicitly reports another writer advanced branch."""
     if result.returncode==0:
@@ -120,8 +193,12 @@ def archive(plan, selected, repository):
                     print("P1 archive concurrent update; refreshing latest Git snapshot",
                           "next attempt",attempt+1,flush=True)
                     continue
-                raise ValueError("immutable P1 archive concurrent writes exhausted bounded retries")
-            raise ValueError("immutable P1 archive push rejected; not retryable as concurrent update")
+                raise P1ArchivePushError(
+                    "immutable P1 archive concurrent writes exhausted bounded retries",
+                    "CONCURRENT_NON_FAST_FORWARD_RETRIES_EXHAUSTED",attempt)
+            raise P1ArchivePushError(
+                "immutable P1 archive push rejected; not retryable as concurrent update",
+                classify_push_failure(result),attempt)
         raise ValueError("P1 archive has no accepted remote write")
 
 def main():
@@ -139,5 +216,16 @@ def main():
     if a.third is not None:selected.append((a.third,Path("evidence/third_shard")))
     if a.fourth is not None:selected.append((a.fourth,Path("evidence/fourth_shard")))
     if len(set(i for i,_ in selected))!=len(selected) or len(selected)>4:raise ValueError("invalid archive selection")
-    archive(plan,selected,a.repo)
+    try:
+        archive(plan,selected,a.repo)
+    except P1ArchivePushError as exc:
+        # Never report source shards as durable from a failed git push.
+        # The existing workflow always uploads evidence/ on failure.
+        out=Path("evidence/p1_archive_push_failure.json")
+        out.parent.mkdir(parents=True,exist_ok=True)
+        out.write_text(json.dumps(failed_push_receipt(exc,plan,a),indent=2)+"\n")
+        print("P1 ARCHIVE PUSH FAILED:",exc.category,
+              "attempts",exc.attempts,
+              "DURABLE SHARDS NOT CERTIFIED; trade_gate BLOCKED",flush=True)
+        raise
 if __name__=="__main__":main()

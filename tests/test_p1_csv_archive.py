@@ -285,4 +285,86 @@ class CSVArchiveTests(unittest.TestCase):
         self.assertFalse(is_concurrent_push_rejection(
             SimpleNamespace(returncode=0,stderr="non-fast-forward",stdout="")))
 
+
+class ClassifiedPushFailureTests(unittest.TestCase):
+    def test_git_push_failure_classes_are_enumerated_no_raw_secrets(self):
+        from types import SimpleNamespace
+        from collector.p1_csv_archive import classify_push_failure
+        cases={
+            "[rejected] (non-fast-forward)":"CONCURRENT_NON_FAST_FORWARD",
+            "HTTP 403 Forbidden":"PUSH_AUTH_OR_CONTENTS_WRITE_DENIED",
+            "remote: Repository rule violations":"BRANCH_PROTECTION_OR_RULESET",
+            "remote: file size limit exceeded":"REMOTE_SIZE_QUOTA_OR_FILE_LIMIT",
+            "HTTP 503 service unavailable":"REMOTE_SERVICE_OR_TRANSPORT_FAILURE",
+            "connection reset by peer":"NETWORK_OR_TLS_FAILURE",
+            "fatal: failed to push some refs":"REMOTE_REJECTED_UNCLASSIFIED",
+            "private-token=ABC_NOT_TO_BE_LOGGED":"PUSH_REJECTED_REASON_NOT_AVAILABLE",
+        }
+        for raw,expected in cases.items():
+            with self.subTest(message=expected):
+                state=classify_push_failure(
+                    SimpleNamespace(returncode=1,stdout="",stderr=raw))
+                self.assertEqual(state,expected)
+                self.assertNotIn("ABC_NOT_TO_BE_LOGGED",state)
+
+    def test_nonretryable_push_is_classified_and_does_not_retry(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from collector.p1_csv_archive import archive,P1ArchivePushError
+        calls=[]
+        with tempfile.TemporaryDirectory() as tmp:
+            source=Path(tmp)/"fresh"
+            source.mkdir()
+            (source/"quality.json").write_text('{"trade_gate":"BLOCKED"}')
+            def fake_git(*args,cwd=None,check=True):
+                calls.append(args[0])
+                if args[0]=="clone":
+                    Path(args[-1]).mkdir()
+                if args[0]=="diff":
+                    return SimpleNamespace(returncode=1,stdout="",stderr="")
+                if args[0]=="push":
+                    return SimpleNamespace(returncode=128,stdout="",
+                        stderr="fatal: HTTP 403 Forbidden private-token=DO_NOT_LOG")
+                return SimpleNamespace(returncode=0,stdout="",stderr="")
+            with patch("collector.p1_csv_archive.collect",return_value=[]):
+                with patch("collector.p1_csv_archive.git",side_effect=fake_git):
+                    with self.assertRaises(P1ArchivePushError) as exc:
+                        archive({"source_sha256":"a"*64},[(1,source)],"owner/repo")
+            self.assertEqual(exc.exception.category,
+                             "PUSH_AUTH_OR_CONTENTS_WRITE_DENIED")
+            self.assertEqual(exc.exception.attempts,1)
+            self.assertNotIn("DO_NOT_LOG",str(exc.exception))
+            self.assertEqual(calls.count("push"),1)
+
+    def test_cli_failure_evidence_is_durable_and_never_approves_archiving(self):
+        from argparse import Namespace
+        from unittest.mock import patch
+        from collector.p1_csv_archive import main,P1ArchivePushError
+        with tempfile.TemporaryDirectory() as d:
+            from os import chdir,getcwd
+            old=getcwd()
+            try:
+                chdir(d)
+                Path("plan.json").write_text('{"source_sha256":"'+("a"*64)+'"}')
+                argv=["audit","--plan","plan.json","--first","55",
+                      "--second","129","--repo","owner/repo"]
+                e=P1ArchivePushError(
+                    "immutable P1 archive push rejected; not retryable as concurrent update",
+                    "REMOTE_SIZE_QUOTA_OR_FILE_LIMIT",1)
+                with patch("collector.p1_csv_archive.archive",side_effect=e):
+                    with patch("sys.argv",argv):
+                        with self.assertRaises(P1ArchivePushError):
+                            main()
+                r=json.loads(Path("evidence/p1_archive_push_failure.json").read_text())
+                self.assertEqual(r["status"],"FAILED_NO_ARCHIVE_DURABILITY_ATTESTATION")
+                self.assertEqual(r["reason_category"],"REMOTE_SIZE_QUOTA_OR_FILE_LIMIT")
+                self.assertEqual(r["attempted_shard_indices"],[55,129])
+                self.assertEqual(r["new_completed_shards_certified"],0)
+                self.assertFalse(r["permanent_csv_durability_certified"])
+                self.assertFalse(r["raw_git_stderr_recorded"])
+                self.assertEqual(r["trade_gate"],"BLOCKED")
+                self.assertEqual(r["orders"],[])
+            finally:
+                chdir(old)
+
 if __name__=="__main__":unittest.main()
