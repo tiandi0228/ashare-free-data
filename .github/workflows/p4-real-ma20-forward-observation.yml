@@ -12,6 +12,8 @@ on:
       - 'collector/p4_tplus1_barrier_touch.py'
       - 'collector/p4_fee_floor_gap_audit.py'
       - 'collector/p4_three_to_five_vendor_horizon.py'
+      - 'collector/p4_friday_asof_preentry_guard.py'
+      - 'tests/test_p4_friday_asof_preentry_guard.py'
       - 'tests/test_p4_three_to_five_vendor_horizon.py'
       - 'tests/test_p4_fee_floor_gap_audit.py'
       - 'tests/test_p4_tplus1_barrier_touch.py'
@@ -32,6 +34,8 @@ on:
       - 'collector/p4_tplus1_barrier_touch.py'
       - 'collector/p4_fee_floor_gap_audit.py'
       - 'collector/p4_three_to_five_vendor_horizon.py'
+      - 'collector/p4_friday_asof_preentry_guard.py'
+      - 'tests/test_p4_friday_asof_preentry_guard.py'
       - 'tests/test_p4_three_to_five_vendor_horizon.py'
       - 'tests/test_p4_fee_floor_gap_audit.py'
       - 'tests/test_p4_tplus1_barrier_touch.py'
@@ -55,7 +59,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest tests.test_p4_real_ma20_forward_observation tests.test_p4_independent_event_evidence tests.test_p4_real_holdout_forward_prices tests.test_p4_holdout_direction_bias_audit tests.test_p4_next_open_forward_proxy tests.test_p4_observed_fee_friction tests.test_p4_tplus1_barrier_touch tests.test_p4_fee_floor_gap_audit tests.test_p4_three_to_five_vendor_horizon -v
+      - run: python -m unittest tests.test_p4_real_ma20_forward_observation tests.test_p4_independent_event_evidence tests.test_p4_real_holdout_forward_prices tests.test_p4_holdout_direction_bias_audit tests.test_p4_next_open_forward_proxy tests.test_p4_observed_fee_friction tests.test_p4_tplus1_barrier_touch tests.test_p4_fee_floor_gap_audit tests.test_p4_three_to_five_vendor_horizon tests.test_p4_friday_asof_preentry_guard -v
       - run: |
           git fetch --depth=1 origin research-csv-archive
           git worktree add --detach archived-research FETCH_HEAD
@@ -79,6 +83,9 @@ jobs:
             --manifest evidence/p4_ma20_forward_observation.json \
             --proxy evidence/p4_next_open_forward_proxy.json \
             --out evidence/p4_three_to_five_vendor_horizon.json
+          python -m collector.p4_friday_asof_preentry_guard \
+            --proxy evidence/p4_next_open_forward_proxy.json \
+            --out evidence/p4_friday_asof_preentry_guard.json
           python - <<'PY'
           import json
           from pathlib import Path
@@ -144,6 +151,20 @@ jobs:
           assert not horizon['trading_calendar_certified'] and not horizon['historical_OOS_validated']
           assert not horizon['trade_authorized'] and not horizon['strategy_backtest_certified']
           assert horizon['trade_gate']=='BLOCKED' and horizon['orders']==[]
+          asof=json.loads(Path('evidence/p4_friday_asof_preentry_guard.json').read_text())
+          assert asof['status']=='ASOF_WEEKDAY_ONLY_NO_AUTHENTICATED_CALENDAR_NO_TRADES'
+          assert asof['archive_commit_sha']==proxy['archive_commit_sha']
+          assert asof['verified_mature_proxy_signals']==proxy['observed_next_open_to_third_close']
+          assert sum(asof['conditional_next_weekday_screen'].values())==asof['verified_mature_proxy_signals']
+          assert sum(asof['signal_weekday_histogram'].values())==asof['verified_mature_proxy_signals']
+          assert asof['calendar_certificate_missing_for_all']==asof['verified_mature_proxy_signals']
+          assert asof['approved_entries']==0 and not asof['trade_authorized']
+          assert not asof['historical_PIT_verified'] and not asof['historical_OOS_validated']
+          assert not asof['future_vendor_bars_used_in_entry_precheck']
+          assert not asof['historical_calendar_asof_authenticated']
+          assert not asof['preentry_executable_signal_generated']
+          assert asof['trade_gate']=='BLOCKED' and asof['orders']==[] and asof['actionable_buy_signals']==[]
+          print('P4 SIGNAL ASOF FRIDAY PRECHECK:',asof['conditional_next_weekday_screen'],'NO TRADES')
           PY
           python -m collector.p4_holdout_direction_bias_audit --input evidence/p4_real_holdout_forward_prices.json --out evidence/p4_holdout_direction_bias_audit.json
           python - <<'PY'
@@ -215,4 +236,5 @@ jobs:
             evidence/p4_tplus1_barrier_touch.json
             evidence/p4_fee_floor_gap_audit.json
             evidence/p4_three_to_five_vendor_horizon.json
+            evidence/p4_friday_asof_preentry_guard.json
           retention-days: 14
