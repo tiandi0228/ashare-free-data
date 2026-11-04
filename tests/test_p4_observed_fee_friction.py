@@ -78,6 +78,7 @@ class FeeFrictionTests(unittest.TestCase):
         self.assertFalse(r["trade_authorized"])
         self.assertFalse(r["trade_returns_computed"])
         self.assertIsNone(r["scenarios"][0]["win_rate"])
+        self.assertIsInstance(__import__("json").dumps(r),str)
         self.assertEqual(r["scenarios"][0]["broker_trade_count"],0)
 
     def test_cash_cap_cannot_be_fudged_from_positive_prices(self):
