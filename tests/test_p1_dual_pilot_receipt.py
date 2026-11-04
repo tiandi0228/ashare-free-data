@@ -74,6 +74,15 @@ class DualPilotReceiptTests(unittest.TestCase):
         self.assertEqual(record["trade_gate"],"BLOCKED")
         self.assertFalse(record["historical_PIT_verified"])
 
+    def test_1110_sixth_weekday_pilot_is_bounded_and_sharply_scoped(self):
+        r=self.scheduled(*self.fixtures(),cron="10 3 * * 1-5")
+        self.assertEqual(r["trigger_cron_utc"],"10 3 * * 1-5")
+        self.assertEqual(r["requested_shards"],2)
+        self.assertEqual(r["new_shards_durably_accepted"],2)
+        self.assertEqual(r["trade_gate"],"BLOCKED")
+        self.assertFalse(r["historical_PIT_verified"])
+        self.assertEqual(r["orders"],[])
+
     def test_1710_pilot_is_bounded_and_persists_exact_trigger(self):
         record = self.scheduled(*self.fixtures(), cron="10 9 * * 1-5")
         self.assertEqual(record["trigger_cron_utc"],"10 9 * * 1-5")
@@ -141,7 +150,7 @@ class DualPilotReceiptTests(unittest.TestCase):
 
     def test_wrong_schedule_is_not_mislabeled_as_2310_pilot(self):
         with self.assertRaisesRegex(ValueError,"scheduled trigger"):
-            self.scheduled(*self.fixtures(), cron="10 3 * * 1-5")
+            self.scheduled(*self.fixtures(), cron="10 0 * * 1-5")
         with self.assertRaisesRegex(ValueError,"scheduled trigger"):
             self.scheduled(*self.fixtures(), event="push", cron="")
 
