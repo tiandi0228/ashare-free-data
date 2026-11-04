@@ -193,6 +193,8 @@ jobs:
                  'observed_archived_shards','feature_complete_shards',
                  'observed_with_feature_gaps_shards','unobserved_archived_shards',
                  'feature_issuer_count','issuer_evidence_gap_count',
+                 'observed_feature_or_gap_issuers','unobserved_issuer_count',
+                 'gap_reason_counts','full_archive_evidence_accounted',
                  'full_archive_feature_coverage','trade_gate')}))
           if os.environ['GH_EVENT']!='pull_request':
               subprocess.run(['git','-C',str(store),'config','user.name','github-actions[bot]'],check=True)
