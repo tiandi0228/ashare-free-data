@@ -8,7 +8,7 @@ import argparse
 import json
 import re
 from collections import Counter
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 PHASE = "P3_ORIGINAL_EVENT_MISSING_PROOF_QUEUE"
@@ -38,6 +38,42 @@ def _key(issuer, digest, day, action):
     if action not in ACTIONS:
         raise ValueError("unreviewed event direction")
     return issuer, digest, day, action
+
+
+def _archive_capture_anchor(claim):
+    """Location of research capture, NEVER official first publication proof."""
+    run_id=claim.get("original_first_archived_research_run_id")
+    capture=claim.get("original_first_archived_research_capture_at_utc")
+    path=claim.get("original_sha_verified_archive_path")
+    issuer=claim.get("issuer")
+    notice=claim.get("announcement_id")
+    sha=claim.get("original_pdf_sha256")
+    if (type(run_id) is not int or run_id<1
+            or not isinstance(capture,str)
+            or claim.get("research_capture_not_official_first_publication") is not True
+            or type(claim.get("original_research_capture_after_claimed_event_text_day"))
+                is not bool
+            or not isinstance(issuer,str) or not isinstance(notice,str)
+            or not isinstance(sha,str)
+            or not isinstance(path,str)
+            or path!=f"pdf/{issuer.replace('.','_')}/{notice}/{sha}.pdf"):
+        raise ValueError("archived research source origin not SHA-linked")
+    time=datetime.fromisoformat(capture)
+    if time.tzinfo is None or time.utcoffset()!=timezone.utc.utcoffset(time):
+        raise ValueError("first capture not UTC source")
+    if time.isoformat()!=capture:
+        raise ValueError("noncanonical original capture timestamp")
+    if (time.date()>_date(claim.get("claimed_event_day"))) != (
+            claim["original_research_capture_after_claimed_event_text_day"]):
+        raise ValueError("first observed date does not match textual event day")
+    return {
+        "first_archived_research_capture_utc_not_first_publication":capture,
+        "first_archived_original_run_id":run_id,
+        "sha_verified_original_archive_path":path,
+        "research_capture_after_claimed_text_day":claim[
+            "original_research_capture_after_claimed_event_text_day"],
+        "official_first_publication_authenticated":False,
+    }
 
 
 def build(source):
@@ -91,6 +127,7 @@ def build(source):
                 or not claim["announcement_id"]
                 or type(claim.get("approval_not_effective_risk")) is not bool):
             raise ValueError("contradictory source text claim")
+        _archive_capture_anchor(claim)
         known[key] = claim
         approvals += int(claim["approval_not_effective_risk"])
     if approvals != source["approval_consent_is_not_effective_date_count"]:
@@ -122,6 +159,8 @@ def build(source):
             "resume_text_day_unverified": r[2],
             "halt_announcement_id": known[h]["announcement_id"],
             "resume_announcement_id": known[r]["announcement_id"],
+            "halt_original_archive_capture":_archive_capture_anchor(known[h]),
+            "resume_original_archive_capture":_archive_capture_anchor(known[r]),
             "approval_or_consent_risk": bool(
                 known[h]["approval_not_effective_risk"] or
                 known[r]["approval_not_effective_risk"]),
@@ -145,6 +184,7 @@ def build(source):
             "issuer": issuer, "halt_pdf_sha256": digest,
             "halt_text_day_unverified": day,
             "halt_announcement_id": known[h]["announcement_id"],
+            "halt_original_archive_capture":_archive_capture_anchor(known[h]),
             "missing_independent_proofs": [
                 "OFFICIAL_RESUMPTION_OR_NONRESUMPTION_SOURCE",
                 "INDEPENDENT_FIRST_PUBLICATION_TIMESTAMP",
@@ -199,6 +239,7 @@ def build(source):
                         "approval_not_effective_risk"],
                     "independent_first_publication_authenticated": False,
                     "historical_issuer_state_certified": False,
+                    "archived_research_original_capture":_archive_capture_anchor(claim),
                 } for claim in sorted(selected, key=lambda c: (
                     c["claimed_event_day"], c["original_pdf_sha256"]))
             ]
@@ -255,6 +296,11 @@ def build(source):
         "certified_first_publication_count": 0,
         "certified_issuer_state_intervals": 0,
         "completed_pit_cells": 0, "historical_PIT_verified": False,
+        "source_claims_with_sha_verified_archive_capture":len(claims),
+        "source_claims_first_archive_capture_after_text_event_day":sum(
+            claim["original_research_capture_after_claimed_event_text_day"]
+            for claim in claims),
+        "official_first_publication_authenticated_from_capture":0,
         "trade_gate": "BLOCKED", "orders": [], "executable_candidates": [],
         "recommendations": [],
         "caveat": "TEXTUAL_PAIR_IS_NOT_OFFICIAL_TRADING_STATE_OR_FIRST_PUBLICATION",
