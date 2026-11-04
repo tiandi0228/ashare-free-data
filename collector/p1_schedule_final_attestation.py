@@ -38,6 +38,7 @@ def base(state, run_id, reason=None):
         "final_actions_success_authenticated": False,
         "scheduled_cron_origin_authenticated": False,
         "durable_same_epoch_shard_inclusion_verified": False,
+        "per_shard_manifest_and_receipt_sha_matched": False,
     }
 
 
@@ -120,6 +121,30 @@ def verify(run, receipt=None, checkpoint=None):
     existing = {x["index"] for x in checkpoint["completed"]}
     if not set(indices).issubset(existing):
         raise ValueError("shard accepted by source not present in durable checkpoint")
+    evidence = receipt.get("new_archived_shard_evidence")
+    evidence_flag = receipt.get("per_shard_digests_from_locally_validated_ledger")
+    if (evidence is None and evidence_flag not in (None, False)
+            or evidence is not None and evidence_flag is not True):
+        raise ValueError("contradictory scheduled shard SHA provenance")
+    sha_match = False
+    if evidence is not None:
+        if (not isinstance(evidence, list) or len(evidence) != accepted
+                or any(not isinstance(entry, dict) for entry in evidence)):
+            raise ValueError("unbounded or truncated per-shard SHA source entries")
+        lookup = {item["index"]: item for item in checkpoint["completed"]}
+        if [entry.get("index") for entry in evidence] != indices:
+            raise ValueError("per-shard source index order or coverage mismatch")
+        for entry in evidence:
+            index = entry["index"]
+            canonical = lookup[index]
+            if (type(entry.get("issuer_count")) is not int
+                    or entry["issuer_count"] != canonical["issuer_count"]
+                    or any(not isinstance(entry.get(k), str)
+                           or not HEX64.fullmatch(entry[k])
+                           or entry[k] != canonical[k]
+                           for k in ("manifest_sha256", "receipt_sha256"))):
+                raise ValueError("archived per-shard manifest/receipt SHA mismatch")
+        sha_match = accepted > 0
     confirmed = run.get("conclusion") == "success"
     state = ("SCHEDULE_SUCCESS_AND_DURABLE_SHARDS_CONFIRMED"
              if confirmed and accepted > 0
@@ -135,6 +160,10 @@ def verify(run, receipt=None, checkpoint=None):
                 final_actions_success_authenticated=confirmed,
                 scheduled_cron_origin_authenticated=True,
                 durable_same_epoch_shard_inclusion_verified=True,
+                per_shard_manifest_and_receipt_sha_matched=sha_match,
+                source_evidence_grade=("MANIFEST_AND_RECEIPT_SHA_MATCHED"
+                                       if sha_match else "LEGACY_INDEX_ONLY"
+                                       if accepted else "NO_NEW_SHARDS"),
                 source_sha256=origin,
                 source_checkpoint_before=before,
                 source_checkpoint_after=after,
@@ -147,6 +176,8 @@ def verify(run, receipt=None, checkpoint=None):
                     "CREATED_AT_IS_QUEUE_CREATION_NOT_RUNNER_START",
                     "ORIGINAL_PRICE_BARS_NOT_HISTORICAL_PIT_CERTIFIED",
                     "RESEARCH_ONLY_NO_ORDERS_NO_BUY_SIGNALS",
+                    *([] if sha_match or not accepted else [
+                        "LEGACY_SOURCE_RECEIPT_ONLY_SHARD_INDICES_NO_INDIVIDUAL_SHA"]),
                 ])
 
 

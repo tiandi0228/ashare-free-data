@@ -14,7 +14,7 @@ import os
 import re
 from pathlib import Path
 
-from collector.p1_checkpoint import epoch_path, gh
+from collector.p1_checkpoint import epoch_path, gh, validate as validate_checkpoint
 
 UTC = dt.timezone.utc
 TZ_CST = dt.timezone(dt.timedelta(hours=8))
@@ -35,6 +35,7 @@ ALLOWED_CRONS = {
 DUAL_CRONS = frozenset(f"10 {hour} * * 1-5" for hour in DUAL_HOURS)
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 RUN_FILE = re.compile(r"[1-9][0-9]*\Z")
+SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 
 
 def parse_utc(value):
@@ -65,7 +66,8 @@ def nominal(cron, created):
     raise ValueError("cannot match declared cron to same or previous UTC day")
 
 
-def build(run, progress, *, cron, run_id, attempt, sha, actual_requested_shards):
+def build(run, progress, *, cron, run_id, attempt, sha, actual_requested_shards,
+          ledger=None):
     if (not isinstance(run, dict) or type(run_id) is not int or run_id < 1
             or type(attempt) is not int or attempt < 1
             or not isinstance(sha, str) or not SHA.fullmatch(sha)
@@ -111,6 +113,24 @@ def build(run, progress, *, cron, run_id, attempt, sha, actual_requested_shards)
             or progress.get("status") != (
                 "DURABLE_PROGRESS" if accepted else "SUCCESS_NO_NEW_SHARD")):
         raise ValueError("research checkpoint growth or trade gate not proven")
+    evidence = None
+    if ledger is not None:
+        validate_checkpoint(ledger)
+        if (ledger["source_sha256"] != source
+                or ledger["completed_shards"] != after):
+            raise ValueError("source run progress not aligned with audited ledger")
+        mapped = {item["index"]: item for item in ledger["completed"]}
+        evidence = []
+        for index in sorted(selected):
+            item = mapped.get(index)
+            if item is None:
+                raise ValueError("accepted source shard absent from audited ledger")
+            evidence.append({
+                "index": index,
+                "issuer_count": item["issuer_count"],
+                "manifest_sha256": item["manifest_sha256"],
+                "receipt_sha256": item["receipt_sha256"],
+            })
     return {
         "phase": PHASE,
         "run_id": run_id,
@@ -133,6 +153,8 @@ def build(run, progress, *, cron, run_id, attempt, sha, actual_requested_shards)
         "checkpoint_shards_before": before,
         "checkpoint_shards_after": after,
         "new_original_shard_indices": sorted(selected),
+        "new_archived_shard_evidence": evidence,
+        "per_shard_digests_from_locally_validated_ledger": evidence is not None,
         "archive_csv_replay_enabled": True,
         "historical_PIT_verified": False,
         "trade_gate": "BLOCKED",
@@ -183,6 +205,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--out", required=True)
     p.add_argument("--progress", required=True)
+    p.add_argument("--ledger", required=True)
     p.add_argument("--repo", default=os.environ.get("GITHUB_REPOSITORY"))
     args = p.parse_args()
     if os.environ.get("GITHUB_EVENT_NAME") != "schedule":
@@ -198,6 +221,7 @@ def main():
         attempt=int(os.environ["GITHUB_RUN_ATTEMPT"]),
         sha=os.environ["GITHUB_SHA"],
         actual_requested_shards=int(os.environ["P1_REQUESTED_SHARDS"]),
+        ledger=json.loads(Path(args.ledger).read_text()),
     )
     location = persist(args.repo, result)
     dest = Path(args.out)

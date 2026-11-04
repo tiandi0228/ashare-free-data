@@ -599,6 +599,7 @@ jobs:
         run: |
           python -m collector.p1_schedule_run_provenance \
             --progress evidence/p1_run_progress.json \
+            --ledger evidence/ledger.json \
             --out evidence/schedule_run_provenance.json
       - name: Persist two-shard pilot evidence after durable archive acceptance
         if: env.P1_REQUESTED_SHARDS == '2'

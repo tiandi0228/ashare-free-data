@@ -50,6 +50,13 @@ def source():
     )
 
 
+def source_sha_bound():
+    return source_build(
+        run(), progress(), cron=CRON, run_id=123456, attempt=1,
+        sha=SHA, actual_requested_shards=2, ledger=checkpoint()
+    )
+
+
 def checkpoint():
     return {
         "phase": "P1_ROSTER_SHARD_LEDGER",
@@ -89,6 +96,49 @@ class P1ScheduleFinalTests(unittest.TestCase):
         self.assertFalse(result["trade_authorized"])
         self.assertEqual(result["orders"], [])
         self.assertTrue(json.dumps(result))
+
+    def test_fully_sha_pinned_receipt_independently_matches_checkpoint(self):
+        result = verify(run(), source_sha_bound(), checkpoint())
+        self.assertTrue(result["per_shard_manifest_and_receipt_sha_matched"])
+        self.assertEqual(result["source_evidence_grade"],
+                         "MANIFEST_AND_RECEIPT_SHA_MATCHED")
+        self.assertEqual(result["accepted_source_shard_indices"], [2,3])
+        self.assertEqual(result["trade_gate"], "BLOCKED")
+        self.assertFalse(result["historical_PIT_verified"])
+
+    def test_legacy_receipt_is_index_only_not_retroactively_sha_verified(self):
+        result = verify(run(), source(), checkpoint())
+        self.assertFalse(result["per_shard_manifest_and_receipt_sha_matched"])
+        self.assertEqual(result["source_evidence_grade"], "LEGACY_INDEX_ONLY")
+        self.assertIn("LEGACY_SOURCE_RECEIPT_ONLY_SHARD_INDICES_NO_INDIVIDUAL_SHA",
+                      result["limitations"])
+
+    def test_forged_source_manifest_and_receipt_sha_rejected(self):
+        edits = [
+            lambda r:r["new_archived_shard_evidence"][0].update(
+                manifest_sha256="f"*64),
+            lambda r:r["new_archived_shard_evidence"][1].update(
+                receipt_sha256="f"*64),
+            lambda r:r["new_archived_shard_evidence"][0].update(
+                issuer_count=7),
+            lambda r:r["new_archived_shard_evidence"][0].update(
+                index=3),
+            lambda r:r["new_archived_shard_evidence"].pop(),
+            lambda r:r.update(per_shard_digests_from_locally_validated_ledger=False),
+            lambda r:r.update(new_archived_shard_evidence=None),
+        ]
+        for mutate in edits:
+            with self.subTest(mutate=mutate):
+                receipt = source_sha_bound()
+                mutate(receipt)
+                with self.assertRaises(ValueError):
+                    verify(run(), receipt, checkpoint())
+
+    def test_modified_checkpoint_sha_rejects_current_run_lineage(self):
+        cp = checkpoint()
+        cp["completed"][0]["receipt_sha256"] = "e"*64
+        with self.assertRaisesRegex(ValueError, "SHA mismatch"):
+            verify(run(), source_sha_bound(), cp)
 
     def test_push_and_manual_must_not_be_counted_as_scheduled(self):
         for event in ("push", "workflow_dispatch", "pull_request"):

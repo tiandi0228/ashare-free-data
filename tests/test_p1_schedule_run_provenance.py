@@ -58,7 +58,68 @@ def check(cron, created, progress=None, **overrides):
                  actual_requested_shards=2 if cron in DUAL_CRONS else 1)
 
 
+def sample_ledger():
+    done = [
+        {"index": n, "issuer_count": 8,
+         "manifest_sha256": f"{n:064x}",
+         "receipt_sha256": f"{n+100:064x}"}
+        for n in (60,61)
+    ]
+    return {
+        "phase": "P1_ROSTER_SHARD_LEDGER",
+        "source_sha256": EPOCH, "shard_count": 100,
+        "completed": done, "completed_shards": 2,
+        "completed_issuers": 16,
+        "pending_shards": [i for i in range(100) if i not in (60,61)],
+        "next_shard": 0, "failed_in_this_reconciliation": [],
+        "full_market_bars_certified": False,
+        "historical_PIT_verified": False, "trade_gate": "BLOCKED",
+        "orders": [], "executable_candidates": [],
+    }
+
+
 class P1ExactScheduledProvenanceTests(unittest.TestCase):
+    def test_local_ledger_shard_sha_pinned_to_source_receipt(self):
+        r = build(github_run("2026-11-05T03:20:00Z"),
+                  valid_progress(before=0),
+                  cron="10 3 * * 1-5", run_id=999, attempt=1,
+                  sha=HEAD, actual_requested_shards=2,
+                  ledger=sample_ledger())
+        self.assertTrue(r["per_shard_digests_from_locally_validated_ledger"])
+        self.assertEqual([x["index"] for x in r["new_archived_shard_evidence"]],
+                         [60, 61])
+        self.assertEqual(r["new_archived_shard_evidence"][0]["manifest_sha256"],
+                         f"{60:064x}")
+        self.assertEqual(r["new_archived_shard_evidence"][1]["receipt_sha256"],
+                         f"{161:064x}")
+        self.assertEqual(r["orders"], [])
+        self.assertEqual(r["trade_gate"], "BLOCKED")
+
+    def test_unsafe_local_ledger_never_creates_sha_claim(self):
+        for change in (
+            {"source_sha256": "e"*64},
+            {"completed_shards": 1},
+            {"trade_gate": "OPEN"},
+            {"historical_PIT_verified": True},
+            {"completed": []},
+        ):
+            with self.subTest(change=change):
+                ledger = sample_ledger()
+                ledger.update(change)
+                with self.assertRaises(ValueError):
+                    build(github_run("2026-11-05T03:20:00Z"),
+                          valid_progress(before=0),
+                          cron="10 3 * * 1-5", run_id=999, attempt=1,
+                          sha=HEAD, actual_requested_shards=2,
+                          ledger=ledger)
+
+    def test_missing_local_shard_sha_and_archive_does_not_upgrade(self):
+        # Retained only to parse pre-upgrade (legacy) receipts; actual
+        # scheduled workflow now requires --ledger on every source run.
+        r = check("10 3 * * 1-5", "2026-11-05T03:20:00Z")
+        self.assertFalse(r["per_shard_digests_from_locally_validated_ledger"])
+        self.assertIsNone(r["new_archived_shard_evidence"])
+
     def test_six_dual_plus_eight_single_crons_exact(self):
         self.assertEqual(len(ALLOWED_CRONS), 14)
         self.assertEqual(len(DUAL_CRONS), 6)
