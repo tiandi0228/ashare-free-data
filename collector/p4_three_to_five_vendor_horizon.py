@@ -126,6 +126,7 @@ def audit(root, manifest_path, proxy_path):
         seen = set()
         horizon_counts = {h: Counter() for h in HORIZONS}
         friday = Counter()
+        friday_compatibility = Counter()
         samples = []
         for pair in pairs:
             if not isinstance(pair, dict):
@@ -184,6 +185,7 @@ def audit(root, manifest_path, proxy_path):
                 observation[str(h)] = day
             # Friday exit is a separate frozen rule. The first Friday
             # *after* the entry's own date may require exit BEFORE 3 sessions.
+            first_friday_index = None
             if entry_day.weekday() == 4:
                 friday["ENTRY_FRIDAY_TPLUS1_CANNOT_CLEAR_SAME_FRIDAY"] += 1
                 friday_kind = "ENTRY_FRIDAY_TPLUS1_CANNOT_CLEAR_SAME_FRIDAY"
@@ -198,12 +200,34 @@ def audit(root, manifest_path, proxy_path):
                 else:
                     friday_kind = "FRIDAY_AT_THREE_TO_FIVE_VENDOR_SESSIONS"
                 friday[friday_kind] += 1
+            # Conservative *ex-post* consistency audit only. The future
+            # vendor status and future existence of Friday rows are NOT
+            # knowable when an entry signal is formed. No trade permission
+            # or look-ahead strategy signal may be inferred from this count.
+            if friday_kind == "ENTRY_FRIDAY_TPLUS1_CANNOT_CLEAR_SAME_FRIDAY":
+                compatibility_kind = "NO_GO_ENTRY_FRIDAY_TPLUS1"
+            elif friday_kind == "FRIDAY_BEFORE_MINIMUM_THREE_VENDOR_SESSIONS":
+                compatibility_kind = "NO_GO_MINIMUM_HOLD_VS_FRIDAY"
+            elif friday_kind == "FIRST_FRIDAY_NOT_OBSERVED_IN_BOUNDED_WINDOW":
+                compatibility_kind = "UNKNOWN_FIRST_FRIDAY_NOT_IN_ARCHIVE_WINDOW"
+            elif first_friday_index is None or not 3 <= first_friday_index <= 5:
+                return reject("FRIDAY_POSITION_CONTRADICTS_HOLDING_POLICY")
+            elif any(r["tradestatus"] != "1"
+                     for r in window[:first_friday_index+1]):
+                compatibility_kind = "UNKNOWN_VENDOR_STATUS_BEFORE_FRIDAY"
+            else:
+                compatibility_kind = "OBSERVED_FRIDAY_WINDOW_ONLY_NOT_TRADABLE"
+            friday_compatibility[compatibility_kind] += 1
             if len(samples) < 6:
                 samples.append({
                     "issuer": code, "signal_completed_day": signal,
                     "hypothetical_entry_vendor_day_not_fill": entry_day.isoformat(),
                     "vendor_day_after_entry_3_4_5": observation,
                     "friday_constraint": friday_kind,
+                    "friday_minimum_holding_compatibility": compatibility_kind,
+                    "first_friday_vendor_date_unverified": (
+                        window[first_friday_index]["date"]
+                        if first_friday_index is not None else None),
                     "confirmed_entry_fill": False, "confirmed_exit_fill": False,
                 })
         if len(seen) != len(expected):
@@ -213,6 +237,17 @@ def audit(root, manifest_path, proxy_path):
                 return reject("HORIZON_COVERAGE_ACCOUNTING_FAILED")
         if sum(friday.values()) != len(pairs):
             return reject("FRIDAY_COVERAGE_ACCOUNTING_FAILED")
+        if sum(friday_compatibility.values()) != len(pairs):
+            return reject("FRIDAY_COMPATIBILITY_ACCOUNTING_FAILED")
+        if (friday_compatibility["NO_GO_ENTRY_FRIDAY_TPLUS1"] !=
+                friday["ENTRY_FRIDAY_TPLUS1_CANNOT_CLEAR_SAME_FRIDAY"]
+                or friday_compatibility["NO_GO_MINIMUM_HOLD_VS_FRIDAY"] !=
+                friday["FRIDAY_BEFORE_MINIMUM_THREE_VENDOR_SESSIONS"]
+                or friday_compatibility[
+                    "OBSERVED_FRIDAY_WINDOW_ONLY_NOT_TRADABLE"] +
+                    friday_compatibility["UNKNOWN_VENDOR_STATUS_BEFORE_FRIDAY"] !=
+                    friday["FRIDAY_AT_THREE_TO_FIVE_VENDOR_SESSIONS"]):
+            return reject("FRIDAY_POLICY_CAUSAL_COUNT_MISMATCH")
         return dict(
             base, status="THREE_TO_FIVE_VENDOR_COVERAGE_ONLY_NO_BACKTEST",
             archive_commit_sha=sha,
@@ -228,6 +263,11 @@ def audit(root, manifest_path, proxy_path):
                         horizon_counts[h]["VENDOR_STATUS_BLOCKED"],
                 } for h in HORIZONS},
             friday_mandatory_exit_conflicts=dict(sorted(friday.items())),
+            friday_and_minimum_holding_compatibility_research=dict(
+                sorted(friday_compatibility.items())),
+            pre_entry_friday_policy_trade_permission_certified=False,
+            lookahead_data_used_for_entry_screening=False,
+            prospective_friday_calendar_rule_frozen=False,
             historical_exchange_calendar_complete=False,
             official_historical_status_intervals_complete=False,
             samples=samples,
@@ -239,6 +279,9 @@ def audit(root, manifest_path, proxy_path):
                 "ENTRY_FRIDAY_CANNOT_SAME_DAY_EXIT_UNDER_TPLUS1",
                 "SUSPENDED_OR_CENSORED_SESSIONS_ARE_NOT_ZERO_RETURNS",
                 "NO_HISTORICAL_PIT_TRADING_PERMISSION_OR_OOS_VALIDATION",
+                "EX_POST_VENDOR_FRIDAY_STATUS_NOT_AVAILABLE_AT_DECISION_TIME",
+                "OBSERVED_FRIDAY_WINDOW_NOT_EVIDENCE_OF_REAL_EXIT_FILL",
+                "STRICT_FRIDAY_MINIMUM_HOLDING_POLICY_STILL_RESEARCH_ONLY",
             ])
     except (OSError, KeyError, TypeError, ValueError,
             ArithmeticError, IndexError, UnicodeError):
