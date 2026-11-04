@@ -11,6 +11,7 @@ import argparse
 import base64
 import json
 import re
+import subprocess
 from pathlib import Path
 
 from collector.p1_checkpoint import epoch_path, gh, validate as validate_checkpoint
@@ -259,7 +260,8 @@ def main():
         result = (run_review(args.repo, run_id)
                   if run_id is not None else
                   base("NO_COMPLETED_SCHEDULE_IN_BOUNDED_HISTORY", None))
-    except (ValueError, KeyError, TypeError, OSError, UnicodeError) as exc:
+    except (ValueError, KeyError, TypeError, OSError, UnicodeError,
+            subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         # An invalid source/remote response cannot certify a successful run.
         result = base("REJECTED_UNVERIFIED_SOURCE_OR_API", run_id,
                       type(exc).__name__)
