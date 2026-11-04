@@ -5,9 +5,16 @@ on:
     paths:
       - 'collector/p4_real_ma20_forward_observation.py'
       - 'collector/p4_independent_event_evidence.py'
+      - 'collector/p4_real_holdout_forward_prices.py'
+      - 'tests/test_p4_real_holdout_forward_prices.py'
       - 'tests/test_p4_independent_event_evidence.py'
       - 'tests/test_p4_real_ma20_forward_observation.py'
       - '.github/workflows/p4-real-ma20-forward-observation.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/p4-real-ma20-forward-observation.yml'
+      - 'collector/p4_real_holdout_forward_prices.py'
+      - 'tests/test_p4_real_holdout_forward_prices.py'
   workflow_run:
     workflows: ["P1 fresh Baostock mainboard roster observation (NO TRADES)"]
     types: [completed]
@@ -24,13 +31,26 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest tests.test_p4_real_ma20_forward_observation tests.test_p4_independent_event_evidence -v
+      - run: python -m unittest tests.test_p4_real_ma20_forward_observation tests.test_p4_independent_event_evidence tests.test_p4_real_holdout_forward_prices -v
       - run: |
           git fetch --depth=1 origin research-csv-archive
           git worktree add --detach archived-research FETCH_HEAD
           ARCHIVE_COMMIT=$(git -C archived-research rev-parse HEAD)
           python -m collector.p4_real_ma20_forward_observation --root archived-research --cutoff 2025-12-31 --archive-commit "$ARCHIVE_COMMIT" --out evidence/p4_ma20_forward_observation.json
           python -m collector.p4_independent_event_evidence --root archived-research --manifest evidence/p4_ma20_forward_observation.json
+          python -m collector.p4_real_holdout_forward_prices --root archived-research --manifest evidence/p4_ma20_forward_observation.json --out evidence/p4_real_holdout_forward_prices.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          manifest=json.loads(Path('evidence/p4_ma20_forward_observation.json').read_text())
+          result=json.loads(Path('evidence/p4_real_holdout_forward_prices.json').read_text())
+          assert result['status']=='HOLDOUT_PRICE_OBSERVATIONS_NOT_BACKTEST'
+          assert result['verified_ma20_crossing_events']==manifest['nonoverlapping_three_observation_crossing_events']
+          assert result['observed_with_three_vendor_tradable_rows']==manifest['nonoverlapping_crossings_with_three_following_vendor_tradable_rows']
+          assert result['fills_assumed']==0 and not result['returns_computed_as_trades']
+          assert not result['historical_OOS_validated'] and not result['historical_PIT_verified']
+          assert result['trade_gate']=='BLOCKED' and result['orders']==[] and result['executable_candidates']==[]
+          PY
           python - <<'PY'
           import json,os
           from pathlib import Path
@@ -66,4 +86,5 @@ jobs:
           path: |
             evidence/p4_ma20_forward_observation.json
             evidence/p4_trigger_provenance.json
+            evidence/p4_real_holdout_forward_prices.json
           retention-days: 14
