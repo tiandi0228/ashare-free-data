@@ -215,17 +215,53 @@ def run_review(repo, run_id):
     return verify(run, receipt, checkpoint)
 
 
+def latest_completed_schedule_run_id(repo):
+    """Bounded source-workflow history only, not generic repository run list."""
+    if not isinstance(repo, str) or not REPO.fullmatch(repo):
+        raise ValueError("invalid repository")
+    raw = gh(
+        f"repos/{repo}/actions/workflows/p1-fresh-vendor-roster.yml/runs",
+        "-f", "event=schedule", "-f", "per_page=25",
+        "--method", "GET"
+    )
+    page = json.loads(raw)
+    runs = page.get("workflow_runs") if isinstance(page, dict) else None
+    if (not isinstance(runs, list) or len(runs) > 25
+            or type(page.get("total_count")) is not int
+            or page["total_count"] < len(runs)):
+        raise ValueError("incomplete or invalid bounded P1 run history")
+    completed = []
+    for row in runs:
+        if (not isinstance(row, dict)
+                or type(row.get("id")) is not int or row["id"] <= 0
+                or row.get("path") != MAIN_PATH
+                or row.get("event") != "schedule"
+                or row.get("head_branch") != "main"):
+            raise ValueError("non-P1 entry in filtered scheduled run history")
+        if row.get("status") == "completed":
+            completed.append(row["id"])
+    return max(completed) if completed else None
+
+
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--repo", default="".join([__import__("os").environ.get("GITHUB_REPOSITORY", "")]))
-    p.add_argument("--run-id", type=int, required=True)
+    import os
+    p.add_argument("--repo", default=os.environ.get("GITHUB_REPOSITORY", ""))
+    choice = p.add_mutually_exclusive_group(required=True)
+    choice.add_argument("--run-id", type=int)
+    choice.add_argument("--latest-scheduled", action="store_true")
     p.add_argument("--out", required=True)
     args = p.parse_args()
+    run_id = args.run_id
     try:
-        result = run_review(args.repo, args.run_id)
+        if args.latest_scheduled:
+            run_id = latest_completed_schedule_run_id(args.repo)
+        result = (run_review(args.repo, run_id)
+                  if run_id is not None else
+                  base("NO_COMPLETED_SCHEDULE_IN_BOUNDED_HISTORY", None))
     except (ValueError, KeyError, TypeError, OSError, UnicodeError) as exc:
         # An invalid source/remote response cannot certify a successful run.
-        result = base("REJECTED_UNVERIFIED_SOURCE_OR_API", args.run_id,
+        result = base("REJECTED_UNVERIFIED_SOURCE_OR_API", run_id,
                       type(exc).__name__)
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
