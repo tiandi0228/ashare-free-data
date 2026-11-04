@@ -150,6 +150,17 @@ jobs:
           assert horizon['broker_fills_confirmed']==0 and not horizon['historical_PIT_verified']
           assert not horizon['trading_calendar_certified'] and not horizon['historical_OOS_validated']
           assert not horizon['trade_authorized'] and not horizon['strategy_backtest_certified']
+          assert sum(horizon['entry_daily_ohlc_queue_ambiguity'].values())==horizon['hypothetical_entry_price_pairs']
+          assert sum(horizon['friday_exit_daily_ohlc_queue_ambiguity'].values())==horizon['hypothetical_entry_price_pairs']
+          assert not horizon['historical_issuer_st_price_limit_band_verified']
+          assert not horizon['continuous_order_book_queue_replayed']
+          assert horizon['confirmed_entry_fill_count']==0
+          assert horizon['confirmed_friday_exit_fill_count']==0
+          assert horizon['entry_daily_ohlc_not_an_executable_buy_quote']
+          print('P4 VENDOR DAILY QUEUE LIMITATIONS:',
+                horizon['entry_daily_ohlc_queue_ambiguity'],
+                horizon['friday_exit_daily_ohlc_queue_ambiguity'],
+                'NO FILLS')
           assert horizon['trade_gate']=='BLOCKED' and horizon['orders']==[]
           asof=json.loads(Path('evidence/p4_friday_asof_preentry_guard.json').read_text())
           assert asof['status']=='ASOF_WEEKDAY_ONLY_NO_AUTHENTICATED_CALENDAR_NO_TRADES'
