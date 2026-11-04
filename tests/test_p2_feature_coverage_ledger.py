@@ -78,6 +78,12 @@ class CoverageTests(unittest.TestCase):
             self.assertEqual(x["observed_with_feature_gaps_shards"],1)
             self.assertEqual(x["feature_issuer_count"],1)
             self.assertEqual(x["issuer_evidence_gap_count"],1)
+            self.assertEqual(x["observed_feature_or_gap_issuers"],2)
+            self.assertEqual(x["unobserved_issuer_count"],0)
+            self.assertEqual(x["gap_reason_counts"],
+                             {"INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS":1})
+            self.assertEqual(x["gap_issuer_codes"],["sz.002249"])
+            self.assertTrue(x["full_archive_evidence_accounted"])
             self.assertFalse(x["full_archive_feature_coverage"])
             self.assertEqual(x["trade_gate"],"BLOCKED")
             self.assertEqual(x["orders"],[])
@@ -87,6 +93,8 @@ class CoverageTests(unittest.TestCase):
             x=summarize(epoch,ledger,reports[:1])
             self.assertEqual(x["unobserved_shard_ids"],["shard_0001"])
             self.assertEqual(x["observed_archived_shards"],1)
+            self.assertEqual(x["unobserved_issuer_count"],1)
+            self.assertFalse(x["full_archive_evidence_accounted"])
     def test_duplicate_identical_shard_receipt_idempotent(self):
         with tempfile.TemporaryDirectory() as d:
             epoch,ledger,reports=fixture(d)
@@ -123,6 +131,15 @@ class CoverageTests(unittest.TestCase):
             epoch,ledger,reports=fixture_in_newdir(d)
             reports[0]["selected_shards"]=["shard_9999"]
             self.assertEqual(summarize(epoch,ledger,reports)["status"],"REJECTED")
+    def test_conflicting_gap_reason_on_same_immutable_csv_is_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            epoch,ledger,reports=fixture(d)
+            repeated=copy.deepcopy(reports[1])
+            repeated["evidence_gaps"][0]["reason"]="MISSING_EXACT_ASOF_CLOSE"
+            result=summarize(epoch,ledger,reports+[repeated])
+            self.assertEqual(result["status"],"REJECTED")
+            self.assertEqual(result["reason"],"CONFLICTING_REPEAT_GAP_REASON")
+
     def test_no_reports_is_explicit_no_coverage(self):
         with tempfile.TemporaryDirectory() as d:
             epoch,ledger,reports=fixture(d)
