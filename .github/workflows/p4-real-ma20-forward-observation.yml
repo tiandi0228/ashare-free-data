@@ -7,6 +7,8 @@ on:
       - 'collector/p4_independent_event_evidence.py'
       - 'collector/p4_real_holdout_forward_prices.py'
       - 'collector/p4_holdout_direction_bias_audit.py'
+      - 'collector/p4_next_open_forward_proxy.py'
+      - 'tests/test_p4_next_open_forward_proxy.py'
       - 'tests/test_p4_holdout_direction_bias_audit.py'
       - 'tests/test_p4_real_holdout_forward_prices.py'
       - 'tests/test_p4_independent_event_evidence.py'
@@ -17,6 +19,8 @@ on:
       - '.github/workflows/p4-real-ma20-forward-observation.yml'
       - 'collector/p4_real_holdout_forward_prices.py'
       - 'collector/p4_holdout_direction_bias_audit.py'
+      - 'collector/p4_next_open_forward_proxy.py'
+      - 'tests/test_p4_next_open_forward_proxy.py'
       - 'tests/test_p4_holdout_direction_bias_audit.py'
       - 'tests/test_p4_real_holdout_forward_prices.py'
   workflow_run:
@@ -35,7 +39,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest tests.test_p4_real_ma20_forward_observation tests.test_p4_independent_event_evidence tests.test_p4_real_holdout_forward_prices tests.test_p4_holdout_direction_bias_audit -v
+      - run: python -m unittest tests.test_p4_real_ma20_forward_observation tests.test_p4_independent_event_evidence tests.test_p4_real_holdout_forward_prices tests.test_p4_holdout_direction_bias_audit tests.test_p4_next_open_forward_proxy -v
       - run: |
           git fetch --depth=1 origin research-csv-archive
           git worktree add --detach archived-research FETCH_HEAD
@@ -43,6 +47,22 @@ jobs:
           python -m collector.p4_real_ma20_forward_observation --root archived-research --cutoff 2025-12-31 --archive-commit "$ARCHIVE_COMMIT" --out evidence/p4_ma20_forward_observation.json
           python -m collector.p4_independent_event_evidence --root archived-research --manifest evidence/p4_ma20_forward_observation.json
           python -m collector.p4_real_holdout_forward_prices --root archived-research --manifest evidence/p4_ma20_forward_observation.json --out evidence/p4_real_holdout_forward_prices.json
+          python -m collector.p4_next_open_forward_proxy --root archived-research --manifest evidence/p4_ma20_forward_observation.json --out evidence/p4_next_open_forward_proxy.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          previous=json.loads(Path('evidence/p4_real_holdout_forward_prices.json').read_text())
+          proxy=json.loads(Path('evidence/p4_next_open_forward_proxy.json').read_text())
+          assert proxy['status']=='OBSERVED_NEXT_OPEN_PROXY_NOT_BACKTEST'
+          assert proxy['archive_commit_sha']==previous['archive_commit_sha']
+          assert proxy['verified_nonoverlap_events']==previous['verified_ma20_crossing_events']
+          assert proxy['observed_next_open_to_third_close']==previous['observed_with_three_vendor_tradable_rows']
+          assert proxy['censored_events']==previous['censored_insufficient_following_rows']
+          assert proxy['future_vendor_status_blocked']==previous['unscorable_future_vendor_status']
+          assert proxy['fills_assumed']==0 and proxy['trades_assumed']==0
+          assert not proxy['historical_OOS_validated'] and not proxy['strategy_backtest_certified']
+          assert proxy['trade_gate']=='BLOCKED' and proxy['orders']==[]
+          PY
           python -m collector.p4_holdout_direction_bias_audit --input evidence/p4_real_holdout_forward_prices.json --out evidence/p4_holdout_direction_bias_audit.json
           python - <<'PY'
           import json
@@ -108,4 +128,5 @@ jobs:
             evidence/p4_trigger_provenance.json
             evidence/p4_real_holdout_forward_prices.json
             evidence/p4_holdout_direction_bias_audit.json
+            evidence/p4_next_open_forward_proxy.json
           retention-days: 14
