@@ -224,6 +224,92 @@ class CSVArchiveTests(unittest.TestCase):
                         archive({"source_sha256":"a"*64},[(1,source)],"owner/repo")
             self.assertEqual(calls,{"clone":3,"push":3})
 
+    def test_ambiguous_lost_push_ack_rechecked_against_exact_remote_original_bytes(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from collector.p1_csv_archive import archive,BRANCH
+        attempts={"clones":0,"push":0,"fetch":0}
+        with tempfile.TemporaryDirectory() as tmp:
+            source=Path(tmp)/"fresh"
+            source.mkdir()
+            original=b"date,code,close\n2026-10-20,sh.600000,10\n"
+            (source/"sh_600000.csv").write_bytes(original)
+            receipt=b'{"status":"OBSERVED_SUBSET_UNVERIFIED","trade_gate":"BLOCKED"}\n'
+            (source/"quality.json").write_bytes(receipt)
+            digest=hashlib.sha256(original).hexdigest()
+            def git_fake(*args,cwd=None,check=True):
+                cmd=args[0]
+                if cmd=="clone":
+                    attempts["clones"]+=1
+                    Path(args[-1]).mkdir()
+                elif cmd=="fetch":
+                    attempts["fetch"]+=1
+                elif cmd=="checkout":
+                    work=Path(cwd)
+                    epoch=work/("a"*16)
+                    epoch.mkdir(parents=True,exist_ok=True)
+                    old=epoch/"shard_0009"
+                    old.mkdir(exist_ok=True)
+                    (old/"quality.json").write_text("existing original untouched")
+                    archived=[9]
+                    if attempts["clones"]==2:
+                        new=epoch/"shard_0001"
+                        new.mkdir(exist_ok=True)
+                        (new/"quality.json").write_bytes(receipt)
+                        (new/"sh_600000.csv").write_bytes(original)
+                        archived=[1,9]
+                    (epoch/"archive_status.json").write_text(json.dumps({
+                        "source_sha256":"a"*64,"trade_gate":"BLOCKED",
+                        "archived_shards":archived,
+                    }))
+                elif cmd=="diff":
+                    return SimpleNamespace(returncode=1 if attempts["clones"]==1 else 0,
+                                           stdout="",stderr="")
+                elif cmd=="push":
+                    attempts["push"]+=1
+                    # Ambiguous server ack: another clone sees the exact commit
+                    # later. No second push allowed if all originals match.
+                    return SimpleNamespace(returncode=128,stdout="",
+                        stderr="fatal: the remote end hung up unexpectedly")
+                elif cmd=="ls-remote":
+                    return SimpleNamespace(returncode=0,stdout=
+                        "abc refs/heads/"+BRANCH,stderr="")
+                return SimpleNamespace(returncode=0,stdout="",stderr="")
+            with patch("collector.p1_csv_archive.collect",
+                       return_value=[(1,source/"sh_600000.csv",digest)]):
+                with patch("collector.p1_csv_archive.git",side_effect=git_fake):
+                    archive({"source_sha256":"a"*64},[(1,source)],"owner/repo")
+            self.assertEqual(attempts,{"clones":2,"push":1,"fetch":2})
+
+    def test_remote_transport_retry_capped_three_then_fails_closed(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from collector.p1_csv_archive import archive,P1ArchivePushError
+        attempts={"clone":0,"push":0}
+        with tempfile.TemporaryDirectory() as tmp:
+            source=Path(tmp)/"fresh"
+            source.mkdir()
+            (source/"quality.json").write_text('{"trade_gate":"BLOCKED"}')
+            def git_fake(*args,cwd=None,check=True):
+                if args[0]=="clone":
+                    attempts["clone"]+=1
+                    Path(args[-1]).mkdir()
+                if args[0]=="diff":
+                    return SimpleNamespace(returncode=1,stdout="",stderr="")
+                if args[0]=="push":
+                    attempts["push"]+=1
+                    return SimpleNamespace(returncode=128,stdout="",
+                        stderr="HTTP 503 remote service unavailable")
+                return SimpleNamespace(returncode=0,stdout="",stderr="")
+            with patch("collector.p1_csv_archive.collect",return_value=[]):
+                with patch("collector.p1_csv_archive.git",side_effect=git_fake):
+                    with self.assertRaises(P1ArchivePushError) as cm:
+                        archive({"source_sha256":"a"*64},[(1,source)],"owner/repo")
+            self.assertEqual(cm.exception.attempts,3)
+            self.assertEqual(cm.exception.category,
+                "REMOTE_SERVICE_OR_TRANSPORT_FAILURE_RETRIES_EXHAUSTED")
+            self.assertEqual(attempts,{"clone":3,"push":3})
+
     def test_auth_failure_never_masquerades_as_concurrent_retry(self):
         from types import SimpleNamespace
         from unittest.mock import patch
