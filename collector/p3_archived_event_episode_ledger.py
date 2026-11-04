@@ -6,7 +6,7 @@ this bounded archive NEVER means the security remained suspended in reality.
 """
 import argparse,json,re
 from collections import defaultdict
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from collector.p3_official_original_archive import verify_archive
 
@@ -28,6 +28,7 @@ def build(root):
     manifests=sorted(folder.glob("*.json"))
     if not 1<=len(manifests)<=MAX_RUNS:raise ValueError("invalid bounded original archive run count")
     seen_notices={};claims={};raw_claims=0
+    first_archived_original_capture={}
     source_sha_digests=set()
     for manifest_path in manifests:
         if not manifest_path.stem.isdigit():raise ValueError("unexpected manifest filename")
@@ -51,6 +52,22 @@ def build(root):
             if key in seen_notices and seen_notices[key]!=digest:
                 raise ValueError("same issuer announcement ID has conflicting archived originals")
             seen_notices[key]=digest
+            # This is the FIRST archived research capture across bounded runs;
+            # it is NOT independent authentication of official first publication.
+            raw_at=receipt.get("captured_at_utc")
+            if not isinstance(raw_at,str):
+                raise ValueError("original capture timestamp missing")
+            captured=datetime.fromisoformat(raw_at)
+            if captured.tzinfo is None or captured.utcoffset() is None:
+                raise ValueError("original capture lacks timezone")
+            captured=captured.astimezone(timezone.utc)
+            archive_path=receipt.get("archive_path")
+            expected=f"pdf/{key[0].replace('.','_')}/{key[1]}/{digest}.pdf"
+            if archive_path!=expected:
+                raise ValueError("original archived PDF path not SHA-pinned")
+            existing=first_archived_original_capture.get(key)
+            if existing is None or (captured,run_id)<(existing[0],existing[1]):
+                first_archived_original_capture[key]=(captured,run_id,expected)
         for row in manifest["research_date_action_links"]:
             direction=row.get("local_textual_direction_candidate")
             if direction is None:continue
@@ -99,6 +116,17 @@ def build(root):
         item["seen_in_run_ids"]=sorted(set(item["seen_in_run_ids"]))
         item["decision_days_observed"]=sorted(item["decision_days_observed"])
         item["source_text_date_is_not_complete_interval_proof"]=True
+        key=(item["issuer"],item["announcement_id"])
+        first=first_archived_original_capture.get(key)
+        if first is None:
+            raise ValueError("original PDF text has no independently replayed capture")
+        at,run_id,archive_path=first
+        item["original_first_archived_research_capture_at_utc"]=at.isoformat()
+        item["original_first_archived_research_run_id"]=run_id
+        item["original_sha_verified_archive_path"]=archive_path
+        item["original_research_capture_after_claimed_event_text_day"]=(
+            at.date()>date.fromisoformat(item["claimed_event_day"]))
+        item["research_capture_not_official_first_publication"]=True
     by_issuer=defaultdict(list)
     for item in ordered:
         if item["textual_direction"] in ("HALT_START","RESUME_START"):
@@ -152,6 +180,11 @@ def build(root):
         "unpaired_resume_claims":len(resume_without_start),
         "overlapping_halt_claims_without_resume":len(overlap),
         "approval_consent_is_not_effective_date_count":sum(e["approval_not_effective_risk"] for e in ordered),
+        "claims_first_archive_capture_after_event_text_day":sum(
+            e["original_research_capture_after_claimed_event_text_day"]
+            for e in ordered),
+        "claims_with_sha_pinned_first_research_capture":len(ordered),
+        "official_first_publication_authenticated_from_capture":0,
         "research_text_event_claims":ordered,
         "official_resumption_followups":missing_resume,
         "paired_event_texts":paired,
