@@ -34,7 +34,7 @@ on:
     - cron: '10 15 * * 1-5' # 23:10 Beijing; original capped dual-shard pilot
     - cron: '10 0 * * 1-5' # 08:10 Beijing, extra bounded opportunity
     - cron: '10 7 * * 1-5' # 15:10 Beijing, fourth reviewed TWO-shard research pilot
-    - cron: '10 11 * * 1-5' # 19:10 Beijing, extra bounded opportunity
+    - cron: '10 11 * * 1-5' # 19:10 Beijing, reviewed fifth capped TWO-shard weekday pilot
     - cron: '10 17 * * 0-4' # 01:10 Beijing Monday-Friday (prior UTC calendar day)
     - cron: '10 11 * * 6,0' # 19:10 Beijing Saturday/Sunday; bounded ONE shard
     - cron: '10 1 * * 6,0' # 09:10 Beijing Saturday/Sunday; bounded ONE shard
@@ -43,7 +43,7 @@ on:
   workflow_dispatch:
     inputs:
       shards_per_run:
-        description: "Manual P1 research shards (1 or 2); 17:10/23:10 Beijing scheduled pilots may request 2"
+        description: "Manual P1 research shards (1 or 2); reviewed weekday pilot slots may request 2"
         type: choice
         required: true
         default: "1"
@@ -64,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       P1_RECOVERY_TOKEN: ${{ github.event_name == 'workflow_dispatch' && inputs.recovery_token || '' }}
-      P1_REQUESTED_SHARDS: ${{ github.event_name == 'workflow_dispatch' && inputs.shards_per_run || (github.event_name == 'schedule' && (github.event.schedule == '10 15 * * 1-5' || github.event.schedule == '10 9 * * 1-5' || github.event.schedule == '10 5 * * 1-5' || github.event.schedule == '10 7 * * 1-5') && '2' || '1') }}
+      P1_REQUESTED_SHARDS: ${{ github.event_name == 'workflow_dispatch' && inputs.shards_per_run || (github.event_name == 'schedule' && (github.event.schedule == '10 15 * * 1-5' || github.event.schedule == '10 9 * * 1-5' || github.event.schedule == '10 5 * * 1-5' || github.event.schedule == '10 7 * * 1-5' || github.event.schedule == '10 11 * * 1-5') && '2' || '1') }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
