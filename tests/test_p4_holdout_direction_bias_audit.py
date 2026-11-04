@@ -59,7 +59,7 @@ class DirectionBiasTests(unittest.TestCase):
         self.assertEqual(r["orders"],[])
     def test_inconsistent_counts_and_price_change_rejected(self):
         p=fixture();p["observed_positive_close_changes"]=2
-        self.assertEqual(audit(p)["reason"],"REPORTED_DIRECTION_COUNTERS_MISMATCH")
+        self.assertEqual(audit(p)["reason"],"EVENT_OUTCOME_COUNTERS_INCONSISTENT")
         p=fixture();p["research_observations"][0]["close_to_third_later_close_change_pct"]="11.0000"
         self.assertEqual(audit(p)["reason"],"ROW_0_PRICE_CHANGE_MISMATCH")
     def test_duplicate_signal_and_future_before_signal_rejected(self):
