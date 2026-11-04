@@ -11,6 +11,8 @@ on:
       - 'collector/p4_observed_fee_friction.py'
       - 'collector/p4_tplus1_barrier_touch.py'
       - 'collector/p4_fee_floor_gap_audit.py'
+      - 'collector/p4_three_to_five_vendor_horizon.py'
+      - 'tests/test_p4_three_to_five_vendor_horizon.py'
       - 'tests/test_p4_fee_floor_gap_audit.py'
       - 'tests/test_p4_tplus1_barrier_touch.py'
       - 'tests/test_p4_observed_fee_friction.py'
@@ -29,6 +31,8 @@ on:
       - 'collector/p4_observed_fee_friction.py'
       - 'collector/p4_tplus1_barrier_touch.py'
       - 'collector/p4_fee_floor_gap_audit.py'
+      - 'collector/p4_three_to_five_vendor_horizon.py'
+      - 'tests/test_p4_three_to_five_vendor_horizon.py'
       - 'tests/test_p4_fee_floor_gap_audit.py'
       - 'tests/test_p4_tplus1_barrier_touch.py'
       - 'tests/test_p4_observed_fee_friction.py'
@@ -51,7 +55,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest tests.test_p4_real_ma20_forward_observation tests.test_p4_independent_event_evidence tests.test_p4_real_holdout_forward_prices tests.test_p4_holdout_direction_bias_audit tests.test_p4_next_open_forward_proxy tests.test_p4_observed_fee_friction tests.test_p4_tplus1_barrier_touch tests.test_p4_fee_floor_gap_audit -v
+      - run: python -m unittest tests.test_p4_real_ma20_forward_observation tests.test_p4_independent_event_evidence tests.test_p4_real_holdout_forward_prices tests.test_p4_holdout_direction_bias_audit tests.test_p4_next_open_forward_proxy tests.test_p4_observed_fee_friction tests.test_p4_tplus1_barrier_touch tests.test_p4_fee_floor_gap_audit tests.test_p4_three_to_five_vendor_horizon -v
       - run: |
           git fetch --depth=1 origin research-csv-archive
           git worktree add --detach archived-research FETCH_HEAD
@@ -70,6 +74,11 @@ jobs:
             --proxy evidence/p4_next_open_forward_proxy.json \
             --barriers evidence/p4_tplus1_barrier_touch.json \
             --out evidence/p4_fee_floor_gap_audit.json
+          python -m collector.p4_three_to_five_vendor_horizon \
+            --root archived-research \
+            --manifest evidence/p4_ma20_forward_observation.json \
+            --proxy evidence/p4_next_open_forward_proxy.json \
+            --out evidence/p4_three_to_five_vendor_horizon.json
           python - <<'PY'
           import json
           from pathlib import Path
@@ -111,6 +120,19 @@ jobs:
           assert not fee_gap['historical_PIT_verified'] and not fee_gap['historical_OOS_validated']
           assert not fee_gap['trade_authorized'] and fee_gap['broker_trades_verified']==0
           assert fee_gap['trade_gate']=='BLOCKED' and fee_gap['orders']==[] and fee_gap['actionable_buy_signals']==[]
+          horizon=json.loads(Path('evidence/p4_three_to_five_vendor_horizon.json').read_text())
+          assert horizon['status']=='THREE_TO_FIVE_VENDOR_COVERAGE_ONLY_NO_BACKTEST'
+          assert horizon['archive_commit_sha']==barriers['archive_commit_sha']
+          assert horizon['hypothetical_entry_price_pairs']==barriers['source_verified_mature_price_pairs']
+          assert horizon['verified_original_ma20_crossing_events']==proxy['verified_nonoverlap_events']
+          for h in ('3','4','5'):
+              outcome=horizon['horizon_sessions_after_hypothetical_entry'][h]
+              assert sum(outcome.values())==horizon['hypothetical_entry_price_pairs']
+          assert sum(horizon['friday_mandatory_exit_conflicts'].values())==horizon['hypothetical_entry_price_pairs']
+          assert horizon['broker_fills_confirmed']==0 and not horizon['historical_PIT_verified']
+          assert not horizon['trading_calendar_certified'] and not horizon['historical_OOS_validated']
+          assert not horizon['trade_authorized'] and not horizon['strategy_backtest_certified']
+          assert horizon['trade_gate']=='BLOCKED' and horizon['orders']==[]
           PY
           python -m collector.p4_holdout_direction_bias_audit --input evidence/p4_real_holdout_forward_prices.json --out evidence/p4_holdout_direction_bias_audit.json
           python - <<'PY'
@@ -181,4 +203,5 @@ jobs:
             evidence/p4_observed_fee_friction.json
             evidence/p4_tplus1_barrier_touch.json
             evidence/p4_fee_floor_gap_audit.json
+            evidence/p4_three_to_five_vendor_horizon.json
           retention-days: 14
