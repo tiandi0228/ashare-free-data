@@ -10,6 +10,8 @@ on:
       - 'collector/p1_archive_audit.py'
       - 'tests/test_p1_archive_audit.py'
       - 'collector/p1_dual_pilot_receipt.py'
+      - 'collector/p1_schedule_run_provenance.py'
+      - 'tests/test_p1_schedule_run_provenance.py'
       - 'collector/p1_dual_pilot_scale_review.py'
       - 'tests/test_p1_dual_pilot_receipt.py'
       - 'tests/test_p1_dual_pilot_scale_review.py'
@@ -44,6 +46,8 @@ on:
       - 'collector/p1_archive_audit.py'
       - 'tests/test_p1_archive_audit.py'
       - 'collector/p1_dual_pilot_receipt.py'
+      - 'collector/p1_schedule_run_provenance.py'
+      - 'tests/test_p1_schedule_run_provenance.py'
       - 'collector/p1_dual_pilot_scale_review.py'
       - 'tests/test_p1_dual_pilot_receipt.py'
       - 'tests/test_p1_dual_pilot_scale_review.py'
@@ -111,6 +115,7 @@ jobs:
             tests.test_p1_dual_end_to_end \
             tests.test_p1_dual_pilot_receipt \
             tests.test_p1_dual_pilot_scale_review \
+            tests.test_p1_schedule_run_provenance \
             tests.test_p1_run_progress \
             tests.test_p1_quad_verify \
             tests.test_p3_all_completed_worklist \
