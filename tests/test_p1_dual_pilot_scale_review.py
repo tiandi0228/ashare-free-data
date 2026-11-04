@@ -111,9 +111,20 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
         self.assertFalse(report["historical_PIT_verified"])
         self.assertEqual(report["trade_gate"],"BLOCKED")
 
+    def test_1110_expansion_is_counted_without_certifying_original_pilot(self):
+        prior=[self.receipt(i) for i in (100,101,102)]
+        sixth=self.receipt(105)
+        sixth["trigger_cron_utc"]="10 3 * * 1-5"
+        decision=inspect(prior+[sixth],self.EPOCH)
+        self.assertEqual(decision["recorded_expanded_scheduled_runs"],1)
+        self.assertEqual(decision["recorded_scheduled_runs"],3)
+        self.assertEqual(decision["reviewed_scheduled_run_ids"],[102,101,100])
+        self.assertFalse(decision["automatic_shard_increase_authorized"])
+        self.assertEqual(decision["trade_gate"],"BLOCKED")
+
     def test_unapproved_new_dual_cron_still_rejected(self):
         row=self.receipt(100)
-        row["trigger_cron_utc"]="10 3 * * 1-5"
+        row["trigger_cron_utc"]="10 0 * * 1-5"
         with self.assertRaisesRegex(ValueError,"untrusted pilot schedule"):
             inspect([row],self.EPOCH)
 
@@ -163,7 +174,7 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
             self.assertEqual((actual.weekday(),actual.hour,actual.minute),
                              (6,local_hour,10))
 
-    def test_workflow_has_exactly_five_bounded_daily_dual_slots(self):
+    def test_workflow_has_exactly_six_bounded_daily_dual_slots(self):
         from pathlib import Path
         workflow=(Path(__file__).resolve().parents[1]/
                   ".github/workflows/p1-fresh-vendor-roster.yml").read_text()
@@ -174,6 +185,8 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
         self.assertIn("github.event.schedule == '10 5 * * 1-5'",formula)
         self.assertIn("github.event.schedule == '10 7 * * 1-5'",formula)
         self.assertIn("github.event.schedule == '10 11 * * 1-5'",formula)
+        self.assertIn("github.event.schedule == '10 3 * * 1-5'",formula)
+        self.assertEqual(formula.count("github.event.schedule =="),6)
         self.assertIn("&& '2' || '1'",formula)
         self.assertIn("inputs.shards_per_run",formula)
         # No four-shard escalation before repeated verified pilots and review.
