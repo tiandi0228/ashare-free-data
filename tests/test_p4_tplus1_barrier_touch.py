@@ -143,6 +143,8 @@ class BarrierTouchTests(unittest.TestCase):
             lambda p:p["observed_price_pairs"][0].update(original_csv_sha256="0"*64),
             lambda p:p["observed_price_pairs"].clear(),
             lambda p:p.update(historical_PIT_verified=True),
+            lambda p:p.update(censored_events=1),
+            lambda p:p.update(future_vendor_status_blocked=-1),
         )
         for m in mutations:
             with self.subTest(m=m):
