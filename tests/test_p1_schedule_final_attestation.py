@@ -6,7 +6,8 @@ from unittest.mock import patch
 
 from collector.p1_schedule_run_provenance import build as source_build
 from collector.p1_schedule_final_attestation import (
-    base, locate_schedule_receipt, verify, run_review
+    base, locate_schedule_receipt, verify, run_review,
+    latest_completed_schedule_run_id
 )
 
 EPOCH = "a"*64
@@ -194,6 +195,37 @@ class P1ScheduleFinalTests(unittest.TestCase):
                 bad.update(variant)
                 with self.assertRaises(ValueError):
                     verify(bad, source(), checkpoint())
+
+    @patch("collector.p1_schedule_final_attestation.gh")
+    def test_latest_completed_schedule_only_from_correct_workflow_history(self, mock):
+        good1 = run()
+        good2 = run()
+        good2["id"] = 123457
+        good2["status"] = "in_progress"
+        good2["conclusion"] = None
+        mock.return_value = json.dumps({
+            "total_count": 2,
+            "workflow_runs": [good2, good1]
+        })
+        self.assertEqual(latest_completed_schedule_run_id("org/repo"), 123456)
+        self.assertIn("event=schedule", mock.call_args.args)
+        self.assertIn("per_page=25", mock.call_args.args)
+
+    @patch("collector.p1_schedule_final_attestation.gh")
+    def test_missing_or_mixed_schedule_history_cannot_certify(self, mock):
+        for response in [
+            {"total_count": 1, "workflow_runs": []},
+            {"total_count": 0, "workflow_runs": [run()]},
+            {"total_count": 1, "workflow_runs": [run(event="push")]},
+            {"total_count": 1, "workflow_runs": [dict(run(), head_branch="feature")]},
+        ]:
+            with self.subTest(response=response):
+                mock.return_value = json.dumps(response)
+                if response["workflow_runs"] or response["total_count"] == 0:
+                    with self.assertRaises(ValueError):
+                        latest_completed_schedule_run_id("org/repo")
+                else:
+                    self.assertIsNone(latest_completed_schedule_run_id("org/repo"))
 
     @patch("collector.p1_schedule_final_attestation.gh")
     def test_non_schedule_review_needs_no_archive_lookup(self, mock):
