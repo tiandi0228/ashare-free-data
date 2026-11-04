@@ -80,6 +80,25 @@ class P3ProofQueueTests(unittest.TestCase):
         r=build(fixture())
         self.assertEqual(r["status"],"UNVERIFIED_PIT_WORK_QUEUE_ONLY")
         self.assertEqual(r["work_item_count"],5)
+        conflicts=[x for x in r["work_items"]
+                   if x["kind"]=="CONFLICTING_HALTS_MANUAL_REVIEW_FIRST"]
+        self.assertEqual(len(conflicts),1)
+        conflict=conflicts[0]
+        self.assertEqual(conflict["previous_announcement_id"],"115")
+        self.assertEqual(conflict["next_announcement_id"],"116")
+        self.assertEqual(
+            conflict["previous_halt_original_sha_and_text_day_candidates"][0][
+                "original_pdf_sha256"],"e"*64)
+        self.assertEqual(
+            conflict["next_halt_original_sha_and_text_day_candidates"][0][
+                "source_halt_text_day_unverified"],"2026-05-02")
+        self.assertTrue(conflict["text_date_order_unverified_consistent"])
+        self.assertFalse(conflict["multiple_halt_clauses_need_manual_disambiguation"])
+        self.assertFalse(conflict["independently_verified_official_state_continuity"])
+        self.assertTrue(all(
+            c["independent_first_publication_authenticated"] is False
+            for c in (conflict["previous_halt_original_sha_and_text_day_candidates"]
+                       +conflict["next_halt_original_sha_and_text_day_candidates"])))
         self.assertEqual(r["upstream_archived_runs_replayed"],153)
         self.assertEqual(r["upstream_unique_text_events"],6)
         self.assertEqual([x["priority"] for x in r["work_items"]],[0,1,2,2,3])
@@ -120,6 +139,10 @@ class P3ProofQueueTests(unittest.TestCase):
             lambda s:s["official_resumption_followups"][0].update(original_pdf_sha256="0"*64),
             lambda s:s["orphan_resume_texts"][0].update(issuer="sz.002999"),
             lambda s:s["overlap_conflicts"][0].update(next_announcement="untrusted"),
+            lambda s:s["overlap_conflicts"][0].update(
+                previous_announcement="116",next_announcement="116"),
+            lambda s:s["research_text_event_claims"][5].update(
+                textual_direction="RESUME_START"),
         )
         for change in mutations:
             with self.subTest(change=change):
@@ -127,6 +150,24 @@ class P3ProofQueueTests(unittest.TestCase):
                 change(sample)
                 with self.assertRaises(ValueError):
                     build(sample)
+    def test_multiple_sha_claims_are_not_silently_promoted_to_one_date(self):
+        s=fixture()
+        duplicate=copy.deepcopy(s["research_text_event_claims"][4])
+        duplicate["claimed_event_day"]="2026-05-03"
+        s["research_text_event_claims"].append(duplicate)
+        s["deduplicated_text_event_claims"]+=1
+        s["raw_text_assertion_references"]+=1
+        s["approval_consent_is_not_effective_date_count"]+=1
+        r=build(s)
+        conflict=r["work_items"][0]
+        self.assertTrue(conflict["multiple_halt_clauses_need_manual_disambiguation"])
+        self.assertEqual(
+            len(conflict["previous_halt_original_sha_and_text_day_candidates"]),2)
+        self.assertFalse(conflict["text_date_order_unverified_consistent"])
+        self.assertFalse(conflict["historical_PIT_verified"])
+        self.assertEqual(r["trade_gate"],"BLOCKED")
+        self.assertEqual(r["recommendations"],[])
+
     def test_no_event_claims_remains_unverified_without_new_pit(self):
         s=fixture()
         for k in ("research_text_event_claims","paired_event_texts",
