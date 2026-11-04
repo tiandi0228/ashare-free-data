@@ -34,8 +34,8 @@ jobs:
           python -m unittest tests.test_p1_schedule_final_attestation tests.test_p1_schedule_run_provenance -v
       - name: Independently validate final GitHub run, literal cron and permanent shard proof
         env:
-          GH_TOKEN: \${{ github.token }}
-          P1_UPSTREAM_RUN_ID: \${{ github.event.workflow_run.id }}
+          GH_TOKEN: ${{ github.token }}
+          P1_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
         run: |
           if [ "$GITHUB_EVENT_NAME" = "workflow_run" ]; then
             python -m collector.p1_schedule_final_attestation \
@@ -64,7 +64,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: p1-final-schedule-provenance-\${{ github.event.workflow_run.id }}
+          name: p1-final-schedule-provenance-${{ github.run_id }}
           path: evidence/p1_final_schedule_provenance.json
           retention-days: 14
           if-no-files-found: warn
