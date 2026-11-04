@@ -96,10 +96,10 @@ class FrozenFeeFloorDiagnosticsTests(unittest.TestCase):
         self.assertEqual(r["trade_gate"],"BLOCKED")
         self.assertEqual(r["orders"],[])
         self.assertEqual(r["actionable_buy_signals"],[])
-        self.assertIn("NOT_FORECAST",
-                      r["sample_non_executable_price_diagnostics"][0]
-                      .get("hypothetical_minimum_target_for_2to1_not_forecast", "")
-                      if False else "NOT_FORECAST")  # explicit never a fill
+        self.assertIn("hypothetical_minimum_target_for_2to1_not_forecast",
+                      r["sample_non_executable_price_diagnostics"][0])
+        self.assertTrue(r["sample_non_executable_price_diagnostics"][0]
+                        ["not_an_executable_order"])
 
     def test_inverse_target_ceiling_tick_is_minimal_not_a_signal(self):
         entry=Decimal("10")
