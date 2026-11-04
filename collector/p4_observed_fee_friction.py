@@ -186,7 +186,10 @@ def audit(proxy):
                 if bps == 0:
                     audit_row = {"issuer": code,
                                  "signal_completed_day": signal.isoformat(),
-                                 "cost_example": model}
+                                 "cost_example": {
+                                     k: str(v) if isinstance(v, Decimal) else v
+                                     for k, v in model.items()
+                                 }}
             if len(sample) < 5 and audit_row is not None:
                 sample.append(audit_row)
         if (directions["positive"], directions["negative"], directions["flat"]) != (
