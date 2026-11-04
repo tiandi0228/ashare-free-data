@@ -1,0 +1,70 @@
+name: P1 final scheduled origin and archive attestation (NO TRADES)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p1-final-schedule-attestation.yml'
+      - 'collector/p1_schedule_final_attestation.py'
+  workflow_run:
+    workflows:
+      - P1 fresh Baostock mainboard roster observation (NO TRADES)
+    types: [completed]
+
+# Read-only, independently validates the completed upstream Actions run and
+# source receipt already saved to main. No dispatch or archive mutation.
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  certify-research-provenance-only:
+    if: github.event_name == 'push' || github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check post-conclusion guard contracts offline
+        run: |
+          python -m unittest tests.test_p1_schedule_final_attestation tests.test_p1_schedule_run_provenance -v
+      - name: Independently validate final GitHub run, literal cron and permanent shard proof
+        env:
+          GH_TOKEN: \${{ github.token }}
+          P1_UPSTREAM_RUN_ID: \${{ github.event.workflow_run.id }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_run" ]; then
+            python -m collector.p1_schedule_final_attestation \
+              --repo "$GITHUB_REPOSITORY" \
+              --run-id "$P1_UPSTREAM_RUN_ID" \
+              --out evidence/p1_final_schedule_provenance.json
+          else
+            python -m collector.p1_schedule_final_attestation \
+              --repo "$GITHUB_REPOSITORY" \
+              --latest-scheduled \
+              --out evidence/p1_final_schedule_provenance.json
+          fi
+          python - <<'PY'
+          import json
+          report=json.load(open('evidence/p1_final_schedule_provenance.json'))
+          assert report['trade_gate']=='BLOCKED' and report['historical_PIT_verified'] is False
+          assert report['orders']==[] and report['executable_candidates']==[]
+          assert not report['trade_authorized'] and not report['buy_recommendations_authorized']
+          if report['state']=='SCHEDULE_RECEIPT_MISSING_NOT_PROVEN':
+              assert not report['final_actions_success_authenticated']
+          if report['state']=='NOT_SCHEDULED_RUN':
+              assert not report['scheduled_cron_origin_authenticated']
+          print('P1 POSTCONCLUSION RESEARCH GATE:',report['state'],'BLOCKED')
+          PY
+      - name: Preserve post-conclusion original evidence audit artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p1-final-schedule-provenance-\${{ github.event.workflow_run.id }}
+          path: evidence/p1_final_schedule_provenance.json
+          retention-days: 14
+          if-no-files-found: warn
