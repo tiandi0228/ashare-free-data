@@ -12,11 +12,11 @@
   "checkpoint_completed_shards": 125,
   "checkpoint_total_shards": 400,
   "archived_original_shards": 125,
-  "coverage_report_count": 12,
-  "observed_archived_shards": 120,
-  "feature_complete_shards": 112,
+  "coverage_report_count": 13,
+  "observed_archived_shards": 124,
+  "feature_complete_shards": 116,
   "observed_with_feature_gaps_shards": 8,
-  "unobserved_archived_shards": 5,
+  "unobserved_archived_shards": 1,
   "observed_shard_ids": [
     "shard_0062",
     "shard_0063",
@@ -83,6 +83,10 @@
     "shard_0124",
     "shard_0125",
     "shard_0126",
+    "shard_0127",
+    "shard_0128",
+    "shard_0130",
+    "shard_0132",
     "shard_0133",
     "shard_0134",
     "shard_0135",
@@ -140,11 +144,7 @@
     "shard_0224"
   ],
   "unobserved_shard_ids": [
-    "shard_0061",
-    "shard_0127",
-    "shard_0128",
-    "shard_0130",
-    "shard_0132"
+    "shard_0061"
   ],
   "gap_shard_ids": [
     "shard_0078",
@@ -156,8 +156,24 @@
     "shard_0161",
     "shard_0166"
   ],
-  "feature_issuer_count": 952,
+  "feature_issuer_count": 984,
   "issuer_evidence_gap_count": 8,
+  "observed_feature_or_gap_issuers": 992,
+  "unobserved_issuer_count": 8,
+  "gap_reason_counts": {
+    "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS": 8
+  },
+  "gap_issuer_codes": [
+    "sh.600825",
+    "sh.601091",
+    "sh.601238",
+    "sh.601995",
+    "sh.603159",
+    "sh.603183",
+    "sh.603400",
+    "sh.603517"
+  ],
+  "full_archive_evidence_accounted": false,
   "full_archive_feature_coverage": false,
   "limitations": [
     "CROSS_RUN_RECEIPTS_NOT_EXCHANGE_ATTESTED",
