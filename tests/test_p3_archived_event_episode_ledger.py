@@ -17,6 +17,7 @@ class CrossRunEventTests(unittest.TestCase):
         self.pdfs[(issuer,notice_id)]=(digest,rel,len(content))
         return {"issuer":issuer,"announcement_id":notice_id,
                 "original_retrieved":True,"archive_path":rel,"pdf_sha256":digest,
+                "captured_at_utc":"2026-11-04T08:40:00+00:00",
                 "bytes":len(content)}
     def claim(self,receipt,day,direction,decision=None,excerpt=None):
         cday=f"{day[:4]}年{int(day[5:7])}月{int(day[8:10])}日"
@@ -48,6 +49,13 @@ class CrossRunEventTests(unittest.TestCase):
         report=build(self.root)
         self.assertEqual(report["raw_text_assertion_references"],2)
         self.assertEqual(report["deduplicated_text_event_claims"],1)
+        first=report["research_text_event_claims"][0]
+        self.assertEqual(first["original_first_archived_research_run_id"],100)
+        self.assertEqual(first["original_first_archived_research_capture_at_utc"],
+                         "2026-11-04T08:40:00+00:00")
+        self.assertTrue(first["original_research_capture_after_claimed_event_text_day"])
+        self.assertTrue(first["research_capture_not_official_first_publication"])
+        self.assertEqual(report["official_first_publication_authenticated_from_capture"],0)
         self.assertEqual(report["unpaired_halt_starts_needing_resumption_search"],1)
         self.assertEqual(report["official_resumption_followups"][0]["warning"],
                          "NO_RESUME_IN_BOUNDED_ARCHIVE_IS_NOT_PROOF_OF_CONTINUING_HALT")
@@ -67,6 +75,61 @@ class CrossRunEventTests(unittest.TestCase):
         self.assertEqual(report["unpaired_halt_starts_needing_resumption_search"],0)
         self.assertFalse(report["paired_event_texts"][0]["issuer_interval_certified"])
         self.assertEqual(report["official_PIT_cells_certified"],0)
+    def test_capture_is_minimum_observed_archived_timestamp_not_publication(self):
+        original=self.notice("sh.600319","100001")
+        old=copy.deepcopy(original)
+        newer=copy.deepcopy(original)
+        old["captured_at_utc"]="2026-11-04T08:40:00+00:00"
+        newer["captured_at_utc"]="2026-11-04T09:40:00+00:00"
+        self.save_run(100,[newer],[self.claim(newer,"2025-11-04","HALT_START")])
+        self.save_run(101,[old],[self.claim(old,"2025-11-04","HALT_START")])
+        r=build(self.root)
+        claim=r["research_text_event_claims"][0]
+        self.assertEqual(claim["original_first_archived_research_run_id"],101)
+        self.assertEqual(claim["original_first_archived_research_capture_at_utc"],
+                         "2026-11-04T08:40:00+00:00")
+        self.assertEqual(claim["original_sha_verified_archive_path"],
+                         original["archive_path"])
+        self.assertEqual(r["claims_with_sha_pinned_first_research_capture"],1)
+        self.assertEqual(r["claims_first_archive_capture_after_event_text_day"],1)
+        self.assertEqual(r["official_first_publication_authenticated_from_capture"],0)
+        self.assertFalse(r["historical_PIT_verified"])
+
+    def test_naive_capture_and_wrong_archive_path_rejected(self):
+        for mutate in (
+            lambda d:d.update(captured_at_utc="2026-11-04T08:40:00"),
+            lambda d:d.update(captured_at_utc="invalid"),
+            lambda d:d.pop("captured_at_utc"),
+            lambda d:d.update(archive_path="pdf/forged.pdf"),
+        ):
+            with self.subTest(mutate=mutate):
+                with tempfile.TemporaryDirectory() as work:
+                    root=Path(work)
+                    (root/"runs").mkdir()
+                    r=self.notice("sh.600319","100001")
+                    mutated=copy.deepcopy(r)
+                    mutate(mutated)
+                    item={
+                        "phase":"P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+                        "run_id":7,"trade_gate":"BLOCKED","orders":[],
+                        "historical_PIT_verified":False,
+                        "certified_first_publication_count":0,
+                        "certified_event_effective_day_count":0,
+                        "certified_historical_decision_state_count":0,
+                        "original_pdf_count":1,
+                        "source_roster_sha256":"b"*64,
+                        "source_pdf_receipts":[mutated],
+                        "research_date_action_links":[self.claim(r,"2025-11-04","HALT_START")],
+                    }
+                    # Source original byte in a separate test folder
+                    raw=(self.root/r["archive_path"]).read_bytes()
+                    file=root/r["archive_path"]
+                    file.parent.mkdir(parents=True,exist_ok=True)
+                    file.write_bytes(raw)
+                    (root/"runs"/"7.json").write_text(json.dumps(item))
+                    with self.assertRaises((ValueError,TypeError)):
+                        build(root)
+
     def test_approval_only_is_not_effective_st_removal(self):
         r=self.notice("sh.600303","100005")
         claim=self.claim(r,"2025-04-17","ST_REMOVED",

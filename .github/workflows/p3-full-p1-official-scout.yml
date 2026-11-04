@@ -188,6 +188,9 @@ jobs:
           report=json.loads(Path('evidence/p3_all_archived_original_event_episodes.json').read_text())
           assert report['runs_replayed']>=1
           assert report['raw_text_assertion_references']>=report['deduplicated_text_event_claims']
+          assert report['claims_with_sha_pinned_first_research_capture']==report['deduplicated_text_event_claims']
+          assert report['official_first_publication_authenticated_from_capture']==0
+          assert 0<=report['claims_first_archive_capture_after_event_text_day']<=report['deduplicated_text_event_claims']
           assert report['official_PIT_cells_certified']==0
           assert report['historical_first_publication_authenticated'] is False
           assert report['complete_issuer_halt_intervals_certified'] is False
@@ -215,6 +218,9 @@ jobs:
                     +source['overlapping_halt_claims_without_resume'])
           assert q['work_item_count']==expected
           assert q['upstream_unique_text_events']==source['deduplicated_text_event_claims']
+          assert q['source_claims_with_sha_verified_archive_capture']==source['claims_with_sha_pinned_first_research_capture']
+          assert q['source_claims_first_archive_capture_after_text_event_day']==source['claims_first_archive_capture_after_event_text_day']
+          assert q['official_first_publication_authenticated_from_capture']==0
           assert q['status']=='UNVERIFIED_PIT_WORK_QUEUE_ONLY'
           assert q['certified_first_publication_count']==0
           assert q['completed_pit_cells']==0 and not q['historical_PIT_verified']

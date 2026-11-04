@@ -12,6 +12,14 @@ def claim(code, action, day, digest, notice, approval=False):
         "first_publication_authenticated":False,
         "effective_date_certified":False,
         "historical_asof_trade_eligible":False,
+        "original_first_archived_research_capture_at_utc":
+            "2026-11-04T08:40:00+00:00",
+        "original_first_archived_research_run_id":151,
+        "original_sha_verified_archive_path":
+            f"pdf/{code.replace('.','_')}/{notice}/{digest}.pdf",
+        "original_research_capture_after_claimed_event_text_day":
+            day < "2026-11-04",
+        "research_capture_not_official_first_publication":True,
     }
 
 
@@ -101,8 +109,15 @@ class P3ProofQueueTests(unittest.TestCase):
                        +conflict["next_halt_original_sha_and_text_day_candidates"])))
         self.assertEqual(r["upstream_archived_runs_replayed"],153)
         self.assertEqual(r["upstream_unique_text_events"],6)
+        self.assertEqual(r["source_claims_with_sha_verified_archive_capture"],6)
+        self.assertEqual(r["official_first_publication_authenticated_from_capture"],0)
         self.assertEqual([x["priority"] for x in r["work_items"]],[0,1,2,2,3])
         self.assertEqual(r["work_items"][1]["halt_pdf_sha256"],"a"*64)
+        archive=r["work_items"][1]["halt_original_archive_capture"]
+        self.assertEqual(archive["first_archived_original_run_id"],151)
+        self.assertEqual(archive["sha_verified_original_archive_path"],
+                         "pdf/sh_600001/111/"+"a"*64+".pdf")
+        self.assertFalse(archive["official_first_publication_authenticated"])
         self.assertIn("INDEPENDENT_FIRST_PUBLICATION_TIMESTAMP_FOR_BOTH_ORIGINALS",
                       r["work_items"][1]["missing_independent_proofs"])
         self.assertEqual(r["certified_first_publication_count"],0)
@@ -139,6 +154,16 @@ class P3ProofQueueTests(unittest.TestCase):
             lambda s:s["official_resumption_followups"][0].update(original_pdf_sha256="0"*64),
             lambda s:s["orphan_resume_texts"][0].update(issuer="sz.002999"),
             lambda s:s["overlap_conflicts"][0].update(next_announcement="untrusted"),
+            lambda s:s["research_text_event_claims"][0].update(
+                original_first_archived_research_capture_at_utc="garbage"),
+            lambda s:s["research_text_event_claims"][0].update(
+                original_first_archived_research_run_id=0),
+            lambda s:s["research_text_event_claims"][0].update(
+                original_sha_verified_archive_path="forged.pdf"),
+            lambda s:s["research_text_event_claims"][0].update(
+                research_capture_not_official_first_publication=False),
+            lambda s:s["research_text_event_claims"][0].update(
+                original_research_capture_after_claimed_event_text_day=False),
             lambda s:s["research_text_event_claims"][5].update(
                 textual_direction="RESUME_START"),
         )
