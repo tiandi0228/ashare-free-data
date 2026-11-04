@@ -1,6 +1,9 @@
 """Post-run P1 schedule attestation must not confuse start, success, archive."""
 import copy
 import json
+import subprocess
+import tempfile
+from pathlib import Path
 import unittest
 from unittest.mock import patch
 
@@ -226,6 +229,33 @@ class P1ScheduleFinalTests(unittest.TestCase):
                         latest_completed_schedule_run_id("org/repo")
                 else:
                     self.assertIsNone(latest_completed_schedule_run_id("org/repo"))
+
+    def test_workflow_actions_secret_expression_is_not_escaped(self):
+        workflow = (Path(__file__).resolve().parents[1] /
+                    ".github/workflows/p1-final-schedule-attestation.yml").read_text()
+        self.assertNotIn(chr(92)+"${{", workflow)
+        self.assertIn("GH_TOKEN: ${{ github.token }}", workflow)
+        self.assertIn("P1_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}", workflow)
+        self.assertIn("contents: read", workflow)
+        self.assertIn("actions: read", workflow)
+
+    def test_failed_real_gh_api_has_explicit_unverified_json_report(self):
+        from collector.p1_schedule_final_attestation import main
+        with tempfile.TemporaryDirectory() as d:
+            output = Path(d) / "audit.json"
+            argv = ["audit", "--repo", "org/repo", "--latest-scheduled",
+                    "--out", str(output)]
+            err = subprocess.CalledProcessError(
+                1, ["gh", "api"], stderr="HTTP 401 Bad credentials")
+            with patch("collector.p1_schedule_final_attestation.latest_completed_schedule_run_id",
+                       side_effect=err):
+                with patch("sys.argv", argv), self.assertRaises(SystemExit):
+                    main()
+            report = json.loads(output.read_text())
+            self.assertEqual(report["state"],
+                             "REJECTED_UNVERIFIED_SOURCE_OR_API")
+            self.assertFalse(report["final_actions_success_authenticated"])
+            self.assertEqual(report["trade_gate"], "BLOCKED")
 
     @patch("collector.p1_schedule_final_attestation.gh")
     def test_non_schedule_review_needs_no_archive_lookup(self, mock):
