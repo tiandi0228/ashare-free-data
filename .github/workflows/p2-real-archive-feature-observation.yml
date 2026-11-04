@@ -5,6 +5,8 @@ on:
     paths:
       - '.github/workflows/p2-real-archive-feature-observation.yml'
       - 'collector/p2_real_archive_features.py'
+      - 'collector/p2_real_archive_research_screen.py'
+      - 'tests/test_p2_real_archive_research_screen.py'
       - 'collector/p2_paged_real_archive.py'
       - 'collector/p2_feature_coverage_ledger.py'
       - 'collector/p2_historical_receipt_backfill.py'
@@ -17,6 +19,8 @@ on:
     paths:
       - '.github/workflows/p2-real-archive-feature-observation.yml'
       - 'collector/p2_real_archive_features.py'
+      - 'collector/p2_real_archive_research_screen.py'
+      - 'tests/test_p2_real_archive_research_screen.py'
       - 'collector/p2_independent_bars.py'
       - 'collector/p2_paged_real_archive.py'
       - 'tests/test_p2_priority_archive_pages.py'
@@ -47,7 +51,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Verify original CSV research feature adapter
-        run: python -m unittest tests.test_p2_independent_bars tests.test_p2_real_archive_features tests.test_p2_paged_real_archive tests.test_p2_feature_coverage_ledger tests.test_p2_priority_archive_pages tests.test_p2_historical_receipt_backfill -v
+        run: python -m unittest tests.test_p2_independent_bars tests.test_p2_real_archive_features tests.test_p2_paged_real_archive tests.test_p2_feature_coverage_ledger tests.test_p2_priority_archive_pages tests.test_p2_historical_receipt_backfill tests.test_p2_real_archive_research_screen -v
       - name: Fetch immutable-original research archive branch
         run: |
           git fetch --depth=1 origin research-csv-archive
@@ -101,6 +105,22 @@ jobs:
             "${ARGS[@]}" \
             "${COVERAGE_ARGS[@]}" \
             --out evidence/p2_real_archive_feature_observation.json
+      - name: Source-pinned research observation ordering, never buy list
+        run: |
+          python -m collector.p2_real_archive_research_screen \
+            --input evidence/p2_real_archive_feature_observation.json \
+            --out evidence/p2_real_archive_research_screen.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("evidence/p2_real_archive_research_screen.json").read_text())
+          assert r["status"]=="DESCRIPTIVE_ARCHIVED_SAMPLE_ONLY"
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          assert r["actionable_buy_signals"]==[]
+          assert r["complete_mainboard_coverage"] is False
+          assert r["historical_OOS_validated"] is False
+          print("RESEARCH_SORT_COUNT",r["ranked_observations"])
+          PY
       - name: Merge and independently audit durable research page receipts
         env:
           GH_RUN_ID: ${{ github.run_id }}
@@ -198,5 +218,6 @@ jobs:
             evidence/p2_real_archive_feature_observation.json
             evidence/p2_real_archive_feature_coverage.json
             evidence/p2_historical_receipt_backfill.json
+            evidence/p2_real_archive_research_screen.json
           retention-days: 14
           if-no-files-found: warn
