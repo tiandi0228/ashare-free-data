@@ -106,8 +106,8 @@ class P1ExactScheduledProvenanceTests(unittest.TestCase):
     def test_wrong_weekday_unknown_cron_and_old_slot_fail_closed(self):
         for cron, creation in [
             ("10 3 * * 1-5", "2026-11-07T03:14:00Z"),
-            ("10 3 * * 1-5", "2026-11-05T02:00:00Z"),
-            ("10 3 * * 1-5", "2026-11-06T04:00:00Z"),
+            ("10 3 * * 1-5", "2026-11-07T20:00:00Z"),
+            ("10 3 * * 1-5", "2026-11-08T04:00:00Z"),
             ("10 2 * * 1-5", "2026-11-05T03:25:00Z"),
         ]:
             with self.subTest(cron=cron, creation=creation):
