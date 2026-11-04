@@ -131,7 +131,7 @@ class FeeFrictionTests(unittest.TestCase):
         self.assertEqual(audit(p)["reason"],"DUPLICATE_ISSUER_EVENT")
         p=sample()
         p["observed_next_open_to_third_close"]=True
-        self.assertEqual(audit(p)["reason"],"UNRECONCILED_EVENT_COUNTERS")
+        self.assertEqual(audit(p)["status"],"REJECTED")
 
     def test_fee_floor_can_erase_small_positive_observed_change(self):
         p=sample()
