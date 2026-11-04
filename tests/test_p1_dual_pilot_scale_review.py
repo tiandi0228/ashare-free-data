@@ -100,6 +100,17 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
         self.assertEqual(report["status"],"RECORDED_PILOTS_AWAIT_ACTIONS_VERIFICATION")
         self.assertFalse(report["automatic_shard_increase_authorized"])
 
+    def test_1910_extra_slot_cannot_self_certify_original_pilot(self):
+        rows=[self.receipt(i) for i in (100,101,102)]
+        expanded=self.receipt(104)
+        expanded["trigger_cron_utc"]="10 11 * * 1-5"
+        report=inspect(rows+[expanded],self.EPOCH)
+        self.assertEqual(report["recorded_expanded_scheduled_runs"],1)
+        self.assertEqual(report["reviewed_scheduled_run_ids"],[102,101,100])
+        self.assertFalse(report["automatic_shard_increase_authorized"])
+        self.assertFalse(report["historical_PIT_verified"])
+        self.assertEqual(report["trade_gate"],"BLOCKED")
+
     def test_unapproved_new_dual_cron_still_rejected(self):
         row=self.receipt(100)
         row["trigger_cron_utc"]="10 3 * * 1-5"
@@ -152,7 +163,7 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
             self.assertEqual((actual.weekday(),actual.hour,actual.minute),
                              (6,local_hour,10))
 
-    def test_workflow_has_exactly_four_bounded_daily_dual_slots(self):
+    def test_workflow_has_exactly_five_bounded_daily_dual_slots(self):
         from pathlib import Path
         workflow=(Path(__file__).resolve().parents[1]/
                   ".github/workflows/p1-fresh-vendor-roster.yml").read_text()
@@ -162,6 +173,7 @@ class P1DualPilotScaleReviewTests(unittest.TestCase):
         self.assertIn("github.event.schedule == '10 9 * * 1-5'",formula)
         self.assertIn("github.event.schedule == '10 5 * * 1-5'",formula)
         self.assertIn("github.event.schedule == '10 7 * * 1-5'",formula)
+        self.assertIn("github.event.schedule == '10 11 * * 1-5'",formula)
         self.assertIn("&& '2' || '1'",formula)
         self.assertIn("inputs.shards_per_run",formula)
         # No four-shard escalation before repeated verified pilots and review.
