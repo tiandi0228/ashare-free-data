@@ -8,6 +8,8 @@ on:
       - 'collector/p3_original_effective_clause_review.py'
       - 'collector/p3_official_original_archive.py'
       - 'collector/p3_persisted_temporal_risk_triage.py'
+      - 'collector/p3_index_chronology_guard.py'
+      - 'tests/test_p3_index_chronology_guard.py'
       - 'collector/p3_archived_event_episode_ledger.py'
       - 'collector/p3_resume_followup_discovery.py'
       - 'collector/p3_resume_original_archive.py'
@@ -46,7 +48,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline boundaries and official-source tests
-        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture tests.test_p3_original_effective_clause_review tests.test_p3_official_original_archive tests.test_p3_persisted_temporal_risk_triage tests.test_p3_archived_event_episode_ledger tests.test_p3_resume_followup_discovery tests.test_p3_resume_original_archive tests.test_p3_halt_resume_pair_review -v
+        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture tests.test_p3_original_effective_clause_review tests.test_p3_official_original_archive tests.test_p3_persisted_temporal_risk_triage tests.test_p3_index_chronology_guard tests.test_p3_archived_event_episode_ledger tests.test_p3_resume_followup_discovery tests.test_p3_resume_original_archive tests.test_p3_halt_resume_pair_review -v
       - name: Install free PDF text parser
         run: python -m pip install 'pypdf>=4,<7'
       - name: Fetch successful original P1 queue artifact
@@ -147,6 +149,9 @@ jobs:
           python -m collector.p3_persisted_temporal_risk_triage \
             --manifest "archived-official-research/runs/${{ github.run_id }}.json" \
             --out evidence/p3_persisted_temporal_risk_triage.json
+          python -m collector.p3_index_chronology_guard \
+            --manifest "archived-official-research/runs/${{ github.run_id }}.json" \
+            --out evidence/p3_index_chronology_guard.json
           python - <<'PY'
           import json
           from pathlib import Path
@@ -156,6 +161,16 @@ jobs:
           assert triage['historical_PIT_verified'] is False
           assert triage['certified_event_effective_dates']==0
           assert triage['trade_gate']=='BLOCKED' and triage['orders']==[]
+          chronology=json.loads(Path('evidence/p3_index_chronology_guard.json').read_text())
+          assert chronology['status']=='INDEX_CHRONOLOGY_CROSSCHECK_RESEARCH_ONLY'
+          assert chronology['research_links_rechecked']==review['evaluated_research_links']
+          assert chronology['certified_first_publication_times']==0
+          assert chronology['certified_issuer_state_intervals']==0
+          assert chronology['historical_PIT_verified'] is False
+          assert chronology['trade_gate']=='BLOCKED' and chronology['orders']==[]
+          print('P3 INDEX CHRONOLOGY:',chronology['research_links_rechecked'],
+                'SHA-linked receipts;',chronology['index_after_decision_close_unverified'],
+                'mutable index timestamps after decision close, PIT ZERO')
           print('P3 TEMPORAL SANITY: unverified text candidates',triage['explicit_textual_candidate_count'],
                 'date mismatches',triage['candidate_with_text_date_not_decision_day'],
                 'approval/consent caveats',triage['candidate_with_approval_not_effective_date'])
