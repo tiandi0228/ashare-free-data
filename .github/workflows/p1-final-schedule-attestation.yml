@@ -1,6 +1,11 @@
 name: P1 final scheduled origin and archive attestation (NO TRADES)
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p1-final-schedule-attestation.yml'
+      - 'collector/p1_schedule_final_attestation.py'
   workflow_run:
     workflows:
       - P1 fresh Baostock mainboard roster observation (NO TRADES)
@@ -14,7 +19,7 @@ permissions:
 
 jobs:
   certify-research-provenance-only:
-    if: github.event.workflow_run.head_repository.full_name == github.repository
+    if: github.event_name == 'push' || github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -32,10 +37,17 @@ jobs:
           GH_TOKEN: \${{ github.token }}
           P1_UPSTREAM_RUN_ID: \${{ github.event.workflow_run.id }}
         run: |
-          python -m collector.p1_schedule_final_attestation \
-            --repo "$GITHUB_REPOSITORY" \
-            --run-id "$P1_UPSTREAM_RUN_ID" \
-            --out evidence/p1_final_schedule_provenance.json
+          if [ "$GITHUB_EVENT_NAME" = "workflow_run" ]; then
+            python -m collector.p1_schedule_final_attestation \
+              --repo "$GITHUB_REPOSITORY" \
+              --run-id "$P1_UPSTREAM_RUN_ID" \
+              --out evidence/p1_final_schedule_provenance.json
+          else
+            python -m collector.p1_schedule_final_attestation \
+              --repo "$GITHUB_REPOSITORY" \
+              --latest-scheduled \
+              --out evidence/p1_final_schedule_provenance.json
+          fi
           python - <<'PY'
           import json
           report=json.load(open('evidence/p1_final_schedule_provenance.json'))
