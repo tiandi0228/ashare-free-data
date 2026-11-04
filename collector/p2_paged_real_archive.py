@@ -20,9 +20,10 @@ PHASE="P2_PAGED_REAL_ARCHIVE_FEATURE_REPLAY"
 def select_page(mapped,source_epoch,run_number,page=None,coverage=None):
     """Use verified existing durable coverage as a *hint*, never as source truth.
 
-    Priority: most unobserved archived shards, then most gap shards, then
-    deterministic rotation when everything has been observed. Any malformed
-    or cross-epoch summary is ignored rather than trusted as progress.
+    Priority: most unobserved archived shards, then deterministic rotation.
+    A frozen source's known as-of indicator gaps cannot be repaired simply by
+    preferentially replaying the same original CSV forever. Continue checking
+    every page in rotation. Invalid or cross-epoch hints are ignored.
     """
     pages=(len(mapped)+PAGE_SHARDS-1)//PAGE_SHARDS
     if page is not None:
@@ -56,11 +57,7 @@ def select_page(mapped,source_epoch,run_number,page=None,coverage=None):
         best=max(scores)
         return next(p for p in range(pages) if scores[p]==best),"PRIORITIZE_UNOBSERVED_SHARDS"
     if gaps:
-        scores=[sum(f"shard_{i:04d}" in gaps
-                    for i,_ in mapped[p*PAGE_SHARDS:(p+1)*PAGE_SHARDS])
-                for p in range(pages)]
-        best=max(scores)
-        return next(p for p in range(pages) if scores[p]==best),"RECHECK_FEATURE_GAP_SHARDS"
+        return fallback,"KNOWN_ASOF_GAPS_ROTATION"
     return fallback,"ALL_ARCHIVED_SHARDS_OBSERVED_ROTATION"
 
 def run(archive_root,checkpoint_root,out,page=None,run_number=1,coverage_summary=None):
