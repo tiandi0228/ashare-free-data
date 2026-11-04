@@ -4,6 +4,12 @@
   "shard_count": 400,
   "completed": [
     {
+      "index": 45,
+      "manifest_sha256": "ebafad9c364295aba2cb167f0651c0df04aeaa1049383d4c0195227677241320",
+      "issuer_count": 8,
+      "receipt_sha256": "51b465758a3862a9603a872650df1105b57ec509420e57bdf7fb8de97d648da2"
+    },
+    {
       "index": 46,
       "manifest_sha256": "d78fb915512b3ca706ebfd16913be0434295cec7ac84be4e97a8c3176aae7ae8",
       "issuer_count": 8,
@@ -862,8 +868,8 @@
       "receipt_sha256": "04f5d5984797803c69b648ed17eb2eba776c633223cb166edb7e1a1ba14d58fa"
     }
   ],
-  "completed_shards": 143,
-  "completed_issuers": 1144,
+  "completed_shards": 144,
+  "completed_issuers": 1152,
   "pending_shards": [
     0,
     1,
@@ -910,7 +916,6 @@
     42,
     43,
     44,
-    45,
     144,
     146,
     147,
