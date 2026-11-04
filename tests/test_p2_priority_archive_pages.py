@@ -21,10 +21,14 @@ class PriorityTests(unittest.TestCase):
         v=select_page(indexed(35),"a"*64,run_number=3,
                       coverage=coverage(list(range(16,32))+[34]))
         self.assertEqual(v[0],1)
-    def test_gap_priority_after_every_page_observed(self):
-        self.assertEqual(select_page(indexed(34),"a"*64,1,
-                         coverage=coverage([],list(range(16,32)))),
-                         (1,"RECHECK_FEATURE_GAP_SHARDS"))
+    def test_frozen_indicator_gaps_do_not_starve_other_pages(self):
+        hinted=coverage([],list(range(16,32)))
+        self.assertEqual(select_page(indexed(34),"a"*64,1,coverage=hinted),
+                         (0,"KNOWN_ASOF_GAPS_ROTATION"))
+        self.assertEqual(select_page(indexed(34),"a"*64,2,coverage=hinted),
+                         (1,"KNOWN_ASOF_GAPS_ROTATION"))
+        self.assertEqual(select_page(indexed(34),"a"*64,3,coverage=hinted),
+                         (2,"KNOWN_ASOF_GAPS_ROTATION"))
     def test_completed_pages_rotate(self):
         self.assertEqual(select_page(indexed(34),"a"*64,3,
                          coverage=coverage([]))[0],2)

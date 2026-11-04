@@ -45,6 +45,7 @@ def summarize(epoch,ledger,reports):
             return fail("INVALID_OR_UNBOUNDED_RECEIPTS")
         proven={}
         replayed={}
+        gap_reason_by_issuer={}
         for j,report in enumerate(reports):
             if (not isinstance(report,dict)
                 or report.get("phase")!="P2_PAGED_REAL_ARCHIVE_FEATURE_REPLAY"
@@ -108,6 +109,10 @@ def summarize(epoch,ledger,reports):
                     or not isinstance(item.get("reason"),str)
                     or not item["reason"]):
                     return fail(f"REPORT_{j}_UNKNOWN_OR_DUPLICATE_GAP")
+                previous_reason=gap_reason_by_issuer.get(code)
+                if previous_reason is not None and previous_reason!=item["reason"]:
+                    return fail("CONFLICTING_REPEAT_GAP_REASON")
+                gap_reason_by_issuer[code]=item["reason"]
                 seen[code]="GAP"
             if set(seen)!=set(expected_codes):
                 return fail(f"REPORT_{j}_MISSING_ISSUER_EVIDENCE")
@@ -133,6 +138,14 @@ def summarize(epoch,ledger,reports):
                        if state=="FEATURE"}
         missing_codes={code for items in proven.values() for code,state in items.items()
                        if state=="GAP"}
+        if set(gap_reason_by_issuer)!=missing_codes:
+            return fail("GAP_REASONS_NOT_RECONCILED")
+        observed_issuers=len(feature_codes)+len(missing_codes)
+        unobserved_issuers=ledger["completed_issuers"]-observed_issuers
+        if unobserved_issuers<0:
+            return fail("IMPOSSIBLE_OBSERVED_ISSUER_COUNT")
+        gap_reason_counts={reason:sum(1 for r in gap_reason_by_issuer.values() if r==reason)
+                           for reason in sorted(set(gap_reason_by_issuer.values()))}
         return dict(base,status="DURABLE_RESEARCH_PAGE_COVERAGE_NOT_CERTIFIED",
                     source_epoch_sha256=ledger["source_sha256"],
                     checkpoint_completed_shards=ledger["completed_shards"],
@@ -148,6 +161,12 @@ def summarize(epoch,ledger,reports):
                     gap_shard_ids=[f"shard_{i:04d}" for i in sorted(gap_shards)],
                     feature_issuer_count=len(feature_codes),
                     issuer_evidence_gap_count=len(missing_codes),
+                    observed_feature_or_gap_issuers=observed_issuers,
+                    unobserved_issuer_count=unobserved_issuers,
+                    gap_reason_counts=gap_reason_counts,
+                    gap_issuer_codes=sorted(missing_codes),
+                    full_archive_evidence_accounted=(len(never_seen)==0 and
+                                                    len(archived)==ledger["completed_shards"]),
                     full_archive_feature_coverage=(len(never_seen)==0 and
                                                    len(gap_shards)==0 and
                                                    len(archived)==ledger["completed_shards"]),
@@ -178,6 +197,8 @@ def main():
     dest.write_text(json.dumps(r,ensure_ascii=False,indent=2)+"\n")
     print(json.dumps({k:r.get(k) for k in (
         "status","reason","observed_archived_shards","feature_complete_shards",
-        "unobserved_archived_shards","feature_issuer_count","trade_gate")}))
+        "unobserved_archived_shards","feature_issuer_count",
+        "unobserved_issuer_count","gap_reason_counts",
+        "full_archive_evidence_accounted","trade_gate")}))
     if r["status"]=="REJECTED":raise SystemExit(1)
 if __name__=="__main__":main()
