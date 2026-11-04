@@ -16,6 +16,7 @@ import json
 import re
 from collections import Counter
 from datetime import date
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from collector.p4_independent_event_evidence import verify
@@ -26,6 +27,33 @@ CSV_SHA = re.compile(r"[0-9a-f]{64}\Z")
 ISSUER = re.compile(r"(?:sh\.60[0-5]|sz\.00[0-3])[0-9]{3}\Z")
 HORIZONS = (3, 4, 5)
 MAX_EVENTS = 50000
+
+
+def _ohlc_volume_queue_boundary(row):
+    """Historical *daily* vendor bar cannot certify a bid/ask fill or price limit.
+
+    Single-price bars and zero-volume vendor observations diagnose plausible
+    unfillable/queued orders. Variable historical ST/price-limit rules and
+    intraday auction queue state are absent and NEVER guessed from OHLC.
+    """
+    if row.get("tradestatus") != "1":
+        return "VENDOR_STATUS_NOT_TRADABLE"
+    try:
+        texts = [row.get(k) for k in ("open","high","low","close","volume")]
+        if any(not isinstance(t,str) or not t for t in texts):
+            raise ValueError("non-string or empty vendor OHLC/volume")
+        o,h,l,c,v = map(Decimal, texts)
+        if any(not x.is_finite() for x in (o,h,l,c,v)):
+            raise ValueError("nonfinite vendor OHLC or volume")
+        if not (0<l<=o<=h and l<=c<=h and v>=0):
+            raise ValueError("invalid vendor OHLC or volume")
+    except (InvalidOperation, ValueError, ArithmeticError):
+        raise ValueError("unsafe vendor OHLC/volume proof")
+    if v == 0:
+        return "VENDOR_ZERO_VOLUME_NO_EXECUTED_TRADE_PRINTS"
+    if o==h==l==c:
+        return "ONE_PRICE_BAR_AUCTION_QUEUE_UNVERIFIED"
+    return "VENDOR_DAILY_RANGE_PRESENT_NO_ORDER_BOOK_OR_FILL_PROOF"
 
 
 def _day(raw):
@@ -127,6 +155,8 @@ def audit(root, manifest_path, proxy_path):
         horizon_counts = {h: Counter() for h in HORIZONS}
         friday = Counter()
         friday_compatibility = Counter()
+        entry_execution_boundary = Counter()
+        friday_exit_execution_boundary = Counter()
         samples = []
         for pair in pairs:
             if not isinstance(pair, dict):
@@ -158,7 +188,6 @@ def audit(root, manifest_path, proxy_path):
                     or first_three[0]["date"] != pair.get("next_vendor_date")
                     or first_three[2]["date"] != pair.get("third_vendor_date")):
                 return reject("FIRST_THREE_VENDOR_ROWS_CHANGED")
-            from decimal import Decimal
             # Cross-check prices only as provenance; NEVER compute trade returns.
             if (Decimal(first_three[0]["open"]) !=
                     Decimal(pair.get("next_vendor_open"))
@@ -166,6 +195,10 @@ def audit(root, manifest_path, proxy_path):
                     Decimal(pair.get("third_vendor_close"))):
                 return reject("SOURCE_PRICE_PROVENANCE_MISMATCH")
             entry_day = _day(first_three[0]["date"])
+            entry_book_kind=_ohlc_volume_queue_boundary(first_three[0])
+            if entry_book_kind=="VENDOR_STATUS_NOT_TRADABLE":
+                return reject("HYPOTHETICAL_ENTRY_DAY_VENDOR_STATUS_CONTRADICTS_PROXY")
+            entry_execution_boundary[entry_book_kind]+=1
             # Vendor rows after SIGNAL, from entry day through 5 sessions
             # *following* hypothetical entry; six vendor rows in total.
             window = rows[i+1:i+7]
@@ -218,6 +251,18 @@ def audit(root, manifest_path, proxy_path):
             else:
                 compatibility_kind = "OBSERVED_FRIDAY_WINDOW_ONLY_NOT_TRADABLE"
             friday_compatibility[compatibility_kind] += 1
+            if friday_kind=="ENTRY_FRIDAY_TPLUS1_CANNOT_CLEAR_SAME_FRIDAY":
+                friday_book_kind="ENTRY_FRIDAY_TPLUS1_SAME_DAY_EXIT_FORBIDDEN"
+            elif friday_kind=="FRIDAY_BEFORE_MINIMUM_THREE_VENDOR_SESSIONS":
+                friday_book_kind="FRIDAY_EXIT_BEFORE_FROZEN_MINIMUM_HOLD"
+            elif first_friday_index is None:
+                friday_book_kind="FRIDAY_EXIT_SOURCE_CENSORED_UNKNOWN"
+            elif first_friday_index>=len(window):
+                return reject("FRIDAY_INDEX_OUTSIDE_VENDOR_WINDOW")
+            else:
+                friday_book_kind=_ohlc_volume_queue_boundary(
+                    window[first_friday_index])
+            friday_exit_execution_boundary[friday_book_kind]+=1
             if len(samples) < 6:
                 samples.append({
                     "issuer": code, "signal_completed_day": signal,
@@ -225,6 +270,11 @@ def audit(root, manifest_path, proxy_path):
                     "vendor_day_after_entry_3_4_5": observation,
                     "friday_constraint": friday_kind,
                     "friday_minimum_holding_compatibility": compatibility_kind,
+                    "entry_daily_ohlc_liquidity_caution": entry_book_kind,
+                    "first_friday_exit_ohlc_liquidity_caution": friday_book_kind,
+                    "confirmed_buy_order_book_queue": False,
+                    "confirmed_sell_order_book_queue": False,
+                    "verified_price_limit_band": False,
                     "first_friday_vendor_date_unverified": (
                         window[first_friday_index]["date"]
                         if first_friday_index is not None else None),
@@ -239,6 +289,9 @@ def audit(root, manifest_path, proxy_path):
             return reject("FRIDAY_COVERAGE_ACCOUNTING_FAILED")
         if sum(friday_compatibility.values()) != len(pairs):
             return reject("FRIDAY_COMPATIBILITY_ACCOUNTING_FAILED")
+        if (sum(entry_execution_boundary.values()) != len(pairs)
+                or sum(friday_exit_execution_boundary.values()) != len(pairs)):
+            return reject("VENDOR_DAILY_OHLC_LIQUIDITY_COVERAGE_MISMATCH")
         if (friday_compatibility["NO_GO_ENTRY_FRIDAY_TPLUS1"] !=
                 friday["ENTRY_FRIDAY_TPLUS1_CANNOT_CLEAR_SAME_FRIDAY"]
                 or friday_compatibility["NO_GO_MINIMUM_HOLD_VS_FRIDAY"] !=
@@ -263,6 +316,15 @@ def audit(root, manifest_path, proxy_path):
                         horizon_counts[h]["VENDOR_STATUS_BLOCKED"],
                 } for h in HORIZONS},
             friday_mandatory_exit_conflicts=dict(sorted(friday.items())),
+            entry_daily_ohlc_queue_ambiguity=dict(sorted(
+                entry_execution_boundary.items())),
+            friday_exit_daily_ohlc_queue_ambiguity=dict(sorted(
+                friday_exit_execution_boundary.items())),
+            historical_issuer_st_price_limit_band_verified=False,
+            continuous_order_book_queue_replayed=False,
+            confirmed_entry_fill_count=0,
+            confirmed_friday_exit_fill_count=0,
+            entry_daily_ohlc_not_an_executable_buy_quote=True,
             friday_and_minimum_holding_compatibility_research=dict(
                 sorted(friday_compatibility.items())),
             pre_entry_friday_policy_trade_permission_certified=False,
@@ -281,6 +343,10 @@ def audit(root, manifest_path, proxy_path):
                 "NO_HISTORICAL_PIT_TRADING_PERMISSION_OR_OOS_VALIDATION",
                 "EX_POST_VENDOR_FRIDAY_STATUS_NOT_AVAILABLE_AT_DECISION_TIME",
                 "OBSERVED_FRIDAY_WINDOW_NOT_EVIDENCE_OF_REAL_EXIT_FILL",
+                "ZERO_DAILY_VOLUME_HAS_NO_EXECUTED_PRINT_NOT_A_BROKER_ORDER_LOG",
+                "SINGLE_PRICE_BAR_CANNOT_PROVE_QUEUED_ORDER_PRIORITY_OR_EXECUTION",
+                "DAILY_OHLC_HAS_NO_INTRADAY_TICKS_OR_ORDER_BOOK",
+                "HISTORICAL_ST_PRICE_LIMIT_BAND_CANNOT_BE_INFERRED_FROM_OHLC",
                 "STRICT_FRIDAY_MINIMUM_HOLDING_POLICY_STILL_RESEARCH_ONLY",
             ])
     except (OSError, KeyError, TypeError, ValueError,

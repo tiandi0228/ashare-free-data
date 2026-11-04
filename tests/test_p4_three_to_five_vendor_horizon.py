@@ -247,5 +247,42 @@ class HorizonTests(unittest.TestCase):
             self.assertEqual(r["reason"],"PRICE_ORIGINAL_SHA_CHANGED")
 
 
+class VendorDailyExecutionBoundaryTests(unittest.TestCase):
+    def test_zero_volume_single_price_and_nondegenerate_ohlc_never_prove_queue(self):
+        from collector.p4_three_to_five_vendor_horizon import (
+            _ohlc_volume_queue_boundary as check
+        )
+        bar={"open":"10.00","high":"10.40","low":"9.80",
+             "close":"10.05","volume":"100","tradestatus":"1"}
+        self.assertEqual(check(bar),
+            "VENDOR_DAILY_RANGE_PRESENT_NO_ORDER_BOOK_OR_FILL_PROOF")
+        one=dict(bar,open="10.00",high="10.00",low="10.00",close="10.00")
+        self.assertEqual(check(one),
+            "ONE_PRICE_BAR_AUCTION_QUEUE_UNVERIFIED")
+        no_prints=dict(bar,volume="0")
+        self.assertEqual(check(no_prints),
+            "VENDOR_ZERO_VOLUME_NO_EXECUTED_TRADE_PRINTS")
+        halted=dict(bar,tradestatus="0",volume="0")
+        self.assertEqual(check(halted),"VENDOR_STATUS_NOT_TRADABLE")
+
+    def test_nonfinite_or_inconsistent_vendor_bars_cannot_pass(self):
+        from collector.p4_three_to_five_vendor_horizon import (
+            _ohlc_volume_queue_boundary as check
+        )
+        bar={"open":"10.00","high":"10.40","low":"9.80",
+             "close":"10.05","volume":"100","tradestatus":"1"}
+        variants=[
+            dict(bar,volume="NaN"),dict(bar,volume="-1"),
+            dict(bar,volume="not-a-number"),
+            dict(bar,high="9.00"),dict(bar,close="11.00"),
+            dict(bar,open="Infinity"),dict(bar,low="0"),
+            dict(bar,volume=None),
+        ]
+        for change in variants:
+            with self.subTest(change=change):
+                with self.assertRaises(ValueError):
+                    check(change)
+
+
 if __name__=="__main__":
     unittest.main()
