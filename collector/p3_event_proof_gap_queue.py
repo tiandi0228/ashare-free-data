@@ -177,18 +177,56 @@ def build(source):
         if not ISSUER.fullmatch(issuer):
             raise ValueError("overlap issuer")
         old, new = item.get("previous_announcement"), item.get("next_announcement")
-        if not any(c["issuer"] == issuer and c["announcement_id"] == old
-                   for c in claims) or not any(
-                c["issuer"] == issuer and c["announcement_id"] == new
-                for c in claims):
-            raise ValueError("unanchored overlapping halt")
+        # The source episode ledger reports announcement IDs only. Rebind
+        # EACH conflicting halt to its SHA-pinned original text claim.
+        # Multiple HALT_START clauses in one PDF remain ambiguous candidates,
+        # not a silently selected or historically certified transition.
+        def halt_source_candidates(announcement):
+            selected = [
+                claim for claim in claims
+                if (claim["issuer"] == issuer
+                    and claim["announcement_id"] == announcement
+                    and claim["textual_direction"] == "HALT_START")
+            ]
+            if not 1 <= len(selected) <= 20:
+                raise ValueError("missing or ambiguous beyond cap halt-source SHA")
+            return [
+                {
+                    "original_pdf_sha256": claim["original_pdf_sha256"],
+                    "source_halt_text_day_unverified": claim["claimed_event_day"],
+                    "source_announcement_id": claim["announcement_id"],
+                    "approval_or_consent_risk": claim[
+                        "approval_not_effective_risk"],
+                    "independent_first_publication_authenticated": False,
+                    "historical_issuer_state_certified": False,
+                } for claim in sorted(selected, key=lambda c: (
+                    c["claimed_event_day"], c["original_pdf_sha256"]))
+            ]
+        if (not isinstance(old, str) or not isinstance(new, str)
+                or not old or not new or old == new):
+            raise ValueError("unrelated or circular repeated halt announcement")
+        preceding = halt_source_candidates(old)
+        following = halt_source_candidates(new)
+        chronology = all(
+            a["source_halt_text_day_unverified"] <=
+            b["source_halt_text_day_unverified"]
+            for a in preceding for b in following)
         queue.append({
             "priority": 0, "kind": "CONFLICTING_HALTS_MANUAL_REVIEW_FIRST",
             "issuer": issuer, "previous_announcement_id": old,
             "next_announcement_id": new,
+            "previous_halt_original_sha_and_text_day_candidates": preceding,
+            "next_halt_original_sha_and_text_day_candidates": following,
+            "multiple_halt_clauses_need_manual_disambiguation": (
+                len(preceding) > 1 or len(following) > 1),
+            "text_date_order_unverified_consistent": chronology,
+            "independently_verified_official_state_continuity": False,
             "missing_independent_proofs": [
+                "REVIEW_BOTH_SHA_PINNED_ORIGINAL_PDF_CLAUSES_AND_REVISIONS",
                 "RESOLVE_OVERLAPPING_OR_REPEATED_HALT_NOTICES",
-                "OFFICIAL_STATUS_INTERVAL_AND_PUBLICATION_TIMELINE"],
+                "INDEPENDENT_FIRST_PUBLICATION_TIMESTAMP_FOR_BOTH_ORIGINALS",
+                "OFFICIAL_STATUS_INTERVAL_AND_PUBLICATION_TIMELINE",
+                "DECISION_ASOF_MEMBERSHIP_CANNOT_DEFAULT_TO_TRADEABLE"],
             "historical_PIT_verified": False, "trade_eligible": False,
         })
     queue.sort(key=lambda r: (
