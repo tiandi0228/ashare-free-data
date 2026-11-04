@@ -196,9 +196,27 @@ def archive(plan, selected, repository):
                 raise P1ArchivePushError(
                     "immutable P1 archive concurrent writes exhausted bounded retries",
                     "CONCURRENT_NON_FAST_FORWARD_RETRIES_EXHAUSTED",attempt)
+            category=classify_push_failure(result)
+            if category in ("REMOTE_SERVICE_OR_TRANSPORT_FAILURE",
+                            "NETWORK_OR_TLS_FAILURE"):
+                # A transport failure might mean the remote accepted a push
+                # but its acknowledgement was lost. Never replay against the
+                # stale local commit or use --force; re-clone the latest
+                # branch, SHA/byte-check every selected receipt+CSV, and
+                # regard an exact no-op remote state as success only after
+                # that independent content comparison.
+                if attempt<MAX_PUSH_ATTEMPTS:
+                    print("P1 archive transient git transport failure; re-reading",
+                          "latest remote immutable snapshot, attempt",
+                          attempt+1,flush=True)
+                    continue
+                raise P1ArchivePushError(
+                    "immutable P1 archive transport retries exhausted, "
+                    "no unverified archive completion accepted",
+                    category+"_RETRIES_EXHAUSTED",attempt)
             raise P1ArchivePushError(
                 "immutable P1 archive push rejected; not retryable as concurrent update",
-                classify_push_failure(result),attempt)
+                category,attempt)
         raise ValueError("P1 archive has no accepted remote write")
 
 def main():
