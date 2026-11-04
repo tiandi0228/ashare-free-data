@@ -1,0 +1,47 @@
+{
+  "actual_scheduled_execution_is_proven": true,
+  "archive_csv_replay_enabled": true,
+  "checkpoint_shards_after": 144,
+  "checkpoint_shards_before": 143,
+  "delay_exceeds_45_minutes": true,
+  "executable_candidates": [],
+  "github_queue_creation_delay_minutes": 324.4,
+  "github_run_created_at_utc": "2026-11-04T22:34:24+00:00",
+  "github_workflow_conclusion_authenticated": false,
+  "head_sha": "752a53d9cb90977dcc09b29985fba93202b2857a",
+  "historical_PIT_verified": false,
+  "limitations": [
+    "GITHUB_RUN_CREATED_AT_IS_QUEUE_CREATION_NOT_RUNNER_STEP_START",
+    "LITERAL_EVENT_CRON_DOES_NOT_PROVE_FUTURE_SCHEDULE_RELIABILITY",
+    "SCHEDULED_NOMINAL_DATE_INFERRED_FROM_CREATED_AT_NOT_SIGNED_BY_GITHUB",
+    "IN_FLIGHT_SOURCE_RECEIPT_NOT_FINAL_ACTIONS_SUCCESS_ATTESTATION",
+    "SOURCE_BARS_NOT_HISTORICAL_PIT_OR_TRADING_ELIGIBILITY"
+  ],
+  "new_archived_shard_evidence": [
+    {
+      "index": 45,
+      "issuer_count": 8,
+      "manifest_sha256": "ebafad9c364295aba2cb167f0651c0df04aeaa1049383d4c0195227677241320",
+      "receipt_sha256": "51b465758a3862a9603a872650df1105b57ec509420e57bdf7fb8de97d648da2"
+    }
+  ],
+  "new_original_shard_indices": [
+    45
+  ],
+  "nominal_slot_beijing": "2026-11-05T01:10:00+08:00",
+  "nominal_slot_date_is_inferred_not_authenticated": true,
+  "nominal_slot_utc": "2026-11-04T17:10:00+00:00",
+  "orders": [],
+  "per_shard_digests_from_locally_validated_ledger": true,
+  "phase": "P1_LITERAL_CRON_RUN_CREATION_PROVENANCE_PENDING_CONCLUSION",
+  "requested_shards": 1,
+  "run_attempt": 1,
+  "run_id": 41926445113,
+  "runner_step_start_authenticated": false,
+  "shards_durably_accepted_by_run": 1,
+  "source_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_authorized": false,
+  "trade_gate": "BLOCKED",
+  "trigger": "schedule",
+  "trigger_cron_utc": "10 17 * * 0-4"
+}
