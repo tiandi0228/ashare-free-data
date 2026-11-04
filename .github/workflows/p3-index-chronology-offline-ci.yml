@@ -1,0 +1,48 @@
+name: P3 archived index chronology offline integrity (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p3_index_chronology_guard.py'
+      - 'tests/test_p3_index_chronology_guard.py'
+      - 'collector/p3_official_original_archive.py'
+      - 'tests/test_p3_official_original_archive.py'
+      - 'collector/p3_persisted_temporal_risk_triage.py'
+      - 'tests/test_p3_persisted_temporal_risk_triage.py'
+      - '.github/workflows/p3-index-chronology-offline-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p3_index_chronology_guard.py'
+      - 'tests/test_p3_index_chronology_guard.py'
+      - '.github/workflows/p3-index-chronology-offline-ci.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check index chronology and historical-PIT fail-closed unit contracts
+        run: |
+          python -m unittest \
+            tests.test_p3_index_chronology_guard \
+            tests.test_p3_official_original_archive \
+            tests.test_p3_persisted_temporal_risk_triage -v
+      - name: Prove no research source can authorize historical trading
+        run: |
+          python - <<'PY'
+          from tests.test_p3_index_chronology_guard import snapshot
+          from collector.p3_index_chronology_guard import audit
+          status=audit(snapshot())
+          assert status['status']=='INDEX_CHRONOLOGY_CROSSCHECK_RESEARCH_ONLY'
+          assert status['historical_PIT_verified'] is False
+          assert status['first_publication_authenticated'] is False
+          assert status['trade_authorized'] is False
+          assert status['trade_gate']=='BLOCKED'
+          assert status['orders']==[] and status['executable_candidates']==[]
+          print('P3 OFFLINE PIT GATE REMAINS BLOCKED')
+          PY
