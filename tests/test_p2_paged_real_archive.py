@@ -73,6 +73,65 @@ class PagedArchiveTests(unittest.TestCase):
             self.assertEqual(first["trade_gate"],"BLOCKED")
             self.assertEqual(first["orders"],[])
             self.assertFalse(first["full_market_universe_verified"])
+
+    def test_sparse_missing_shards_across_pages(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            a,c,o=setup(tmp,33)
+            missing={3,17,32}
+            observed=[f"shard_{i:04d}" for i in range(33) if i not in missing]
+            hint={
+                "phase":"P2_PERSISTENT_ARCHIVE_FEATURE_COVERAGE",
+                "status":"DURABLE_RESEARCH_PAGE_COVERAGE_NOT_CERTIFIED",
+                "source_epoch_sha256":SHA,"trade_gate":"BLOCKED",
+                "historical_PIT_verified":False,
+                "full_market_universe_verified":False,
+                "coverage_certified_for_trading":False,
+                "orders":[],"executable_candidates":[],"actionable_buy_signals":[],
+                "archived_original_shards":33,
+                "observed_archived_shards":30,"unobserved_archived_shards":3,
+                "observed_shard_ids":observed,
+                "unobserved_shard_ids":[f"shard_{i:04d}" for i in sorted(missing)],
+                "gap_shard_ids":[],
+            }
+            with patch("collector.p2_paged_real_archive.subprocess.check_output",
+                       return_value=COMMIT+"\n"),patch(
+                "collector.p2_paged_real_archive.observe",side_effect=pretend_success):
+                report=run(a,c,o,run_number=1,coverage_summary=hint)
+            self.assertEqual(report["selection_method"],
+                             "PRIORITIZE_UNOBSERVED_ACROSS_PAGES")
+            self.assertEqual(report["selected_shards"],
+                             ["shard_0003","shard_0017","shard_0032"])
+            self.assertEqual(report["selected_page_indices"],[0,1,2])
+            self.assertEqual(report["processed_shards"],3)
+            self.assertEqual(report["scoped_verified_issuers"],24)
+            self.assertEqual(report["trade_gate"],"BLOCKED")
+            self.assertEqual(report["orders"],[])
+
+    def test_bad_sparse_hint_falls_back_without_opening_trading(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            a,c,o=setup(tmp,17)
+            hint={
+                "phase":"P2_PERSISTENT_ARCHIVE_FEATURE_COVERAGE",
+                "status":"DURABLE_RESEARCH_PAGE_COVERAGE_NOT_CERTIFIED",
+                "source_epoch_sha256":SHA,"trade_gate":"OPEN",
+                "historical_PIT_verified":False,
+                "full_market_universe_verified":False,
+                "coverage_certified_for_trading":False,
+                "orders":[],"executable_candidates":[],"actionable_buy_signals":[],
+                "archived_original_shards":17,
+                "observed_archived_shards":16,"unobserved_archived_shards":1,
+                "observed_shard_ids":[f"shard_{i:04d}" for i in range(16)],
+                "unobserved_shard_ids":["shard_0016"],"gap_shard_ids":[],
+            }
+            with patch("collector.p2_paged_real_archive.subprocess.check_output",
+                       return_value=COMMIT+"\n"),patch(
+                "collector.p2_paged_real_archive.observe",side_effect=pretend_success):
+                report=run(a,c,o,run_number=1,coverage_summary=hint)
+            self.assertEqual(report["selection_method"],
+                             "NO_VALID_DURABLE_COVERAGE_ROTATION")
+            self.assertEqual(report["processed_shards"],16)
+            self.assertEqual(report["trade_gate"],"BLOCKED")
+
     def test_manual_page_and_out_of_range_are_explicit(self):
         with tempfile.TemporaryDirectory() as tmp:
             a,c,o=setup(tmp,17)
