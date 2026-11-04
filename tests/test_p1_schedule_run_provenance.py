@@ -54,7 +54,8 @@ def github_run(created, **overrides):
 def check(cron, created, progress=None, **overrides):
     return build(github_run(created, **overrides),
                  valid_progress() if progress is None else progress,
-                 cron=cron, run_id=999, attempt=1, sha=HEAD)
+                 cron=cron, run_id=999, attempt=1, sha=HEAD,
+                 actual_requested_shards=2 if cron in DUAL_CRONS else 1)
 
 
 class P1ExactScheduledProvenanceTests(unittest.TestCase):
@@ -146,6 +147,14 @@ class P1ExactScheduledProvenanceTests(unittest.TestCase):
                 p=copy.deepcopy(original);p.update(update)
                 with self.assertRaises(ValueError):
                     check("10 3 * * 1-5", "2026-11-05T03:15:00Z", p)
+
+    def test_actual_request_must_match_literal_cron_policy(self):
+        run=github_run("2026-11-05T03:25:00Z")
+        for bad in (1, 0, 3, True, "2"):
+            with self.subTest(actual=bad), self.assertRaises(ValueError):
+                build(run, valid_progress(), cron="10 3 * * 1-5",
+                      run_id=999, attempt=1, sha=HEAD,
+                      actual_requested_shards=bad)
 
     def test_weekday_single_records_only_verified_own_shard(self):
         r=check("10 1 * * 1-5", "2026-11-05T01:15:00Z",
