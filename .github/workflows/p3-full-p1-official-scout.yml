@@ -11,6 +11,8 @@ on:
       - 'collector/p3_index_chronology_guard.py'
       - 'tests/test_p3_index_chronology_guard.py'
       - 'collector/p3_archived_event_episode_ledger.py'
+      - 'collector/p3_event_proof_gap_queue.py'
+      - 'tests/test_p3_event_proof_gap_queue.py'
       - 'collector/p3_resume_followup_discovery.py'
       - 'collector/p3_resume_original_archive.py'
       - 'collector/p3_halt_resume_pair_review.py'
@@ -48,7 +50,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline boundaries and official-source tests
-        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture tests.test_p3_original_effective_clause_review tests.test_p3_official_original_archive tests.test_p3_persisted_temporal_risk_triage tests.test_p3_index_chronology_guard tests.test_p3_archived_event_episode_ledger tests.test_p3_resume_followup_discovery tests.test_p3_resume_original_archive tests.test_p3_halt_resume_pair_review -v
+        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture tests.test_p3_original_effective_clause_review tests.test_p3_official_original_archive tests.test_p3_persisted_temporal_risk_triage tests.test_p3_index_chronology_guard tests.test_p3_archived_event_episode_ledger tests.test_p3_event_proof_gap_queue tests.test_p3_resume_followup_discovery tests.test_p3_resume_original_archive tests.test_p3_halt_resume_pair_review -v
       - name: Install free PDF text parser
         run: python -m pip install 'pypdf>=4,<7'
       - name: Fetch successful original P1 queue artifact
@@ -196,6 +198,29 @@ jobs:
                 'unpaired halt evidence',report['unpaired_halt_starts_needing_resumption_search'],
                 'paired text events UNCERTIFIED',report['paired_halt_resume_text_claims_unverified'],
                 'certified states ZERO')
+          PY
+      - name: Build independently SHA-linked official event missing-proof work queue
+        run: |
+          python -m collector.p3_event_proof_gap_queue \
+            --episodes evidence/p3_all_archived_original_event_episodes.json \
+            --out evidence/p3_original_event_missing_proof_queue.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          source=json.loads(Path('evidence/p3_all_archived_original_event_episodes.json').read_text())
+          q=json.loads(Path('evidence/p3_original_event_missing_proof_queue.json').read_text())
+          expected=(source['paired_halt_resume_text_claims_unverified']
+                    +source['unpaired_halt_starts_needing_resumption_search']
+                    +source['unpaired_resume_claims']
+                    +source['overlapping_halt_claims_without_resume'])
+          assert q['work_item_count']==expected
+          assert q['upstream_unique_text_events']==source['deduplicated_text_event_claims']
+          assert q['status']=='UNVERIFIED_PIT_WORK_QUEUE_ONLY'
+          assert q['certified_first_publication_count']==0
+          assert q['completed_pit_cells']==0 and not q['historical_PIT_verified']
+          assert q['trade_gate']=='BLOCKED' and q['orders']==[] and q['recommendations']==[]
+          print('P3 MISSING PROOF QUEUE:',q['work_item_count'],
+                'SHA-backed research work items; PIT ZERO')
           PY
       - name: Search genuine archived unpaired halt issuers for subsequent resumption originals
         run: |
