@@ -11,11 +11,23 @@ PHASES = {
  "P3": ("proof_gap_triage_contract","source_original_hashes","historical_first_publication","halt_resume_intervals","historical_st_status","delist_status","historical_pit_roster","calendar_pit","official_audit_replay","complete_pit_acceptance"),
  "P4": ("synthetic_t1_contract","partial_fill_audit","friday_exit_audit","official_calendar","limit_band_history","order_book_uncertainty","fee_risk_budget","strategy_fill_provenance","out_of_sample_execution","end_to_end_acceptance"),
 }
+# Scope is OFFLINE SOFTWARE CONTRACT TESTS, not historical PIT or live-market
+# source certification. Each independent criterion has its own test module.
 TESTS = {
- "P2": ("archive_screen_contract","collector/p2_real_archive_research_screen.py","tests.test_p2_real_archive_research_screen"),
- "P3": ("proof_gap_triage_contract","collector/p3_proof_gap_triage.py","tests.test_p3_proof_gap_triage"),
- "P4": ("synthetic_t1_contract","collector/p4_synthetic_t1_execution_kernel.py","tests.test_p4_synthetic_t1_execution_kernel"),
+ "P2": {
+   "archive_screen_contract": ("collector/p2_real_archive_research_screen.py","tests.test_p2_real_archive_research_screen"),
+   "indicator_coverage": ("collector/p2_feature_coverage_ledger.py","tests.test_p2_feature_coverage_ledger"),
+ },
+ "P3": {
+   "proof_gap_triage_contract": ("collector/p3_proof_gap_triage.py","tests.test_p3_proof_gap_triage"),
+   "source_original_hashes": ("collector/p3_official_original_archive.py","tests.test_p3_official_original_archive"),
+ },
+ "P4": {
+   "synthetic_t1_contract": ("collector/p4_synthetic_t1_execution_kernel.py","tests.test_p4_synthetic_t1_execution_kernel"),
+   "order_book_uncertainty": ("collector/p4_three_to_five_vendor_horizon.py","tests.test_p4_three_to_five_vendor_horizon"),
+ },
 }
+
 
 def audit(root, manifest, commit, run_tests=False):
     if not isinstance(commit,str) or not re.fullmatch(r"[0-9a-f]{40}",commit):
@@ -35,18 +47,21 @@ def audit(root, manifest, commit, run_tests=False):
             or [x.get("id") for x in declared]!=list(ids)
             or any(type(x.get("weight")) is not int or x["weight"]!=10 for x in declared)):
             raise ValueError("frozen denominator modified for "+phase)
-        gate,source,module=TESTS[phase]
         rows=[]
         for entry in declared:
             passed=False
             evidence=None
-            if run_tests and entry["id"]==gate and (root/source).is_file():
-                test=subprocess.run([sys.executable,"-m","unittest","-q",module],
-                                    cwd=root,capture_output=True,text=True,timeout=120)
-                passed=(test.returncode==0 and "Ran " in test.stderr and "OK" in test.stderr)
-                if passed:
-                    evidence={"source_code":source,"test_module":module,"source_commit":commit,
-                              "verification":"OFFLINE_UNITTEST_PASSED_IN_THIS_RUN"}
+            contract = TESTS[phase].get(entry["id"])
+            if run_tests and contract:
+                source, module = contract
+                if (root/source).is_file():
+                    test=subprocess.run([sys.executable,"-m","unittest","-q",module],
+                                        cwd=root,capture_output=True,text=True,timeout=120)
+                    passed=(test.returncode==0 and "Ran " in test.stderr and "OK" in test.stderr)
+                    if passed:
+                        evidence={"source_code":source,"test_module":module,"source_commit":commit,
+                                  "verification":"OFFLINE_UNITTEST_PASSED_IN_THIS_RUN",
+                                  "scope":"SOFTWARE_CONTRACT_ONLY_NOT_REAL_DATA_CERTIFICATION"}
             rows.append({"id":entry["id"],"weight":10,"passed":passed,
                          "evidence":evidence,
                          "status":"VERIFIED_OFFLINE" if passed else "NOT_ADMITTED"})

@@ -3,7 +3,7 @@ import copy
 import json
 import unittest
 from pathlib import Path
-from collector.progress_baseline import audit
+from collector.progress_baseline import audit, TESTS
 
 MANIFEST=json.loads(Path("progress_manifest.json").read_text())
 SHA="a"*40
@@ -34,6 +34,16 @@ class ProgressBaselineTests(unittest.TestCase):
                 change(m)
                 with self.assertRaises(ValueError):
                     audit(Path("."),m,SHA)
+    def test_only_explicit_independent_contracts_admitted(self):
+        self.assertEqual({k: len(v) for k,v in TESTS.items()},
+                         {"P2":2,"P3":2,"P4":2})
+        for phase,contracts in TESTS.items():
+            self.assertEqual(len(set(module for _,module in contracts.values())),2)
+            self.assertTrue(set(contracts).issubset(
+                {row["id"] for row in MANIFEST["phases"][phase]}))
+        r=audit(Path("."),MANIFEST,SHA)
+        self.assertTrue(all(all(not row["passed"] for row in stage["criteria"])
+                            for stage in r["stages"].values()))
     def test_no_unpinned_ref(self):
         with self.assertRaises(ValueError):
             audit(Path("."),MANIFEST,"main")
