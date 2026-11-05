@@ -5,10 +5,12 @@ on:
       - 'collector/p3_index_chronology_guard.py'
       - 'collector/p3_event_proof_gap_queue.py'
       - 'collector/p3_proof_gap_triage.py'
+      - 'collector/p3_official_review_packets.py'
       - 'collector/p3_archived_event_episode_ledger.py'
       - 'tests/test_p3_archived_event_episode_ledger.py'
       - 'tests/test_p3_event_proof_gap_queue.py'
       - 'tests/test_p3_proof_gap_triage.py'
+      - 'tests/test_p3_official_review_packets.py'
       - 'tests/test_p3_index_chronology_guard.py'
       - 'collector/p3_official_original_archive.py'
       - 'tests/test_p3_official_original_archive.py'
@@ -22,10 +24,12 @@ on:
       - 'collector/p3_index_chronology_guard.py'
       - 'collector/p3_event_proof_gap_queue.py'
       - 'collector/p3_proof_gap_triage.py'
+      - 'collector/p3_official_review_packets.py'
       - 'collector/p3_archived_event_episode_ledger.py'
       - 'tests/test_p3_archived_event_episode_ledger.py'
       - 'tests/test_p3_event_proof_gap_queue.py'
       - 'tests/test_p3_proof_gap_triage.py'
+      - 'tests/test_p3_official_review_packets.py'
       - 'tests/test_p3_index_chronology_guard.py'
       - '.github/workflows/p3-index-chronology-offline-ci.yml'
       - '.github/workflows/p3-full-p1-official-scout.yml'
@@ -48,6 +52,7 @@ jobs:
             tests.test_p3_persisted_temporal_risk_triage \
             tests.test_p3_event_proof_gap_queue \
             tests.test_p3_proof_gap_triage \
+            tests.test_p3_official_review_packets \
             tests.test_p3_archived_event_episode_ledger -v
       - name: Prove no research source can authorize historical trading
         run: |
