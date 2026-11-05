@@ -1,0 +1,54 @@
+name: P2-P4 conservative engineering progress baseline (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/progress_baseline.py'
+      - 'tests/test_progress_baseline.py'
+      - 'progress_manifest.json'
+      - '.github/workflows/progress-baseline-offline.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/progress_baseline.py'
+      - 'tests/test_progress_baseline.py'
+      - 'progress_manifest.json'
+      - '.github/workflows/progress-baseline-offline.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify frozen milestones and zero unproved claims
+        run: python -m unittest -v tests.test_progress_baseline
+      - name: Independently run P2 P3 and P4 offline contracts
+        run: |
+          python -m collector.progress_baseline \
+            --manifest progress_manifest.json --root . \
+            --commit "${{ github.sha }}" --run-tests \
+            --out evidence/progress_report.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path('evidence/progress_report.json').read_text())
+          assert x['trade_gate']=='BLOCKED' and x['historical_PIT_verified'] is False
+          assert x['orders']==[] and x['executable_candidates']==[]
+          for phase in ('P2','P3','P4'):
+              y=x['stages'][phase]
+              assert y['engineering_acceptance_baseline_pct']==10
+              assert sum(z['passed'] for z in y['criteria'])==1
+              assert y['formal_trading_ready'] is False
+          print('P2/P3/P4 one of ten engineering checks verified, no trading')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stockmate-conservative-progress-${{ github.run_id }}
+          path: evidence/progress_report.json
+          if-no-files-found: error
+          retention-days: 14
