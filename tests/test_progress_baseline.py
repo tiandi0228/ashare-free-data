@@ -36,9 +36,9 @@ class ProgressBaselineTests(unittest.TestCase):
                     audit(Path("."),m,SHA)
     def test_only_explicit_independent_contracts_admitted(self):
         self.assertEqual({k: len(v) for k,v in TESTS.items()},
-                         {"P2":2,"P3":2,"P4":2})
+                         {"P2":3,"P3":3,"P4":3})
         for phase,contracts in TESTS.items():
-            self.assertEqual(len(set(module for _,module in contracts.values())),2)
+            self.assertEqual(len(set(module for _,module in contracts.values())),3)
             self.assertTrue(set(contracts).issubset(
                 {row["id"] for row in MANIFEST["phases"][phase]}))
         r=audit(Path("."),MANIFEST,SHA)
