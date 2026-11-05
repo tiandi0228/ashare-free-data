@@ -22,7 +22,7 @@ PHASE="P4_SYNTHETIC_T1_PARTIAL_FILL_CONTRACT"
 PROVENANCE="SYNTHETIC_OFFLINE_FIXTURE_ONLY"
 ISSUER=re.compile(r"(?:sh\.60[0-5]|sz\.00[0-3])[0-9]{3}\Z")
 MAX_EVENTS=80
-KIND={"BEGIN_SESSION","PLACE_BUY","FILL_BUY","PLACE_SELL","FILL_SELL","CANCEL"}
+KIND={"BEGIN_SESSION","END_SESSION","PLACE_BUY","FILL_BUY","PLACE_SELL","FILL_SELL","CANCEL"}
 SELL_REASONS={"FROZEN_STOP","FROZEN_TARGET","TIME_EXIT","FRIDAY_FORCE"}
 MAX_QUANTITY=10000
 
@@ -100,6 +100,10 @@ def replay(fixture):
         sellable=0
         pending=None
         day=None
+        session_ended=False
+        friday_force_order_accepted=False
+        friday_closure_reports=[]
+        friday_unattested_prior_sessions=0
         synthetic_fills=[]
         rejected=[]  # hypothetical rejection evidence, no actual orders
         for ev in events:
@@ -110,16 +114,59 @@ def replay(fixture):
             if kind=="BEGIN_SESSION":
                 if day is not None and stamp<=day:
                     return fail("NON_MONOTONIC_SYNTHETIC_SESSION")
+                # A Friday position cannot silently roll into Monday without
+                # an explicit end-of-session snapshot of its residual risk.
+                if (day is not None and day.weekday()==4 and
+                        held>0 and not session_ended):
+                    return fail("FRIDAY_POSITION_ROLLED_WITHOUT_CLOSE_RISK_SNAPSHOT")
+                if day is not None and day.weekday()==4 and not session_ended:
+                    friday_unattested_prior_sessions+=1
                 if pending is not None:
                     # Do not automatically fill or cancel a day order.
                     # Explicit cancel at end-of-day required.
                     return fail("OPEN_ORDER_CARRIED_WITHOUT_EXPLICIT_POLICY")
                 day=stamp
                 sellable=held
+                session_ended=False
+                friday_force_order_accepted=False
                 continue
             if day is None or stamp!=day:
                 return fail("EVENT_NOT_IN_ACTIVE_SYNTHETIC_SESSION")
+            if session_ended:
+                return fail("EVENT_AFTER_EXPLICIT_SYNTHETIC_SESSION_END")
+            if kind=="END_SESSION":
+                # End-of-session is a synthetic marker, NOT a closing auction
+                # execution and NOT a certified exchange session boundary.
+                if stamp.weekday()==4:
+                    if held==0 and pending is None:
+                        outcome="SYNTHETIC_FRIDAY_FLAT_NOT_REAL_EXIT_PROOF"
+                    elif pending is not None and pending["side"]=="SELL":
+                        outcome="SYNTHETIC_FRIDAY_UNFILLED_SELL_REMAINDER"
+                    elif friday_force_order_accepted:
+                        outcome="SYNTHETIC_FRIDAY_RESIDUAL_AFTER_EXIT_ATTEMPT"
+                    else:
+                        outcome="SYNTHETIC_FRIDAY_POSITION_WITHOUT_ACCEPTED_FORCE_EXIT"
+                    friday_closure_reports.append({
+                        "synthetic_friday_date":day.isoformat(),
+                        "synthetic_close_status":outcome,
+                        "unliquidated_shares":held,
+                        "tplus1_sellable_at_close":sellable,
+                        "open_sell_order_remaining_shares":(
+                            pending["remaining"]
+                            if pending and pending["side"]=="SELL" else 0),
+                        "accepted_friday_force_sell_order":
+                            friday_force_order_accepted,
+                        "real_friday_exit_fill_authenticated":False,
+                        "real_exchange_closing_time_authenticated":False,
+                    })
+                    if held>0:
+                        rejected.append("FRIDAY_FLAT_POSITION_POLICY_BREACH_SYNTHETIC")
+                session_ended=True
+                continue
             if kind=="PLACE_BUY":
+                if day.weekday()==4:
+                    rejected.append("FRIDAY_NEW_BUY_BLOCKED_BY_FROZEN_POLICY")
+                    continue
                 if pending is not None or held!=0:
                     return fail("ONE_POSITION_OR_PENDING_ORDER_LIMIT")
                 qty=_integer(ev.get("quantity"))
@@ -146,6 +193,8 @@ def replay(fixture):
                 pending={"side":"SELL","remaining":qty,
                          "limit":price(ev.get("limit_price")),
                          "reason":ev["reason"]}
+                if day.weekday()==4 and ev["reason"]=="FRIDAY_FORCE":
+                    friday_force_order_accepted=True
                 continue
             if kind=="CANCEL":
                 if pending is None:
@@ -196,6 +245,8 @@ def replay(fixture):
             return fail("BROKEN_SYNTHETIC_LEDGER_CONSERVATION")
         if pending is not None:
             rejected.append("UNRESOLVED_SYNTHETIC_ORDER_NOT_A_FILL")
+        if (day.weekday()==4 and not session_ended):
+            rejected.append("LAST_FRIDAY_CLOSE_SNAPSHOT_NOT_OBSERVED")
         return dict(base,
             status="SYNTHETIC_ONLY_TPLUS1_AND_PARTIAL_ORDER_STATE_TESTED",
             fixture_session_count=len({x["session"] for x in events}),
@@ -208,6 +259,22 @@ def replay(fixture):
             synthetic_sellable_shares=sellable,
             synthetic_cash_end_cny=str(cash.quantize(CENT)),
             synthetic_rejections=rejected,
+            synthetic_friday_close_reports=friday_closure_reports,
+            synthetic_friday_close_report_count=len(friday_closure_reports),
+            synthetic_friday_unattested_session_count=(
+                friday_unattested_prior_sessions+
+                int(day.weekday()==4 and not session_ended)),
+            synthetic_all_friday_sessions_proven_flat_in_fixture=(
+                bool(friday_closure_reports)
+                and friday_unattested_prior_sessions==0
+                and not (day.weekday()==4 and not session_ended)
+                and all(x["unliquidated_shares"]==0 and
+                        x["open_sell_order_remaining_shares"]==0
+                        for x in friday_closure_reports)),
+            synthetic_last_session_end_explicit=session_ended,
+            real_friday_exit_authentication_count=0,
+            real_exchange_session_end_authenticated=False,
+            real_friday_liquidation_certified=False,
             frozen_strategy_entry_criteria_verified=False,
             historical_broker_trade_evidence_available=False,
             real_order_fill_assumed=False,
@@ -217,6 +284,8 @@ def replay(fixture):
                 "REAL_PRICE_LIMIT_QUEUE_AND_PARTIAL_FILL_NOT_OBSERVED",
                 "SYNTHETIC_WEEKDAYS_NOT_AUTHENTICATED_TRADING_CALENDAR",
                 "NO_REAL_ORDER_SUBMISSION_OR_OOS_STRATEGY_RETURNS",
+                "FRIDAY_CLOSE_SNAPSHOT_IS_SYNTHETIC_NOT_EXCHANGE_PROOF",
+                "OPEN_OR_PARTIAL_FRIDAY_SELL_DOES_NOT_CURE_CARRY_RISK",
             ])
     except (TypeError,KeyError,InvalidOperation,ValueError,OverflowError):
         return fail("MALFORMED_SYNTHETIC_FIXTURE_OR_PRICE")
@@ -233,6 +302,8 @@ def contract_summary():
         "historical_PIT_verified":False,
         "historical_OOS_validated":False,
         "frozen_strategy_ready":False,
+        "real_friday_liquidation_certified":False,
+        "friday_session_close_proof_required_in_future_executable_gate":True,
         "trade_authorized":False,
         "trade_gate":"BLOCKED","orders":[],"executable_candidates":[],
     }
