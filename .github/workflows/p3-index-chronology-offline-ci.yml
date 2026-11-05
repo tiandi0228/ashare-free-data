@@ -15,6 +15,7 @@ on:
       - 'collector/p3_persisted_temporal_risk_triage.py'
       - 'tests/test_p3_persisted_temporal_risk_triage.py'
       - '.github/workflows/p3-index-chronology-offline-ci.yml'
+      - '.github/workflows/p3-full-p1-official-scout.yml'
   push:
     branches: [main]
     paths:
@@ -27,6 +28,7 @@ on:
       - 'tests/test_p3_proof_gap_triage.py'
       - 'tests/test_p3_index_chronology_guard.py'
       - '.github/workflows/p3-index-chronology-offline-ci.yml'
+      - '.github/workflows/p3-full-p1-official-scout.yml'
 permissions:
   contents: read
 jobs:
