@@ -1,0 +1,32 @@
+name: P1 external free cron research safety tests (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'external-p1-cron/**'
+      - '.github/workflows/p1-external-cron-offline-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'external-p1-cron/**'
+      - '.github/workflows/p1-external-cron-offline-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Reject future-data and double dispatch via offline mocked GitHub API
+        working-directory: external-p1-cron
+        run: node --test tests/worker.test.mjs
+      - name: Reject credentials accidentally committed to external worker config
+        run: |
+          if grep -R -E '(github_pat_|ghp_|GITHUB_TOKEN *= *"[^" ]+)' external-p1-cron --include='*.mjs' --include='*.toml' ; then
+            echo 'Potential hardcoded secret'; exit 1
+          fi
+          echo 'External Worker is NOT deployed by CI; no secret or dispatch available'
