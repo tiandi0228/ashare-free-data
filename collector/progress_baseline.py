@@ -28,6 +28,7 @@ TESTS = {
    "synthetic_t1_contract": ("collector/p4_synthetic_t1_execution_kernel.py","tests.test_p4_synthetic_t1_execution_kernel"),
    "order_book_uncertainty": ("collector/p4_three_to_five_vendor_horizon.py","tests.test_p4_three_to_five_vendor_horizon"),
    "fee_risk_budget": ("collector/p4_fee_floor_gap_audit.py","tests.test_p4_fee_floor_gap_audit"),
+   "friday_exit_audit": ("collector/p4_friday_asof_preentry_guard.py","tests.test_p4_friday_asof_preentry_guard"),
  },
 }
 
