@@ -1,8 +1,17 @@
 name: P1 independent missed-slot recovery watchdog (RESEARCH ONLY)
 on:
   schedule:
-    # Independent from the intraday snapshot workflow, best effort only.
+    # Each watchdog checks one P1 :10 Beijing slot around 82 minutes later,
+    # inside the existing strict 65-90 minute safe-recovery window.
+    # GitHub cron is best-effort; other checks must still authorize any dispatch.
+    # Beijing weekdays 08:10,09:10,11:10,13:10,15:10,17:10,19:10,21:10.
     - cron: '32 1,2,4,6,8,10,12,14 * * 1-5'
+    # Beijing weekdays 23:10 (same UTC weekday).
+    - cron: '32 16 * * 1-5'
+    # Beijing weekdays 01:10 (preceding UTC day, Sun-Thu).
+    - cron: '32 18 * * 0-4'
+    # Beijing weekends 09:10,15:10,19:10,23:10 (last audit after midnight).
+    - cron: '32 2,8,12,16 * * 6,0'
   workflow_dispatch:
   pull_request:
     paths:
