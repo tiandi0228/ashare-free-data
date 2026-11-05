@@ -16,8 +16,10 @@ on:
       - 'tests/test_p1_schedule_final_attestation.py'
       - '.github/workflows/p1-final-schedule-attestation.yml'
       - 'collector/p1_dual_pilot_scale_review.py'
+      - 'collector/p1_dual_pilot_blocker_diagnostic.py'
       - 'tests/test_p1_dual_pilot_receipt.py'
       - 'tests/test_p1_dual_pilot_scale_review.py'
+      - 'tests/test_p1_dual_pilot_blocker_diagnostic.py'
       - '.github/workflows/p1-readiness-contract-ci.yml'
       - '.github/workflows/p1-fresh-vendor-roster.yml'
       - 'collector/baostock_batch.py'
@@ -55,8 +57,10 @@ on:
       - 'tests/test_p1_schedule_final_attestation.py'
       - '.github/workflows/p1-final-schedule-attestation.yml'
       - 'collector/p1_dual_pilot_scale_review.py'
+      - 'collector/p1_dual_pilot_blocker_diagnostic.py'
       - 'tests/test_p1_dual_pilot_receipt.py'
       - 'tests/test_p1_dual_pilot_scale_review.py'
+      - 'tests/test_p1_dual_pilot_blocker_diagnostic.py'
       - '.github/workflows/p1-readiness-contract-ci.yml'
       - '.github/workflows/p1-fresh-vendor-roster.yml'
       - 'collector/baostock_batch.py'
@@ -121,6 +125,7 @@ jobs:
             tests.test_p1_dual_end_to_end \
             tests.test_p1_dual_pilot_receipt \
             tests.test_p1_dual_pilot_scale_review \
+            tests.test_p1_dual_pilot_blocker_diagnostic \
             tests.test_p1_schedule_run_provenance \
             tests.test_p1_schedule_final_attestation \
             tests.test_p1_run_progress \
