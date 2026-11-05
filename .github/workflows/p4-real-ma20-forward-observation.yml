@@ -91,7 +91,7 @@ jobs:
             --proxy evidence/p4_next_open_forward_proxy.json \
             --out evidence/p4_friday_asof_preentry_guard.json
           python - <<'PY'
-          from collector.p4_synthetic_t1_execution_kernel import contract_summary
+          from collector.p4_synthetic_t1_execution_kernel import contract_summary,replay,PROVENANCE
           from pathlib import Path
           import json
           proof=contract_summary()
@@ -101,10 +101,46 @@ jobs:
           assert not proof['historical_exchange_calendar_authenticated']
           assert not proof['historical_PIT_verified'] and not proof['historical_OOS_validated']
           assert not proof['frozen_strategy_ready'] and not proof['trade_authorized']
+          assert not proof['real_friday_liquidation_certified']
+          assert proof['friday_session_close_proof_required_in_future_executable_gate']
           assert proof['trade_gate']=='BLOCKED' and proof['orders']==[]
           Path('evidence/p4_synthetic_execution_contract.json').write_text(
               json.dumps(proof,indent=2)+'\n')
-          print('P4 SYNTHETIC T1 KERNEL AVAILABLE: no vendor input or real fills')
+          # Completely synthetic fixture: 100 shares bought Monday;
+          # Friday forced exit only gets 40 fake shares filled.
+          # The last 60 MUST persist as Friday weekend risk, not be
+          # silently marked as fully liquidated or a real broker fill.
+          day1='2026-11-02'
+          fri='2026-11-06'
+          fixture={'provenance':PROVENANCE,'trade_gate':'BLOCKED',
+            'orders':[],'issuer':'sh.600000',
+            'historical_PIT_verified':False,
+            'real_liquidity_authenticated':False,'events':[
+              {'session':day1,'kind':'BEGIN_SESSION'},
+              {'session':day1,'kind':'PLACE_BUY','quantity':100,'limit_price':'10.00'},
+              {'session':day1,'kind':'FILL_BUY','quantity':100,'fill_price':'10.00',
+               'origin':'SYNTHETIC_MATCHING_FIXTURE'},
+              {'session':fri,'kind':'BEGIN_SESSION'},
+              {'session':fri,'kind':'PLACE_SELL','quantity':100,'limit_price':'9.80',
+               'reason':'FRIDAY_FORCE'},
+              {'session':fri,'kind':'FILL_SELL','quantity':40,'fill_price':'9.80',
+               'origin':'SYNTHETIC_MATCHING_FIXTURE'},
+              {'session':fri,'kind':'END_SESSION'},
+            ]}
+          report=replay(fixture)
+          assert report['status']=='SYNTHETIC_ONLY_TPLUS1_AND_PARTIAL_ORDER_STATE_TESTED'
+          assert report['synthetic_position_shares']==60
+          assert report['synthetic_friday_close_report_count']==1
+          assert report['synthetic_friday_close_reports'][0]['unliquidated_shares']==60
+          assert report['synthetic_friday_close_reports'][0]['synthetic_close_status']=='SYNTHETIC_FRIDAY_UNFILLED_SELL_REMAINDER'
+          assert not report['synthetic_all_friday_sessions_proven_flat_in_fixture']
+          assert report['real_friday_exit_authentication_count']==0
+          assert not report['real_friday_liquidation_certified']
+          assert report['trade_gate']=='BLOCKED' and report['orders']==[]
+          Path('evidence/p4_synthetic_friday_close_fixture.json').write_text(
+              json.dumps(report,indent=2)+'\n')
+          print('P4 SYNTHETIC FRIDAY CLOSE:',report['synthetic_friday_close_reports'][0]['synthetic_close_status'],
+                '60 FAKE SHARES UNLIQUIDATED; NO REAL FILLS')
           PY
           python - <<'PY'
           import json
@@ -269,4 +305,5 @@ jobs:
             evidence/p4_three_to_five_vendor_horizon.json
             evidence/p4_friday_asof_preentry_guard.json
             evidence/p4_synthetic_execution_contract.json
+            evidence/p4_synthetic_friday_close_fixture.json
           retention-days: 14
