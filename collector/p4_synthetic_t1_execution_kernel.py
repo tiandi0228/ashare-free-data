@@ -103,6 +103,7 @@ def replay(fixture):
         session_ended=False
         friday_force_order_accepted=False
         friday_closure_reports=[]
+        friday_unattested_prior_sessions=0
         synthetic_fills=[]
         rejected=[]  # hypothetical rejection evidence, no actual orders
         for ev in events:
@@ -118,6 +119,8 @@ def replay(fixture):
                 if (day is not None and day.weekday()==4 and
                         held>0 and not session_ended):
                     return fail("FRIDAY_POSITION_ROLLED_WITHOUT_CLOSE_RISK_SNAPSHOT")
+                if day is not None and day.weekday()==4 and not session_ended:
+                    friday_unattested_prior_sessions+=1
                 if pending is not None:
                     # Do not automatically fill or cancel a day order.
                     # Explicit cancel at end-of-day required.
@@ -258,8 +261,13 @@ def replay(fixture):
             synthetic_rejections=rejected,
             synthetic_friday_close_reports=friday_closure_reports,
             synthetic_friday_close_report_count=len(friday_closure_reports),
-            synthetic_all_observed_fridays_flat=(
+            synthetic_friday_unattested_session_count=(
+                friday_unattested_prior_sessions+
+                int(day.weekday()==4 and not session_ended)),
+            synthetic_all_friday_sessions_proven_flat_in_fixture=(
                 bool(friday_closure_reports)
+                and friday_unattested_prior_sessions==0
+                and not (day.weekday()==4 and not session_ended)
                 and all(x["unliquidated_shares"]==0 and
                         x["open_sell_order_remaining_shares"]==0
                         for x in friday_closure_reports)),
