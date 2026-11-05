@@ -19,6 +19,10 @@ class IndependentRecoveryWatchdogTests(unittest.TestCase):
         self.assertIn("github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'",
                       self.workflow)
         self.assertNotIn("github.event_name == 'pull_request' ||",self.workflow)
+        self.assertIn("github.event_name == 'push' && github.ref == 'refs/heads/main'",self.workflow)
+        self.assertIn("github.event_name == 'workflow_dispatch'",self.workflow)
+        self.assertIn("github.event_name == 'schedule'",self.workflow)
+        self.assertNotIn("github.event_name == 'pull_request' ||",self.workflow)
         self.assertIn("needs: verify",self.workflow)
     def test_existing_fail_closed_chain_required(self):
         positions=[]
