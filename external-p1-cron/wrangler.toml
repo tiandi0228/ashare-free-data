@@ -3,8 +3,13 @@ main = "src/index.mjs"
 compatibility_date = "2026-10-01"
 workers_dev = false
 
-# UTC: Thu Nov 5 02:25 is Beijing 10:25; source slot 09:10.
-# Four weekday checks, two weekend checks. GitHub's existing P1 collector
-# and its own concurrency/archival gate remain the only source of progress.
+# All approved historical P1 source slots; 75 minutes after each source :10.
+# Three Cloudflare Cron Trigger rules are within Workers Free's 5 per account.
+# Source: Mon-Fri Beijing 01:10,08:10,09:10,11:10,13:10,15:10,
+#         17:10,19:10,21:10,23:10; Sat/Sun 09:10,15:10,19:10,23:10.
 [triggers]
-crons = ["25 2,6,10,14 * * 1-5", "25 2,10 * * 6,0"]
+crons = [
+  "25 1,2,4,6,8,10,12,14,16 * * 1-5",
+  "25 18 * * 0-4",
+  "25 2,8,12,16 * * 6,0"
+]

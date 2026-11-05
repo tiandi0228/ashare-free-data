@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {decide,run} from "../src/index.mjs";
 
-const cron="25 2,6,10,14 * * 1-5";
+const cron="25 1,2,4,6,8,10,12,14,16 * * 1-5";
 const t=Date.parse("2026-11-05T02:25:00Z"); // Thursday 10:25 Beijing
 const now=t;
 const mk=(id,when,status="completed")=>({
@@ -47,7 +47,7 @@ test("reject delayed cron and malformed timings",()=>{
   assert.equal(decide({cron:"* * * * *",scheduledMs:t,nowMs:t,
     data:history([previous])}).dispatch,false);
   const weekend=Date.parse("2026-11-07T02:25:00Z");
-  const w=decide({cron:"25 2,10 * * 6,0",scheduledMs:weekend,nowMs:weekend,
+  const w=decide({cron:"25 2,8,12,16 * * 6,0",scheduledMs:weekend,nowMs:weekend,
     data:history([mk(90,"2026-11-06T17:00:00Z")])});
   assert.equal(w.dispatch,true);
   assert.equal(w.sourceSlot,"2026-11-07T09:10:00+08:00");
@@ -118,4 +118,57 @@ test("create race and unreadable marker both fail closed",async()=>{
       assert.equal(requests,0);
     }finally{globalThis.fetch=oldFetch;}
   }
+});
+
+
+test("three UTC rules uniquely cover all 58 weekly source slots including local midnight",()=>{
+  const rules=[
+    ["25 1,2,4,6,8,10,12,14,16 * * 1-5",[1,2,4,6,8,10,12,14,16],[1,2,3,4,5]],
+    ["25 18 * * 0-4",[18],[0,1,2,3,4]],
+    ["25 2,8,12,16 * * 6,0",[2,8,12,16],[6,0]],
+  ];
+  const utcStart=Date.parse("2026-11-01T00:00:00Z"); // Sunday
+  const observed=new Map();
+  const beijing=(ms)=>{
+    const d=new Date(ms+8*3600000);
+    return {weekday:d.getUTCDay(),hour:d.getUTCHours(),minute:d.getUTCMinutes(),
+      day:d.toISOString().slice(0,10)};
+  };
+  for(let offset=0;offset<7;offset++){
+    const dateMs=utcStart+offset*86400000;
+    const day=new Date(dateMs).getUTCDay();
+    for(const [rule,hours,weekdays] of rules){
+      if(!weekdays.includes(day)) continue;
+      for(const hour of hours){
+        const scheduledMs=dateMs+hour*3600000+25*60000;
+        const sourceMs=scheduledMs-75*60000;
+        const source=beijing(sourceMs);
+        const expected=source.weekday>0&&source.weekday<6
+          ? [1,8,9,11,13,15,17,19,21,23] : [9,15,19,23];
+        assert.equal(source.minute,10);
+        assert.ok(expected.includes(source.hour),source.day+" "+source.hour);
+        const key=source.day+"_"+source.hour;
+        assert.ok(!observed.has(key),"duplicate recovery for "+key);
+        observed.set(key,true);
+        // If this is a real missed slot and metadata is verifiably fresh,
+        // the schedule must pass the date/weekday admission checks.
+        const former=mk(99,new Date(sourceMs-75*60000).toISOString());
+        const result=decide({cron:rule,scheduledMs,nowMs:scheduledMs,
+          data:history([former])});
+        assert.equal(result.dispatch,true,JSON.stringify({rule,key,result}));
+      }
+    }
+  }
+  assert.equal(observed.size,58);
+  assert.ok(observed.has("2026-11-02_1")); // Sunday UTC -> Mon Beijing 01:10
+  assert.ok(observed.has("2026-11-06_23")); // Fri 23:10 -> Sat 00:25 recovery
+  assert.ok(observed.has("2026-11-01_23")); // Sun 23:10 -> Mon 00:25 recovery
+});
+test("cron identity, weekday and UTC hour must match scheduledTime",()=>{
+  const bad=decide({cron:"25 18 * * 0-4",scheduledMs:t,nowMs:t,
+    data:history([previous])});
+  assert.equal(bad.dispatch,false);
+  const badWeekend=decide({cron:"25 2,8,12,16 * * 6,0",
+    scheduledMs:t,nowMs:t,data:history([previous])});
+  assert.equal(badWeekend.dispatch,false);
 });

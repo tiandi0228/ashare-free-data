@@ -13,7 +13,7 @@ Cloudflare's own scheduling/availability uncertainty.
 
 ## Deployment (requires owner's Cloudflare account and explicit setup)
 1. Use an existing Cloudflare Workers Free account. Check current free
-   allowances and permissions; this code uses two Cron Triggers.
+   allowances and permissions; this code uses three Cron Triggers. Workers Free currently allows up to five Cron Triggers **per account**, so check other Workers before deploying.
 2. In GitHub, create a **fine-grained PAT** restricted to only
    `tiandi0228/ashare-free-data`. Grant **Actions: read/write** and
    **Contents: read/write** only, since the recovery claim is a create-only
@@ -33,9 +33,11 @@ Cloudflare's own scheduling/availability uncertainty.
    `evidence/checkpoints/<source_sha256>.json` before claiming growth.
 
 ## Fixed limits and fail-closed behavior
-- Beijing workdays 10:25/14:25/18:25/22:25, weekends 10:25/18:25:
-  each watches a **09:10/13:10/17:10/21:10** or weekend 09:10/17:10
-  source slot, respectively; it is not trying to replace every P1 slot.
+- Three UTC Cron expressions cover **every approved P1 source slot**,
+  10 weekdays and 4 weekends (58 opportunities/week). Each check is
+  75 minutes after its source :10 slot. The 23:10 Beijing source is
+  checked at 00:25 **the following local day**; the Mon 01:10 source
+  is checked at 02:25 Monday Beijing (18:25 UTC Sunday).
 - Only the real clock 65–90 minutes after a matching source slot is eligible.
 - Requires a fresh, valid, same-workflow GitHub run list that covers the slot,
   no active/queued run and no P1 run begun at or after the watched slot.
