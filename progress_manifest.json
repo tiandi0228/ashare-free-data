@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "mode": "CONSERVATIVE_ENGINEERING_ACCEPTANCE_ONLY",
+  "historical_PIT_verified": false,
+  "trade_gate": "BLOCKED",
+  "phases": {
+    "P2": [
+      {
+        "id": "archive_screen_contract",
+        "weight": 10
+      },
+      {
+        "id": "indicator_coverage",
+        "weight": 10
+      },
+      {
+        "id": "sector_point_in_time",
+        "weight": 10
+      },
+      {
+        "id": "short_strategy",
+        "weight": 10
+      },
+      {
+        "id": "medium_strategy",
+        "weight": 10
+      },
+      {
+        "id": "costs",
+        "weight": 10
+      },
+      {
+        "id": "anti_lookahead",
+        "weight": 10
+      },
+      {
+        "id": "out_of_sample",
+        "weight": 10
+      },
+      {
+        "id": "risk_reward",
+        "weight": 10
+      },
+      {
+        "id": "full_universe_acceptance",
+        "weight": 10
+      }
+    ],
+    "P3": [
+      {
+        "id": "proof_gap_triage_contract",
+        "weight": 10
+      },
+      {
+        "id": "source_original_hashes",
+        "weight": 10
+      },
+      {
+        "id": "historical_first_publication",
+        "weight": 10
+      },
+      {
+        "id": "halt_resume_intervals",
+        "weight": 10
+      },
+      {
+        "id": "historical_st_status",
+        "weight": 10
+      },
+      {
+        "id": "delist_status",
+        "weight": 10
+      },
+      {
+        "id": "historical_pit_roster",
+        "weight": 10
+      },
+      {
+        "id": "calendar_pit",
+        "weight": 10
+      },
+      {
+        "id": "official_audit_replay",
+        "weight": 10
+      },
+      {
+        "id": "complete_pit_acceptance",
+        "weight": 10
+      }
+    ],
+    "P4": [
+      {
+        "id": "synthetic_t1_contract",
+        "weight": 10
+      },
+      {
+        "id": "partial_fill_audit",
+        "weight": 10
+      },
+      {
+        "id": "friday_exit_audit",
+        "weight": 10
+      },
+      {
+        "id": "official_calendar",
+        "weight": 10
+      },
+      {
+        "id": "limit_band_history",
+        "weight": 10
+      },
+      {
+        "id": "order_book_uncertainty",
+        "weight": 10
+      },
+      {
+        "id": "fee_risk_budget",
+        "weight": 10
+      },
+      {
+        "id": "strategy_fill_provenance",
+        "weight": 10
+      },
+      {
+        "id": "out_of_sample_execution",
+        "weight": 10
+      },
+      {
+        "id": "end_to_end_acceptance",
+        "weight": 10
+      }
+    ]
+  }
+}
