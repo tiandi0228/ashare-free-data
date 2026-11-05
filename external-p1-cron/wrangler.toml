@@ -1,0 +1,10 @@
+name = "stockmate-p1-external-recovery"
+main = "src/index.mjs"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+# UTC: Thu Nov 5 02:25 is Beijing 10:25; source slot 09:10.
+# Four weekday checks, two weekend checks. GitHub's existing P1 collector
+# and its own concurrency/archival gate remain the only source of progress.
+[triggers]
+crons = ["25 2,6,10,14 * * 1-5", "25 2,10 * * 6,0"]
