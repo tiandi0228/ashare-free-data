@@ -4,7 +4,29 @@
 export const REPO = "tiandi0228/ashare-free-data";
 export const TARGET = "p1-fresh-vendor-roster.yml";
 export const BRANCH = "research-intraday-snapshots";
-export const ALLOWED = new Set(["25 2,6,10,14 * * 1-5", "25 2,10 * * 6,0"]);
+// Three UTC rules cover all reviewed Beijing P1 source slots. Each check
+// follows the source :10 slot by 75 minutes, including midnight rollover.
+export const ALLOWED = new Set([
+  "25 1,2,4,6,8,10,12,14,16 * * 1-5",
+  "25 18 * * 0-4",
+  "25 2,8,12,16 * * 6,0"
+]);
+const RULE_HOURS = new Map([
+  ["25 1,2,4,6,8,10,12,14,16 * * 1-5",
+    new Set([1,2,4,6,8,10,12,14,16])],
+  ["25 18 * * 0-4", new Set([18])],
+  ["25 2,8,12,16 * * 6,0", new Set([2,8,12,16])],
+]);
+const cronMatchesUTC = (rule, timestamp) => {
+  const d = new Date(timestamp);
+  const wd = d.getUTCDay();
+  const hr = d.getUTCHours();
+  const inRule = RULE_HOURS.get(rule)?.has(hr) && d.getUTCMinutes() === 25;
+  if (!inRule) return false;
+  if (rule === "25 18 * * 0-4") return wd >= 0 && wd <= 4;
+  if (rule === "25 2,8,12,16 * * 6,0") return wd === 0 || wd === 6;
+  return wd >= 1 && wd <= 5;
+};
 const MAX_RUNS = 100;
 
 const beijingParts = (ms) => {
@@ -27,9 +49,10 @@ export function decide({cron, scheduledMs, nowMs, data}) {
   const sourceMs = scheduledMs - 75 * 60000;
   const source = beijingParts(sourceMs);
   const weekday = source.day >= 1 && source.day <= 5;
-  const validHours = weekday ? [9, 13, 17, 21] : [9, 17];
-  if (nominal.minute !== 25 || source.minute !== 10 ||
-      !validHours.includes(source.hour) || nominal.date !== source.date) {
+  const validHours = weekday ? [1,8,9,11,13,15,17,19,21,23] : [9,15,19,23];
+  if (!cronMatchesUTC(cron, scheduledMs) ||
+      nominal.minute !== 25 || source.minute !== 10 ||
+      !validHours.includes(source.hour)) {
     return fail("UNRECOGNIZED_SOURCE_SLOT");
   }
   const delta = (nowMs - sourceMs) / 60000;
