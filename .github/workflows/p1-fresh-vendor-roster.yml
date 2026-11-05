@@ -13,6 +13,8 @@ on:
       - 'collector/p1_optional_second.py'
       - 'collector/p1_run_progress.py'
       - 'collector/p1_dual_pilot_receipt.py'
+      - 'collector/p1_dual_pilot_blocker_diagnostic.py'
+      - 'tests/test_p1_dual_pilot_blocker_diagnostic.py'
       - 'collector/p1_schedule_run_provenance.py'
       - 'collector/p1_quad_verify.py'
       - 'collector/p1_checkpoint.py'
@@ -87,7 +89,7 @@ jobs:
         run: |
           mkdir -p evidence
           set -o pipefail
-          python -m unittest tests.test_p1_fresh_vendor_roster tests.test_baostock_batch tests.test_p1_fresh_shard_plan tests.test_p1_roster_lock tests.test_p1_source_diagnostics tests.test_p1_orphan_archive_recovery tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick tests.test_p1_coverage_gap_diagnosis tests.test_p3_p1_evidence_worklist tests.test_p1_quad_pick tests.test_p1_optional_second tests.test_p1_dual_end_to_end tests.test_p1_dual_pilot_receipt tests.test_p1_dual_pilot_scale_review tests.test_p1_schedule_run_provenance tests.test_p1_run_progress tests.test_p1_quad_verify tests.test_p3_all_completed_worklist tests.test_p1_epoch_compare tests.test_p1_research_readiness tests.test_p1_recovery_origin_token -v 2>&1 | tee evidence/offline_tests.log
+          python -m unittest tests.test_p1_fresh_vendor_roster tests.test_baostock_batch tests.test_p1_fresh_shard_plan tests.test_p1_roster_lock tests.test_p1_source_diagnostics tests.test_p1_orphan_archive_recovery tests.test_p1_shard_ledger tests.test_p1_checkpoint tests.test_p1_csv_archive tests.test_p1_archive_audit tests.test_p1_repair_pick tests.test_p1_coverage_gap_diagnosis tests.test_p3_p1_evidence_worklist tests.test_p1_quad_pick tests.test_p1_optional_second tests.test_p1_dual_end_to_end tests.test_p1_dual_pilot_receipt tests.test_p1_dual_pilot_scale_review tests.test_p1_dual_pilot_blocker_diagnostic tests.test_p1_schedule_run_provenance tests.test_p1_run_progress tests.test_p1_quad_verify tests.test_p3_all_completed_worklist tests.test_p1_epoch_compare tests.test_p1_research_readiness tests.test_p1_recovery_origin_token -v 2>&1 | tee evidence/offline_tests.log
       - name: Restore immutable P1 research roster pin if available
         id: pin
         env:
@@ -622,6 +624,20 @@ jobs:
             --source-sha "$(python -c 'import json;print(json.load(open("evidence/shards/plan.json"))["source_sha256"])')" \
             --repo "${{ github.repository }}" \
             --out evidence/dual_pilot_scale_review.json
+      - name: Independently enumerate blocked P1 scale-review Actions run IDs
+        if: env.P1_REQUESTED_SHARDS == '2'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if test -f evidence/dual_pilot_scale_review.json; then
+            python -m collector.p1_dual_pilot_blocker_diagnostic \
+              --review evidence/dual_pilot_scale_review.json \
+              --repo "${{ github.repository }}" \
+              --out evidence/dual_pilot_blocker_diagnostic.json
+          else
+            echo "::warning::Pilot scale review absent; no independent blocker classification"
+          fi
       - name: Independently classify P1 coverage and archive gaps
         run: |
           python -m collector.p1_coverage_gap_diagnosis --plan evidence/shards/plan.json --ledger evidence/ledger.json --archive evidence/archive_audit.json --out evidence/coverage_gap_diagnosis.json
@@ -725,7 +741,7 @@ jobs:
           lines.append('- Archive raw CSV to durable free Git research branch: **${{ steps.diag_5.outcome }}**')
           lines.append('- Audit permanent research CSV archive against recovered ledger: **${{ steps.diag_6.outcome }}**')
           lines.append('- Persist durable no-trade checkpoint in repository: **${{ steps.diag_7.outcome }}**')
-          for name in ('p1_roster_lock.json','pilot_selection.json','optional_second.json','p1_run_progress.json','dual_pilot_receipt.json','dual_pilot_scale_review.json','schedule_run_provenance.json','orphan_recovery.json','recovery_remote_ack.json','source_diagnostics.json','live_roster_attempt.json','quality.json','shards/plan.json','prior_ledger.json','ledger.json','archive_audit.json','epoch_comparison.json','research_readiness.json'):
+          for name in ('p1_roster_lock.json','pilot_selection.json','optional_second.json','p1_run_progress.json','dual_pilot_receipt.json','dual_pilot_scale_review.json','dual_pilot_blocker_diagnostic.json','schedule_run_provenance.json','orphan_recovery.json','recovery_remote_ack.json','source_diagnostics.json','live_roster_attempt.json','quality.json','shards/plan.json','prior_ledger.json','ledger.json','archive_audit.json','epoch_comparison.json','research_readiness.json'):
               file=root/name
               if not file.is_file():
                   lines.append(f'- `{name}`: unavailable (step did not produce it)')
