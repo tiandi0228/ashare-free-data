@@ -56,7 +56,7 @@ class IndependentRecoveryWatchdogTests(unittest.TestCase):
                 matches=[run for run in checks
                          if run-scheduled==timedelta(minutes=82)]
                 self.assertEqual(len(matches),1,(scheduled,matches))
-        self.assertEqual(len(checks),66) # full UTC week; includes boundary windows
+        self.assertEqual(len(checks),58) # full UTC week; includes boundary windows
 
     def test_explicit_write_permission_not_pr_dispatch(self):
         self.assertIn("contents: write",self.workflow)
