@@ -13,7 +13,6 @@ on:
       - 'collector/p1_optional_second.py'
       - 'collector/p1_run_progress.py'
       - 'collector/p1_dual_pilot_receipt.py'
-      - 'collector/p1_dual_pilot_blocker_diagnostic.py'
       - 'collector/p1_schedule_run_provenance.py'
       - 'collector/p1_quad_verify.py'
       - 'collector/p1_checkpoint.py'
