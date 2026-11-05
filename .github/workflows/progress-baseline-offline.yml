@@ -6,7 +6,11 @@ on:
       - 'tests/test_progress_baseline.py'
       - 'progress_manifest.json'
       - 'collector/p4_friday_asof_preentry_guard.py'
+      - 'collector/p4_partial_fill_reconciliation.py'
+      - 'collector/p2_purged_oos_partition.py'
       - 'tests/test_p4_friday_asof_preentry_guard.py'
+      - 'tests/test_p4_partial_fill_reconciliation.py'
+      - 'tests/test_p2_purged_oos_partition.py'
       - 'collector/p2_real_archive_features.py'
       - 'tests/test_p2_real_archive_features.py'
       - 'collector/p3_archived_event_episode_ledger.py'
@@ -27,7 +31,11 @@ on:
       - 'tests/test_progress_baseline.py'
       - 'progress_manifest.json'
       - 'collector/p4_friday_asof_preentry_guard.py'
+      - 'collector/p4_partial_fill_reconciliation.py'
+      - 'collector/p2_purged_oos_partition.py'
       - 'tests/test_p4_friday_asof_preentry_guard.py'
+      - 'tests/test_p4_partial_fill_reconciliation.py'
+      - 'tests/test_p2_purged_oos_partition.py'
       - 'collector/p2_real_archive_features.py'
       - 'tests/test_p2_real_archive_features.py'
       - 'collector/p3_archived_event_episode_ledger.py'
@@ -49,6 +57,11 @@ jobs:
           python-version: '3.11'
       - name: Verify frozen milestones and zero unproved claims
         run: python -m unittest -v tests.test_progress_baseline
+      - name: Validate purged P2 research windows and independent P4 partial-fill accounting
+        run: |
+          python -m unittest -v \
+            tests.test_p2_purged_oos_partition \
+            tests.test_p4_partial_fill_reconciliation
       - name: Independently run P2 P3 and P4 offline contracts
         run: |
           python -m collector.progress_baseline \
@@ -63,10 +76,10 @@ jobs:
           assert x['orders']==[] and x['executable_candidates']==[]
           for phase in ('P2','P3','P4'):
               y=x['stages'][phase]
-              assert y['engineering_acceptance_baseline_pct']==(40 if phase=='P4' else 30)
-              assert sum(z['passed'] for z in y['criteria'])==(4 if phase=='P4' else 3)
+              assert y['engineering_acceptance_baseline_pct']==(50 if phase=='P4' else 30)
+              assert sum(z['passed'] for z in y['criteria'])==(5 if phase=='P4' else 3)
               assert y['formal_trading_ready'] is False
-          print('P2/P3 three and P4 four bounded offline engineering contracts verified, no trading')
+          print('P2/P3 three and P4 five bounded offline engineering contracts verified, no trading')
           PY
       - uses: actions/upload-artifact@v4
         with:
