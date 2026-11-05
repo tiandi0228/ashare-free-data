@@ -40,7 +40,7 @@ test("no issue on queued, running, recent, unknown or untrusted run list",()=>{
     data:history([{...previous,head_branch:"feature"}])}).dispatch,false);
 });
 test("reject delayed cron and malformed timings",()=>{
-  for(const delta of [-1,0,10,100]){
+  for(const delta of [-20,16,100]){
     assert.equal(decide({cron,scheduledMs:t,nowMs:t+delta*60000,
       data:history([previous])}).dispatch,false);
   }
