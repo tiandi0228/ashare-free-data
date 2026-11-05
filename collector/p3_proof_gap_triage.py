@@ -1,5 +1,6 @@
 """Fail-closed P3 missing-proof queue triage. Never certifies PIT or trades."""
 import argparse
+import copy
 import json
 from collections import Counter
 from pathlib import Path
@@ -51,6 +52,31 @@ def build(queue):
         category, priority = CATEGORIES[item["kind"]]
         if type(item.get("priority")) is not int or item["priority"] != priority:
             raise ValueError("gap priority disagrees with original queue")
+        # Preserve exactly the source queue's SHA-linked review evidence and
+        # unresolved ambiguity for analysts. Deep copy prevents a consumer from
+        # modifying the upstream queue through this report. A source receipt
+        # locates archived research bytes, not historic first publication.
+        evidence_keys = {
+            "CONFLICTING_HALTS_MANUAL_REVIEW_FIRST": (
+                "previous_announcement_id", "next_announcement_id",
+                "previous_halt_original_sha_and_text_day_candidates",
+                "next_halt_original_sha_and_text_day_candidates",
+                "same_announcement_id_reused_in_halt_conflict",
+                "multiple_halt_clauses_need_manual_disambiguation"),
+            "PAIRED_UNCERTIFIED_HALT_RESUME": (
+                "halt_announcement_id", "resume_announcement_id",
+                "halt_pdf_sha256", "resume_pdf_sha256",
+                "halt_original_archive_capture", "resume_original_archive_capture",
+                "halt_text_day_unverified", "resume_text_day_unverified"),
+            "UNPAIRED_HALT_NEEDS_RESUME_SOURCE": (
+                "halt_announcement_id", "halt_pdf_sha256",
+                "halt_original_archive_capture", "halt_text_day_unverified"),
+            "ORPHAN_RESUMPTION_NEEDS_HALT_SOURCE": (
+                "resume_text_day_unverified",),
+        }[item["kind"]]
+        if any(key not in item for key in evidence_keys):
+            raise ValueError("missing original research review anchor")
+        review_evidence = {key: copy.deepcopy(item[key]) for key in evidence_keys}
         # This is a worklist, not a source of historical exchange state.
         rows.append({
             "queue_index": position,
@@ -59,6 +85,8 @@ def build(queue):
             "review_bucket": category,
             "priority": priority,
             "missing_independent_proofs": list(item["missing_independent_proofs"]),
+            "original_research_review_evidence": review_evidence,
+            "original_research_is_not_first_publication_proof": True,
             "official_evidence_status": "NOT_AUTHENTICATED",
             "eligible_for_historical_trade_replay": False,
         })

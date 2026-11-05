@@ -24,6 +24,36 @@ class P3GapTriageTests(unittest.TestCase):
         self.assertEqual(result["orders"], [])
         self.assertFalse(result["historical_PIT_verified"])
 
+    def test_source_sha_and_archive_review_anchors_survive_triage(self):
+        queue = queue_build(fixture())
+        report = build(queue)
+        by_kind = {r["source_kind"]: r for r in report["work_items"]}
+        paired = by_kind["PAIRED_UNCERTIFIED_HALT_RESUME"]
+        evidence = paired["original_research_review_evidence"]
+        self.assertEqual(evidence["halt_pdf_sha256"], "a" * 64)
+        self.assertEqual(evidence["resume_pdf_sha256"], "b" * 64)
+        self.assertEqual(evidence["halt_announcement_id"], "111")
+        self.assertEqual(
+            evidence["halt_original_archive_capture"]["sha_verified_original_archive_path"],
+            "pdf/sh_600001/111/" + "a" * 64 + ".pdf")
+        self.assertTrue(paired["original_research_is_not_first_publication_proof"])
+        conflict = by_kind["CONFLICTING_HALTS_MANUAL_REVIEW_FIRST"]
+        self.assertEqual(
+            conflict["original_research_review_evidence"][
+                "previous_halt_original_sha_and_text_day_candidates"][0][
+                    "original_pdf_sha256"], "e" * 64)
+        self.assertFalse(conflict["eligible_for_historical_trade_replay"])
+        evidence["halt_original_archive_capture"]["first_archived_original_run_id"] = 9999
+        self.assertEqual(
+            queue["work_items"][1]["halt_original_archive_capture"][
+                "first_archived_original_run_id"], 151)
+
+    def test_missing_required_original_anchor_fails_closed(self):
+        q = queue_build(fixture())
+        q["work_items"][1].pop("halt_original_archive_capture")
+        with self.assertRaises(ValueError):
+            build(q)
+
     def test_rejects_forged_certification_and_missing_items(self):
         original = queue_build(fixture())
         mutations = (
