@@ -8,8 +8,8 @@ from collections import Counter
 from pathlib import Path
 
 PHASE = "P3_OFFICIAL_PROOF_MANUAL_REVIEW_PACKET"
-SHA = re.compile(r"[a-f0-9]{64}\\Z")
-ISSUER = re.compile(r"(?:sh\\.(?:600|601|603|605)|sz\\.(?:000|001|002|003))[0-9]{3}\\Z")
+SHA = re.compile(r"[a-f0-9]{64}\Z")
+ISSUER = re.compile(r"(?:sh\.(?:600|601|603|605)|sz\.(?:000|001|002|003))[0-9]{3}\Z")
 KINDS = {
     "CONFLICT_REQUIRES_ORIGINAL_REVIEW": "REVIEW_REPEATED_HALT_TEXT_AND_OFFICIAL_EXCHANGE_STATE",
     "INDEPENDENT_TIME_AND_INTERVAL_EVIDENCE": "FIND_INDEPENDENT_FIRST_PUBLICATION_AND_EFFECTIVE_INTERVAL",
@@ -158,7 +158,7 @@ def main():
     packet=build(json.loads(args.triage.read_text(encoding="utf-8")))
     args.out.parent.mkdir(parents=True,exist_ok=True)
     args.csv.parent.mkdir(parents=True,exist_ok=True)
-    args.out.write_text(json.dumps(packet,ensure_ascii=False,indent=2)+"\\n",encoding="utf-8")
+    args.out.write_text(json.dumps(packet,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     with args.csv.open("w",newline="",encoding="utf-8-sig") as fp:
         writer=csv.writer(fp)
         writer.writerow(("task_id","queue_index","issuer","priority","review_bucket",
