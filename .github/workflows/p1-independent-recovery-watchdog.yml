@@ -40,7 +40,9 @@ jobs:
             tests.test_p1_independent_recovery_watchdog
   recover:
     needs: verify
-    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    # A main push is only an opportunity to re-run the full existing fail-closed
+    # recovery chain, never proof that a shard is missing. PRs never dispatch.
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
