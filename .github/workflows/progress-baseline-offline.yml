@@ -5,6 +5,12 @@ on:
       - 'collector/progress_baseline.py'
       - 'tests/test_progress_baseline.py'
       - 'progress_manifest.json'
+      - 'collector/p2_real_archive_features.py'
+      - 'tests/test_p2_real_archive_features.py'
+      - 'collector/p3_archived_event_episode_ledger.py'
+      - 'tests/test_p3_archived_event_episode_ledger.py'
+      - 'collector/p4_fee_floor_gap_audit.py'
+      - 'tests/test_p4_fee_floor_gap_audit.py'
       - 'collector/p2_feature_coverage_ledger.py'
       - 'tests/test_p2_feature_coverage_ledger.py'
       - 'collector/p3_official_original_archive.py'
@@ -18,6 +24,12 @@ on:
       - 'collector/progress_baseline.py'
       - 'tests/test_progress_baseline.py'
       - 'progress_manifest.json'
+      - 'collector/p2_real_archive_features.py'
+      - 'tests/test_p2_real_archive_features.py'
+      - 'collector/p3_archived_event_episode_ledger.py'
+      - 'tests/test_p3_archived_event_episode_ledger.py'
+      - 'collector/p4_fee_floor_gap_audit.py'
+      - 'tests/test_p4_fee_floor_gap_audit.py'
       - '.github/workflows/progress-baseline-offline.yml'
   workflow_dispatch:
 permissions:
@@ -47,10 +59,10 @@ jobs:
           assert x['orders']==[] and x['executable_candidates']==[]
           for phase in ('P2','P3','P4'):
               y=x['stages'][phase]
-              assert y['engineering_acceptance_baseline_pct']==20
-              assert sum(z['passed'] for z in y['criteria'])==2
+              assert y['engineering_acceptance_baseline_pct']==30
+              assert sum(z['passed'] for z in y['criteria'])==3
               assert y['formal_trading_ready'] is False
-          print('P2/P3/P4 two of ten bounded offline engineering contracts verified, no trading')
+          print('P2/P3/P4 three of ten bounded offline engineering contracts verified, no trading')
           PY
       - uses: actions/upload-artifact@v4
         with:
