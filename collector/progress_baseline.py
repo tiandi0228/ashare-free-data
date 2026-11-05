@@ -17,14 +17,17 @@ TESTS = {
  "P2": {
    "archive_screen_contract": ("collector/p2_real_archive_research_screen.py","tests.test_p2_real_archive_research_screen"),
    "indicator_coverage": ("collector/p2_feature_coverage_ledger.py","tests.test_p2_feature_coverage_ledger"),
+   "anti_lookahead": ("collector/p2_real_archive_features.py","tests.test_p2_real_archive_features"),
  },
  "P3": {
    "proof_gap_triage_contract": ("collector/p3_proof_gap_triage.py","tests.test_p3_proof_gap_triage"),
    "source_original_hashes": ("collector/p3_official_original_archive.py","tests.test_p3_official_original_archive"),
+   "official_audit_replay": ("collector/p3_archived_event_episode_ledger.py","tests.test_p3_archived_event_episode_ledger"),
  },
  "P4": {
    "synthetic_t1_contract": ("collector/p4_synthetic_t1_execution_kernel.py","tests.test_p4_synthetic_t1_execution_kernel"),
    "order_book_uncertainty": ("collector/p4_three_to_five_vendor_horizon.py","tests.test_p4_three_to_five_vendor_horizon"),
+   "fee_risk_budget": ("collector/p4_fee_floor_gap_audit.py","tests.test_p4_fee_floor_gap_audit"),
  },
 }
 
