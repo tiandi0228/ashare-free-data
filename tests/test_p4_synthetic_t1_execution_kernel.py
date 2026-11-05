@@ -91,6 +91,131 @@ class SyntheticT1ExecutionTests(unittest.TestCase):
                       r["synthetic_rejections"])
         self.assert_blocked(r)
 
+    def test_friday_explicit_close_partial_sell_does_not_hide_60_shares(self):
+        r=replay(scenario([
+            ev(MON,"BEGIN_SESSION"),
+            ev(MON,"PLACE_BUY",quantity=100,limit_price="10.00"),
+            ev(MON,"FILL_BUY",quantity=100,fill_price="10.00",origin=SYNTH),
+            ev(FRI,"BEGIN_SESSION"),
+            ev(FRI,"PLACE_SELL",quantity=100,limit_price="9.80",
+               reason="FRIDAY_FORCE"),
+            ev(FRI,"FILL_SELL",quantity=40,fill_price="9.81",origin=SYNTH),
+            ev(FRI,"END_SESSION"),
+        ]))
+        self.assertEqual(r["status"],
+                         "SYNTHETIC_ONLY_TPLUS1_AND_PARTIAL_ORDER_STATE_TESTED")
+        self.assertEqual(r["synthetic_friday_close_report_count"],1)
+        audit=r["synthetic_friday_close_reports"][0]
+        self.assertEqual(audit["synthetic_close_status"],
+                         "SYNTHETIC_FRIDAY_UNFILLED_SELL_REMAINDER")
+        self.assertEqual(audit["unliquidated_shares"],60)
+        self.assertEqual(audit["open_sell_order_remaining_shares"],60)
+        self.assertTrue(audit["accepted_friday_force_sell_order"])
+        self.assertFalse(audit["real_friday_exit_fill_authenticated"])
+        self.assertEqual(r["synthetic_friday_unattested_session_count"],0)
+        self.assertFalse(r["synthetic_all_friday_sessions_proven_flat_in_fixture"])
+        self.assertFalse(r["real_friday_liquidation_certified"])
+        self.assertIn("FRIDAY_FLAT_POSITION_POLICY_BREACH_SYNTHETIC",
+                      r["synthetic_rejections"])
+        self.assert_blocked(r)
+
+    def test_friday_close_without_any_exit_order_is_breach_not_liquidation(self):
+        r=replay(scenario([
+            ev(MON,"BEGIN_SESSION"),
+            ev(MON,"PLACE_BUY",quantity=100,limit_price="10.00"),
+            ev(MON,"FILL_BUY",quantity=100,fill_price="10.00",origin=SYNTH),
+            ev(FRI,"BEGIN_SESSION"),
+            ev(FRI,"END_SESSION"),
+        ]))
+        audit=r["synthetic_friday_close_reports"][0]
+        self.assertEqual(audit["synthetic_close_status"],
+                         "SYNTHETIC_FRIDAY_POSITION_WITHOUT_ACCEPTED_FORCE_EXIT")
+        self.assertEqual(audit["unliquidated_shares"],100)
+        self.assertFalse(audit["accepted_friday_force_sell_order"])
+        self.assertFalse(r["synthetic_all_friday_sessions_proven_flat_in_fixture"])
+        self.assertEqual(r["synthetic_position_shares"],100)
+        self.assert_blocked(r)
+
+    def test_friday_fully_synthetic_sold_is_flat_but_not_real_exit_proof(self):
+        r=replay(scenario([
+            ev(MON,"BEGIN_SESSION"),
+            ev(MON,"PLACE_BUY",quantity=100,limit_price="10.00"),
+            ev(MON,"FILL_BUY",quantity=100,fill_price="10.00",origin=SYNTH),
+            ev(FRI,"BEGIN_SESSION"),
+            ev(FRI,"PLACE_SELL",quantity=100,limit_price="9.80",
+               reason="FRIDAY_FORCE"),
+            ev(FRI,"FILL_SELL",quantity=100,fill_price="9.80",origin=SYNTH),
+            ev(FRI,"END_SESSION"),
+        ]))
+        audit=r["synthetic_friday_close_reports"][0]
+        self.assertEqual(audit["synthetic_close_status"],
+                         "SYNTHETIC_FRIDAY_FLAT_NOT_REAL_EXIT_PROOF")
+        self.assertTrue(r["synthetic_all_friday_sessions_proven_flat_in_fixture"])
+        self.assertEqual(r["synthetic_position_shares"],0)
+        self.assertEqual(r["real_friday_exit_authentication_count"],0)
+        self.assertFalse(r["real_friday_liquidation_certified"])
+        self.assertFalse(r["real_exchange_session_end_authenticated"])
+        self.assert_blocked(r)
+
+    def test_new_friday_buy_is_vetoed_with_zero_synthetic_fill(self):
+        r=replay(scenario([
+            ev(FRI,"BEGIN_SESSION"),
+            ev(FRI,"PLACE_BUY",quantity=100,limit_price="10.00"),
+            ev(FRI,"END_SESSION"),
+        ]))
+        self.assertEqual(r["synthetic_fill_count"],0)
+        self.assertEqual(r["synthetic_position_shares"],0)
+        self.assertEqual(r["synthetic_friday_close_report_count"],1)
+        self.assertIn("FRIDAY_NEW_BUY_BLOCKED_BY_FROZEN_POLICY",
+                      r["synthetic_rejections"])
+        self.assert_blocked(r)
+
+    def test_explicit_friday_snapshot_required_before_rollover_with_position(self):
+        events=[
+            ev(MON,"BEGIN_SESSION"),
+            ev(MON,"PLACE_BUY",quantity=100,limit_price="10.00"),
+            ev(MON,"FILL_BUY",quantity=100,fill_price="10.00",origin=SYNTH),
+            ev(FRI,"BEGIN_SESSION"),
+        ]
+        from datetime import timedelta
+        following="2026-11-09"
+        fail=replay(scenario(events+[ev(following,"BEGIN_SESSION")]))
+        self.assertEqual(fail["status"],"REJECTED")
+        self.assertEqual(fail["reason"],
+                         "FRIDAY_POSITION_ROLLED_WITHOUT_CLOSE_RISK_SNAPSHOT")
+        self.assert_blocked(fail)
+        snap=replay(scenario(events+[
+            ev(FRI,"END_SESSION"),ev(following,"BEGIN_SESSION")]))
+        self.assertEqual(snap["status"],
+                         "SYNTHETIC_ONLY_TPLUS1_AND_PARTIAL_ORDER_STATE_TESTED")
+        self.assertEqual(snap["synthetic_position_shares"],100)
+        self.assertFalse(snap["synthetic_all_friday_sessions_proven_flat_in_fixture"])
+        self.assertEqual(snap["synthetic_friday_close_reports"][0]
+                         ["unliquidated_shares"],100)
+        self.assert_blocked(snap)
+
+    def test_after_session_close_no_fills_allowed_and_missing_friday_close_is_not_pass(self):
+        prior=[
+            ev(MON,"BEGIN_SESSION"),
+            ev(MON,"PLACE_BUY",quantity=100,limit_price="10.00"),
+            ev(MON,"FILL_BUY",quantity=100,fill_price="10.00",origin=SYNTH),
+            ev(FRI,"BEGIN_SESSION"),
+        ]
+        r=replay(scenario(prior))
+        self.assertEqual(r["synthetic_friday_unattested_session_count"],1)
+        self.assertFalse(r["synthetic_all_friday_sessions_proven_flat_in_fixture"])
+        self.assertIn("LAST_FRIDAY_CLOSE_SNAPSHOT_NOT_OBSERVED",
+                      r["synthetic_rejections"])
+        fail=replay(scenario(prior+[
+            ev(FRI,"END_SESSION"),
+            ev(FRI,"PLACE_SELL",quantity=100,limit_price="9.80",
+               reason="FRIDAY_FORCE")
+        ]))
+        self.assertEqual(fail["status"],"REJECTED")
+        self.assertEqual(fail["reason"],
+                         "EVENT_AFTER_EXPLICIT_SYNTHETIC_SESSION_END")
+        self.assert_blocked(fail)
+
     def test_cancelling_residual_buy_before_next_session_preserves_tplus1(self):
         r=replay(scenario([
             ev(MON,"BEGIN_SESSION"),
@@ -216,6 +341,8 @@ class SyntheticT1ExecutionTests(unittest.TestCase):
         self.assertFalse(r["historical_PIT_verified"])
         self.assertFalse(r["frozen_strategy_ready"])
         self.assertFalse(r["trade_authorized"])
+        self.assertFalse(r["real_friday_liquidation_certified"])
+        self.assertTrue(r["friday_session_close_proof_required_in_future_executable_gate"])
         self.assertEqual(r["orders"],[])
         self.assertEqual(r["trade_gate"],"BLOCKED")
 
