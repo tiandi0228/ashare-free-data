@@ -12,6 +12,8 @@ on:
       - 'tests/test_p3_index_chronology_guard.py'
       - 'collector/p3_archived_event_episode_ledger.py'
       - 'collector/p3_event_proof_gap_queue.py'
+      - 'collector/p3_proof_gap_triage.py'
+      - 'tests/test_p3_proof_gap_triage.py'
       - 'tests/test_p3_event_proof_gap_queue.py'
       - 'collector/p3_resume_followup_discovery.py'
       - 'collector/p3_resume_original_archive.py'
@@ -50,7 +52,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline boundaries and official-source tests
-        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture tests.test_p3_original_effective_clause_review tests.test_p3_official_original_archive tests.test_p3_persisted_temporal_risk_triage tests.test_p3_index_chronology_guard tests.test_p3_archived_event_episode_ledger tests.test_p3_event_proof_gap_queue tests.test_p3_resume_followup_discovery tests.test_p3_resume_original_archive tests.test_p3_halt_resume_pair_review -v
+        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture tests.test_p3_original_effective_clause_review tests.test_p3_official_original_archive tests.test_p3_persisted_temporal_risk_triage tests.test_p3_index_chronology_guard tests.test_p3_archived_event_episode_ledger tests.test_p3_event_proof_gap_queue tests.test_p3_proof_gap_triage tests.test_p3_resume_followup_discovery tests.test_p3_resume_original_archive tests.test_p3_halt_resume_pair_review -v
       - name: Install free PDF text parser
         run: python -m pip install 'pypdf>=4,<7'
       - name: Fetch successful original P1 queue artifact
@@ -227,6 +229,36 @@ jobs:
           assert q['trade_gate']=='BLOCKED' and q['orders']==[] and q['recommendations']==[]
           print('P3 MISSING PROOF QUEUE:',q['work_item_count'],
                 'SHA-backed research work items; PIT ZERO')
+          PY
+      - name: Independently triage all P3 missing-proof work items (NO CERTIFICATION)
+        run: |
+          python -m collector.p3_proof_gap_triage \
+            --queue evidence/p3_original_event_missing_proof_queue.json \
+            --out evidence/p3_official_proof_gap_triage.json
+          python - <<'PY'
+          import json
+          from collections import Counter
+          from pathlib import Path
+          queue=json.loads(Path('evidence/p3_original_event_missing_proof_queue.json').read_text())
+          triage=json.loads(Path('evidence/p3_official_proof_gap_triage.json').read_text())
+          assert triage['phase']=='P3_UNCERTIFIED_PROOF_GAP_TRIAGE'
+          assert triage['status']=='TRIAGED_NOT_CERTIFIED'
+          assert triage['total_unresolved_work_items']==queue['work_item_count']
+          assert sum(triage['review_bucket_counts'].values())==queue['work_item_count']
+          assert len(triage['work_items'])==queue['work_item_count']
+          assert Counter(x['source_kind'] for x in triage['work_items'])==queue['work_type_counts']
+          assert all(x['official_evidence_status']=='NOT_AUTHENTICATED'
+                     and x['eligible_for_historical_trade_replay'] is False
+                     for x in triage['work_items'])
+          assert triage['historical_PIT_verified'] is False
+          assert triage['official_first_publication_authenticated']==0
+          assert triage['official_state_intervals_certified']==0
+          assert triage['trade_gate']=='BLOCKED'
+          assert triage['orders']==[] and triage['executable_candidates']==[]
+          assert triage['recommendations']==[]
+          print('P3 INDEPENDENT GAP TRIAGE VERIFIED:',
+                triage['total_unresolved_work_items'],'unresolved; classes',
+                json.dumps(triage['review_bucket_counts'],sort_keys=True))
           PY
       - name: Search genuine archived unpaired halt issuers for subsequent resumption originals
         run: |
