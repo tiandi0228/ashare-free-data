@@ -13,6 +13,8 @@ on:
       - 'collector/p4_fee_floor_gap_audit.py'
       - 'collector/p4_three_to_five_vendor_horizon.py'
       - 'collector/p4_friday_asof_preentry_guard.py'
+      - 'collector/p4_synthetic_t1_execution_kernel.py'
+      - 'tests/test_p4_synthetic_t1_execution_kernel.py'
       - 'tests/test_p4_friday_asof_preentry_guard.py'
       - 'tests/test_p4_three_to_five_vendor_horizon.py'
       - 'tests/test_p4_fee_floor_gap_audit.py'
@@ -35,6 +37,8 @@ on:
       - 'collector/p4_fee_floor_gap_audit.py'
       - 'collector/p4_three_to_five_vendor_horizon.py'
       - 'collector/p4_friday_asof_preentry_guard.py'
+      - 'collector/p4_synthetic_t1_execution_kernel.py'
+      - 'tests/test_p4_synthetic_t1_execution_kernel.py'
       - 'tests/test_p4_friday_asof_preentry_guard.py'
       - 'tests/test_p4_three_to_five_vendor_horizon.py'
       - 'tests/test_p4_fee_floor_gap_audit.py'
@@ -59,7 +63,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest tests.test_p4_real_ma20_forward_observation tests.test_p4_independent_event_evidence tests.test_p4_real_holdout_forward_prices tests.test_p4_holdout_direction_bias_audit tests.test_p4_next_open_forward_proxy tests.test_p4_observed_fee_friction tests.test_p4_tplus1_barrier_touch tests.test_p4_fee_floor_gap_audit tests.test_p4_three_to_five_vendor_horizon tests.test_p4_friday_asof_preentry_guard -v
+      - run: python -m unittest tests.test_p4_real_ma20_forward_observation tests.test_p4_independent_event_evidence tests.test_p4_real_holdout_forward_prices tests.test_p4_holdout_direction_bias_audit tests.test_p4_next_open_forward_proxy tests.test_p4_observed_fee_friction tests.test_p4_tplus1_barrier_touch tests.test_p4_fee_floor_gap_audit tests.test_p4_three_to_five_vendor_horizon tests.test_p4_friday_asof_preentry_guard tests.test_p4_synthetic_t1_execution_kernel -v
       - run: |
           git fetch --depth=1 origin research-csv-archive
           git worktree add --detach archived-research FETCH_HEAD
@@ -86,6 +90,22 @@ jobs:
           python -m collector.p4_friday_asof_preentry_guard \
             --proxy evidence/p4_next_open_forward_proxy.json \
             --out evidence/p4_friday_asof_preentry_guard.json
+          python - <<'PY'
+          from collector.p4_synthetic_t1_execution_kernel import contract_summary
+          from pathlib import Path
+          import json
+          proof=contract_summary()
+          assert proof['provenance']=='SYNTHETIC_OFFLINE_FIXTURE_ONLY'
+          assert proof['execution_inputs']=='SYNTHETIC_ONLY_NOT_FROM_VENDOR_OHLC'
+          assert proof['verified_broker_fills']==0
+          assert not proof['historical_exchange_calendar_authenticated']
+          assert not proof['historical_PIT_verified'] and not proof['historical_OOS_validated']
+          assert not proof['frozen_strategy_ready'] and not proof['trade_authorized']
+          assert proof['trade_gate']=='BLOCKED' and proof['orders']==[]
+          Path('evidence/p4_synthetic_execution_contract.json').write_text(
+              json.dumps(proof,indent=2)+'\n')
+          print('P4 SYNTHETIC T1 KERNEL AVAILABLE: no vendor input or real fills')
+          PY
           python - <<'PY'
           import json
           from pathlib import Path
@@ -248,4 +268,5 @@ jobs:
             evidence/p4_fee_floor_gap_audit.json
             evidence/p4_three_to_five_vendor_horizon.json
             evidence/p4_friday_asof_preentry_guard.json
+            evidence/p4_synthetic_execution_contract.json
           retention-days: 14
