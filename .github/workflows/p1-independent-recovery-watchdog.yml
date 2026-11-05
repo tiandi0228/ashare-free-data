@@ -1,0 +1,119 @@
+name: P1 independent missed-slot recovery watchdog (RESEARCH ONLY)
+on:
+  schedule:
+    # Independent from the intraday snapshot workflow, best effort only.
+    - cron: '32 1,2,4,6,8,10,12,14 * * 1-5'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/p1-independent-recovery-watchdog.yml'
+      - 'tests/test_p1_independent_recovery_watchdog.py'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p1-independent-recovery-watchdog.yml'
+      - 'tests/test_p1_independent_recovery_watchdog.py'
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: p1-independent-safe-recovery-${{ github.repository }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify existing recovery safety and independent cadence
+        run: |
+          python -m unittest -v \
+            tests.test_p1_schedule_watchdog \
+            tests.test_p1_safe_recovery \
+            tests.test_p1_recovery_claim \
+            tests.test_p1_recovery_dispatch_preflight \
+            tests.test_p1_recovery_dispatch_once \
+            tests.test_p1_recovery_run_reconciliation \
+            tests.test_p1_independent_recovery_watchdog
+  recover:
+    needs: verify
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Recheck live P1 schedule slot status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m collector.p1_schedule_watchdog \
+            --repo "${{ github.repository }}" --out evidence/p1/watchdog.json
+      - name: Require fully covered safe single-shard recovery opportunity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m collector.p1_safe_recovery \
+            --repo "${{ github.repository }}" --out evidence/p1/eligibility.json
+      - name: Atomically claim only this missed P1 slot as research
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m collector.p1_recovery_claim \
+            --eligibility evidence/p1/eligibility.json \
+            --repo "${{ github.repository }}" --out evidence/p1/claim.json
+      - name: Cross-check remote immutable slot claim
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m collector.p1_recovery_dispatch_preflight \
+            --claim evidence/p1/claim.json \
+            --repo "${{ github.repository }}" --out evidence/p1/preflight.json
+      - name: Reserve one attempt BEFORE any one-shard workflow request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          P1_RECOVERY_EXECUTION_ENABLED: 'true'
+        run: |
+          python -m collector.p1_recovery_dispatch_once \
+            --preflight evidence/p1/preflight.json \
+            --repo "${{ github.repository }}" --out evidence/p1/dispatch_attempt.json
+      - name: Reconcile accepted request without assuming collection
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m collector.p1_recovery_run_reconciliation \
+            --repo "${{ github.repository }}" --out evidence/p1/reconciliation.json
+      - name: Summarize fail-closed recovery attempt
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          p=Path('evidence/p1')
+          lines=['## Independent P1 missed-slot watchdog', '',
+                 'Research-only; dispatch acknowledgement is NOT a collected shard.']
+          for file in ('watchdog.json','eligibility.json','claim.json',
+                       'preflight.json','dispatch_attempt.json','reconciliation.json'):
+              try:
+                  data=json.loads((p/file).read_text())
+                  keys=('state','reason','request_status','slot',
+                        'historical_collection_verified')
+                  summary=', '.join(f'{k}={data[k]}' for k in keys if k in data)
+              except (OSError,ValueError):
+                  summary='missing or invalid receipt'
+              lines.append(f'- {file}: {summary}')
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
+              out.write(chr(10).join(lines)+chr(10))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p1-independent-recovery-${{ github.run_id }}
+          path: evidence/p1/
+          if-no-files-found: warn
+          retention-days: 14
