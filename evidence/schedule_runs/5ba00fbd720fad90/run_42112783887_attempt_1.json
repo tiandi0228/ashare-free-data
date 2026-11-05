@@ -1,0 +1,54 @@
+{
+  "actual_scheduled_execution_is_proven": true,
+  "archive_csv_replay_enabled": true,
+  "checkpoint_shards_after": 162,
+  "checkpoint_shards_before": 160,
+  "delay_exceeds_45_minutes": true,
+  "executable_candidates": [],
+  "github_queue_creation_delay_minutes": 377.283,
+  "github_run_created_at_utc": "2026-11-05T21:27:17+00:00",
+  "github_workflow_conclusion_authenticated": false,
+  "head_sha": "1465cba21fc8938b13cbd2a4ed1eac44532b352a",
+  "historical_PIT_verified": false,
+  "limitations": [
+    "GITHUB_RUN_CREATED_AT_IS_QUEUE_CREATION_NOT_RUNNER_STEP_START",
+    "LITERAL_EVENT_CRON_DOES_NOT_PROVE_FUTURE_SCHEDULE_RELIABILITY",
+    "SCHEDULED_NOMINAL_DATE_INFERRED_FROM_CREATED_AT_NOT_SIGNED_BY_GITHUB",
+    "IN_FLIGHT_SOURCE_RECEIPT_NOT_FINAL_ACTIONS_SUCCESS_ATTESTATION",
+    "SOURCE_BARS_NOT_HISTORICAL_PIT_OR_TRADING_ELIGIBILITY"
+  ],
+  "new_archived_shard_evidence": [
+    {
+      "index": 33,
+      "issuer_count": 8,
+      "manifest_sha256": "c4c1e1a8a272f3a7dc8d9636853c498d0436462d96956d5840564e1ca95fea99",
+      "receipt_sha256": "8fa2fe975078720496d9a259f198a71bd8bb4a2702aafc422ed1e7d8713596b6"
+    },
+    {
+      "index": 162,
+      "issuer_count": 8,
+      "manifest_sha256": "ea1c0e4990a59f42dcfcd14fdb3f090d14f03e1af2a290839cd24a19b2915d01",
+      "receipt_sha256": "a3d12964f468d70cf6ec81056e9ff087529c4c3ffec12155013027d738644de8"
+    }
+  ],
+  "new_original_shard_indices": [
+    33,
+    162
+  ],
+  "nominal_slot_beijing": "2026-11-05T23:10:00+08:00",
+  "nominal_slot_date_is_inferred_not_authenticated": true,
+  "nominal_slot_utc": "2026-11-05T15:10:00+00:00",
+  "orders": [],
+  "per_shard_digests_from_locally_validated_ledger": true,
+  "phase": "P1_LITERAL_CRON_RUN_CREATION_PROVENANCE_PENDING_CONCLUSION",
+  "requested_shards": 2,
+  "run_attempt": 1,
+  "run_id": 42112783887,
+  "runner_step_start_authenticated": false,
+  "shards_durably_accepted_by_run": 2,
+  "source_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_authorized": false,
+  "trade_gate": "BLOCKED",
+  "trigger": "schedule",
+  "trigger_cron_utc": "10 15 * * 1-5"
+}
