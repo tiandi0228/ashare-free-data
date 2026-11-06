@@ -12,7 +12,9 @@ on:
       - 'tests/test_p4_partial_fill_reconciliation.py'
       - 'tests/test_p2_purged_oos_partition.py'
       - 'collector/p2_real_archive_features.py'
+      - 'collector/p2_real_proxy_purged_chronology.py'
       - 'tests/test_p2_real_archive_features.py'
+      - 'tests/test_p2_real_proxy_purged_chronology.py'
       - 'collector/p3_archived_event_episode_ledger.py'
       - 'tests/test_p3_archived_event_episode_ledger.py'
       - 'collector/p4_fee_floor_gap_audit.py'
@@ -37,7 +39,9 @@ on:
       - 'tests/test_p4_partial_fill_reconciliation.py'
       - 'tests/test_p2_purged_oos_partition.py'
       - 'collector/p2_real_archive_features.py'
+      - 'collector/p2_real_proxy_purged_chronology.py'
       - 'tests/test_p2_real_archive_features.py'
+      - 'tests/test_p2_real_proxy_purged_chronology.py'
       - 'collector/p3_archived_event_episode_ledger.py'
       - 'tests/test_p3_archived_event_episode_ledger.py'
       - 'collector/p4_fee_floor_gap_audit.py'
@@ -61,6 +65,7 @@ jobs:
         run: |
           python -m unittest -v \
             tests.test_p2_purged_oos_partition \
+            tests.test_p2_real_proxy_purged_chronology \
             tests.test_p4_partial_fill_reconciliation
       - name: Independently run P2 P3 and P4 offline contracts
         run: |
