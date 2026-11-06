@@ -1,0 +1,63 @@
+name: Tencent eight-stock bounded quote and five-period live pilot (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/tencent_eight_sample_pilot.py'
+      - 'tests/test_tencent_eight_sample_pilot.py'
+      - '.github/workflows/tencent-eight-sample-one-shot.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tencent-eight-sample-one-shot.yml'
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify bounded budget and fail-closed behavior without network
+        run: python -m unittest -v tests.test_tencent_eight_sample_pilot
+  live_once:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Exactly 11 bounded HTTP calls, 8 symbols and two times five minute periods
+        continue-on-error: true
+        run: python -m collector.tencent_eight_sample_pilot --out evidence/tencent_eight_${{ github.run_id }} --live
+      - name: Print source-level outcome, never infer from workflow green
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for path in Path('evidence').glob('tencent_eight_*/summary.json'):
+              s=json.loads(path.read_text())
+              assert s['trade_gate']=='BLOCKED'
+              assert s['historical_PIT_verified'] is False
+              assert s['orders']==[] and s['executable_candidates']==[]
+              print(json.dumps({k:s[k] for k in ('status','request_count','successful_request_count',
+                  'quote_numeric_observed_count','latency_p50_ms','latency_p95_nearest_rank_ms',
+                  'all_minute_periods_observed')},ensure_ascii=False))
+              for r in s['results']:
+                  print(r['request_number'],r['request_type'],r['symbol'],
+                        r['period'],r['status'],r['duration_ms'],r['rows'],r['error_type'])
+          PY
+      - name: Upload complete quote and OHLC evidence (including partial failures)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tencent-eight-sample-${{ github.run_id }}
+          path: evidence/tencent_eight_*/
+          if-no-files-found: error
+          retention-days: 14
