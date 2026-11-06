@@ -5,6 +5,7 @@ archived OHLC research. This adapter tests chronology only; it MUST NOT turn
 observed future prices into a signal, strategy return or certified OOS result.
 """
 import argparse,hashlib,json,re
+from datetime import date
 from pathlib import Path
 from collector.p2_purged_oos_partition import partition
 
@@ -58,6 +59,20 @@ def observe(proxy, train_end, validation_start, validation_end, *, page_index=0)
             row.get("trade_return") is not None or
             row.get("T_plus_1_execution_verified") is not False):
             return fail("FORGED_EXECUTION_OR_MISSING_SOURCE_SHA")
+        # The vendor's next/third observed dates MUST advance beyond the
+        # signal. A shared date or reversal cannot be a forward label, even
+        # when a broad purge/embargo calendar test would accept it.
+        try:
+            signal_day=date.fromisoformat(day)
+            next_session=date.fromisoformat(next_day)
+            terminal_session=date.fromisoformat(last_day)
+            if (signal_day.isoformat()!=day or
+                next_session.isoformat()!=next_day or
+                terminal_session.isoformat()!=last_day or
+                not signal_day < next_session < terminal_session):
+                return fail("NON_FORWARD_OR_NONCANONICAL_LABEL_DATES")
+        except (TypeError,ValueError,OverflowError):
+            return fail("NON_FORWARD_OR_NONCANONICAL_LABEL_DATES")
         key=code+"|"+day if isinstance(day,str) else None
         if key is None or key in ids:
             return fail("DUPLICATE_OR_MISSING_EVENT_ID")
@@ -113,6 +128,7 @@ def audit_all_pages(proxy, train_end, validation_start, validation_end):
     train=holdout=purged=unclassified=0
     missing_folds=[]
     fingerprints=hashlib.sha256()
+    label_fingerprints=hashlib.sha256()
     for index in range(expected_pages):
         report=observe(proxy,train_end,validation_start,validation_end,
                        page_index=index)
@@ -132,6 +148,19 @@ def audit_all_pages(proxy, train_end, validation_start, validation_end):
         for identifier in identifiers:
             fingerprints.update(identifier.encode("utf-8"))
             fingerprints.update(b"\\n")
+        # Bind *every* record's original PDF-independent CSV hash and its
+        # explicitly observed forward label window. ID-only digests permit
+        # unnoticed changes of label endpoints or original archive bytes.
+        for row in proxy["observed_price_pairs"][index*PAGE:(index+1)*PAGE]:
+            canonical=json.dumps({
+                "issuer":row["issuer"],
+                "source_original_csv_sha256":row["original_csv_sha256"],
+                "signal_asof":row["signal_known_after_close_date"],
+                "label_start":row["next_vendor_date"],
+                "label_end":row["third_vendor_date"],
+            },sort_keys=True,separators=(",",":"),ensure_ascii=False)
+            label_fingerprints.update(canonical.encode("utf-8"))
+            label_fingerprints.update(b"\\n")
         if report["status"]=="PAGE_MISSING_TRAIN_OR_HOLDOUT_NOT_CERTIFIED":
             unclassified+=len(identifiers)
             missing_folds.append(index)
@@ -149,6 +178,15 @@ def audit_all_pages(proxy, train_end, validation_start, validation_end):
                 audited_page_count=expected_pages,page_size=PAGE,
                 unique_source_event_count=len(seen),
                 ordered_source_event_ids_sha256=fingerprints.hexdigest(),
+                archived_label_windows_sha256=label_fingerprints.hexdigest(),
+                fold_configuration_sha256=hashlib.sha256(json.dumps({
+                    "archive_commit_sha":proxy["archive_commit_sha"],
+                    "train_end":train_end,
+                    "validation_start":validation_start,
+                    "validation_end":validation_end,
+                    "embargo_calendar_days":5,
+                    "ordered_label_window_sha256":label_fingerprints.hexdigest()
+                },sort_keys=True,separators=(",",":")).encode("utf-8")).hexdigest(),
                 page_complete_fold_train_events=train,
                 page_complete_fold_holdout_events=holdout,
                 page_complete_fold_purged_events=purged,
