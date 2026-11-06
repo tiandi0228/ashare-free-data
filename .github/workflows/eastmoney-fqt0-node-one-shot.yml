@@ -1,0 +1,72 @@
+name: Eastmoney alternative node fixed-budget fqt0 probe (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/eastmoney-fqt0-node-one-shot.yml'
+permissions:
+  contents: read
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: One-shot two hosts x two symbols, no retries
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from urllib.request import Request,urlopen
+          from collector.eastmoney_daily_triangulation import parse,source_url,MAX_BYTES
+          import hashlib,json
+          root=Path('evidence/eastmoney-nodes-one-shot')
+          root.mkdir(parents=True,exist_ok=False)
+          records=[]
+          for host in ('54.push2his.eastmoney.com','push2.eastmoney.com'):
+              for symbol in ('sh600519','sz002249'):
+                  folder=root/(host+'_'+symbol)
+                  folder.mkdir()
+                  src=source_url(symbol)
+                  url=src.replace('push2his.eastmoney.com',host,1)
+                  receipt={'host':host,'symbol':symbol,'status':'FAILED_UNVERIFIED',
+                      'trade_gate':'BLOCKED','historical_PIT_verified':False,
+                      'requests_for_this_pair':1,'orders':[]}
+                  try:
+                      req=Request(url,headers={
+                          'User-Agent':'StockMate-Research-Node-Probe/1.0',
+                          'Referer':'https://quote.eastmoney.com/',
+                          'Accept':'application/json'})
+                      with urlopen(req,timeout=8) as response:
+                          if response.status!=200:raise ValueError('HTTP status not 200')
+                          raw=response.read(MAX_BYTES+1)
+                      if not 0<len(raw)<=MAX_BYTES:raise ValueError('invalid response size')
+                      (folder/'response.bin').write_bytes(raw)
+                      receipt['sha256']=hashlib.sha256(raw).hexdigest()
+                      receipt['response_bytes']=len(raw)
+                      daily=parse(raw,symbol)
+                      receipt.update(status='OBSERVED_UNVERIFIED',days=len(daily),
+                                     first=min(daily),last=max(daily))
+                      (folder/'daily.json').write_text(json.dumps(daily,indent=2)+'\n')
+                  except (OSError,ValueError,TypeError,UnicodeError) as exc:
+                      receipt.update(error_type=type(exc).__name__,error_detail=str(exc)[:120])
+                  (folder/'quality.json').write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+'\n')
+                  records.append(receipt)
+                  print(json.dumps(receipt,ensure_ascii=False),flush=True)
+          summary={'phase':'EASTMONEY_ALTERNATIVE_NODES_SAME_VENDOR_DIAGNOSTIC',
+              'request_count':4,'results':records,
+              'independent_vendor_confirmation':False,
+              'historical_PIT_verified':False,'trade_gate':'BLOCKED',
+              'orders':[],'executable_candidates':[]}
+          (root/'summary.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n')
+          PY
+      - name: Archive actual success/failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eastmoney-nodes-once-${{ github.run_id }}
+          path: evidence/eastmoney-nodes-one-shot/
+          if-no-files-found: warn
+          retention-days: 14
