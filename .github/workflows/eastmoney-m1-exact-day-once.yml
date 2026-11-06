@@ -1,0 +1,59 @@
+name: Eastmoney historical one-minute exact-date four-request probe (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/eastmoney_m1_historical_probe.py'
+      - 'tests/test_eastmoney_m1_historical_probe.py'
+      - '.github/workflows/eastmoney-m1-exact-day-once.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/eastmoney-m1-exact-day-once.yml'
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest -v tests.test_eastmoney_m1_historical_probe
+  live_once:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Four bounded exact-date 1-minute source requests, no retries
+        continue-on-error: true
+        run: python -m collector.eastmoney_m1_historical_probe --out evidence/eastmoney-m1-date-${{ github.run_id }} --live
+      - name: Print source-level outcome, do not infer from CI success
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for p in Path('evidence').glob('eastmoney-m1-date-*/summary.json'):
+              s=json.loads(p.read_text())
+              assert s['trade_gate']=='BLOCKED' and not s['historical_PIT_verified']
+              print(json.dumps({'full_days':s['full_days'],'request_count':s['request_count'],
+                  'details':[{'symbol':x['symbol'],'day':x['day'],'status':x['status'],
+                              'target_day_rows':x.get('target_day_rows'),'provider_rows':x.get('provider_rows'),
+                              'missing_minute_labels':x.get('missing_minute_labels'),
+                              'error_type':x.get('error_type')} for x in s['results']]},ensure_ascii=False))
+          PY
+      - name: Archive original HTTP response bytes and SHA receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eastmoney-m1-historical-${{ github.run_id }}
+          path: evidence/eastmoney-m1-date-*/
+          if-no-files-found: warn
+          retention-days: 14
