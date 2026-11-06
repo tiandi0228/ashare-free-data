@@ -55,7 +55,7 @@ jobs:
           t=list(Path('evidence/old/tencent').rglob('summary.json'))
           b=list(Path('evidence/old/baostock').rglob('baostock_original'))
           if len(t)!=1 or len(b)!=1:raise ValueError('missing original independent captures')
-          result=triangulate(t[0].parent,b[0].parent.parent,stage)
+          result=triangulate(t[0].parent,b[0].parent,stage)
           dest=Path('evidence/three-source-replay.json')
           dest.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
           print(json.dumps({'status':result['status'],
