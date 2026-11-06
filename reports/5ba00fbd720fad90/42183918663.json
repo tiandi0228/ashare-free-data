@@ -1,0 +1,125 @@
+{
+  "phase": "P2_PAGED_REAL_ARCHIVE_FEATURE_REPLAY",
+  "status": "PAGED_REAL_ARCHIVE_RESEARCH_ONLY",
+  "trade_gate": "BLOCKED",
+  "orders": [],
+  "executable_candidates": [],
+  "actionable_buy_signals": [],
+  "historical_PIT_verified": false,
+  "full_market_universe_verified": false,
+  "source_epoch_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "archive_commit_sha": "0f948a6f4f224babfac1e2d5617386a7b10147ca",
+  "asof_completed_day": "2026-10-20",
+  "page_index": 0,
+  "total_pages": 11,
+  "selection_method": "PRIORITIZE_UNOBSERVED_ACROSS_PAGES",
+  "selected_page_indices": [
+    0
+  ],
+  "archived_shards_in_selected_epoch": 168,
+  "checkpoint_completed_shards": 168,
+  "checkpoint_total_shards": 400,
+  "selected_shards": [
+    "shard_0027"
+  ],
+  "processed_shards": 1,
+  "scoped_verified_issuers": 8,
+  "computed_feature_issuers": 6,
+  "missing_feature_evidence_issuers": 2,
+  "features": [
+    {
+      "issuer": "sh.600292",
+      "asof_completed_day": "2026-10-20",
+      "source_original_sha256": "fcb6e7afc1675acc1a654d078ce4dffdffcfa9ebf014a8e4889fa9bddbfcb357",
+      "ma20_close_cny": "11.2100",
+      "last_close_cny": "10.4400",
+      "above_ma20": false,
+      "volume_vs_prior20_ratio": "0.7083",
+      "trailing20_close_drawdown_pct": "12.4895",
+      "sector": null,
+      "historical_st_and_company_actions_verified": false,
+      "buy_signal": false
+    },
+    {
+      "issuer": "sh.600295",
+      "asof_completed_day": "2026-10-20",
+      "source_original_sha256": "044543dc46f928b6e6ae219469bd8098556dbc49d1d6fc9f2f4728a325273209",
+      "ma20_close_cny": "13.4805",
+      "last_close_cny": "14.3100",
+      "above_ma20": true,
+      "volume_vs_prior20_ratio": "0.7150",
+      "trailing20_close_drawdown_pct": "2.1204",
+      "sector": null,
+      "historical_st_and_company_actions_verified": false,
+      "buy_signal": false
+    },
+    {
+      "issuer": "sh.600298",
+      "asof_completed_day": "2026-10-20",
+      "source_original_sha256": "53d0daa166be7653209198b500c88cd2887397c6b1c559be471eb32c63815875",
+      "ma20_close_cny": "38.7690",
+      "last_close_cny": "36.8600",
+      "above_ma20": false,
+      "volume_vs_prior20_ratio": "1.8416",
+      "trailing20_close_drawdown_pct": "9.5016",
+      "sector": null,
+      "historical_st_and_company_actions_verified": false,
+      "buy_signal": false
+    },
+    {
+      "issuer": "sh.600299",
+      "asof_completed_day": "2026-10-20",
+      "source_original_sha256": "53a6a6f080d8d79f591ec43f4137e3cd5fa7a259ef162d060a4f33d83a8a4dbb",
+      "ma20_close_cny": "8.2185",
+      "last_close_cny": "8.0800",
+      "above_ma20": false,
+      "volume_vs_prior20_ratio": "0.5968",
+      "trailing20_close_drawdown_pct": "5.4971",
+      "sector": null,
+      "historical_st_and_company_actions_verified": false,
+      "buy_signal": false
+    },
+    {
+      "issuer": "sh.600300",
+      "asof_completed_day": "2026-10-20",
+      "source_original_sha256": "5be8f564b7ab27587ec8bd6442a02c1e7c71078d270b7bbfadeeb028ced65238",
+      "ma20_close_cny": "3.0845",
+      "last_close_cny": "2.9900",
+      "above_ma20": false,
+      "volume_vs_prior20_ratio": "0.6450",
+      "trailing20_close_drawdown_pct": "5.9748",
+      "sector": null,
+      "historical_st_and_company_actions_verified": false,
+      "buy_signal": false
+    },
+    {
+      "issuer": "sh.600302",
+      "asof_completed_day": "2026-10-20",
+      "source_original_sha256": "7a2d0830200ff00dd9be187db701648642bc87fe252baec74041be7d9adaac2c",
+      "ma20_close_cny": "6.7480",
+      "last_close_cny": "6.7900",
+      "above_ma20": true,
+      "volume_vs_prior20_ratio": "2.1227",
+      "trailing20_close_drawdown_pct": "5.4318",
+      "sector": null,
+      "historical_st_and_company_actions_verified": false,
+      "buy_signal": false
+    }
+  ],
+  "evidence_gaps": [
+    {
+      "issuer": "sh.600293",
+      "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+    },
+    {
+      "issuer": "sh.600301",
+      "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+    }
+  ],
+  "reasons": [
+    "BOUNDED_ARCHIVED_SHARD_SAMPLE_NOT_ALL_MARKET",
+    "RESEARCH_ARCHIVE_ORIGINALS_NOT_OFFICIAL_PIT",
+    "NO_SOURCE_CERTIFIED_SECTOR_CLASSIFICATION",
+    "NOT_AN_EXECUTABLE_STRATEGY_OR_RETURN_BACKTEST"
+  ]
+}
