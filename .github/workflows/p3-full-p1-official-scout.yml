@@ -310,11 +310,30 @@ jobs:
           print('P3 OFFICIAL MANUAL EVIDENCE REQUEST PACKET:',
                 packet['total_review_tasks'], 'still uncertified; no trades')
           PY
+      - name: Verify existing resume PDFs and exclude already-paired text leads from search
+        run: |
+          git fetch --depth=1 origin research-official-originals-archive
+          git worktree add --detach archived-official-resume-prior FETCH_HEAD
+          python -m collector.p3_halt_resume_pair_review \
+            --episodes evidence/p3_all_archived_original_event_episodes.json \
+            --archive archived-official-resume-prior \
+            --out evidence/p3_prior_original_resume_pairs.json
+          python - <<'PY'
+          import json
+          p=json.load(open('evidence/p3_prior_original_resume_pairs.json'))
+          assert p['trade_gate']=='BLOCKED' and p['historical_PIT_verified'] is False
+          assert p['official_halt_resume_intervals_certified']==0
+          assert p['authenticated_first_publication_count']==0
+          print('P3 SHA-replayed original resume pairs:',p['deduplicated_research_text_pairs'],
+                'still unmatched:',p['unpaired_halt_sources_remaining_in_bounded_research'],
+                '; no PIT certification')
+          PY
       - name: Search genuine archived unpaired halt issuers for subsequent resumption originals
         run: |
           python -m collector.p3_resume_followup_discovery \
             --episodes evidence/p3_all_archived_original_event_episodes.json \
             --run-number "${{ github.run_number }}" \
+            --paired evidence/p3_prior_original_resume_pairs.json \
             --out evidence/resume_index.json
           python -m collector.p3_real_target_pdf_capture \
             --index evidence/resume_index.json --out evidence/resume_originals

@@ -71,6 +71,51 @@ class Followups(unittest.TestCase):
             start=date.fromisoformat(item["search_window_start"])
             end=date.fromisoformat(item["search_window_end"])
             self.assertLessEqual((end-start).days,91)
+    def test_prior_archive_skips_already_paired_and_rotates_remaining(self):
+        q=ledger()
+        paired_issuer=q["official_resumption_followups"][0]
+        pair={"issuer":paired_issuer["issuer"],
+              "halt_original_sha256":paired_issuer["original_pdf_sha256"],
+              "historical_first_publication_verified":False,
+              "official_resume_effective_date_verified":False,
+              "whole_interval_tradability_verified":False}
+        other=[{"issuer":r["issuer"],
+                "halt_original_sha256":r["original_pdf_sha256"],
+                "status":"NO_RESUME_PAIR_IN_LIMITED_ARCHIVE_NOT_PROOF_OF_CONTINUING_HALT"}
+               for r in q["official_resumption_followups"][1:]]
+        archive={"phase":"P3_HALT_RESUME_ORIGINAL_SHA_RESEARCH_PAIRS",
+                 "trade_gate":"BLOCKED","historical_PIT_verified":False,
+                 "official_halt_resume_intervals_certified":0,
+                 "authenticated_first_publication_count":0,
+                 "text_only_halt_resume_pairs":[pair],
+                 "deduplicated_research_text_pairs":1,
+                 "unpaired_original_halt_followups":other,
+                 "unpaired_halt_sources_remaining_in_bounded_research":len(other)}
+        first=targets(q,1,today=date(2026,10,26),paired=archive)
+        second=targets(q,2,today=date(2026,10,26),paired=archive)
+        self.assertEqual(len(first+second),5)
+        self.assertNotIn(paired_issuer["issuer"],{r["issuer"] for r in first+second})
+        report=discover(q,1,lambda *a,**kw:[],today=date(2026,10,26),paired=archive)
+        self.assertEqual(report["archive_remaining_unpaired_count"],5)
+        self.assertEqual(report["trade_gate"],"BLOCKED")
+        archive["unpaired_original_halt_followups"].append(other[0])
+        with self.assertRaises(ValueError):
+            targets(q,1,today=date(2026,10,26),paired=archive)
+
+    def test_archive_evidence_cannot_exclude_unknown_source(self):
+        q=ledger()
+        archive={"phase":"P3_HALT_RESUME_ORIGINAL_SHA_RESEARCH_PAIRS",
+                 "trade_gate":"BLOCKED","historical_PIT_verified":False,
+                 "official_halt_resume_intervals_certified":0,
+                 "authenticated_first_publication_count":0,
+                 "text_only_halt_resume_pairs":[],
+                 "deduplicated_research_text_pairs":0,
+                 "unpaired_original_halt_followups":[
+                     {"issuer":"sh.600000","halt_original_sha256":"b"*64,
+                      "status":"NO_RESUME_PAIR_IN_LIMITED_ARCHIVE_NOT_PROOF_OF_CONTINUING_HALT"}],
+                 "unpaired_halt_sources_remaining_in_bounded_research":1}
+        with self.assertRaises(ValueError):
+            targets(q,1,today=date(2026,10,26),paired=archive)
     def test_empty_missing_halt_queue_fails(self):
         q=ledger();q["official_resumption_followups"]=[];q["unpaired_halt_starts_needing_resumption_search"]=0
         with self.assertRaises(ValueError):discover(q,1,lambda *a,**kw:[],today=date(2026,10,26))
