@@ -138,11 +138,14 @@ def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--source",required=True,type=Path)
     ap.add_argument("--out",required=True,type=Path)
+    ap.add_argument("--require-complete",action="store_true")
     args=ap.parse_args()
     r=examine(args.source)
     args.out.parent.mkdir(parents=True,exist_ok=True)
     args.out.write_text(json.dumps(r,indent=2)+"\n")
     print(json.dumps(r))
+    if args.require_complete and not r["source_archive_sha_verified"]:
+        raise SystemExit("P1 all-epoch SHA source incomplete; writer cutover blocked")
 
 
 if __name__=="__main__":
