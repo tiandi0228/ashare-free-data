@@ -4,6 +4,7 @@ This diagnoses *vendor* row coverage, not issuer official suspension/ST/PIT.
 Never delete a gap, manufacture a missing bar, or bridge suspended observations.
 """
 import argparse,csv,hashlib,json
+from datetime import date
 from pathlib import Path
 from collector.baostock_batch import END
 from collector.p2_independent_bars import assess
@@ -12,7 +13,28 @@ GAP_REASON="INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
 SOURCE_PHASE="P2_PERSISTENT_ARCHIVE_FEATURE_COVERAGE"
 def classify(rows,asof=END):
     """Check frozen 21 vendor-row trailing window; no inferred missing dates."""
-    history=[r for r in rows if r["date"]<=asof]
+    try:
+        cutoff=date.fromisoformat(asof)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("invalid as-of date") from exc
+    if not isinstance(rows,list) or not rows:
+        raise ValueError("missing original vendor observations")
+    previous=None
+    history=[]
+    for row in rows:
+        if not isinstance(row,dict):
+            raise ValueError("invalid original vendor row")
+        try:
+            day=date.fromisoformat(row["date"])
+        except (KeyError,TypeError,ValueError) as exc:
+            raise ValueError("invalid original vendor row date") from exc
+        if previous is not None and day<=previous:
+            raise ValueError("duplicate or unordered original vendor dates")
+        previous=day
+        if row.get("tradestatus") not in ("0","1"):
+            raise ValueError("unknown original vendor trade status")
+        if day<=cutoff:
+            history.append(row)
     if not history or history[-1]["date"]!=asof:
         raise ValueError("missing exactly as-of original vendor row")
     if history[-1]["tradestatus"]!="1":
