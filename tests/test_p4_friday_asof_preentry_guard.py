@@ -79,7 +79,7 @@ class AsOfFridayPreentryTests(unittest.TestCase):
 
     def test_calendar_research_never_authenticates_itself(self):
         sessions=["2026-11-02","2026-11-03","2026-11-04",
-                  "2026-11-05","2026-11-06"]
+                  "2026-11-05","2026-11-06","2026-11-09"]
         monday=calendar_diagnostic("2026-11-02",sessions)
         self.assertEqual(monday["status"],
                 "RESEARCH_DATE_ARITHMETIC_COMPATIBLE_UNAUTHENTICATED")
@@ -104,7 +104,7 @@ class AsOfFridayPreentryTests(unittest.TestCase):
     def test_friday_signal_prospective_monday_entry_calendar_arithmetic(self):
         sessions=[
             "2026-11-06","2026-11-09","2026-11-10",
-            "2026-11-11","2026-11-12","2026-11-13",
+            "2026-11-11","2026-11-12","2026-11-13","2026-11-16",
         ]
         r=calendar_diagnostic("2026-11-06",sessions)
         self.assertEqual(r["status"],
@@ -117,11 +117,24 @@ class AsOfFridayPreentryTests(unittest.TestCase):
         # Hypothetical Friday exchange closure shifts the last potential
         # liquidation session to Thursday and cannot be inferred by weekday.
         r=calendar_diagnostic("2026-11-02",[
-            "2026-11-02","2026-11-03","2026-11-04","2026-11-05"])
+            "2026-11-02","2026-11-03","2026-11-04","2026-11-05","2026-11-09"])
         self.assertEqual(r["status"],
                          "RESEARCH_VETO_EARLY_WEEKEND_BEFORE_3_SESSIONS")
         self.assertEqual(r["hypothetical_week_end_exit_session"],"2026-11-05")
         self.assertFalse(r["trade_authorized"])
+
+    def test_truncated_week_cannot_masquerade_as_friday_holiday(self):
+        # A missing Friday row might be truncation, not an exchange holiday.
+        for sessions in [
+            ["2026-11-02","2026-11-03","2026-11-04","2026-11-05"],
+            ["2026-11-02","2026-11-03","2026-11-04","2026-11-05","2026-11-06"],
+        ]:
+            with self.subTest(sessions=sessions):
+                r=calendar_diagnostic("2026-11-02",sessions)
+                self.assertEqual(r["status"],"BLOCK_CALENDAR_WEEK_END_UNOBSERVED")
+                self.assertFalse(r["calendar_asof_authenticity_certified"])
+                self.assertFalse(r["trade_authorized"])
+                self.assertEqual(r["trade_gate"],"BLOCKED")
 
     def test_missing_or_invalid_calendar_fail_closed(self):
         for calendar,expected in [
