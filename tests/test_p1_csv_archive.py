@@ -3,6 +3,45 @@ from pathlib import Path
 from collector.p1_csv_archive import collect
 
 class CSVArchiveTests(unittest.TestCase):
+    def test_archive_push_stages_original_receipt_and_csv_together(self):
+        """Regression for 2026-10-23 old archive writer losing quality.json."""
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from collector.p1_csv_archive import archive, BRANCH
+        with tempfile.TemporaryDirectory() as tmp:
+            source=Path(tmp)/"original"
+            source.mkdir()
+            csv=b"date,code,close\\n2026-10-23,sh.600258,12.3\\n"
+            receipt=b'{"status":"OBSERVED_SUBSET_UNVERIFIED","trade_gate":"BLOCKED","original":true}\\n'
+            (source/"sh_600258.csv").write_bytes(csv)
+            (source/"quality.json").write_bytes(receipt)
+            checks={"pushed":0,"staged":False}
+            def fake_git(*args,cwd=None,check=True):
+                command=args[0]
+                if command=="clone":
+                    Path(args[-1]).mkdir()
+                if command=="ls-remote":
+                    return SimpleNamespace(stdout="abc refs/heads/"+BRANCH,stderr="",returncode=0)
+                if command=="add":
+                    target=Path(cwd)/("a"*16)/"shard_0024"
+                    self.assertEqual((target/"quality.json").read_bytes(),receipt)
+                    self.assertEqual((target/"sh_600258.csv").read_bytes(),csv)
+                    checks["staged"]=True
+                if command=="diff":
+                    return SimpleNamespace(stdout="",stderr="",returncode=1)
+                if command=="push":
+                    self.assertTrue(checks["staged"])
+                    checks["pushed"]+=1
+                    return SimpleNamespace(stdout="",stderr="",returncode=0)
+                return SimpleNamespace(stdout="",stderr="",returncode=0)
+            with patch("collector.p1_csv_archive.collect",
+                       return_value=[(24,source/"sh_600258.csv",hashlib.sha256(csv).hexdigest())]):
+                with patch("collector.p1_csv_archive.git",side_effect=fake_git):
+                    archive({"source_sha256":"a"*64},[(24,source)],"owner/repo")
+            self.assertEqual(checks["pushed"],1)
+            self.assertEqual((source/"quality.json").read_bytes(),receipt)
+            self.assertEqual((source/"sh_600258.csv").read_bytes(),csv)
+
     def test_non_mainboard_issuer_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)
