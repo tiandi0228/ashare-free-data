@@ -52,10 +52,17 @@ jobs:
           r=json.loads(Path('evidence/p1_legacy_receipt_gap_inventory.json').read_text())
           assert r['trade_gate']=='BLOCKED' and r['orders']==[]
           assert r['writer_cutover_authorized'] is False
+          assert r['all_epoch_archive_complete'] is False
+          assert r['missing_epoch_status_count']==len(r['missing_epoch_statuses'])
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
-              f.write('### Legacy missing original P1 receipt evidence (NO TRADES)\n')
-              f.write(f"Missing original receipts: {r['missing_original_receipts']}\n")
-              f.write(f"Preserved original vendor CSVs: {r['retained_original_csv_files']}\n")
+              f.write('### P1 legacy source gap inventory (NO TRADES)\n')
+              f.write('Diagnostic only; this does not certify all-epoch archive integrity.\n')
+              f.write(f"Inventory status: {r['status']}\n")
+              f.write(f"Epochs missing original archive_status.json: {r['missing_epoch_status_count']}\n")
+              for epoch in r['missing_epoch_statuses']:
+                  f.write(f"- missing status epoch: {epoch}\n")
+              f.write(f"Missing original quality.json receipts: {r['missing_original_receipts']}\n")
+              f.write(f"Retained original CSVs for these receipt gaps: {r['retained_original_csv_files']}\n")
               for gap in r['gaps']:
                   f.write(f"- epoch {gap['epoch_sha256'][:16]}, shard {gap['shard_index']}, original CSVs {gap['original_csv_file_count']}\n")
           PY
