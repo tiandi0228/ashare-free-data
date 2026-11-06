@@ -1,5 +1,5 @@
 """Select up to four distinct, missing shards of the same immutable P1 roster."""
-import argparse,json,os,re
+import argparse,json,os,re,math
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -62,8 +62,21 @@ def verify_frozen_plan(plan):
             or re.fullmatch(r"[0-9a-f]{64}",shard["sha256"]) is None):
             raise ValueError("corrupt or reordered frozen P1 shard manifest")
         total+=shard["count"]
-    if plan.get("issuer_count")!=total:
+    if type(plan.get("issuer_count")) is not int or plan["issuer_count"]!=total:
         raise ValueError("P1 frozen issuer count disagrees with manifests")
+    # Production-generated plans include a fixed shard cap. Check their entire
+    # geometry rather than accepting an internally consistent but corrupted
+    # roster of short, duplicated, or reshaped shards.
+    if "shard_size_cap" in plan:
+        cap=plan["shard_size_cap"]
+        if (type(cap) is not int or cap!=8
+            or count!=math.ceil(total/cap)
+            or any(shard["count"]!=cap for shard in shards[:-1])):
+            raise ValueError("P1 frozen roster shard geometry mismatch")
+    if "roster_codes_sha256" in plan:
+        digest=plan["roster_codes_sha256"]
+        if not isinstance(digest,str) or re.fullmatch(r"[0-9a-f]{64}",digest) is None:
+            raise ValueError("invalid P1 roster membership digest")
     return plan
 
 def verify_prior_for_selection(plan,prior):
