@@ -14,6 +14,26 @@ class IntegratedTests(unittest.TestCase):
         self.assertFalse(result["strategy_backtest_completed"])
         self.assertFalse(result["historical_OOS_validated"])
         self.assertEqual(result["trade_gate"],"BLOCKED")
+    def test_integrated_stop_risk_never_implies_trade_approval(self):
+        f=fixture()
+        f["cost"]["planned_stop_price"]="9.7"
+        review=verify(f)["risk_review"]
+        self.assertTrue(review["planned_stop_provided"])
+        self.assertTrue(review["fee_inclusive_portfolio_stop_within_budget"])
+        self.assertFalse(review["historical_gap_or_limit_down_covered"])
+        self.assertFalse(review["certified_trade_risk_gate_passed"])
+        f["cost"]["planned_stop_price"]="9.5"
+        with self.assertRaisesRegex(ValueError,"planned stop mismatch"):
+            verify(f)
+
+    def test_missing_stop_cannot_pass_aggregate_risk(self):
+        result=verify(fixture())
+        self.assertFalse(result["risk_review"]["planned_stop_provided"])
+        self.assertFalse(result["risk_review"]["fee_inclusive_portfolio_stop_within_budget"])
+        self.assertFalse(result["risk_review"]["certified_trade_risk_gate_passed"])
+        self.assertEqual(result["orders"],[])
+        self.assertEqual(result["trade_gate"],"BLOCKED")
+
     def test_upstream_executable_candidate_fails_closed(self):
         f=fixture();f["executable_candidates"]=[{"code":"sh.600000"}]
         with self.assertRaisesRegex(ValueError,"upstream"):
