@@ -1,0 +1,69 @@
+name: P1 cross-epoch orphan CSV SHA replay (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - collector/p1_cross_epoch_receipt_gap_replay.py
+      - tests/test_p1_cross_epoch_receipt_gap_replay.py
+      - .github/workflows/p1-cross-epoch-gap-replay.yml
+  push:
+    branches: [main]
+    paths:
+      - collector/p1_cross_epoch_receipt_gap_replay.py
+      - tests/test_p1_cross_epoch_receipt_gap_replay.py
+      - .github/workflows/p1-cross-epoch-gap-replay.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: python -m unittest -v tests.test_p1_cross_epoch_receipt_gap_replay
+  source_readback:
+    if: github.event_name != 'pull_request'
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: code
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: research-csv-archive
+          path: archive
+          persist-credentials: false
+      - name: Read-only cross-epoch SHA replay for two gaps
+        env:
+          PYTHONPATH: code
+        run: |
+          python -m collector.p1_cross_epoch_receipt_gap_replay \
+            --archive archive \
+            --legacy-sha f636212d3afd45b8c0016733c63dc9174d294072e94b7613007ff6c73ebb0746 \
+            --comparison-sha 5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022 \
+            --out evidence/p1_cross_epoch_gap_sha.json
+      - name: Report comparison without promotion
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads(Path('evidence/p1_cross_epoch_gap_sha.json').read_text())
+          assert r['trade_gate']=='BLOCKED' and r['orders']==[]
+          assert not r['writer_cutover_authorized']
+          assert not r['legacy_receipts_authenticated']
+          assert r['missing_original_receipts_recovered']==0
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+              f.write('### Legacy vs active epoch original CSV SHA (NO TRADES)\n')
+              f.write(f"Compared: {r['compared_files']}; matching: {r['matching_files']}; different: {r['different_files']}; unavailable: {r['missing_comparison_files']}\n")
+              f.write('Matching bytes do NOT reconstruct missing historic quality.json receipts or approve migration.\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p1-cross-epoch-original-sha-${{ github.run_id }}
+          path: evidence/p1_cross_epoch_gap_sha.json
+          if-no-files-found: warn
+          retention-days: 30
