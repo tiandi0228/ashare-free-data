@@ -1,0 +1,68 @@
+name: P1 all-epoch source archive SHA audit (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - collector/p1_all_epoch_archive_audit.py
+      - tests/test_p1_all_epoch_archive_audit.py
+      - .github/workflows/p1-all-epoch-archive-audit.yml
+  push:
+    branches: [main]
+    paths:
+      - collector/p1_all_epoch_archive_audit.py
+      - tests/test_p1_all_epoch_archive_audit.py
+      - .github/workflows/p1-all-epoch-archive-audit.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: write
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: python -m unittest -v tests.test_p1_all_epoch_archive_audit
+  source_readback:
+    if: github.event_name != 'pull_request'
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: code
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: research-csv-archive
+          path: original-archive
+          persist-credentials: false
+      - name: SHA-check every advertised historical shard and its original CSVs
+        env:
+          PYTHONPATH: code
+        run: |
+          python -m collector.p1_all_epoch_archive_audit \
+            --source original-archive \
+            --out evidence/p1_all_epoch_archive_audit.json
+      - name: Publish truthful migration-source readiness
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads(Path('evidence/p1_all_epoch_archive_audit.json').read_text())
+          assert r['trade_gate']=='BLOCKED' and r['orders']==[]
+          assert r['writer_cutover_authorized'] is False
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+              f.write('### All historical archive epochs: original SHA audit\n')
+              for k in ('status','epoch_count','advertised_shards',
+                        'verified_original_shards','verified_original_csv_files',
+                        'unlisted_original_receipts','invalid_originals','issue_count'):
+                  f.write(f'- {k}: {r[k]}\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p1-all-epoch-source-readback-${{ github.run_id }}
+          path: evidence/p1_all_epoch_archive_audit.json
+          if-no-files-found: warn
+          retention-days: 30
