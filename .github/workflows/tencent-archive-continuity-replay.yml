@@ -1,0 +1,63 @@
+name: Tencent original-archive minute continuity and SHA replay (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/tencent_archived_minute_audit.py'
+      - 'tests/test_tencent_archived_minute_audit.py'
+      - '.github/workflows/tencent-archive-continuity-replay.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/tencent_archived_minute_audit.py'
+      - 'tests/test_tencent_archived_minute_audit.py'
+      - '.github/workflows/tencent-archive-continuity-replay.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run offline corruption and continuity unit tests
+        run: python -m unittest -v tests.test_tencent_archived_minute_audit
+      - name: Download the exact previous 11-request vendor evidence artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p evidence/source-42166665873
+          gh run download 42166665873 -R "${{ github.repository }}" \
+            -n tencent-eight-sample-42166665873 -D evidence/source-42166665873
+      - name: Identify and replay exact saved bytes without new vendor requests
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from collector.tencent_archived_minute_audit import replay
+          bases=list(Path('evidence/source-42166665873').rglob('summary.json'))
+          if len(bases)!=1:
+              raise SystemExit(f'Expected exactly one previous sample summary; got {len(bases)}')
+          result=replay(bases[0].parent)
+          out=Path('evidence/tencent-archive-continuity-audit.json')
+          out.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+          print(json.dumps({'status':result['status'],
+             'source_requests_replayed':result['source_requests_replayed'],
+             'sha256_reverified':result['source_sha256_reverified'],
+             'period_gap_count':result['period_gap_count'],
+             'checks':[{'symbol':x.get('symbol'),'period':x.get('period'),
+                       'rows':x.get('observed_rows'),'gaps':x.get('gap_count')}
+                       for x in result['checks'] if x['kind']=='minute'],
+             'trade_gate':result['trade_gate']},ensure_ascii=False))
+          PY
+      - name: Retain derived audit, never alter prior source artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tencent-replayed-continuity-${{ github.run_id }}
+          path: evidence/tencent-archive-continuity-audit.json
+          if-no-files-found: warn
+          retention-days: 14
