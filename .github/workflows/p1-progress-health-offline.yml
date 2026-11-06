@@ -1,0 +1,26 @@
+name: P1 workflow-success versus shard-progress offline guard (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p1_operational_progress_health.py'
+      - 'tests/test_p1_operational_progress_health.py'
+      - '.github/workflows/p1-progress-health-offline.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p1_operational_progress_health.py'
+      - 'tests/test_p1_operational_progress_health.py'
+      - '.github/workflows/p1-progress-health-offline.yml'
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline deterministic P1 workflow/progress separation tests
+        run: python -m unittest -v tests.test_p1_operational_progress_health
