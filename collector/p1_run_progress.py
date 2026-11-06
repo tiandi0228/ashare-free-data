@@ -67,6 +67,10 @@ def assess(plan, ledger, archive, selection, policy, prior=None):
             or policy.get("accepted_second") is not (effective==2)
             or (effective==2 and len(indices)!=2)):
         raise ValueError("invalid effective shard acceptance")
+    remaining=current["shard_count"]-len(new)
+    if remaining<0 or len(current["pending_shards"])!=remaining:
+        raise ValueError("checkpoint pending count inconsistent")
+    completion_pct=round(100*len(new)/current["shard_count"], 4)
     full_archive=archive["archive_gap_issuers"]==0
     # A two-shard request is not proof of two durable independently
     # checked research shards; require same-run verified ledger increments.
@@ -99,6 +103,10 @@ def assess(plan, ledger, archive, selection, policy, prior=None):
         "status":state,
         "previous_shards":len(old),
         "current_shards":len(new),
+        "total_shards":current["shard_count"],
+        "pending_shards":remaining,
+        "research_completion_pct":completion_pct,
+        "full_roster_research_complete":remaining==0 and full_archive,
         "new_selected_shards":actual,
         "new_shard_count":len(actual),
         "selected_count":len(indices),
@@ -140,7 +148,8 @@ def main():
                 f"- Frozen roster SHA: `{report['source_sha256']}`\n"
                 f"- New ledger shards: **{report['new_shard_count']}**\n"
                 f"- Newly accepted with full archive audit: **{report['new_shards_durably_accepted']}**\n"
-                f"- Current completed: **{report['current_shards']}**\n"
+                f"- Current completed: **{report['current_shards']}/{report['total_shards']}**\n"
+                f"- Remaining: **{report['pending_shards']}**; research-only coverage: **{report['research_completion_pct']}%**\n"
                 f"- Archive gap: **{report['archive_gap_issuers']} issuers**\n"
                 f"- Result: **{report['status']}**; trading BLOCKED.\n"
                 f"- Dual pilot: **{report['dual_pilot_result']}**.\n"

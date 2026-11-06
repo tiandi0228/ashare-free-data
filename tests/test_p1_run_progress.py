@@ -38,6 +38,10 @@ class P1RunProgressTests(unittest.TestCase):
         self.assertEqual(result["new_selected_shards"],[1])
         self.assertEqual(result["new_shards_durably_accepted"],1)
         self.assertEqual(result["trade_gate"],"BLOCKED")
+        self.assertEqual(result["total_shards"],2)
+        self.assertEqual(result["pending_shards"],0)
+        self.assertEqual(result["research_completion_pct"],100.0)
+        self.assertTrue(result["full_roster_research_complete"])
 
     def test_green_no_progress_is_explicit(self):
         p,prior,current,audit,selection,policy=self.fixture()
@@ -47,6 +51,9 @@ class P1RunProgressTests(unittest.TestCase):
         self.assertEqual(result["status"],"SUCCESS_NO_NEW_SHARD")
         self.assertEqual(result["new_shard_count"],0)
         self.assertEqual(result["new_shards_durably_accepted"],0)
+        self.assertEqual(result["pending_shards"],1)
+        self.assertEqual(result["research_completion_pct"],50.0)
+        self.assertFalse(result["full_roster_research_complete"])
 
     def test_archive_gap_not_claimed_as_durable_growth(self):
         p,prior,current,audit,selection,policy=self.fixture()
@@ -55,6 +62,7 @@ class P1RunProgressTests(unittest.TestCase):
         report=assess(p,current,audit,selection,policy,prior)
         self.assertEqual(report["status"],"ARCHIVE_GAP")
         self.assertEqual(report["new_shards_durably_accepted"],0)
+        self.assertFalse(report["full_roster_research_complete"])
 
     def test_two_verified_shards_are_acceptable(self):
         p,prior,current,audit,selection,policy=self.fixture()
@@ -130,6 +138,12 @@ class P1RunProgressTests(unittest.TestCase):
                     independently_replayed_suspended_rows=0)
         with self.assertRaisesRegex(ValueError,"replay counters"):
             assess(p,current,forged,selection,policy,prior)
+
+    def test_checkpoint_pending_count_tamper_rejected(self):
+        p,prior,current,audit,selection,policy=self.fixture()
+        bad=dict(current,pending_shards=[1])
+        with self.assertRaisesRegex(ValueError,"pending"):
+            assess(p,bad,audit,selection,policy,prior)
 
     def test_malformed_archive_counters_or_policy_rejected(self):
         p,prior,current,audit,selection,policy=self.fixture()
