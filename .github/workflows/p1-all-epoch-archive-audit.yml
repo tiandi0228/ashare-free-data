@@ -66,3 +66,15 @@ jobs:
           path: evidence/p1_all_epoch_archive_audit.json
           if-no-files-found: warn
           retention-days: 30
+      - name: Reject incomplete historical archive after preserving its diagnostic report
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('evidence/p1_all_epoch_archive_audit.json').read_text())
+          if not r['source_archive_sha_verified']:
+              raise SystemExit(
+                  'P1 historical source archive has missing original receipts or invalid SHA; '
+                  f"issues={r['issue_count']}; archive migration and write cutover BLOCKED"
+              )
+          PY
