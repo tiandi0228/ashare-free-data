@@ -25,7 +25,7 @@ def labels(day,period):
     if period=="m5":
         return {s+f"{h:02d}{m:02d}" for h,a,b in
                 ((9,35,55),(10,0,55),(11,0,30),(13,5,55),(14,0,55),(15,0,0))
-                for m in range(a,b+1)}
+                for m in range(a,b+1,5)}
     raise ValueError("unsupported period")
 
 
