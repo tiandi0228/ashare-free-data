@@ -1,0 +1,70 @@
+name: P2 P3 P4 original-evidence research scoreboard (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p234_evidence_scoreboard.py'
+      - 'tests/test_p234_evidence_scoreboard.py'
+      - '.github/workflows/p234-evidence-scoreboard.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p234-evidence-scoreboard.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify P2/P3/P4 independent research counters and BLOCKED gate
+        run: python -m unittest -v tests.test_p234_evidence_scoreboard
+  evidence_once:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Download exact prior successful original reports, not new vendor calls
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p evidence/original-p2 evidence/original-p3 evidence/original-p4
+          gh run download 42180658907 -R "${{ github.repository }}" -n p2-real-archive-feature-observation-42180658907 -D evidence/original-p2
+          gh run download 42180658939 -R "${{ github.repository }}" -n p3-full-p1-official-scout-42180658939 -D evidence/original-p3
+          gh run download 42180658923 -R "${{ github.repository }}" -n p4-real-ma20-observation-42180658923 -D evidence/original-p4
+      - name: Reconcile exact source evidence, no invented engineering percentage
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from collector.p234_evidence_scoreboard import scoreboard
+          source={}
+          for key,name in (("p2","p2_real_archive_feature_coverage.json"),
+                           ("p3","p3_all_resume_original_text_pairs.json"),
+                           ("p4","p4_fee_floor_gap_audit.json")):
+              hits=list(Path("evidence/original-"+key).rglob(name))
+              if len(hits)!=1:raise ValueError("missing or ambiguous "+key+" receipt")
+              source[key]=json.loads(hits[0].read_text())
+          result=scoreboard(source["p2"],source["p3"],source["p4"],
+                            {"p2":42180658907,"p3":42180658939,"p4":42180658923})
+          Path("evidence/p234-evidence-scoreboard.json").write_text(
+              json.dumps(result,ensure_ascii=False,indent=2)+"\n")
+          print(json.dumps(result,ensure_ascii=False))
+          PY
+      - name: Retain derived evidence scoreboard, originals remain unchanged
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p234-evidence-scoreboard-${{ github.run_id }}
+          path: evidence/p234-evidence-scoreboard.json
+          if-no-files-found: warn
+          retention-days: 14
