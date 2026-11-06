@@ -17,7 +17,7 @@ NEGATIVE=("尚未复牌","未复牌","无法复牌","暂不复牌","不予复牌
 MAX_ISSUERS=3
 MAX_QUERY_DAYS=90
 
-def targets(episodes,run_number,today=None):
+def targets(episodes,run_number,today=None,paired=None):
     if (episodes.get("phase")!="P3_DURABLE_ORIGINAL_EVENT_EPISODE_RESEARCH"
         or episodes.get("trade_gate")!="BLOCKED" or episodes.get("orders")!=[]
         or episodes.get("historical_PIT_verified") is not False
@@ -50,14 +50,51 @@ def targets(episodes,run_number,today=None):
             "source_halt_original_sha256":digest,"source_halt_announcement_id":identifier,
             "source_halt_certified":False})
     ordered.sort(key=lambda r:(r["issuer"],r["source_halt_date"],r["source_halt_announcement_id"]))
+    if paired is not None:
+        if (not isinstance(paired,dict)
+                or paired.get("phase")!="P3_HALT_RESUME_ORIGINAL_SHA_RESEARCH_PAIRS"
+                or paired.get("trade_gate")!="BLOCKED"
+                or paired.get("historical_PIT_verified") is not False
+                or paired.get("official_halt_resume_intervals_certified")!=0
+                or paired.get("authenticated_first_publication_count")!=0):
+            raise ValueError("invalid prior pairing research evidence")
+        unpaired=paired.get("unpaired_original_halt_followups")
+        if (not isinstance(unpaired,list)
+                or paired.get("unpaired_halt_sources_remaining_in_bounded_research")!=len(unpaired)):
+            raise ValueError("invalid prior unpaired count")
+        origin={(r["issuer"],r["source_halt_original_sha256"]) for r in ordered}
+        needed=set()
+        for row in unpaired:
+            if not isinstance(row,dict) or row.get("status")!="NO_RESUME_PAIR_IN_LIMITED_ARCHIVE_NOT_PROOF_OF_CONTINUING_HALT":
+                raise ValueError("unsafe unpaired status")
+            key=(row.get("issuer"),row.get("halt_original_sha256"))
+            if key not in origin or key in needed:
+                raise ValueError("unpaired evidence not within original halted scope")
+            needed.add(key)
+        text_pairs=paired.get("text_only_halt_resume_pairs")
+        if (not isinstance(text_pairs,list)
+                or paired.get("deduplicated_research_text_pairs")!=len(text_pairs)):
+            raise ValueError("malformed prior text pairs")
+        paired_keys=set()
+        for item in text_pairs:
+            key=(item.get("issuer"),item.get("halt_original_sha256"))
+            if (key not in origin or
+                    item.get("historical_first_publication_verified") is not False or
+                    item.get("official_resume_effective_date_verified") is not False or
+                    item.get("whole_interval_tradability_verified") is not False):
+                raise ValueError("unsafe prior research pair")
+            paired_keys.add(key)
+        if needed != origin-paired_keys:
+            raise ValueError("prior pairing coverage does not partition original halts")
+        ordered=[r for r in ordered if (r["issuer"],r["source_halt_original_sha256"]) in needed]
     if not ordered:return []
     pages=(len(ordered)+MAX_ISSUERS-1)//MAX_ISSUERS
     page=(run_number-1)%pages
     return ordered[page*MAX_ISSUERS:(page+1)*MAX_ISSUERS]
 
-def discover(episodes,run_number,client=query,today=None):
+def discover(episodes,run_number,client=query,today=None,paired=None):
     now=today or datetime.now(ZoneInfo("Asia/Shanghai")).date()
-    selected=targets(episodes,run_number,today=now)
+    selected=targets(episodes,run_number,today=now,paired=paired)
     if not selected:
         raise ValueError("no source-backed unpaired historical halt followups")
     results=[];provenance=[]
@@ -105,6 +142,8 @@ def discover(episodes,run_number,client=query,today=None):
         "purpose":"BOUNDED_ORIGINAL_PDF_RESUMPTION_FOLLOWUP_RESEARCH",
         "attempted":len(results),
         "source_unpaired_halt_issuer_count":episodes["unpaired_halt_starts_needing_resumption_search"],
+        "archive_remaining_unpaired_count":len(paired["unpaired_original_halt_followups"]) if paired is not None else None,
+        "previous_text_pairs_are_not_trade_certification":True,
         "selected_halt_sources":provenance,
         "max_page_budget_per_issuer":2,
         "results":results,
@@ -118,8 +157,11 @@ def main():
     p.add_argument("--episodes",required=True)
     p.add_argument("--run-number",required=True,type=int)
     p.add_argument("--out",required=True)
+    p.add_argument("--paired",help="SHA-replayed prior original resume pair ledger")
     a=p.parse_args()
-    report=discover(json.loads(Path(a.episodes).read_text()),a.run_number)
+    report=discover(
+        json.loads(Path(a.episodes).read_text()),a.run_number,
+        paired=json.loads(Path(a.paired).read_text()) if a.paired else None)
     target=Path(a.out);target.parent.mkdir(parents=True,exist_ok=True)
     target.write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\n")
     print(json.dumps({"phase":report["phase"],"purpose":report["purpose"],
