@@ -1,0 +1,26 @@
+name: P1 Tencent bounded minute research offline CI (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p1_tencent_minute_probe.py'
+      - 'tests/test_p1_tencent_minute_probe.py'
+      - '.github/workflows/p1-tencent-minute-offline.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p1_tencent_minute_probe.py'
+      - 'tests/test_p1_tencent_minute_probe.py'
+      - '.github/workflows/p1-tencent-minute-offline.yml'
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify Tencent minute research-only contracts (no live requests)
+        run: python -m unittest -v tests.test_p1_tencent_minute_probe
