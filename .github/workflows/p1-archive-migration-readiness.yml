@@ -1,0 +1,73 @@
+name: P1 source archive migration readiness SHA audit (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p1_archive_migration_readiness.py'
+      - 'tests/test_p1_archive_migration_readiness.py'
+      - '.github/workflows/p1-archive-migration-readiness.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p1_archive_migration_readiness.py'
+      - 'tests/test_p1_archive_migration_readiness.py'
+      - '.github/workflows/p1-archive-migration-readiness.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: write
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest -v tests.test_p1_archive_migration_readiness
+  source-readback:
+    if: github.event_name != 'pull_request'
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: code
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: research-csv-archive
+          path: source-archive
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Replay frozen active checkpoint against archive originals
+        env:
+          PYTHONPATH: code
+        run: |
+          python -m collector.p1_archive_migration_readiness \
+            --checkpoint code/evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json \
+            --archive source-archive \
+            --out evidence/p1_archive_migration_readiness.json
+      - name: Report source readiness without claiming writer cutover
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          d=json.loads(Path('evidence/p1_archive_migration_readiness.json').read_text())
+          assert d['trade_gate']=='BLOCKED' and not d['orders']
+          assert d['writer_cutover_authorized'] is False
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
+              out.write('### P1 archived source readiness (NO TRADES)\n')
+              for name in ('status','checkpoint_completed_shards',
+                           'verified_original_shards','verified_original_csv_files',
+                           'missing_or_invalid_shard_count','all_checkpoint_originals_durably_located'):
+                  out.write(f"- {name}: {d[name]}\n")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p1-source-archive-readiness-${{ github.run_id }}
+          path: evidence/p1_archive_migration_readiness.json
+          if-no-files-found: warn
+          retention-days: 30
