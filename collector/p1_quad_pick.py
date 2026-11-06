@@ -3,6 +3,7 @@ import argparse,json,os
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
+from collector.p1_checkpoint import validate as validate_checkpoint
 
 def choose(plan,prior=None,start_index=0,limit=4):
     if plan.get("phase")!="P1_FRESH_VENDOR_SHARD_PLAN" or plan.get("trade_gate")!="BLOCKED":
@@ -35,6 +36,22 @@ def rotating_start(shard_count,run_number=None):
     # repeatedly binding the same four issuers to a failing shard.
     return (run_number*(shard_count-1))%shard_count
 
+def verify_prior_for_selection(plan,prior):
+    """Fail closed before network collection using complete durable SHA receipts."""
+    if prior is None:
+        return
+    validate_checkpoint(prior)
+    if (prior["source_sha256"]!=plan["source_sha256"]
+            or prior["shard_count"]!=plan["shard_count"]):
+        raise ValueError("selection prior checkpoint from another frozen roster")
+    for item in prior["completed"]:
+        shard=plan["shards"][item["index"]]
+        if (shard["index"]!=item["index"] or
+                shard["sha256"]!=item["manifest_sha256"] or
+                shard["count"]!=item["issuer_count"]):
+            raise ValueError("selection prior receipt disagrees with frozen shard manifest")
+
+
 def main():
     p=argparse.ArgumentParser()
     p.add_argument("--plan",required=True);p.add_argument("--prior")
@@ -43,6 +60,7 @@ def main():
     a=p.parse_args()
     plan=json.loads(Path(a.plan).read_text())
     prior=json.loads(Path(a.prior).read_text()) if a.prior else None
+    verify_prior_for_selection(plan,prior)
     run_number=os.environ.get("GITHUB_RUN_NUMBER")
     start=rotating_start(plan["shard_count"],int(run_number) if run_number is not None else None)
     # Reliability pilot: one independently verifiable shard per workflow run.

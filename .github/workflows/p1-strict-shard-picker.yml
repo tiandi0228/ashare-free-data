@@ -1,0 +1,26 @@
+name: P1 strict pending shard picker CI (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p1_quad_pick.py'
+      - 'tests/test_p1_quad_pick.py'
+      - '.github/workflows/p1-strict-shard-picker.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p1_quad_pick.py'
+      - 'tests/test_p1_quad_pick.py'
+      - '.github/workflows/p1-strict-shard-picker.yml'
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Fail closed on mutated receipts and inconsistent pending shards
+        run: python -m unittest -v tests.test_p1_quad_pick tests.test_p1_checkpoint
