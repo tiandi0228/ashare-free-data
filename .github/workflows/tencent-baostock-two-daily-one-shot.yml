@@ -1,0 +1,76 @@
+name: Tencent vs Baostock two-issuer daily research crosscheck (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/tencent_baostock_daily_compare.py'
+      - 'tests/test_tencent_baostock_daily_compare.py'
+      - '.github/workflows/tencent-baostock-two-daily-one-shot.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tencent-baostock-two-daily-one-shot.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Deterministic full-day and adjustment-mode tests
+        run: python -m unittest -v tests.test_tencent_baostock_daily_compare
+  live_once:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Download immutable previous Tencent source receipt (no extra Tencent requests)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p evidence/source-42166665873
+          gh run download 42166665873 -R "${{ github.repository }}" \
+            -n tencent-eight-sample-42166665873 -D evidence/source-42166665873
+      - name: Install free Baostock for two daily symbol queries
+        run: python -m pip install 'baostock>=0.8,<1'
+      - name: Compare complete Tencent m5 dates against unadjusted Baostock daily (max two queries)
+        continue-on-error: true
+        run: |
+          set -e
+          ARCHIVE=$(find evidence/source-42166665873 -name summary.json -print | head -1)
+          test -n "$ARCHIVE"
+          python -m collector.tencent_baostock_daily_compare \
+            --tencent-archive "$(dirname "$ARCHIVE")" \
+            --out "evidence/baostock-tencent-${{ github.run_id }}" --live-baostock
+      - name: Show comparison conclusion, including failures
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          for p in Path('evidence').glob('baostock-tencent-*/comparison.json'):
+              a=json.loads(p.read_text())
+              print(json.dumps({'phase':a['phase'],'status':a['status'],
+                 'comparable_days':a['comparable_days'],'within_tick_days':a['within_tick_days'],
+                 'disagreement_days':a['disagreement_days'],'records':a['comparison_records'],
+                 'volume_comparison_performed':a['volume_comparison_performed'],
+                 'historical_PIT_verified':a['historical_PIT_verified'],
+                 'trade_gate':a['trade_gate']},ensure_ascii=False))
+          PY
+      - name: Retain independent vendor originals and diagnostic even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tencent-baostock-daily-${{ github.run_id }}
+          path: evidence/baostock-tencent-*/
+          if-no-files-found: warn
+          retention-days: 14
