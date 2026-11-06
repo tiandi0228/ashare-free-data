@@ -66,6 +66,17 @@ def nominal(cron, created):
     raise ValueError("cannot match declared cron to same or previous UTC day")
 
 
+def delay_class(minutes):
+    """Classify schedule creation lag; not runner start or provider latency."""
+    if not isinstance(minutes,(float,int)) or isinstance(minutes,bool) or minutes < -2:
+        raise ValueError("invalid scheduled creation delay")
+    if minutes > 180:
+        return "SEVERE_OVER_3H"
+    if minutes > 45:
+        return "LATE_OVER_45M"
+    return "ON_TIME_WITHIN_45M"
+
+
 def build(run, progress, *, cron, run_id, attempt, sha, actual_requested_shards,
           ledger=None):
     if (not isinstance(run, dict) or type(run_id) is not int or run_id < 1
@@ -146,6 +157,9 @@ def build(run, progress, *, cron, run_id, attempt, sha, actual_requested_shards,
         "github_run_created_at_utc": created.isoformat(),
         "github_queue_creation_delay_minutes": delay,
         "delay_exceeds_45_minutes": delay > 45,
+        "schedule_creation_delay_severity": delay_class(delay),
+        "schedule_creation_is_not_runner_start": True,
+        "provider_collection_latency_measured_here": False,
         "runner_step_start_authenticated": False,
         "github_workflow_conclusion_authenticated": False,
         "actual_scheduled_execution_is_proven": True,
@@ -235,6 +249,7 @@ def main():
         "github_queue_creation_delay_minutes":
             result["github_queue_creation_delay_minutes"],
         "durably_accepted_shards": result["shards_durably_accepted_by_run"],
+        "schedule_creation_delay_severity": result["schedule_creation_delay_severity"],
         "receipt": location,
         "trade_gate": "BLOCKED",
     }, ensure_ascii=False))

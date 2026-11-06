@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from collector.p1_schedule_run_provenance import (
-    ALLOWED_CRONS, DUAL_CRONS, build, nominal, path_for, persist,
+    ALLOWED_CRONS, DUAL_CRONS, build, delay_class, nominal, path_for, persist,
 )
 
 UTC = dt.timezone.utc
@@ -140,6 +140,18 @@ class P1ExactScheduledProvenanceTests(unittest.TestCase):
         self.assertFalse(r["historical_PIT_verified"])
         self.assertEqual(r["trade_gate"], "BLOCKED")
         self.assertEqual(r["orders"], [])
+
+    def test_creation_delay_severity_is_not_provider_latency(self):
+        self.assertEqual(delay_class(45),"ON_TIME_WITHIN_45M")
+        self.assertEqual(delay_class(180),"LATE_OVER_45M")
+        self.assertEqual(delay_class(378.617),"SEVERE_OVER_3H")
+        with self.assertRaises(ValueError):delay_class(-100)
+        report=check("10 0 * * 1-5","2026-11-06T06:28:37Z",
+                     valid_progress(selected=(60,)))
+        self.assertEqual(report["schedule_creation_delay_severity"],"SEVERE_OVER_3H")
+        self.assertFalse(report["provider_collection_latency_measured_here"])
+        self.assertTrue(report["schedule_creation_is_not_runner_start"])
+        self.assertEqual(report["trade_gate"],"BLOCKED")
 
     def test_three_hour_delay_cannot_be_attributed_to_1310_slot(self):
         # The actual cron is UTC 01:10, but GitHub queued it at 04:10.
