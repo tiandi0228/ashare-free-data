@@ -1,5 +1,7 @@
 import hashlib
 import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -74,6 +76,29 @@ class AllEpochArchiveTests(unittest.TestCase):
         self.assertEqual(result["non_p1_data_directories"],
                          ["p4-current-tail","p4-tail-backfill"])
         self.assertEqual(result["issue_count"],0)
+
+    def test_strict_cli_fails_but_keeps_diagnostic_file(self):
+        report=self.root/"audit-result.json"
+        self.status.write_text(json.dumps({
+            "source_sha256":"a"*64,"trade_gate":"BLOCKED",
+            "archived_shards":[7,8]
+        }))
+        command=[sys.executable,"-m","collector.p1_all_epoch_archive_audit",
+                 "--source",str(self.root),"--out",str(report),
+                 "--require-complete"]
+        result=subprocess.run(command,capture_output=True,text=True)
+        self.assertNotEqual(result.returncode,0)
+        self.assertTrue(report.is_file())
+        payload=json.loads(report.read_text())
+        self.assertEqual(payload["status"],"SOURCE_ARCHIVE_INCOMPLETE")
+        self.assertEqual(payload["trade_gate"],"BLOCKED")
+        self.assertFalse(payload["writer_cutover_authorized"])
+        self.status.write_text(json.dumps({
+            "source_sha256":"a"*64,"trade_gate":"BLOCKED",
+            "archived_shards":[7]
+        }))
+        success=subprocess.run(command,capture_output=True,text=True)
+        self.assertEqual(success.returncode,0,success.stderr)
 
     def test_missing_source_never_approves(self):
         result=examine(self.root/"not-here")
