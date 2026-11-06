@@ -13,6 +13,8 @@ on:
       - 'tests/test_p2_purged_oos_partition.py'
       - 'collector/p2_real_archive_features.py'
       - 'collector/p2_real_proxy_purged_chronology.py'
+      - 'collector/p2_prospective_parameter_preregistration.py'
+      - 'tests/test_p2_prospective_parameter_preregistration.py'
       - 'tests/test_p2_real_archive_features.py'
       - 'tests/test_p2_real_proxy_purged_chronology.py'
       - 'collector/p3_archived_event_episode_ledger.py'
@@ -40,6 +42,8 @@ on:
       - 'tests/test_p2_purged_oos_partition.py'
       - 'collector/p2_real_archive_features.py'
       - 'collector/p2_real_proxy_purged_chronology.py'
+      - 'collector/p2_prospective_parameter_preregistration.py'
+      - 'tests/test_p2_prospective_parameter_preregistration.py'
       - 'tests/test_p2_real_archive_features.py'
       - 'tests/test_p2_real_proxy_purged_chronology.py'
       - 'collector/p3_archived_event_episode_ledger.py'
@@ -66,6 +70,7 @@ jobs:
           python -m unittest -v \
             tests.test_p2_purged_oos_partition \
             tests.test_p2_real_proxy_purged_chronology \
+            tests.test_p2_prospective_parameter_preregistration \
             tests.test_p4_partial_fill_reconciliation
       - name: Independently run P2 P3 and P4 offline contracts
         run: |
