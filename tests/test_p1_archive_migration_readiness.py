@@ -14,7 +14,7 @@ class MigrationReadinessTests(unittest.TestCase):
         self.folder=self.root/self.epoch[:16]/"shard_0000"
         self.folder.mkdir(parents=True)
         self.csv=self.folder/"sh_600000.csv"
-        self.csv.write_text("date,code\\n2025-12-31,sh.600000\\n")
+        self.csv.write_text("date,code\n2025-12-31,sh.600000\n")
         self.receipt={
             "status":"OBSERVED_SUBSET_UNVERIFIED",
             "trade_gate":"BLOCKED",
@@ -67,7 +67,7 @@ class MigrationReadinessTests(unittest.TestCase):
         self.assertEqual(a["status"],"CHECKPOINT_ORIGINALS_INCOMPLETE_NO_CUTOVER")
         self.assertEqual(a["verified_original_shards"],0)
         self.assertFalse(a["writer_cutover_authorized"])
-        self.csv.write_text("date,code\\n2025-12-31,sh.600000\\n")
+        self.csv.write_text("date,code\n2025-12-31,sh.600000\n")
         self.checkpoint["completed"][0]["receipt_sha256"]="f"*64
         b=examine(self.checkpoint,self.root)
         self.assertEqual(b["status"],"CHECKPOINT_ORIGINALS_INCOMPLETE_NO_CUTOVER")
