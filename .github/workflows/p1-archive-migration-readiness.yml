@@ -11,6 +11,9 @@ on:
       - 'collector/p1_archive_migration_readiness.py'
       - 'tests/test_p1_archive_migration_readiness.py'
       - '.github/workflows/p1-archive-migration-readiness.yml'
+  # Read-only nightly reconciliation of the *latest* same-epoch checkpoint.
+  schedule:
+    - cron: '35 16 * * *' # 00:35 Beijing daily
   workflow_dispatch:
 permissions:
   contents: read
