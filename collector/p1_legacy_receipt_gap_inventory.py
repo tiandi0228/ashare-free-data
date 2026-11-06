@@ -26,10 +26,16 @@ def inventory_missing_receipts(root):
     if not root.is_dir():
         raise ValueError("archive root missing")
     gaps=[]
+    missing_epoch_statuses=[]
     scanned_statuses=0
-    for status_path in sorted(root.glob("*/archive_status.json")):
-        epoch=status_path.parent
-        if not EPOCH.fullmatch(epoch.name):
+    for epoch in sorted(root.iterdir()):
+        if epoch.name==".git" or not epoch.is_dir() or not EPOCH.fullmatch(epoch.name):
+            continue
+        status_path=epoch/"archive_status.json"
+        if status_path.is_symlink():
+            raise ValueError("unsafe source archive status symlink")
+        if not status_path.is_file():
+            missing_epoch_statuses.append(epoch.name)
             continue
         scanned_statuses+=1
         status=json.loads(status_path.read_text())
@@ -65,9 +71,13 @@ def inventory_missing_receipts(root):
             })
     return {
         "phase":"P1_LEGACY_ARCHIVE_ORIGINAL_RECEIPT_GAPS",
-        "status":("ORIGINAL_RECEIPTS_NOT_RECOVERED" if gaps else
+        "status":("MISSING_EPOCH_STATUSES_AND_RECEIPTS" if missing_epoch_statuses and gaps else
+                  "MISSING_EPOCH_STATUSES" if missing_epoch_statuses else
+                  "ORIGINAL_RECEIPTS_NOT_RECOVERED" if gaps else
                   "NO_SOURCE_STATUS_FOUND" if not scanned_statuses else
                   "NO_MISSING_RECEIPTS_IN_SCANNED_STATUSES"),
+        "missing_epoch_statuses":missing_epoch_statuses,
+        "missing_epoch_status_count":len(missing_epoch_statuses),
         "scanned_source_statuses":scanned_statuses,
         "missing_original_receipts":len(gaps),
         "retained_original_csv_files":sum(len(g["original_csv_files"]) for g in gaps),
