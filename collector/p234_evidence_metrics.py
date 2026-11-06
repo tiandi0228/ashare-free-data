@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 
 EXPECTED={
-    "P2":"P2_FEATURE_COVERAGE_LEDGER",
+    "P2":"P2_PERSISTENT_ARCHIVE_FEATURE_COVERAGE",
     "P3":"P3_HALT_RESUME_ORIGINAL_SHA_RESEARCH_PAIRS",
 }
 def natural(value,name):
