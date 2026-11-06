@@ -80,6 +80,10 @@ jobs:
             --proxy evidence/p4_next_open_forward_proxy.json \
             --train-end 2026-06-30 --validation-start 2026-07-08 --validation-end 2026-10-22 \
             --page-index 0 --out evidence/p2_real_proxy_purged_chronology_page0.json
+          python -m collector.p2_real_proxy_purged_chronology \
+            --proxy evidence/p4_next_open_forward_proxy.json \
+            --train-end 2026-06-30 --validation-start 2026-07-08 --validation-end 2026-10-22 \
+            --all-pages --out evidence/p2_real_proxy_purged_chronology_full.json
           python -m collector.p4_observed_fee_friction --input evidence/p4_next_open_forward_proxy.json --out evidence/p4_observed_fee_friction.json
           python -m collector.p4_tplus1_barrier_touch \
             --root archived-research \
