@@ -29,8 +29,12 @@ def inventory_missing_receipts(root):
     missing_epoch_statuses=[]
     scanned_statuses=0
     for epoch in sorted(root.iterdir()):
-        if epoch.name==".git" or not epoch.is_dir() or not EPOCH.fullmatch(epoch.name):
+        if epoch.name==".git" or not EPOCH.fullmatch(epoch.name):
             continue
+        if epoch.is_symlink():
+            raise ValueError("unsafe source archive epoch symlink")
+        if not epoch.is_dir():
+            raise ValueError("invalid source archive epoch directory")
         status_path=epoch/"archive_status.json"
         if status_path.is_symlink():
             raise ValueError("unsafe source archive status symlink")
@@ -48,7 +52,14 @@ def inventory_missing_receipts(root):
             raise ValueError("invalid source archive marker")
         for i in sorted(ids):
             shard=epoch/f"shard_{i:04d}"
-            if (shard/"quality.json").is_file():
+            if shard.is_symlink():
+                raise ValueError("unsafe source archive shard symlink")
+            if shard.exists() and not shard.is_dir():
+                raise ValueError("invalid source archive shard directory")
+            receipt=shard/"quality.json"
+            if receipt.is_symlink():
+                raise ValueError("unsafe original receipt symlink")
+            if receipt.is_file():
                 continue
             files=[]
             if shard.is_dir():
