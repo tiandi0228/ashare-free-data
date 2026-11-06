@@ -92,21 +92,40 @@ def targets(episodes,run_number,today=None,paired=None):
     page=(run_number-1)%pages
     return ordered[page*MAX_ISSUERS:(page+1)*MAX_ISSUERS]
 
+def window_for_halt(halt,now,cycle):
+    """Rotate strictly bounded post-halt date windows, never infer no-resume."""
+    if not isinstance(halt,date) or not isinstance(now,date) or halt>now:
+        raise ValueError("invalid source dates")
+    if type(cycle)!=int or cycle<0:
+        raise ValueError("invalid research cycle")
+    # Window 0 starts the day before the original halt; all subsequent
+    # windows are nonoverlapping, each at most 90 days wide.
+    elapsed=(now-halt).days
+    total=elapsed//MAX_QUERY_DAYS+1
+    segment=cycle%total
+    start=halt-timedelta(days=1) if segment==0 else halt+timedelta(days=segment*MAX_QUERY_DAYS)
+    end=min(now,halt+timedelta(days=(segment+1)*MAX_QUERY_DAYS-1))
+    if end<start or (end-start).days>MAX_QUERY_DAYS:
+        raise ValueError("unbounded research window")
+    return (start.isoformat(),end.isoformat()),segment,total
+
 def discover(episodes,run_number,client=query,today=None,paired=None):
     now=today or datetime.now(ZoneInfo("Asia/Shanghai")).date()
     selected=targets(episodes,run_number,today=now,paired=paired)
     if not selected:
         raise ValueError("no source-backed unpaired historical halt followups")
+    source_count=(len(paired["unpaired_original_halt_followups"]) if paired is not None
+                  else len(episodes["official_resumption_followups"]))
+    source_pages=(source_count+MAX_ISSUERS-1)//MAX_ISSUERS
+    cycle=(run_number-1)//source_pages
     results=[];provenance=[]
     for src in selected:
         issuer=src["issuer"]
         halt=date.fromisoformat(src["source_halt_date"])
-        beginning=halt-timedelta(days=1)
-        finish=min(now,halt+timedelta(days=MAX_QUERY_DAYS))
-        if finish<beginning:raise ValueError("invalid official followup window")
-        window=(beginning.isoformat(),finish.isoformat())
+        window,segment,total=window_for_halt(halt,now,cycle)
         provenance.append({**src,"search_window_start":window[0],
             "search_window_end":window[1],
+            "window_segment_index":segment,"window_segment_count":total,
             "research_window_is_exhaustive":False,
             "historical_resume_authenticated":False})
         status="NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
@@ -137,13 +156,17 @@ def discover(episodes,run_number,client=query,today=None,paired=None):
             "candidate_count":len(candidates),
             "source_halt_text_date":src["source_halt_date"],
             "source_halt_original_sha256":src["source_halt_original_sha256"],
-            "research_window":list(window),"candidates":candidates})
+            "research_window":list(window),
+            "window_segment_index":segment,"window_segment_count":total,
+            "candidates":candidates})
     return {"phase":"P3_REAL_P1_LIVE_INDEX_DISCOVERY",
         "purpose":"BOUNDED_ORIGINAL_PDF_RESUMPTION_FOLLOWUP_RESEARCH",
         "attempted":len(results),
         "source_unpaired_halt_issuer_count":episodes["unpaired_halt_starts_needing_resumption_search"],
         "archive_remaining_unpaired_count":len(paired["unpaired_original_halt_followups"]) if paired is not None else None,
         "previous_text_pairs_are_not_trade_certification":True,
+        "window_cycle":cycle,
+        "per_issuer_date_window_max_days":MAX_QUERY_DAYS,
         "selected_halt_sources":provenance,
         "max_page_budget_per_issuer":2,
         "results":results,

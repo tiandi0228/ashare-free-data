@@ -1,6 +1,6 @@
 import unittest
 from datetime import date
-from collector.p3_resume_followup_discovery import discover,targets
+from collector.p3_resume_followup_discovery import discover,targets,window_for_halt
 
 def ledger():
     records=[]
@@ -65,6 +65,38 @@ class Followups(unittest.TestCase):
     def test_future_halt_date_rejected(self):
         q=ledger();q["official_resumption_followups"][0]["halt_text_date"]="2099-01-01"
         with self.assertRaises(ValueError):targets(q,1,today=date(2026,10,26))
+    def test_later_window_cycle_reaches_dates_beyond_first_90_days(self):
+        first,_i,_n=window_for_halt(date(2025,11,4),date(2026,10,26),0)
+        next_window,second,total=window_for_halt(date(2025,11,4),date(2026,10,26),1)
+        self.assertEqual(first[0],"2025-11-03")
+        self.assertEqual(first[1],"2026-02-01")
+        self.assertEqual(next_window[0],"2026-02-02")
+        self.assertEqual(second,1)
+        self.assertGreaterEqual(total,3)
+        self.assertLessEqual((date.fromisoformat(next_window[1])-date.fromisoformat(next_window[0])).days,90)
+        seen=[]
+        def client(issuer,max_pages,research_window):
+            seen.append((issuer,research_window))
+            return []
+        r=discover(ledger(),3,client,today=date(2026,10,26))
+        self.assertEqual(r["window_cycle"],1)
+        self.assertEqual(r["attempted"],3)
+        self.assertTrue(any(date.fromisoformat(w[0])>date(2025,11,4)
+                            for _,w in seen))
+        self.assertFalse(r["historical_PIT_verified"])
+        self.assertEqual(r["trade_gate"],"BLOCKED")
+
+    def test_recent_source_clamps_to_today_and_wraps_without_future_dates(self):
+        for cycle in (0,1,10000):
+            window,segment,total=window_for_halt(date(2026,10,20),date(2026,10,26),cycle)
+            self.assertEqual(segment,0)
+            self.assertEqual(total,1)
+            self.assertEqual(window,("2026-10-19","2026-10-26"))
+        with self.assertRaises(ValueError):
+            window_for_halt(date(2026,11,1),date(2026,10,26),0)
+        with self.assertRaises(ValueError):
+            window_for_halt(date(2026,10,1),date(2026,10,26),-1)
+
     def test_research_window_never_extends_unbounded(self):
         r=discover(ledger(),1,lambda *a,**kw:[],today=date(2026,10,26))
         for item in r["selected_halt_sources"]:
