@@ -1,0 +1,73 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 0,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 0,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [],
+  "run_id": 42183918441,
+  "source_halt_issuers_attempted": 3,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603306",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-11-06",
+      "search_window_start": "2026-08-14",
+      "source_halt_announcement_id": "1223606276",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-05-21",
+      "source_halt_original_sha256": "4de2cb70f67fbfb4d924303bb948bea66532af7f4f81ffd806a10a3c6027d5ff",
+      "window_segment_count": 6,
+      "window_segment_index": 5
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603330",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-06-30",
+      "search_window_start": "2025-04-01",
+      "source_halt_announcement_id": "1222983065",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-04-02",
+      "source_halt_original_sha256": "cca9071398e3aa9df550421b195af813ab5c8e1ee6f36cce0d8fba7432f87da6",
+      "window_segment_count": 7,
+      "window_segment_index": 0
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603336",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-11-06",
+      "search_window_start": "2026-09-02",
+      "source_halt_announcement_id": "1223801181",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-06-09",
+      "source_halt_original_sha256": "ce04a12dc1052646bdd2a263f59d601007819f8de306fd4c400e385d5fdf6873",
+      "window_segment_count": 6,
+      "window_segment_index": 5
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.603306",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    },
+    {
+      "issuer": "sh.603330",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    },
+    {
+      "issuer": "sh.603336",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
