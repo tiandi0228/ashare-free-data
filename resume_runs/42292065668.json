@@ -1,0 +1,100 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 1,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 1,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1225460704",
+      "archival_pdf_path": "pdf/sh_603221/1225460704/29b3eb064177b22b0b7fa1518e5a7065530067a0ad31cdb5043e044745bbc9f4.pdf",
+      "bytes": 168756,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.603221",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-08-06/1225460704.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "29b3eb064177b22b0b7fa1518e5a7065530067a0ad31cdb5043e044745bbc9f4",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "本公司股票于2026年8月6日（星期四）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "29b3eb064177b22b0b7fa1518e5a7065530067a0ad31cdb5043e044745bbc9f4",
+          "pdf_date_phrase": "2026年8月6日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-11-06T20:53:35.806850+00:00",
+      "source_halt_original_sha256": "e4568a1464577e7a94c6623dacb15895ab6987bfdbb86945a44d5837fce50f9b",
+      "source_halt_text_day": "2026-08-03",
+      "title_unverified": "爱丽家居科技股份有限公司关于股票交易停牌核查结果、股票风险交易提示暨复牌的公告"
+    }
+  ],
+  "run_id": 42292065668,
+  "source_halt_issuers_attempted": 3,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603216",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-05-04",
+      "search_window_start": "2026-02-04",
+      "source_halt_announcement_id": "1224789694",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-11-06",
+      "source_halt_original_sha256": "fde2c2556d1afe15ce963c6e5b6dd0397a77f4e6122a4abca819a84dbd55e526",
+      "window_segment_count": 5,
+      "window_segment_index": 1
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603221",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-10-31",
+      "search_window_start": "2026-08-02",
+      "source_halt_announcement_id": "1225452030",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-08-03",
+      "source_halt_original_sha256": "e4568a1464577e7a94c6623dacb15895ab6987bfdbb86945a44d5837fce50f9b",
+      "window_segment_count": 2,
+      "window_segment_index": 0
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603226",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-08-28",
+      "search_window_start": "2025-05-30",
+      "source_halt_announcement_id": "1223826303",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-05-31",
+      "source_halt_original_sha256": "f77315e335eb097bb0814dbb072efeadd4dedd376f119c3d09374adb48cb28c4",
+      "window_segment_count": 6,
+      "window_segment_index": 0
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.603216",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    },
+    {
+      "issuer": "sh.603221",
+      "matching_titles": 2,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    },
+    {
+      "issuer": "sh.603226",
+      "matching_titles": 0,
+      "status": "INDEX_UNAVAILABLE_NOT_NO_RESUMPTION"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
