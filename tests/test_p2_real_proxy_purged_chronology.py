@@ -2,7 +2,7 @@ import copy,unittest
 from collector.p2_real_proxy_purged_chronology import observe,audit_all_pages,PHASE,PAGE
 
 def row(i,day,next_day,last_day):
-    return {"issuer":"sh.600"+str(i).zfill(3),"original_csv_sha256":"b"*64,
+    return {"issuer":"sh."+str(600000+i),"original_csv_sha256":"b"*64,
             "signal_known_after_close_date":day,
             "next_vendor_date":next_day,"third_vendor_date":last_day,
             "next_open_fill_assumed":False,"exit_close_fill_assumed":False,
