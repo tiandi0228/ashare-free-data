@@ -1,0 +1,73 @@
+name: P2 original gaps vs P3 official research crosswalk (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p2_p3_gap_crosswalk.py'
+      - 'tests/test_p2_p3_gap_crosswalk.py'
+      - '.github/workflows/p2-p3-original-gap-crosswalk.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p2_p3_gap_crosswalk.py'
+      - 'tests/test_p2_p3_gap_crosswalk.py'
+      - '.github/workflows/p2-p3-original-gap-crosswalk.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test original issuer join without promoting PIT
+        run: python -m unittest -v tests.test_p2_p3_gap_crosswalk tests.test_p2_original_gap_window_triage
+  replay_once:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Retrieve existing SHA-replayed P2/P3 source artifacts; no new vendor queries
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p evidence/sources/p2 evidence/sources/p3
+          gh run download 42185675673 -R "${{ github.repository }}" -n p2-original-gap-triage-42185675673 -D evidence/sources/p2
+          gh run download 42183918441 -R "${{ github.repository }}" -n p3-full-p1-official-scout-42183918441 -D evidence/sources/p3
+      - name: Cross-reference exact original research issuer sources (NO PIT claims)
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess,json
+          def original(root,name):
+              hits=list(Path(root).rglob(name))
+              if len(hits)!=1:raise ValueError('Missing or ambiguous source: '+name)
+              return str(hits[0])
+          cmd=['python','-m','collector.p2_p3_gap_crosswalk',
+              '--p2-gap-triage',original('evidence/sources/p2','p2-original-gap-triage.json'),
+              '--p3-event-episodes',original('evidence/sources/p3','p3_all_archived_original_event_episodes.json'),
+              '--p3-pairs',original('evidence/sources/p3','p3_all_resume_original_text_pairs.json'),
+              '--out','evidence/p2-p3-gap-crosswalk.json']
+          subprocess.run(cmd,check=True)
+          result=json.loads(Path('evidence/p2-p3-gap-crosswalk.json').read_text())
+          assert result['gap_issuers_examined']==11
+          assert result['official_halt_intervals_authenticated']==0
+          assert result['feature_gaps_resolved']==0
+          assert result['trade_gate']=='BLOCKED'
+          PY
+      - name: Archive source-bound report without modifying original vendor or official evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p2-p3-original-gap-crosswalk-${{ github.run_id }}
+          path: evidence/p2-p3-gap-crosswalk.json
+          if-no-files-found: warn
+          retention-days: 14
