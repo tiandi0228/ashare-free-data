@@ -72,6 +72,17 @@ class CrosswalkTests(unittest.TestCase):
                 records[source][collection][index][field]=value
                 with self.assertRaises(ValueError):
                     crosswalk(*records)
+    def test_non_halt_p3_events_are_valid_but_not_halt_evidence(self):
+        for direction in ("ST_APPLIED","ST_REMOVED","LISTING_START","DELIST_EFFECTIVE"):
+            with self.subTest(direction=direction):
+                records=copy.deepcopy(samples())
+                records[1]["research_text_event_claims"][0]["textual_direction"]=direction
+                result=crosswalk(*records)
+                self.assertEqual(result["gap_issuers_with_same_issuer_official_pdf_text_lead"],0)
+                self.assertEqual(result["gap_issuers_with_same_issuer_resume_text_pair"],1)
+                self.assertFalse(result["issuer_evidence"][0]["gap_resolved"])
+                self.assertEqual(result["trade_gate"],"BLOCKED")
+
     def test_empty_bounded_p3_research_not_negative_proof(self):
         gaps,events,pairs=samples()
         events["research_text_event_claims"]=[]
