@@ -1,0 +1,100 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 1,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 1,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1225588894",
+      "archival_pdf_path": "pdf/sh_603400/1225588894/9d13172940225aa643dccd5a26278050d7b689ea5a0bb823044ab9d765f71395.pdf",
+      "bytes": 89504,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.603400",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-30/1225588894.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "9d13172940225aa643dccd5a26278050d7b689ea5a0bb823044ab9d765f71395",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "证券代码：603400）将于2026年9月30日（星期三）上午开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "9d13172940225aa643dccd5a26278050d7b689ea5a0bb823044ab9d765f71395",
+          "pdf_date_phrase": "2026年9月30日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-11-06T08:55:06.332774+00:00",
+      "source_halt_original_sha256": "0470bfc37fd5e9e87665485d1af64c631cb920050bf88021a840656b18cd7e5f",
+      "source_halt_text_day": "2026-09-15",
+      "title_unverified": "华之杰关于筹划发行股份及支付现金购买资产并募集配套资金事项的一般风险提示暨股票复牌公告"
+    }
+  ],
+  "run_id": 42191033385,
+  "source_halt_issuers_attempted": 3,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603359",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-11-06",
+      "search_window_start": "2026-10-26",
+      "source_halt_announcement_id": "1225256589",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-04-29",
+      "source_halt_original_sha256": "497436e9e547fa14c1726cfd7d4b2ab229cff8163193aabd334808a52b88623c",
+      "window_segment_count": 3,
+      "window_segment_index": 2
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603378",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-11-06",
+      "search_window_start": "2026-10-27",
+      "source_halt_announcement_id": "1225268165",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-04-30",
+      "source_halt_original_sha256": "a0edf7efb8e1e3b81ee2fda8c378bbbb794421a36fa9273012b9b8a8187a0d6b",
+      "window_segment_count": 3,
+      "window_segment_index": 2
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603400",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-11-06",
+      "search_window_start": "2026-09-14",
+      "source_halt_announcement_id": "1225564363",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-09-15",
+      "source_halt_original_sha256": "0470bfc37fd5e9e87665485d1af64c631cb920050bf88021a840656b18cd7e5f",
+      "window_segment_count": 1,
+      "window_segment_index": 0
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.603359",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    },
+    {
+      "issuer": "sh.603378",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    },
+    {
+      "issuer": "sh.603400",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
