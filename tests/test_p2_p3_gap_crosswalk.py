@@ -56,6 +56,22 @@ class CrosswalkTests(unittest.TestCase):
         records=copy.deepcopy(samples())
         records[0]["results"][1]["issuer"]="sh.600001"
         with self.assertRaises(ValueError):crosswalk(*records)
+    def test_corrupt_identifiers_and_digest_fail_closed(self):
+        cases=[
+            (0,"results",0,"issuer","not-an-issuer"),
+            (0,"results",0,"original_csv_sha256","bogus"),
+            (0,"results",0,"trailing_vendor_suspended_rows",-1),
+            (0,"results",0,"trailing_vendor_suspended_rows",True),
+            (1,"research_text_event_claims",0,"issuer","not-an-issuer"),
+            (1,"research_text_event_claims",0,"textual_direction","SUSPENDED"),
+            (2,"text_only_halt_resume_pairs",0,"issuer","not-an-issuer"),
+        ]
+        for source,collection,index,field,value in cases:
+            with self.subTest(source=source,field=field,value=value):
+                records=copy.deepcopy(samples())
+                records[source][collection][index][field]=value
+                with self.assertRaises(ValueError):
+                    crosswalk(*records)
     def test_empty_bounded_p3_research_not_negative_proof(self):
         gaps,events,pairs=samples()
         events["research_text_event_claims"]=[]
