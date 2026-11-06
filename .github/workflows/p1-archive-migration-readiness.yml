@@ -45,9 +45,9 @@ jobs:
         env:
           PYTHONPATH: code
         run: |
-          python -m collector.p1_archive_migration_readiness \\
-            --checkpoint code/evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json \\
-            --archive source-archive \\
+          python -m collector.p1_archive_migration_readiness \
+            --checkpoint code/evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json \
+            --archive source-archive \
             --out evidence/p1_archive_migration_readiness.json
       - name: Report source readiness without claiming writer cutover
         run: |
@@ -58,11 +58,11 @@ jobs:
           assert d['trade_gate']=='BLOCKED' and not d['orders']
           assert d['writer_cutover_authorized'] is False
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
-              out.write('### P1 archived source readiness (NO TRADES)\\n')
+              out.write('### P1 archived source readiness (NO TRADES)\n')
               for name in ('status','checkpoint_completed_shards',
                            'verified_original_shards','verified_original_csv_files',
                            'missing_or_invalid_shard_count','all_checkpoint_originals_durably_located'):
-                  out.write(f"- {name}: {d[name]}\\n")
+                  out.write(f"- {name}: {d[name]}\n")
           PY
       - uses: actions/upload-artifact@v4
         if: always()
