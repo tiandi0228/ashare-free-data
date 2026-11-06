@@ -23,6 +23,8 @@ class LegacyReceiptGapInventoryTests(unittest.TestCase):
     def test_missing_receipt_keeps_raw_csv_hash_without_fabrication(self):
         result=inventory_missing_receipts(self.root)
         self.assertEqual(result["missing_original_receipts"],1)
+        self.assertEqual(result["scanned_source_statuses"],1)
+        self.assertFalse(result["all_epoch_archive_complete"])
         self.assertEqual(result["retained_original_csv_files"],1)
         gap=result["gaps"][0]
         self.assertEqual(gap["shard_index"],24)
@@ -40,6 +42,8 @@ class LegacyReceiptGapInventoryTests(unittest.TestCase):
         result=inventory_missing_receipts(self.root)
         self.assertEqual(result["missing_original_receipts"],0)
         self.assertEqual((self.shard/"quality.json").read_bytes(),original)
+        self.assertEqual(result["status"],"NO_MISSING_RECEIPTS_IN_SCANNED_STATUSES")
+        self.assertFalse(result["all_epoch_archive_complete"])
 
     def test_stray_shard_content_fails_closed(self):
         (self.shard/"unknown.txt").write_text("unsafe")
@@ -50,6 +54,9 @@ class LegacyReceiptGapInventoryTests(unittest.TestCase):
         (self.epoch/"archive_status.json").unlink()
         result=inventory_missing_receipts(self.root)
         self.assertEqual(result["missing_original_receipts"],0)
+        self.assertEqual(result["status"],"NO_SOURCE_STATUS_FOUND")
+        self.assertEqual(result["scanned_source_statuses"],0)
+        self.assertFalse(result["all_epoch_archive_complete"])
         self.assertFalse(result["original_receipt_authenticity_certified"])
         self.assertFalse(result["writer_cutover_authorized"])
 
