@@ -1,0 +1,81 @@
+name: Eastmoney fqt0 two-issuer independent daily tri-source one-shot (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/eastmoney_daily_triangulation.py'
+      - 'tests/test_eastmoney_daily_triangulation.py'
+      - '.github/workflows/eastmoney-fqt0-two-issuer-once.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/eastmoney-fqt0-two-issuer-once.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest -v tests.test_eastmoney_daily_triangulation
+  live_once:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Download unchanged vendor originals from two previous successful captures
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p evidence/old/tencent evidence/old/baostock
+          gh run download 42166665873 -R "${{ github.repository }}" -n tencent-eight-sample-42166665873 -D evidence/old/tencent
+          gh run download 42167545462 -R "${{ github.repository }}" -n tencent-baostock-daily-42167545462 -D evidence/old/baostock
+      - name: Request two unadjusted fqt0 Eastmoney daily datasets, compare and archive originals
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          from collector.eastmoney_daily_triangulation import observe,triangulate
+          ts=list(Path('evidence/old/tencent').rglob('summary.json'))
+          bs=list(Path('evidence/old/baostock').rglob('baostock_original'))
+          if len(ts)!=1 or len(bs)!=1: raise ValueError('vendor archive unavailable or ambiguous')
+          dest=Path('evidence/eastmoney-third-source')
+          observe(dest)
+          result=triangulate(ts[0].parent,bs[0].parent.parent,dest)
+          (dest/'comparison.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+          print(json.dumps(result,ensure_ascii=False))
+          PY
+      - name: Print actual success/failure evidence and gate for each issuer
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          dest=Path('evidence/eastmoney-third-source')
+          for p in dest.glob('*/quality.json'):
+              q=json.loads(p.read_text())
+              assert q['trade_gate']=='BLOCKED' and q['historical_PIT_verified'] is False
+              print('source:',json.dumps(q,ensure_ascii=False))
+          p=dest/'comparison.json'
+          if p.exists():
+              q=json.loads(p.read_text())
+              print('triangulation:',json.dumps(q,ensure_ascii=False))
+          PY
+      - name: Store original response bytes and derived comparison
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eastmoney-fqt0-trisource-${{ github.run_id }}
+          path: evidence/eastmoney-third-source/
+          if-no-files-found: warn
+          retention-days: 14
