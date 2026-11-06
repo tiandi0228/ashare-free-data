@@ -1,0 +1,68 @@
+name: P1 legacy missing original receipt CSV SHA inventory (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - collector/p1_legacy_receipt_gap_inventory.py
+      - tests/test_p1_legacy_receipt_gap_inventory.py
+      - .github/workflows/p1-legacy-receipt-gap-inventory.yml
+  push:
+    branches: [main]
+    paths:
+      - collector/p1_legacy_receipt_gap_inventory.py
+      - tests/test_p1_legacy_receipt_gap_inventory.py
+      - .github/workflows/p1-legacy-receipt-gap-inventory.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: write
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: python -m unittest -v tests.test_p1_legacy_receipt_gap_inventory
+  source_readback:
+    if: github.event_name != 'pull_request'
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: code
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: research-csv-archive
+          path: original-archive
+          persist-credentials: false
+      - name: Record untouched orphan CSV SHA and file lengths
+        env:
+          PYTHONPATH: code
+        run: |
+          python -m collector.p1_legacy_receipt_gap_inventory \
+            --archive original-archive \
+            --out evidence/p1_legacy_receipt_gap_inventory.json
+      - name: Display exact original receipt gaps
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads(Path('evidence/p1_legacy_receipt_gap_inventory.json').read_text())
+          assert r['trade_gate']=='BLOCKED' and r['orders']==[]
+          assert r['writer_cutover_authorized'] is False
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+              f.write('### Legacy missing original P1 receipt evidence (NO TRADES)\n')
+              f.write(f"Missing original receipts: {r['missing_original_receipts']}\n")
+              f.write(f"Preserved original vendor CSVs: {r['retained_original_csv_files']}\n")
+              for gap in r['gaps']:
+                  f.write(f"- epoch {gap['epoch_sha256'][:16]}, shard {gap['shard_index']}, original CSVs {gap['original_csv_file_count']}\n")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p1-legacy-original-gap-${{ github.run_id }}
+          path: evidence/p1_legacy_receipt_gap_inventory.json
+          if-no-files-found: warn
+          retention-days: 30
