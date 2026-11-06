@@ -1,5 +1,13 @@
 name: P4 isolated execution arithmetic (NO TRADES)
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'collector/p4_execution_arithmetic.py'
+      - 'tests/test_p4_execution_arithmetic.py'
+      - 'collector/p4_integrated_research_gate.py'
+      - 'tests/test_p4_integrated_research_gate.py'
+      - '.github/workflows/p4-execution-arithmetic.yml'
   push:
     branches: [main]
     paths:
