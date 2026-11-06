@@ -1,0 +1,65 @@
+name: Tencent archived m1 vs m5 exact date coverage audit (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/tencent_m1_m5_coverage_audit.py'
+      - 'tests/test_tencent_m1_m5_coverage_audit.py'
+      - '.github/workflows/tencent-m1-m5-coverage-replay.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/tencent_m1_m5_coverage_audit.py'
+      - 'tests/test_tencent_m1_m5_coverage_audit.py'
+      - '.github/workflows/tencent-m1-m5-coverage-replay.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify exact minute coverage acceptance and safety
+        run: python -m unittest -v tests.test_tencent_m1_m5_coverage_audit
+      - name: Restore prior immutable 11-request Tencent artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p evidence/prior-ten
+          gh run download 42166665873 -R "${{ github.repository }}" -n tencent-eight-sample-42166665873 -D evidence/prior-ten
+      - name: Replay m1 and m5 source bytes and distinguish incomplete dates
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          from collector.tencent_m1_m5_coverage_audit import audit
+          prior=list(Path("evidence/prior-ten").rglob("summary.json"))
+          if len(prior)!=1:raise ValueError("prior raw archive missing or ambiguous")
+          result=audit(prior[0].parent)
+          dest=Path("evidence/tencent-m1-m5-coverage.json")
+          dest.write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
+          print(json.dumps({"status":result["status"],
+              "full_day_compared":result["full_day_compared"],
+              "full_day_disagreements":result["full_day_disagreements"],
+              "observations":[{"symbol":x["symbol"],"day":x["day"],
+                  "status":x["status"],
+                  "m1_bars":x["m1"]["observed_count"],
+                  "m1_missing":x["m1"]["missing_count"],
+                  "m5_bars":x["m5"]["observed_count"],
+                  "m5_missing":x["m5"]["missing_count"],
+                  "daily_extrema_agree":x["daily_extrema_agree_within_1_cent"]}
+                  for x in result["observations"]],
+              "trade_gate":result["trade_gate"]},ensure_ascii=False))
+          PY
+      - name: Retain immutable-derived diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tencent-m1-m5-coverage-${{ github.run_id }}
+          path: evidence/tencent-m1-m5-coverage.json
+          if-no-files-found: warn
+          retention-days: 14
