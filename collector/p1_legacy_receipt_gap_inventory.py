@@ -26,10 +26,12 @@ def inventory_missing_receipts(root):
     if not root.is_dir():
         raise ValueError("archive root missing")
     gaps=[]
+    scanned_statuses=0
     for status_path in sorted(root.glob("*/archive_status.json")):
         epoch=status_path.parent
         if not EPOCH.fullmatch(epoch.name):
             continue
+        scanned_statuses+=1
         status=json.loads(status_path.read_text())
         sha=status.get("source_sha256")
         ids=status.get("archived_shards")
@@ -63,12 +65,15 @@ def inventory_missing_receipts(root):
             })
     return {
         "phase":"P1_LEGACY_ARCHIVE_ORIGINAL_RECEIPT_GAPS",
-        "status":"ORIGINAL_RECEIPTS_NOT_RECOVERED" if gaps else "NO_MISSING_ORIGINAL_RECEIPTS",
+        "status":("ORIGINAL_RECEIPTS_NOT_RECOVERED" if gaps else
+                  "NO_SOURCE_STATUS_FOUND" if not scanned_statuses else
+                  "NO_MISSING_RECEIPTS_IN_SCANNED_STATUSES"),
+        "scanned_source_statuses":scanned_statuses,
         "missing_original_receipts":len(gaps),
         "retained_original_csv_files":sum(len(g["original_csv_files"]) for g in gaps),
         "gaps":gaps,
         "original_receipt_authenticity_certified":False,
-        "all_epoch_archive_complete":not gaps,
+        "all_epoch_archive_complete":False,  # A gap inventory cannot certify full archive completeness.
         "writer_cutover_authorized":False,
         "source_archive_deleted":False,
         "trade_gate":"BLOCKED",
