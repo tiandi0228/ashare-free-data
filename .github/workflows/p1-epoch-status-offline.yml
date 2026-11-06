@@ -1,0 +1,39 @@
+name: P1 isolated epoch status offline (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p1_epoch_status.py'
+      - 'tests/test_p1_epoch_status.py'
+      - '.github/workflows/p1-epoch-status-offline.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p1_epoch_status.py'
+      - 'tests/test_p1_epoch_status.py'
+      - '.github/workflows/p1-epoch-status-offline.yml'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate independent epoch safety and existing checkpoint semantics
+        run: python -m unittest -v tests.test_p1_epoch_status tests.test_p1_checkpoint
+      - name: Build isolated summary, reject trading promotion
+        run: |
+          python -m collector.p1_epoch_status --root evidence/checkpoints --out /tmp/p1_epoch_status.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('/tmp/p1_epoch_status.json').read_text())
+          assert d['trade_gate']=='BLOCKED'
+          assert d['combined_coverage_percent'] is None
+          assert d['approved_active_source_sha256'] is None
+          assert all(e['trade_gate']=='BLOCKED' for e in d['epochs'])
+          print('Independent checkpoint epochs verified. No trading.')
+          PY
