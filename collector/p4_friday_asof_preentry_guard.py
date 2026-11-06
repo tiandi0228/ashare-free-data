@@ -96,6 +96,14 @@ def calendar_diagnostic(signal, calendar):
     ]
     if not same_week:
         return dict(base, status="BLOCK_WEEKEND_EXIT_CALENDAR_INCOMPLETE")
+    # The input may be truncated on a Wednesday/Thursday. Its last item
+    # is not evidence that Thursday replaced Friday as the week's last
+    # exchange session. Require at least one explicitly listed subsequent
+    # week as a horizon boundary, even for a hypothetical holiday week.
+    if not any(x.isocalendar()[:2] > (year,week) for x in sessions):
+        return dict(base, status="BLOCK_CALENDAR_WEEK_END_UNOBSERVED",
+                    hypothetical_next_session=entry.isoformat(),
+                    calendar_terminal_date=sessions[-1].isoformat())
     last_weekday_session = same_week[-1]
     if (last_weekday_session - entry).days > 6:
         return dict(base, status="BLOCK_CALENDAR_WEEK_INCONSISTENT")
