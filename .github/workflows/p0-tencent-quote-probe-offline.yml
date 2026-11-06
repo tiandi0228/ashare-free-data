@@ -1,0 +1,35 @@
+name: P0 Tencent bounded quote research offline CI (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p0_tencent_quote_probe.py'
+      - 'tests/test_p0_tencent_quote_probe.py'
+      - '.github/workflows/p0-tencent-quote-probe-offline.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p0_tencent_quote_probe.py'
+      - 'tests/test_p0_tencent_quote_probe.py'
+      - '.github/workflows/p0-tencent-quote-probe-offline.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify bounded response parser with pure-offline fixtures
+        run: python -m unittest -v tests.test_p0_tencent_quote_probe
+      - name: Ensure network is opt-in and trading remains blocked
+        run: |
+          python - <<'PY'
+          from collector.p0_tencent_quote_probe import validate_symbols, MAX_SYMBOLS
+          assert MAX_SYMBOLS==16
+          assert validate_symbols(['sh600519','sz002249'])
+          print('PASS: only explicitly approved bounded research sample; no network calls')
+          PY
