@@ -1,10 +1,13 @@
 import unittest
-from collector.p1_quad_pick import choose,rotating_start,verify_prior_for_selection
+from collector.p1_quad_pick import choose,rotating_start,verify_prior_for_selection,verify_frozen_plan
 class PickTests(unittest.TestCase):
     def plan(self):
         return {"phase":"P1_FRESH_VENDOR_SHARD_PLAN","trade_gate":"BLOCKED",
                 "source_sha256":"a"*64,"shard_count":7,
-                "shards":[{"index":i} for i in range(7)]}
+                "historical_PIT_verified":False,"orders":[],"executable_candidates":[],
+                "issuer_count":7,
+                "shards":[{"index":i,"name":f"shard_{i:04d}.txt",
+                           "count":1,"sha256":f"{i+1:064x}"} for i in range(7)]}
     def test_four_missing(self):
         self.assertEqual(choose(self.plan(),start_index=3),[3,4,5,6])
     def test_wrap_and_skip_completed(self):
@@ -102,6 +105,22 @@ class PickTests(unittest.TestCase):
                       "full_market_bars_certified":False,
                       "historical_PIT_verified":False,
                       "trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
+
+    def test_all_pending_manifests_must_be_valid_before_vendor_calls(self):
+        import copy
+        plan=self.plan()
+        verify_frozen_plan(plan)
+        for key,value in (("index",2),("count",0),("name","wrong.txt"),
+                          ("sha256","not-a-sha")):
+            with self.subTest(key=key):
+                bad=copy.deepcopy(plan)
+                bad["shards"][6][key]=value
+                with self.assertRaises(ValueError):
+                    verify_prior_for_selection(bad,None)
+        bad=copy.deepcopy(plan)
+        bad["issuer_count"]=8
+        with self.assertRaises(ValueError):
+            verify_prior_for_selection(bad,None)
 
     def test_strict_selection_rejects_mutated_receipt_and_corrupt_pending(self):
         import copy

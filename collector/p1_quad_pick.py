@@ -1,5 +1,5 @@
 """Select up to four distinct, missing shards of the same immutable P1 roster."""
-import argparse,json,os
+import argparse,json,os,re
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -36,8 +36,39 @@ def rotating_start(shard_count,run_number=None):
     # repeatedly binding the same four issuers to a failing shard.
     return (run_number*(shard_count-1))%shard_count
 
+def verify_frozen_plan(plan):
+    """Validate every frozen shard before selecting a vendor request."""
+    if (not isinstance(plan,dict)
+        or plan.get("phase")!="P1_FRESH_VENDOR_SHARD_PLAN"
+        or plan.get("trade_gate")!="BLOCKED"
+        or plan.get("historical_PIT_verified") is not False
+        or plan.get("orders")!=[]
+        or plan.get("executable_candidates")!=[]):
+        raise ValueError("unsafe P1 roster plan")
+    count=plan.get("shard_count")
+    shards=plan.get("shards")
+    if (type(count) is not int or not 1<=count<=10000
+        or not isinstance(shards,list) or len(shards)!=count
+        or not isinstance(plan.get("source_sha256"),str)
+        or re.fullmatch(r"[0-9a-f]{64}",plan["source_sha256"]) is None):
+        raise ValueError("invalid P1 shard roster metadata")
+    total=0
+    for i,shard in enumerate(shards):
+        if (not isinstance(shard,dict)
+            or type(shard.get("index")) is not int or shard["index"]!=i
+            or type(shard.get("count")) is not int or not 1<=shard["count"]<=8
+            or shard.get("name")!=f"shard_{i:04d}.txt"
+            or not isinstance(shard.get("sha256"),str)
+            or re.fullmatch(r"[0-9a-f]{64}",shard["sha256"]) is None):
+            raise ValueError("corrupt or reordered frozen P1 shard manifest")
+        total+=shard["count"]
+    if plan.get("issuer_count")!=total:
+        raise ValueError("P1 frozen issuer count disagrees with manifests")
+    return plan
+
 def verify_prior_for_selection(plan,prior):
     """Fail closed before network collection using complete durable SHA receipts."""
+    verify_frozen_plan(plan)
     if prior is None:
         return
     validate_checkpoint(prior)
