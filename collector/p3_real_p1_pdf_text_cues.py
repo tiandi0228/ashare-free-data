@@ -4,6 +4,7 @@ Text presence is not an effective-date or historical publication certification.
 import argparse,json,re
 from pathlib import Path
 from pypdf import PdfReader
+from pypdf.errors import PdfReadError
 from collector.p3_real_p1_pdf_replay import audit
 
 KEYWORDS=("停牌","复牌","退市","风险警示","上市","特别处理")
@@ -20,24 +21,40 @@ def extract(root):
               "historical_PIT_verified":False}
         if row.get("original_bytes_verified") is True:
             file=root/row["original_file"]
-            reader=PdfReader(str(file),strict=True)
-            if len(reader.pages)>80:raise ValueError("too many source pages")
-            text="".join((p.extract_text() or "") for p in reader.pages)
-            normalized="".join(text.split())
-            contexts=[]
-            for m in list(DATE.finditer(normalized))[:30]:
-                excerpt=normalized[max(0,m.start()-70):min(len(normalized),m.end()+70)]
-                contexts.append({"date_text":m.group(0),"source_text_context":excerpt,
-                                 "effective_date_certified":False})
-            item["date_contexts_research_only"]=contexts
-            item.update(text_status="TEXT_EXTRACTED_RESEARCH_ONLY" if normalized else "NO_EXTRACTABLE_TEXT",
-                        issuer_code_in_text=row["issuer"][-6:] in normalized,
-                        event_keyword_presence={k:k in normalized for k in KEYWORDS},
-                        date_text_candidates=sorted(set(DATE.findall(normalized)))[:30])
+            # Byte-level SHA validation is separate from PDF structural
+            # validity. A vendor may return a truncated %PDF header. Never
+            # invent missing text or treat parsing failure as no risk.
+            try:
+                reader=PdfReader(str(file),strict=True)
+                if len(reader.pages)>80:
+                    raise ValueError("too many source pages")
+                text="".join((p.extract_text() or "") for p in reader.pages)
+                normalized="".join(text.split())
+                contexts=[]
+                for m in list(DATE.finditer(normalized))[:30]:
+                    excerpt=normalized[max(0,m.start()-70):min(len(normalized),m.end()+70)]
+                    contexts.append({"date_text":m.group(0),"source_text_context":excerpt,
+                                     "effective_date_certified":False})
+                item["date_contexts_research_only"]=contexts
+                item.update(text_status="TEXT_EXTRACTED_RESEARCH_ONLY" if normalized else "NO_EXTRACTABLE_TEXT",
+                            issuer_code_in_text=row["issuer"][-6:] in normalized,
+                            event_keyword_presence={k:k in normalized for k in KEYWORDS},
+                            date_text_candidates=sorted(set(DATE.findall(normalized)))[:30])
+            except (PdfReadError, ValueError, OSError, UnicodeError, IndexError, TypeError) as exc:
+                # Quarantine only document-level parse errors, not failures
+                # in upstream SHA/identity replay. Retain the audit anchor.
+                item.update(text_status="PDF_PARSE_FAILED_UNVERIFIED",
+                            parse_failure_category=type(exc).__name__,
+                            date_contexts_research_only=[],
+                            date_text_candidates=[],
+                            issuer_code_in_text=None,
+                            event_keyword_presence={k:None for k in KEYWORDS},
+                            requires_original_refetch_or_manual_review=True)
         results.append(item)
     return {"phase":"P3_REAL_P1_PDF_TEXT_RESEARCH_CUES",
             "independently_replayed_originals":proof["independently_sha_verified"],
             "source_count":len(results),"sources":results,
+            "quarantined_pdf_parse_failures":sum(s["text_status"]=="PDF_PARSE_FAILED_UNVERIFIED" for s in results),
             "event_effective_dates_certified":0,"historical_PIT_verified":False,
             "trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
 
