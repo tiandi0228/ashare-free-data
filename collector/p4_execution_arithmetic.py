@@ -5,7 +5,7 @@ D=Decimal
 def money(x):
     return D(str(x)).quantize(D("0.01"),rounding=ROUND_HALF_UP)
 
-def replay(*,buy_price,sell_price,shares,buy_day,sell_day,commission_rate="0.0002854",commission_min="5",stamp_tax_rate="0.0005",transfer_rate="0.00001",slippage_buy="0",slippage_sell="0",risk_budget_fraction="0.03",planned_stop_price=None):
+def replay(*,buy_price,sell_price,shares,buy_day,sell_day,commission_rate="0.0002854",commission_min="5",stamp_tax_rate="0.0005",transfer_rate="0.00001",slippage_buy="0",slippage_sell="0",risk_budget_fraction="0.03",planned_stop_price=None,capital_limit="8000"):
     from datetime import date
     if type(shares) is not int or shares<=0 or shares%100:
         raise ValueError("A-share mainboard purchase lot must be positive and divisible by 100")
@@ -28,6 +28,11 @@ def replay(*,buy_price,sell_price,shares,buy_day,sell_day,commission_rate="0.000
     bt=money(gross_buy*transfer);st=money(gross_sell*transfer)
     sell_tax=money(gross_sell*tax)
     actual_buy=money(gross_buy+bc+bt)
+    capital=D(str(capital_limit))
+    if not capital.is_finite() or capital<=0:
+        raise ValueError("invalid frozen cash capital limit")
+    if actual_buy>capital:
+        raise ValueError("buy notional plus modeled fees exceeds available capital")
     actual_sell=money(gross_sell-sc-st-sell_tax)
     pnl=money(actual_sell-actual_buy)
     planned_stop_risk=None
@@ -42,7 +47,7 @@ def replay(*,buy_price,sell_price,shares,buy_day,sell_day,commission_rate="0.000
         stop_loss=money(max(D("0"),actual_buy-stop_net))
         planned_stop_risk={"scenario_net_loss":str(stop_loss),"scenario_within_budget":stop_loss<=gross_buy*budget,"stop_fill_verified":False,"gap_or_limit_down_covered":False}
     return {"phase":"P4_DETERMINISTIC_EXECUTION_UNIT","buy_day":buy_day,"sell_day":sell_day,
-            "shares":shares,"buy_cost":str(actual_buy),"sell_proceeds":str(actual_sell),
+            "shares":shares,"buy_cost":str(actual_buy),"cash_capital_limit":str(capital),"cash_budget_preflight_passed":True,"sell_proceeds":str(actual_sell),
             "net_pnl":str(pnl),"net_return_on_fill_notional":str((pnl/gross_buy).quantize(D("0.000001"))),
             "loss_fraction_on_fill_notional":str((max(D("0"),-pnl)/gross_buy).quantize(D("0.000001"))),
             "risk_budget_fraction":str(budget),"within_loss_budget":max(D("0"),-pnl)<=gross_buy*budget,
