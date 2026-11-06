@@ -65,6 +65,16 @@ class AllEpochArchiveTests(unittest.TestCase):
         (self.epoch/"shard_0008").mkdir()
         self.assertEqual(examine(self.root)["unlisted_original_receipts"],1)
 
+    def test_other_research_data_folders_are_not_p1_epochs(self):
+        (self.root/"p4-current-tail").mkdir()
+        (self.root/"p4-tail-backfill").mkdir()
+        result=examine(self.root)
+        self.assertEqual(result["status"],"ALL_EPOCH_SOURCE_ORIGINALS_SHA_VERIFIED")
+        self.assertEqual(result["epoch_count"],1)
+        self.assertEqual(result["non_p1_data_directories"],
+                         ["p4-current-tail","p4-tail-backfill"])
+        self.assertEqual(result["issue_count"],0)
+
     def test_missing_source_never_approves(self):
         result=examine(self.root/"not-here")
         self.assertFalse(result["source_archive_sha_verified"])

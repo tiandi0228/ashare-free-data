@@ -27,6 +27,7 @@ def examine(root):
     report={"phase":"P1_ALL_EPOCH_SOURCE_ARCHIVE_READINESS",
             "status":"SOURCE_ARCHIVE_INCOMPLETE",
             "epoch_count":0,"advertised_shards":0,
+            "non_p1_data_directories":[],
             "verified_original_shards":0,"verified_original_csv_files":0,
             "unlisted_original_receipts":0,"invalid_originals":0,
             "issue_sample":[],"issue_count":0,
@@ -47,6 +48,11 @@ def examine(root):
         if item.is_symlink():
             issue("unsafe symlink",item.relative_to(root))
     for epoch in sorted(p for p in root.iterdir() if p.is_dir() and p.name!=".git"):
+        if epoch.name in ("p4-current-tail", "p4-tail-backfill"):
+            # Preserve these data folders during whole-tree migration; they are
+            # P4 evidence, not malformed P1 source roster epochs.
+            report["non_p1_data_directories"].append(epoch.name)
+            continue
         if EPOCH.fullmatch(epoch.name) is None:
             issue("invalid archive epoch directory",epoch.name)
             continue
