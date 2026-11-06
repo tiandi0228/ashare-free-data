@@ -5,7 +5,14 @@ or correct first publication. No data repair, PIT promotion or trading.
 """
 import argparse
 import json
+import re
 from pathlib import Path
+
+ISSUER_RE = re.compile(r"(?:sh|sz)\.\d{6}\Z")
+SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
+
+def valid_issuer(value):
+    return isinstance(value,str) and ISSUER_RE.fullmatch(value) is not None
 
 def crosswalk(gaps,events,pairs):
     if (gaps.get("phase")!="P2_ORIGINAL_CSV_GAP_WINDOW_DIAGNOSIS"
@@ -41,7 +48,9 @@ def crosswalk(gaps,events,pairs):
         if (not isinstance(row,dict)
             or row.get("first_publication_authenticated") is not False
             or row.get("effective_date_certified") is not False
-            or row.get("historical_asof_trade_eligible") is not False):
+            or row.get("historical_asof_trade_eligible") is not False
+            or not valid_issuer(row.get("issuer"))
+            or row.get("textual_direction") not in ("HALT_START","RESUME_START","OTHER")):
             raise ValueError("unsafe historic event claim")
         by_issuer.setdefault(row["issuer"],[]).append(row)
     pair_index={}
@@ -49,17 +58,24 @@ def crosswalk(gaps,events,pairs):
         if (not isinstance(row,dict)
             or row.get("historical_first_publication_verified") is not False
             or row.get("official_resume_effective_date_verified") is not False
-            or row.get("whole_interval_tradability_verified") is not False):
+            or row.get("whole_interval_tradability_verified") is not False
+            or not valid_issuer(row.get("issuer"))):
             raise ValueError("unsafe text pair")
         pair_index.setdefault(row["issuer"],[]).append(row)
     examined=set()
     output=[]
     for row in gap_rows:
         code=row.get("issuer")
-        if not isinstance(code,str) or code in examined:
+        if not valid_issuer(code) or code in examined:
             raise ValueError("duplicated gap issuer")
         examined.add(code)
-        if row.get("official_halt_explanation_authenticated") is not False:
+        if (row.get("official_halt_explanation_authenticated") is not False
+            or not isinstance(row.get("original_csv_sha256"),str)
+            or SHA256_RE.fullmatch(row["original_csv_sha256"]) is None
+            or not isinstance(row.get("asof_date"),str)
+            or not re.fullmatch(r"\d{4}-\d{2}-\d{2}",row["asof_date"])
+            or type(row.get("trailing_vendor_suspended_rows")) is not int
+            or not 0 <= row["trailing_vendor_suspended_rows"] <= 21):
             raise ValueError("gap source wrongly claims official certification")
         diagnosis=row.get("diagnosis")
         if diagnosis not in ("VENDOR_SUSPENDED_ROW_WITHIN_LAST_21","FEWER_THAN_21_VENDOR_ROWS_ASOF"):
