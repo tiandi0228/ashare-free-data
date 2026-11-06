@@ -20,6 +20,15 @@ class LegacyReceiptGapInventoryTests(unittest.TestCase):
             "archived_shards":[24],
         }))
 
+    def test_actions_summary_displays_both_missing_statuses_and_receipts(self):
+        workflow=(Path(__file__).resolve().parents[1]/
+                  ".github/workflows/p1-legacy-receipt-gap-inventory.yml").read_text()
+        self.assertIn("r['missing_epoch_status_count']",workflow)
+        self.assertIn("r['missing_epoch_statuses']",workflow)
+        self.assertIn("r['missing_original_receipts']",workflow)
+        self.assertIn("r['all_epoch_archive_complete'] is False",workflow)
+        self.assertIn("does not certify all-epoch archive integrity",workflow)
+
     def test_missing_receipt_keeps_raw_csv_hash_without_fabrication(self):
         result=inventory_missing_receipts(self.root)
         self.assertEqual(result["missing_original_receipts"],1)
