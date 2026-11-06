@@ -31,6 +31,24 @@ class ExecutionTests(unittest.TestCase):
     def test_lot_and_nonpositive_price(self):
         with self.assertRaises(ValueError):replay(**{**self.args(),"shares":20})
         with self.assertRaises(ValueError):replay(**{**self.args(),"buy_price":"0"})
+    def test_cash_limit_includes_commission_and_transfer(self):
+        safe=replay(**self.args())
+        self.assertTrue(safe["cash_budget_preflight_passed"])
+        self.assertEqual(safe["cash_capital_limit"],"8000")
+        # Buying exactly 8000 CNY of shares is NOT affordable when fees
+        # are added; no research receipt may imply a feasible order.
+        with self.assertRaisesRegex(ValueError,"exceeds available capital"):
+            replay(**{**self.args(),"buy_price":"80"})
+        with self.assertRaisesRegex(ValueError,"exceeds available capital"):
+            replay(**{**self.args(),"shares":800})
+        for value in ("0","NaN","Infinity","-100"):
+            with self.subTest(capital_limit=value):
+                with self.assertRaisesRegex(ValueError,"capital limit"):
+                    replay(**self.args(),capital_limit=value)
+        self.assertTrue(replay(**self.args(),capital_limit="1010")["cash_budget_preflight_passed"])
+        with self.assertRaisesRegex(ValueError,"exceeds available capital"):
+            replay(**self.args(),capital_limit="1000")
+
     def test_max_risk_fraction(self):
         with self.assertRaises(ValueError):replay(**self.args(),risk_budget_fraction="0.1")
 if __name__=="__main__":unittest.main()
