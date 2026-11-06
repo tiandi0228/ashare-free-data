@@ -1,0 +1,67 @@
+name: Tencent-Baostock m5 price extrema forensic replay (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/tencent_m5_extrema_forensics.py'
+      - 'tests/test_tencent_m5_extrema_forensics.py'
+      - '.github/workflows/tencent-m5-extrema-forensics.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/tencent_m5_extrema_forensics.py'
+      - 'tests/test_tencent_m5_extrema_forensics.py'
+      - '.github/workflows/tencent-m5-extrema-forensics.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run source-independent offline forensic unit tests
+        run: python -m unittest -v tests.test_tencent_m5_extrema_forensics
+      - name: Restore immutable Tencent and independent Baostock vendor artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p evidence/previous/tencent evidence/previous/baostock
+          gh run download 42166665873 -R "${{ github.repository }}" -n tencent-eight-sample-42166665873 -D evidence/previous/tencent
+          gh run download 42167545462 -R "${{ github.repository }}" -n tencent-baostock-daily-42167545462 -D evidence/previous/baostock
+      - name: Recheck original SHA receipts and attribute six price differences
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          from collector.tencent_m5_extrema_forensics import forensic
+          ts=list(Path("evidence/previous/tencent").rglob("summary.json"))
+          bs=list(Path("evidence/previous/baostock").rglob("baostock_original"))
+          if len(ts)!=1 or len(bs)!=1:
+              raise SystemExit(f"Missing or ambiguous original archive Tencent={len(ts)}, Baostock={len(bs)}")
+          result=forensic(ts[0].parent,bs[0].parent)
+          Path("evidence/tencent_m5_extrema_forensics.json").write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
+          print(json.dumps({
+              "status":result["status"],"comparable_days":result["comparable_days"],
+              "mismatch_days":result["mismatch_days"],
+              "mismatch_fields_count":result["mismatch_fields_count"],
+              "issues":[{"symbol":x["symbol"],"day":x["day"],
+                  "differences":x["price_differences_tencent_minus_baostock"],
+                  "low_times":x["low_observed_at_cn"],
+                  "high_times":x["high_observed_at_cn"]}
+                  for x in result["observations"] if not x["same_day_ohlc_agrees_within_1_tick"]],
+              "root_cause_confirmed":result["root_cause_confirmed"],
+              "trade_gate":result["trade_gate"]
+          },ensure_ascii=False))
+          PY
+      - name: Archive only derived audit, never rewrite original vendor receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tencent-m5-extrema-forensics-${{ github.run_id }}
+          path: evidence/tencent_m5_extrema_forensics.json
+          if-no-files-found: warn
+          retention-days: 14
