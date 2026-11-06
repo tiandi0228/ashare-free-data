@@ -19,6 +19,25 @@ class GapSourceTests(unittest.TestCase):
         self.assertEqual(x["diagnosis"],"VENDOR_SUSPENDED_ROW_WITHIN_LAST_21")
         self.assertEqual(x["trailing_vendor_suspended_rows"],1)
 
+    def test_unordered_duplicate_or_unknown_vendor_rows_fail_closed(self):
+        asof="2026-10-22"
+        valid=[row("2026-10-20"),row("2026-10-21","0"),row(asof)]
+        with self.assertRaisesRegex(ValueError,"unordered"):
+            classify([valid[1],valid[0],valid[2]],asof=asof)
+        with self.assertRaisesRegex(ValueError,"duplicate"):
+            classify([valid[0],valid[1],valid[1],valid[2]],asof=asof)
+        with self.assertRaisesRegex(ValueError,"trade status"):
+            classify([valid[0],row("2026-10-21","UNKNOWN"),valid[2]],asof=asof)
+        with self.assertRaisesRegex(ValueError,"row date"):
+            classify([valid[0],row("2026-02-30"),valid[2]],asof=asof)
+        with self.assertRaisesRegex(ValueError,"as-of"):
+            classify(valid,asof="2026-02-30")
+        # A later original vendor row must not be silently used to fill an
+        # earlier as-of research window.
+        result=classify(valid+[row("2026-10-23")],asof=asof)
+        self.assertEqual(result["available_vendor_rows_through_asof"],3)
+        self.assertFalse(result["official_halt_explanation_authenticated"])
+
     def test_complete_window_not_a_gap_and_no_source_fabrication(self):
         rows=[row(f"2026-10-{i:02d}") for i in range(2,23)]
         with self.assertRaises(ValueError):classify(rows,asof="2026-10-22")
