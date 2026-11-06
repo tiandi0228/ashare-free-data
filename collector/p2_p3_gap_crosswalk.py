@@ -7,6 +7,7 @@ import argparse
 import json
 import re
 from pathlib import Path
+from collector.p3_archived_event_episode_ledger import KNOWN as P3_EVENT_DIRECTIONS
 
 ISSUER_RE = re.compile(r"(?:sh|sz)\.\d{6}\Z")
 SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
@@ -50,7 +51,7 @@ def crosswalk(gaps,events,pairs):
             or row.get("effective_date_certified") is not False
             or row.get("historical_asof_trade_eligible") is not False
             or not valid_issuer(row.get("issuer"))
-            or row.get("textual_direction") not in ("HALT_START","RESUME_START","OTHER")):
+            or row.get("textual_direction") not in P3_EVENT_DIRECTIONS):
             raise ValueError("unsafe historic event claim")
         by_issuer.setdefault(row["issuer"],[]).append(row)
     pair_index={}
