@@ -49,6 +49,30 @@ class ExecutionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"exceeds available capital"):
             replay(**self.args(),capital_limit="1000")
 
+    def test_exchange_specific_transfer_fee_model(self):
+        sh=replay(**self.args(),issuer="sh.600000")
+        sz=replay(**self.args(),issuer="sz.000001")
+        self.assertEqual(sh["issuer"],"sh.600000")
+        self.assertEqual(sz["issuer"],"sz.000001")
+        self.assertGreater(float(sh["buy_cost"]),float(sz["buy_cost"]))
+        self.assertLess(float(sh["net_pnl"]),float(sz["net_pnl"]))
+        for code in ("sh.688001","sz.300001","sh.000001","invalid"):
+            with self.subTest(issuer=code):
+                with self.assertRaisesRegex(ValueError,"mainboard issuer"):
+                    replay(**self.args(),issuer=code)
+
+    def test_fee_inclusive_stop_portfolio_and_position_budgets_are_distinct(self):
+        result=replay(**self.args(),issuer="sz.000001",planned_stop_price="9.50")
+        stop=result["planned_stop_risk_scenario"]
+        self.assertFalse(stop["scenario_within_budget"])
+        self.assertTrue(stop["scenario_within_portfolio_budget"])
+        self.assertEqual(stop["portfolio_risk_budget_cny"],"240.00")
+        self.assertFalse(stop["stop_fill_verified"])
+        self.assertFalse(stop["gap_or_limit_down_covered"])
+        assert result["trade_gate"]=="BLOCKED" and result["orders"]==[]
+        very_low=replay(**self.args(),planned_stop_price="7.00")
+        self.assertFalse(very_low["planned_stop_risk_scenario"]["scenario_within_portfolio_budget"])
+
     def test_max_risk_fraction(self):
         with self.assertRaises(ValueError):replay(**self.args(),risk_budget_fraction="0.1")
 if __name__=="__main__":unittest.main()
