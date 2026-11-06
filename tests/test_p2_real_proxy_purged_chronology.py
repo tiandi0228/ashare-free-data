@@ -62,6 +62,46 @@ class RealProxyFoldTests(unittest.TestCase):
                 r=observe(q,"2026-06-30","2026-07-08","2026-10-22")
                 self.assertEqual(r["status"],"REJECTED")
                 self.assertEqual(r["trade_gate"],"BLOCKED")
+    def test_nonforward_labels_rejected_and_sha_binds_full_row(self):
+        train=row(1,"2026-05-21","2026-05-22","2026-05-26")
+        hold=row(2,"2026-07-09","2026-07-10","2026-07-14")
+        base=proxy([train,hold])
+        good=audit_all_pages(base,"2026-06-30","2026-07-08","2026-10-22")
+        self.assertEqual(good["status"],"ALL_SOURCE_PAGES_ACCOUNTED_NOT_OOS_CERTIFICATION")
+        self.assertEqual(len(good["archived_label_windows_sha256"]),64)
+        self.assertEqual(len(good["fold_configuration_sha256"]),64)
+        self.assertFalse(good["historical_OOS_validated"])
+        for key,value in [
+            ("next_vendor_date","2026-05-21"),
+            ("third_vendor_date","2026-05-22"),
+            ("next_vendor_date","2026-05-20"),
+            ("third_vendor_date","2026-05-21"),
+        ]:
+            with self.subTest(key=key,value=value):
+                corrupt=copy.deepcopy(base)
+                corrupt["observed_price_pairs"][0][key]=value
+                q=audit_all_pages(corrupt,"2026-06-30","2026-07-08","2026-10-22")
+                self.assertEqual(q["status"],"REJECTED")
+                self.assertIn("NON_FORWARD",q["reason"])
+                self.assertEqual(q["trade_gate"],"BLOCKED")
+        changed=copy.deepcopy(base)
+        changed["observed_price_pairs"][0]["original_csv_sha256"]="c"*64
+        alternate=audit_all_pages(changed,"2026-06-30","2026-07-08","2026-10-22")
+        self.assertEqual(alternate["status"],good["status"])
+        self.assertEqual(alternate["ordered_source_event_ids_sha256"],
+                         good["ordered_source_event_ids_sha256"])
+        self.assertNotEqual(alternate["archived_label_windows_sha256"],
+                            good["archived_label_windows_sha256"])
+        self.assertNotEqual(alternate["fold_configuration_sha256"],
+                            good["fold_configuration_sha256"])
+        changed=copy.deepcopy(base)
+        changed["observed_price_pairs"][1]["third_vendor_date"]="2026-07-15"
+        later=audit_all_pages(changed,"2026-06-30","2026-07-08","2026-10-22")
+        self.assertEqual(later["status"],good["status"])
+        self.assertNotEqual(later["archived_label_windows_sha256"],
+                            good["archived_label_windows_sha256"])
+        self.assertEqual(later["trade_gate"],"BLOCKED")
+
     def test_duplicate_ids_and_unbounded_pages_refused(self):
         a=row(1,"2026-05-21","2026-05-22","2026-05-26")
         q=observe(proxy([a,a]),"2026-06-30","2026-07-08","2026-10-22")
