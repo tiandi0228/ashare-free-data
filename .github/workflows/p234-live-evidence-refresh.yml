@@ -1,0 +1,93 @@
+name: P2 P3 P4 live research evidence snapshot refresh (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p234_latest_successful_runs.py'
+      - 'tests/test_p234_latest_successful_runs.py'
+      - '.github/workflows/p234-live-evidence-refresh.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p234_latest_successful_runs.py'
+      - 'tests/test_p234_latest_successful_runs.py'
+      - '.github/workflows/p234-live-evidence-refresh.yml'
+  workflow_run:
+    workflows:
+      - "P2 real archived research features observation (NO TRADES)"
+      - "P3 rotating official originals for full audited P1 issuer queue (NO TRADES)"
+      - "P4 real vendor MA20 forward observation (NO TRADES)"
+    types: [completed]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: p234-latest-readonly-scorecard
+  cancel-in-progress: false
+jobs:
+  refresh:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Confirm latest-successful selection and original scope tests
+        run: python -m unittest -v tests.test_p234_latest_successful_runs tests.test_p234_evidence_scoreboard
+      - name: Select most recent successful main runs of each lane, separately timestamped
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -m collector.p234_latest_successful_runs --out evidence/p234-latest-source-runs.json
+      - name: Restore selected original research artifacts and produce non-trading scorecard
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json,subprocess
+          from pathlib import Path
+          from collector.p234_evidence_scoreboard import scoreboard
+          selection=json.loads(Path('evidence/p234-latest-source-runs.json').read_text())
+          assert selection['cohort_synchronized'] is False
+          assert selection['trade_gate']=='BLOCKED'
+          reports={}
+          for key,name,folder in (
+              ('p2','p2_real_archive_feature_coverage.json','p2'),
+              ('p3','p3_all_resume_original_text_pairs.json','p3'),
+              ('p4','p4_fee_floor_gap_audit.json','p4')):
+              run_id=selection['selection'][key]['run_id']
+              prefix={'p2':'p2-real-archive-feature-observation',
+                      'p3':'p3-full-p1-official-scout',
+                      'p4':'p4-real-ma20-observation'}[key]
+              dest=Path('evidence/sources')/folder
+              dest.mkdir(parents=True,exist_ok=True)
+              subprocess.run(['gh','run','download',str(run_id),
+                  '-R','${{ github.repository }}',
+                  '-n',f'{prefix}-{run_id}','-D',str(dest)],
+                  check=True,timeout=75)
+              hits=list(dest.rglob(name))
+              if len(hits)!=1:raise ValueError('missing or ambiguous source report: '+key)
+              reports[key]=json.loads(hits[0].read_text())
+          ids={key:value['run_id'] for key,value in selection['selection'].items()}
+          result=scoreboard(reports['p2'],reports['p3'],reports['p4'],ids)
+          # Each row is from its own exact run, not assumed to share an archive
+          # commit or a time-aligned research cohort.
+          result['source_run_provenance']=selection['selection']
+          result['source_runs_time_aligned']=False
+          result['historical_PIT_verified']=False
+          assert result['trade_gate']=='BLOCKED' and result['orders']==[]
+          assert result['engineering_completion_pct']=={'p2':None,'p3':None,'p4':None}
+          Path('evidence/p234-latest-research-scorecard.json').write_text(
+              json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+          print(json.dumps(result,ensure_ascii=False))
+          PY
+      - name: Store run-bound, non-synchronized observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p234-latest-research-scorecard-${{ github.run_id }}
+          path: |
+            evidence/p234-latest-source-runs.json
+            evidence/p234-latest-research-scorecard.json
+          if-no-files-found: warn
+          retention-days: 14
