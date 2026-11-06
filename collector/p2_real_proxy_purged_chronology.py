@@ -4,7 +4,7 @@ The event dates and original CSV SHA originated in P4's independently replayed
 archived OHLC research. This adapter tests chronology only; it MUST NOT turn
 observed future prices into a signal, strategy return or certified OOS result.
 """
-import argparse,json,re
+import argparse,hashlib,json,re
 from pathlib import Path
 from collector.p2_purged_oos_partition import partition
 
@@ -89,6 +89,76 @@ def observe(proxy, train_end, validation_start, validation_end, *, page_index=0)
                 training_parameters_frozen_before_holdout_verified=False,
                 point_in_time_universe_verified=False)
 
+def audit_all_pages(proxy, train_end, validation_start, validation_end):
+    """Account for every archive event exactly once, without inferring OOS.
+
+    Each page replays independent input validation through observe(). Pages
+    lacking one fold are reported separately, NEVER silently counted as
+    completed validation. No single-page receipt can claim total coverage.
+    """
+    base={"phase":"P2_ARCHIVED_CHRONOLOGY_ALL_PAGES_ACCOUNTING",
+          "status":"REJECTED","trade_gate":"BLOCKED",
+          "orders":[],"executable_candidates":[],"actionable_buy_signals":[],
+          "historical_PIT_verified":False,"historical_OOS_validated":False,
+          "strategy_returns_computed":False,"strategy_parameters_frozen":False,
+          "source_epoch_pit_certified":False}
+    def fail(reason):return dict(base,reason=reason)
+    if not isinstance(proxy,dict):
+        return fail("INVALID_SOURCE_REPORT")
+    count=proxy.get("observed_next_open_to_third_close")
+    if type(count) is not int or not 1<=count<=MAX_ROWS:
+        return fail("INVALID_OBSERVED_COUNT")
+    expected_pages=(count+PAGE-1)//PAGE
+    seen=set()
+    train=holdout=purged=unclassified=0
+    missing_folds=[]
+    fingerprints=hashlib.sha256()
+    for index in range(expected_pages):
+        report=observe(proxy,train_end,validation_start,validation_end,
+                       page_index=index)
+        if report["status"] not in (
+                "ARCHIVED_VENDOR_CHRONOLOGY_PAGE_PURGED_NOT_OOS_VALIDATION",
+                "PAGE_MISSING_TRAIN_OR_HOLDOUT_NOT_CERTIFIED"):
+            return fail("PAGE_"+str(index)+"_"+report.get("reason","REJECTED"))
+        if (report.get("page_index")!=index or
+            report.get("selected_source_events")!=len(report.get("source_event_ids",[])) or
+            report.get("observed_total_event_count")!=count or
+            report.get("archive_commit_sha")!=proxy.get("archive_commit_sha")):
+            return fail("PAGE_ACCOUNTING_MISMATCH")
+        identifiers=report["source_event_ids"]
+        if any(v in seen for v in identifiers):
+            return fail("DUPLICATED_EVENT_ACROSS_PAGES")
+        seen.update(identifiers)
+        for identifier in identifiers:
+            fingerprints.update(identifier.encode("utf-8"))
+            fingerprints.update(b"\\n")
+        if report["status"]=="PAGE_MISSING_TRAIN_OR_HOLDOUT_NOT_CERTIFIED":
+            unclassified+=len(identifiers)
+            missing_folds.append(index)
+        else:
+            train+=report["checked_training_events"]
+            holdout+=report["checked_holdout_events"]
+            purged+=report["purged_or_censored_events"]
+            if (train+holdout+purged+unclassified)>count:
+                return fail("PAGE_COUNT_OVERFLOW")
+    if len(seen)!=count or train+holdout+purged+unclassified!=count:
+        return fail("INCOMPLETE_FULL_EVENT_ACCOUNTING")
+    return dict(base,status="ALL_SOURCE_PAGES_ACCOUNTED_NOT_OOS_CERTIFICATION",
+                archive_commit_sha=proxy["archive_commit_sha"],
+                source_observations=count,
+                audited_page_count=expected_pages,page_size=PAGE,
+                unique_source_event_count=len(seen),
+                ordered_source_event_ids_sha256=fingerprints.hexdigest(),
+                page_complete_fold_train_events=train,
+                page_complete_fold_holdout_events=holdout,
+                page_complete_fold_purged_events=purged,
+                incomplete_fold_page_indexes=missing_folds,
+                incomplete_fold_page_event_count=unclassified,
+                all_pages_accounted=True,
+                full_page_validation_coverage_certified=False,
+                training_params_pre_holdout_authenticated=False,
+                historical_exchange_calendar_authenticated=False)
+
 def main():
     p=argparse.ArgumentParser()
     p.add_argument("--proxy",required=True)
@@ -96,16 +166,22 @@ def main():
     p.add_argument("--validation-start",default="2026-07-08")
     p.add_argument("--validation-end",default="2026-10-22")
     p.add_argument("--page-index",type=int,default=0)
+    p.add_argument("--all-pages",action="store_true")
     p.add_argument("--out",required=True)
     args=p.parse_args()
-    result=observe(json.loads(Path(args.proxy).read_text()),
-                   args.train_end,args.validation_start,args.validation_end,
-                   page_index=args.page_index)
+    proxy=json.loads(Path(args.proxy).read_text())
+    if args.all_pages:
+        result=audit_all_pages(proxy,args.train_end,args.validation_start,
+                               args.validation_end)
+    else:
+        result=observe(proxy,args.train_end,args.validation_start,
+                       args.validation_end,page_index=args.page_index)
     target=Path(args.out);target.parent.mkdir(parents=True,exist_ok=True)
     target.write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
     print(json.dumps({k:result.get(k) for k in (
         "status","observed_total_event_count","selected_source_events",
         "checked_training_events","checked_holdout_events",
-        "purged_or_censored_events","trade_gate")}))
+        "purged_or_censored_events","audited_page_count","unique_source_event_count",
+        "incomplete_fold_page_event_count","trade_gate")}))
     if result["status"]=="REJECTED":raise SystemExit(1)
 if __name__=="__main__":main()

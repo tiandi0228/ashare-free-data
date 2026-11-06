@@ -1,8 +1,8 @@
 import copy,unittest
-from collector.p2_real_proxy_purged_chronology import observe,PHASE,PAGE
+from collector.p2_real_proxy_purged_chronology import observe,audit_all_pages,PHASE,PAGE
 
 def row(i,day,next_day,last_day):
-    return {"issuer":"sh.600"+str(i).zfill(3),"original_csv_sha256":"b"*64,
+    return {"issuer":"sh."+str(600000+i),"original_csv_sha256":"b"*64,
             "signal_known_after_close_date":day,
             "next_vendor_date":next_day,"third_vendor_date":last_day,
             "next_open_fill_assumed":False,"exit_close_fill_assumed":False,
@@ -68,5 +68,40 @@ class RealProxyFoldTests(unittest.TestCase):
         self.assertEqual(q["status"],"REJECTED")
         q=observe(proxy([a]),"2026-06-30","2026-07-08","2026-10-22",page_index=1)
         self.assertEqual(q["status"],"REJECTED")
+
+    def test_all_pages_accounted_without_false_fold_coverage(self):
+        rows=[row(i,"2026-05-21","2026-05-22","2026-05-26")
+              for i in range(PAGE+1)]
+        # Ensure first page has both time folds, the final page is missing
+        # a holdout fold and must not become a false successful OOS result.
+        rows[1].update(signal_known_after_close_date="2026-07-09",
+                       next_vendor_date="2026-07-10",
+                       third_vendor_date="2026-07-14")
+        q=audit_all_pages(proxy(rows),"2026-06-30","2026-07-08","2026-10-22")
+        self.assertEqual(q["status"],"ALL_SOURCE_PAGES_ACCOUNTED_NOT_OOS_CERTIFICATION")
+        self.assertEqual(q["source_observations"],PAGE+1)
+        self.assertEqual(q["unique_source_event_count"],PAGE+1)
+        self.assertEqual(q["audited_page_count"],2)
+        self.assertEqual(q["page_complete_fold_train_events"],PAGE-1)
+        self.assertEqual(q["page_complete_fold_holdout_events"],1)
+        self.assertEqual(q["incomplete_fold_page_event_count"],1)
+        self.assertEqual(q["incomplete_fold_page_indexes"],[1])
+        self.assertTrue(q["all_pages_accounted"])
+        self.assertFalse(q["full_page_validation_coverage_certified"])
+        self.assertFalse(q["historical_OOS_validated"])
+        self.assertEqual(q["trade_gate"],"BLOCKED")
+
+    def test_cross_page_duplicate_and_forged_overall_counts_rejected(self):
+        rows=[row(i,"2026-05-21","2026-05-22","2026-05-26")
+              for i in range(PAGE+1)]
+        rows[-1]=dict(rows[0])
+        q=audit_all_pages(proxy(rows),"2026-06-30","2026-07-08","2026-10-22")
+        self.assertEqual(q["status"],"REJECTED")
+        self.assertEqual(q["reason"],"DUPLICATED_EVENT_ACROSS_PAGES")
+        self.assertEqual(q["orders"],[])
+        p=proxy(rows);p["observed_next_open_to_third_close"]-=1
+        q=audit_all_pages(p,"2026-06-30","2026-07-08","2026-10-22")
+        self.assertEqual(q["status"],"REJECTED")
+        self.assertEqual(q["trade_gate"],"BLOCKED")
 
 if __name__=="__main__":unittest.main()
