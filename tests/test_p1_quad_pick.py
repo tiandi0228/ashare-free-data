@@ -1,5 +1,5 @@
 import unittest
-from collector.p1_quad_pick import choose,rotating_start
+from collector.p1_quad_pick import choose,rotating_start,verify_prior_for_selection
 class PickTests(unittest.TestCase):
     def plan(self):
         return {"phase":"P1_FRESH_VENDOR_SHARD_PLAN","trade_gate":"BLOCKED",
@@ -87,6 +87,36 @@ class PickTests(unittest.TestCase):
         self.assertEqual(opened,closed)
         self.assertTrue(workflow.rstrip().endswith("if-no-files-found: warn"))
 
+    def strict_ledger(self):
+        plan=self.plan()
+        receipts=[{"index":i,"issuer_count":1,
+                   "manifest_sha256":f"{i+1:064x}",
+                   "receipt_sha256":f"{i+100:064x}"} for i in range(6)]
+        for i in range(7):
+            plan["shards"][i].update(sha256=f"{i+1:064x}",count=1)
+        return plan,{"phase":"P1_ROSTER_SHARD_LEDGER",
+                      "source_sha256":"a"*64,"shard_count":7,
+                      "completed":receipts,"completed_shards":6,
+                      "completed_issuers":6,"pending_shards":[6],
+                      "next_shard":6,"failed_in_this_reconciliation":[],
+                      "full_market_bars_certified":False,
+                      "historical_PIT_verified":False,
+                      "trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
+
+    def test_strict_selection_rejects_mutated_receipt_and_corrupt_pending(self):
+        import copy
+        plan,prior=self.strict_ledger()
+        verify_prior_for_selection(plan,prior)
+        bad=copy.deepcopy(prior);bad["pending_shards"]=[5,6]
+        with self.assertRaises(ValueError):
+            verify_prior_for_selection(plan,bad)
+        bad=copy.deepcopy(prior);bad["completed"][0]["receipt_sha256"]="bad"
+        with self.assertRaises(ValueError):
+            verify_prior_for_selection(plan,bad)
+        bad=copy.deepcopy(plan);bad["shards"][0]["sha256"]="f"*64
+        with self.assertRaises(ValueError):
+            verify_prior_for_selection(bad,prior)
+
     def test_last_pending_shard_in_dual_pilot_is_selected_once(self):
         import json,os,tempfile
         from pathlib import Path
@@ -97,10 +127,9 @@ class PickTests(unittest.TestCase):
             plan=root/"plan.json"
             prior=root/"prior.json"
             output=root/"outputs.txt"
-            plan.write_text(json.dumps(self.plan()))
-            prior.write_text(json.dumps({
-                "source_sha256":"a"*64,"shard_count":7,"trade_gate":"BLOCKED",
-                "completed":[{"index":i} for i in range(6)]}))
+            strict_plan,strict_prior=self.strict_ledger()
+            plan.write_text(json.dumps(strict_plan))
+            prior.write_text(json.dumps(strict_prior))
             args=["p1_quad_pick","--plan",str(plan),"--prior",str(prior),
                   "--output-file",str(output),"--per-run","2"]
             with patch("sys.argv",args),patch.dict(os.environ,{"GITHUB_RUN_NUMBER":"0"}):
