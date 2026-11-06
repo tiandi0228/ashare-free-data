@@ -1,0 +1,26 @@
+name: P1 durable shard completion and denominator offline CI (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p1_run_progress.py'
+      - 'tests/test_p1_run_progress.py'
+      - '.github/workflows/p1-run-progress-denominator-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p1_run_progress.py'
+      - 'tests/test_p1_run_progress.py'
+      - '.github/workflows/p1-run-progress-denominator-ci.yml'
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Ensure green CI is distinct from verified new research shards
+        run: python -m unittest -v tests.test_p1_run_progress tests.test_p1_operational_progress_health
