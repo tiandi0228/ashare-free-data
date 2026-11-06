@@ -106,6 +106,30 @@ class PickTests(unittest.TestCase):
                       "historical_PIT_verified":False,
                       "trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
 
+    def test_frozen_eight_issuer_shard_geometry(self):
+        import copy
+        plan=self.plan()
+        plan["shard_size_cap"]=8
+        plan["roster_codes_sha256"]="b"*64
+        for shard in plan["shards"][:-1]:
+            shard["count"]=8
+        plan["issuer_count"]=49
+        verify_frozen_plan(plan)
+        for mutation in ("short_early_shard","wrong_total","wrong_cap","wrong_membership_digest"):
+            with self.subTest(mutation=mutation):
+                bad=copy.deepcopy(plan)
+                if mutation=="short_early_shard":
+                    bad["shards"][2]["count"]=7
+                    bad["issuer_count"]=48
+                elif mutation=="wrong_total":
+                    bad["issuer_count"]=48
+                elif mutation=="wrong_cap":
+                    bad["shard_size_cap"]=9
+                else:
+                    bad["roster_codes_sha256"]="bad"
+                with self.assertRaises(ValueError):
+                    verify_prior_for_selection(bad,None)
+
     def test_all_pending_manifests_must_be_valid_before_vendor_calls(self):
         import copy
         plan=self.plan()
