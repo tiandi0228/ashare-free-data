@@ -5,9 +5,9 @@ show a coherent *research checkpoint*, never executable market coverage.
 """
 import argparse
 import json
-import re
 from pathlib import Path
 from collector.p1_checkpoint import epoch_path, validate
+from collector.p1_roster_lock import unpack
 
 
 def bind(roster, epochs):
@@ -21,6 +21,7 @@ def bind(roster, epochs):
         "checkpoint_percent": None,
         "completed_issuers": None,
         "publisher_authenticated": False,
+        "original_csv_bytes_reverified": False,
         "historical_PIT_verified": False,
         "full_market_bars_certified": False,
         "trade_gate": "BLOCKED",
@@ -47,6 +48,10 @@ def bind(roster, epochs):
             or quality.get("executable_candidates") != []
             or quality.get("paid_api_calls") != 0):
         raise ValueError("unsafe or unrecognized source quality")
+    # Inspect the actual base64-encoded original CSV, not merely declared digests.
+    # unpack validates bytes, UTF-8 CSV schema, issuer uniqueness, original
+    # receipt SHA, count, safety fields, and source date provenance.
+    raw, receipt = unpack(roster)
     sha = roster.get("source_sha256")
     epoch_path(sha)
     if quality.get("mainboard_sha256") != sha:
@@ -56,7 +61,7 @@ def bind(roster, epochs):
         validate(ledger)
         if ledger["source_sha256"] != key:
             raise ValueError("misfiled epoch checkpoint")
-    result = dict(base, roster_sha256=sha)
+    result = dict(base, roster_sha256=sha, original_csv_bytes_reverified=True)
     if sha not in epochs:
         return dict(result, status="PINNED_EPOCH_CHECKPOINT_MISSING")
     ledger = epochs[sha]
