@@ -1,0 +1,78 @@
+name: Tencent unadjusted daily response schema one-shot (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tencent-daily-source-schema-probe.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Inspect prior response keys offline (no vendor access)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p evidence/previous-daily
+          gh run download 42169106304 -R "${{ github.repository }}" -n tencent-daily-extrema-42169106304 -D evidence/previous-daily
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for sym in ("sh600519","sz002249"):
+              files=list(Path('evidence/previous-daily').rglob(sym+'/raw.bin'))
+              if len(files)!=1: raise RuntimeError("ambiguous prior raw response")
+              p=json.loads(files[0].read_bytes().decode('utf-8'))
+              d=(p.get('data') or {}).get(sym)
+              print(json.dumps({'symbol':sym,'root_code':p.get('code'),
+                  'source_fields':sorted(d.keys()) if isinstance(d,dict) else None,
+                  'no_unadjusted_day_substitution':True},ensure_ascii=False))
+          PY
+      - name: Two bounded no-adjust-parameter daily requests without retries
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          from urllib.request import Request,urlopen
+          from collector.tencent_daily_extrema_triangulation import parse
+          root=Path('evidence/tencent-unadjusted-daily');root.mkdir(parents=True,exist_ok=False)
+          for sym in ('sh600519','sz002249'):
+              dest=root/sym;dest.mkdir()
+              url=f'https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={sym},day,,,240'
+              report={'symbol':sym,'url':url,'status':'FAILED_UNVERIFIED',
+                      'historical_PIT_verified':False,'trade_gate':'BLOCKED',
+                      'orders':[],'executable_candidates':[]}
+              try:
+                  req=Request(url,headers={'User-Agent':'StockMate-Daily-Research-Schema/1.0'})
+                  with urlopen(req,timeout=8) as res:
+                      raw=res.read(512*1024+1)
+                  if not 0<len(raw)<=512*1024:raise ValueError('oversized response')
+                  (dest/'raw.bin').write_bytes(raw)
+                  report['sha256']=hashlib.sha256(raw).hexdigest()
+                  p=json.loads(raw.decode('utf-8'))
+                  data=(p.get('data') or {}).get(sym)
+                  report['source_fields']=sorted(data.keys()) if isinstance(data,dict) else None
+                  days=parse(raw,sym)
+                  report.update(status='UNADJUSTED_DAY_OBSERVED_UNVERIFIED',
+                                days=len(days),first=min(days),last=max(days))
+                  (dest/'unadjusted.json').write_text(json.dumps(days,indent=2)+'\n')
+              except (OSError,ValueError,TypeError,UnicodeError) as exc:
+                  report.update(error_type=type(exc).__name__,error_detail=str(exc)[:120])
+              (dest/'quality.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
+              print(json.dumps(report,ensure_ascii=False))
+          PY
+      - name: Archive immutable raw and schema evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tencent-unadjusted-daily-schema-${{ github.run_id }}
+          path: evidence/tencent-unadjusted-daily/
+          if-no-files-found: warn
+          retention-days: 14
