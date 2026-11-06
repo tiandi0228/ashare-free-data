@@ -1,0 +1,80 @@
+name: Tencent daily vs m5 vs Baostock extrema triangulation one-shot (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/tencent_daily_extrema_triangulation.py'
+      - 'tests/test_tencent_daily_extrema_triangulation.py'
+      - '.github/workflows/tencent-daily-extrema-one-shot.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tencent-daily-extrema-one-shot.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest -v tests.test_tencent_daily_extrema_triangulation
+  live_once:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Restore two existing independent vendor archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p evidence/old/tencent evidence/old/baostock
+          gh run download 42166665873 -R "${{ github.repository }}" -n tencent-eight-sample-42166665873 -D evidence/old/tencent
+          gh run download 42167545462 -R "${{ github.repository }}" -n tencent-baostock-daily-42167545462 -D evidence/old/baostock
+      - name: Make two bounded Tencent daily historical requests only
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from collector.tencent_daily_extrema_triangulation import capture,triangulate
+          import json
+          t=list(Path('evidence/old/tencent').rglob('summary.json'))
+          b=list(Path('evidence/old/baostock').rglob('baostock_original'))
+          if len(t)!=1 or len(b)!=1: raise ValueError('missing prior original artifacts')
+          dest=Path('evidence/tencent-daily-new')
+          capture(dest)
+          q=triangulate(t[0].parent,b[0].parent,dest)
+          (dest/'triangulation.json').write_text(json.dumps(q,ensure_ascii=False,indent=2)+'\n')
+          print(json.dumps(q,ensure_ascii=False))
+          PY
+      - name: Surface actual source successes and failures
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          for p in Path('evidence/tencent-daily-new').glob('*/quality.json'):
+              q=json.loads(p.read_text())
+              assert q['trade_gate']=='BLOCKED' and q['historical_PIT_verified'] is False
+              print(json.dumps(q,ensure_ascii=False))
+          p=Path('evidence/tencent-daily-new/triangulation.json')
+          if p.exists():
+              q=json.loads(p.read_text())
+              print('comparison:',json.dumps(q,ensure_ascii=False))
+          PY
+      - name: Retain bounded raw bytes and explicit failure receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tencent-daily-extrema-${{ github.run_id }}
+          path: evidence/tencent-daily-new/
+          if-no-files-found: warn
+          retention-days: 14
