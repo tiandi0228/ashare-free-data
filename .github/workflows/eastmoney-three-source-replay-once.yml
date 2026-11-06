@@ -1,0 +1,77 @@
+name: Replay Tencent m5 vs Baostock daily vs Eastmoney fqt0 original (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/eastmoney-three-source-replay-once.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Retrieve three immutable historic capture artifacts, no new provider requests
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p evidence/old/tencent evidence/old/baostock evidence/old/eastmoney
+          gh run download 42166665873 -R "${{ github.repository }}" -n tencent-eight-sample-42166665873 -D evidence/old/tencent
+          gh run download 42167545462 -R "${{ github.repository }}" -n tencent-baostock-daily-42167545462 -D evidence/old/baostock
+          gh run download 42169891381 -R "${{ github.repository }}" -n eastmoney-nodes-once-42169891381 -D evidence/old/eastmoney
+      - name: Stage source-verified backup receipts and compare all prior overlapping days
+        run: |
+          python - <<'PY'
+          import hashlib,json,shutil
+          from pathlib import Path
+          from collector.eastmoney_daily_triangulation import triangulate,parse
+          original=Path('evidence/old/eastmoney')
+          stage=Path('evidence/staged-eastmoney')
+          stage.mkdir(parents=True,exist_ok=False)
+          for sym in ('sh600519','sz002249'):
+              matches=list(original.rglob('54.push2his.eastmoney.com_'+sym))
+              if len(matches)!=1: raise ValueError('wrong or missing Eastmoney backup vendor original')
+              source=matches[0]
+              q=json.loads((source/'quality.json').read_text())
+              raw=(source/'response.bin').read_bytes()
+              if (q.get('status')!='OBSERVED_UNVERIFIED' or
+                  q.get('trade_gate')!='BLOCKED' or
+                  q.get('historical_PIT_verified') is not False or
+                  hashlib.sha256(raw).hexdigest()!=q.get('sha256')):
+                  raise ValueError('source evidence does not match immutable hash')
+              parsed=parse(raw,sym)
+              if parsed!=json.loads((source/'daily.json').read_text()):
+                  raise ValueError('Eastmoney original rows differ from normalized rows')
+              dest=stage/sym
+              dest.mkdir()
+              shutil.copyfile(source/'response.bin',dest/'source.bin')
+              shutil.copyfile(source/'quality.json',dest/'quality.json')
+              shutil.copyfile(source/'daily.json',dest/'daily.json')
+          t=list(Path('evidence/old/tencent').rglob('summary.json'))
+          b=list(Path('evidence/old/baostock').rglob('baostock_original'))
+          if len(t)!=1 or len(b)!=1:raise ValueError('missing original independent captures')
+          result=triangulate(t[0].parent,b[0].parent.parent,stage)
+          dest=Path('evidence/three-source-replay.json')
+          dest.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+          print(json.dumps({'status':result['status'],
+              'eastmoney_days':result['eastmoney_days'],
+              'previous_comparable_days':result['previous_comparable_days'],
+              'previous_mismatch_days':result['previous_mismatch_days'],
+              'records':result['records'],
+              'root_cause_confirmed':result['root_cause_confirmed'],
+              'historical_PIT_verified':result['historical_PIT_verified'],
+              'trade_gate':result['trade_gate']},ensure_ascii=False))
+          PY
+      - name: Archive derived comparison only, never overwrite prior evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eastmoney-three-source-replay-${{ github.run_id }}
+          path: evidence/three-source-replay.json
+          if-no-files-found: warn
+          retention-days: 14
