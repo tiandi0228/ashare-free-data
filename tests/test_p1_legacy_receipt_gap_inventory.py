@@ -85,6 +85,33 @@ class LegacyReceiptGapInventoryTests(unittest.TestCase):
         self.assertEqual(r["missing_epoch_status_count"],1)
         self.assertFalse(r["writer_cutover_authorized"])
 
+    def test_symlinked_original_receipt_is_rejected(self):
+        original=self.root/"external-quality.json"
+        original.write_text('{"original":true}')
+        (self.shard/"quality.json").symlink_to(original)
+        with self.assertRaisesRegex(ValueError,"receipt symlink"):
+            inventory_missing_receipts(self.root)
+
+    def test_symlinked_shard_directory_is_rejected(self):
+        real=self.root/"real-shard"
+        self.shard.rename(real)
+        self.shard.symlink_to(real,target_is_directory=True)
+        with self.assertRaisesRegex(ValueError,"shard symlink"):
+            inventory_missing_receipts(self.root)
+
+    def test_symlinked_epoch_directory_is_rejected(self):
+        real=self.root/"real-epoch"
+        self.epoch.rename(real)
+        self.epoch.symlink_to(real,target_is_directory=True)
+        with self.assertRaisesRegex(ValueError,"epoch symlink"):
+            inventory_missing_receipts(self.root)
+
+    def test_non_directory_epoch_is_rejected(self):
+        self.epoch.rename(self.root/"renamed-epoch")
+        self.epoch.write_text("not an archive")
+        with self.assertRaisesRegex(ValueError,"epoch directory"):
+            inventory_missing_receipts(self.root)
+
     def test_missing_status_not_a_recovered_original(self):
         (self.epoch/"archive_status.json").unlink()
         result=inventory_missing_receipts(self.root)
