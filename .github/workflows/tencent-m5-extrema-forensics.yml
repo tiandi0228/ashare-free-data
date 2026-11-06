@@ -42,7 +42,7 @@ jobs:
           bs=list(Path("evidence/previous/baostock").rglob("baostock_original"))
           if len(ts)!=1 or len(bs)!=1:
               raise SystemExit(f"Missing or ambiguous original archive Tencent={len(ts)}, Baostock={len(bs)}")
-          result=forensic(ts[0].parent,bs[0].parent.parent)
+          result=forensic(ts[0].parent,bs[0].parent)
           Path("evidence/tencent_m5_extrema_forensics.json").write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
           print(json.dumps({
               "status":result["status"],"comparable_days":result["comparable_days"],
