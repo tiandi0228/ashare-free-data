@@ -1,0 +1,50 @@
+{
+  "audited_issuer_count": 1312,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 0,
+  "historical_PIT_verified": false,
+  "orders": [],
+  "original_pdf_count": 2,
+  "p1_upstream_run_id": 42172404544,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 11516,
+  "research_date_action_links": [],
+  "run_id": 42173396846,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225284110",
+      "archive_path": "pdf/sh_603311/1225284110/db92683dc8e23b615edb24aa4cab66a35ad7eb76dfc0bb93862d0856fd127aaf.pdf",
+      "bytes": 75804,
+      "captured_at_utc": "2026-11-06T06:16:55.573646+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1778256000000,
+      "issuer": "sh.603311",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-05-09/1225284110.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "db92683dc8e23b615edb24aa4cab66a35ad7eb76dfc0bb93862d0856fd127aaf",
+      "title_from_index_unverified": "金海高科关于签订募集资金专户存储三方监管协议之补充协议的公告"
+    },
+    {
+      "announcement_id": "1222776946",
+      "archive_path": "pdf/sh_603330/1222776946/4355fc6ee5c049ca669b8bbc3dada94f510bf58996046a8ee09d144c17f74579.pdf",
+      "bytes": 763234,
+      "captured_at_utc": "2026-11-06T06:16:59.402054+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1741795200000,
+      "issuer": "sh.603330",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2025-03-13/1222776946.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "4355fc6ee5c049ca669b8bbc3dada94f510bf58996046a8ee09d144c17f74579",
+      "title_from_index_unverified": "关于使用部分闲置募集资金暂时补充流动资金的公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
