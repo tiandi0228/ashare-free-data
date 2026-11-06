@@ -1,0 +1,61 @@
+name: P2 P3 P4 run-bound evidence metrics scorecard (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p234_evidence_metrics.py'
+      - 'tests/test_p234_evidence_metrics.py'
+      - '.github/workflows/p234-run-evidence-scorecard.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p234_evidence_metrics.py'
+      - 'tests/test_p234_evidence_metrics.py'
+      - '.github/workflows/p234-run-evidence-scorecard.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  scorecard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Reject fabricated metrics and keep frozen engineering baseline unchanged
+        run: python -m unittest -v tests.test_p234_evidence_metrics tests.test_progress_baseline
+      - name: Restore three known successful original run artifacts (read-only, no vendor requests)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p evidence/source/p2 evidence/source/p3 evidence/source/p4
+          gh run download 42180658907 -R "${{ github.repository }}" -n p2-real-archive-feature-observation-42180658907 -D evidence/source/p2
+          gh run download 42180658939 -R "${{ github.repository }}" -n p3-full-p1-official-scout-42180658939 -D evidence/source/p3
+          gh run download 42180658923 -R "${{ github.repository }}" -n p4-real-ma20-observation-42180658923 -D evidence/source/p4
+      - name: Bind audited P2 P3 P4 observed denominators to exact action runs
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+          def only(root,name):
+              hits=list(Path(root).rglob(name))
+              if len(hits)!=1: raise ValueError('source original artifact missing or ambiguous: '+name)
+              return str(hits[0])
+          cmd=['python','-m','collector.p234_evidence_metrics',
+              '--p2',only('evidence/source/p2','p2_real_archive_feature_coverage.json'),
+              '--p3',only('evidence/source/p3','p3_all_resume_original_text_pairs.json'),
+              '--p4',only('evidence/source/p4','p4_fee_floor_gap_audit.json'),
+              '--p2_run','42180658907','--p3_run','42180658939',
+              '--p4_run','42180658923',
+              '--out','evidence/p234_run_bound_evidence_metrics.json']
+          subprocess.run(cmd,check=True)
+          PY
+      - name: Archive research-only metrics and exact referenced action runs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p234-run-bound-evidence-${{ github.run_id }}
+          path: evidence/p234_run_bound_evidence_metrics.json
+          if-no-files-found: warn
+          retention-days: 14
