@@ -102,6 +102,6 @@ def main():
     args=ap.parse_args()
     report=examine(json.loads(args.checkpoint.read_text()),args.archive)
     args.out.parent.mkdir(parents=True,exist_ok=True)
-    args.out.write_text(json.dumps(report,indent=2)+"\\n")
+    args.out.write_text(json.dumps(report,indent=2)+"\n")
     print(json.dumps(report))
 if __name__=="__main__":main()
