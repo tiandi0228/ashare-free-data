@@ -1,0 +1,65 @@
+name: Tencent public data one-shot bounded live research diagnostic (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tencent-one-shot-live-diagnostic.yml'
+permissions:
+  contents: read
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: One bounded quote request (no retry, no orders)
+        continue-on-error: true
+        run: |
+          python -m collector.p0_tencent_quote_probe --symbols sz002249 --out evidence/tencent_live_quote_${{ github.run_id }} --live
+      - name: One bounded five-minute request (no retry, no orders)
+        continue-on-error: true
+        run: |
+          python -m collector.p1_tencent_minute_probe --symbol sz002249 --period m5 --out evidence/tencent_live_m5_${{ github.run_id }} --live
+      - name: Summarize observed source outcomes without certifying trading
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path("evidence")
+          reports=[]
+          for p in sorted(root.glob("tencent_live_*/quality.json")):
+              q=json.loads(p.read_text(encoding="utf-8"))
+              assert q.get("trade_gate")=="BLOCKED"
+              assert q.get("historical_PIT_verified") is False
+              assert q.get("orders")==[] and q.get("executable_candidates")==[]
+              reports.append({
+                  "source":q.get("source"),"status":q.get("status"),
+                  "response_sha256":q.get("response_sha256"),
+                  "response_bytes":q.get("response_bytes"),
+                  "error_type":q.get("error_type"),
+                  "error_detail":q.get("error_detail"),
+                  "row_count":q.get("row_count"),
+                  "quote_states":q.get("states"),
+              })
+          result={"phase":"TENCENT_ONE_SHOT_LIVE_RESEARCH_DIAGNOSTIC",
+                  "results":reports,"attempts":len(reports),
+                  "expected_attempts":2,"trade_gate":"BLOCKED",
+                  "trading_ready":False,"historical_PIT_verified":False,
+                  "orders":[],"executable_candidates":[]}
+          Path("tencent_live_summary.json").write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
+          print(json.dumps(result,ensure_ascii=False,indent=2))
+          PY
+      - name: Upload original bytes and explicit failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tencent-live-research-${{ github.run_id }}
+          path: |
+            evidence/tencent_live_*/
+            tencent_live_summary.json
+          if-no-files-found: error
+          retention-days: 14
