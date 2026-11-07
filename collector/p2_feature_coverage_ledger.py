@@ -146,6 +146,24 @@ def summarize(epoch,ledger,reports):
             return fail("IMPOSSIBLE_OBSERVED_ISSUER_COUNT")
         gap_reason_counts={reason:sum(1 for r in gap_reason_by_issuer.values() if r==reason)
                            for reason in sorted(set(gap_reason_by_issuer.values()))}
+        # Explicit research repair queue: frozen shard and issuer provenance,
+        # never a trade or a synthetic "feature complete" label.
+        gap_repair_queue=[
+            {
+                "shard_id":f"shard_{i:04d}",
+                "issuer_gap_count":sum(state=="GAP" for state in proven[i].values()),
+                "issuer_reasons":[
+                    {"issuer":code,"reason":gap_reason_by_issuer[code]}
+                    for code,state in sorted(proven[i].items()) if state=="GAP"
+                ],
+            }
+            for i in sorted(gap_shards)
+        ]
+        if (len(gap_repair_queue)!=len(gap_shards)
+            or sum(x["issuer_gap_count"] for x in gap_repair_queue)!=len(missing_codes)
+            or {item["issuer"] for row in gap_repair_queue
+                for item in row["issuer_reasons"]}!=missing_codes):
+            return fail("GAP_REPAIR_QUEUE_NOT_RECONCILED")
         return dict(base,status="DURABLE_RESEARCH_PAGE_COVERAGE_NOT_CERTIFIED",
                     source_epoch_sha256=ledger["source_sha256"],
                     checkpoint_completed_shards=ledger["completed_shards"],
@@ -165,6 +183,8 @@ def summarize(epoch,ledger,reports):
                     unobserved_issuer_count=unobserved_issuers,
                     gap_reason_counts=gap_reason_counts,
                     gap_issuer_codes=sorted(missing_codes),
+                    gap_repair_queue=gap_repair_queue,
+                    gap_repair_queue_is_research_only=True,
                     full_archive_evidence_accounted=(len(never_seen)==0 and
                                                     len(archived)==ledger["completed_shards"]),
                     full_archive_feature_coverage=(len(never_seen)==0 and

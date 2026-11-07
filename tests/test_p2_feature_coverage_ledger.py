@@ -83,6 +83,13 @@ class CoverageTests(unittest.TestCase):
             self.assertEqual(x["gap_reason_counts"],
                              {"INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS":1})
             self.assertEqual(x["gap_issuer_codes"],["sz.002249"])
+            self.assertEqual(x["gap_repair_queue"],[{
+                "shard_id":"shard_0001",
+                "issuer_gap_count":1,
+                "issuer_reasons":[{"issuer":"sz.002249",
+                                   "reason":"INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"}],
+            }])
+            self.assertTrue(x["gap_repair_queue_is_research_only"])
             self.assertTrue(x["full_archive_evidence_accounted"])
             self.assertFalse(x["full_archive_feature_coverage"])
             self.assertEqual(x["trade_gate"],"BLOCKED")
@@ -94,6 +101,8 @@ class CoverageTests(unittest.TestCase):
             self.assertEqual(x["unobserved_shard_ids"],["shard_0001"])
             self.assertEqual(x["observed_archived_shards"],1)
             self.assertEqual(x["unobserved_issuer_count"],1)
+            self.assertEqual(x["gap_repair_queue"],[])
+            self.assertTrue(x["gap_repair_queue_is_research_only"])
             self.assertFalse(x["full_archive_evidence_accounted"])
     def test_duplicate_identical_shard_receipt_idempotent(self):
         with tempfile.TemporaryDirectory() as d:
@@ -139,6 +148,18 @@ class CoverageTests(unittest.TestCase):
             result=summarize(epoch,ledger,reports+[repeated])
             self.assertEqual(result["status"],"REJECTED")
             self.assertEqual(result["reason"],"CONFLICTING_REPEAT_GAP_REASON")
+
+    def test_repair_queue_never_promotes_gap_to_buy_signal(self):
+        with tempfile.TemporaryDirectory() as d:
+            epoch,ledger,reports=fixture(d)
+            x=summarize(epoch,ledger,reports)
+            self.assertFalse(x["full_archive_feature_coverage"])
+            self.assertFalse(x["coverage_certified_for_trading"])
+            self.assertEqual(x["trade_gate"],"BLOCKED")
+            self.assertEqual(x["orders"],[])
+            self.assertEqual(x["executable_candidates"],[])
+            self.assertEqual(x["actionable_buy_signals"],[])
+            self.assertEqual(len(x["gap_repair_queue"]),1)
 
     def test_no_reports_is_explicit_no_coverage(self):
         with tempfile.TemporaryDirectory() as d:
