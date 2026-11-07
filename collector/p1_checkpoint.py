@@ -57,7 +57,12 @@ def gh(*args,input_data=None):
 def remote_read(repo,path=CHECKPOINT):
     try:
         result=json.loads(gh(f"repos/{repo}/contents/{path}", "-f", "ref=main", "--method", "GET"))
-        raw=base64.b64decode(result["content"]).decode()
+        # GitHub Contents API may wrap base64 across lines; reject all other
+        # malformed base64 instead of silently discarding invalid characters.
+        encoded=result["content"]
+        if not isinstance(encoded,str):
+            raise ValueError("invalid checkpoint Contents encoding")
+        raw=base64.b64decode("".join(encoded.split()),validate=True).decode("utf-8")
         return json.loads(raw.removesuffix(chr(92)+"n")),result["sha"]
     except subprocess.CalledProcessError as exc:
         # Only an explicit GitHub 404 means the checkpoint is absent.

@@ -198,6 +198,31 @@ class CheckpointTests(unittest.TestCase):
         self.assertEqual(json.loads(base64.b64decode(body["content"])),candidate)
         self.assertNotIn("sha",body)
 
+    def test_wrapped_github_checkpoint_base64_is_accepted_exactly(self):
+        import base64,json
+        from unittest.mock import patch
+        from collector.p1_checkpoint import remote_read
+        original=self.ledger(1)
+        payload=json.dumps(original).encode("utf-8")
+        encoded=base64.b64encode(payload).decode("ascii")
+        wrapped=encoded[:22]+chr(10)+encoded[22:48]+chr(13)+chr(10)+encoded[48:]
+        with patch("collector.p1_checkpoint.gh",
+                   return_value=json.dumps({"content":wrapped,"sha":"original-blob"})):
+            actual,blob=remote_read("owner/repo")
+        self.assertEqual(actual,original)
+        self.assertEqual(blob,"original-blob")
+
+    def test_malformed_checkpoint_base64_rejected_not_treated_as_missing(self):
+        import json
+        from unittest.mock import patch
+        from collector.p1_checkpoint import remote_read
+        for bad in ("%%%","!Zm9v","Zm9v@",None):
+            with self.subTest(bad=bad):
+                with patch("collector.p1_checkpoint.gh",
+                           return_value=json.dumps({"content":bad,"sha":"blob"})):
+                    with self.assertRaises((ValueError,TypeError)):
+                        remote_read("owner/repo")
+
     def test_missing_checkpoint_requires_explicit_404(self):
         import subprocess
         from unittest.mock import patch
