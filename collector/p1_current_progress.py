@@ -49,7 +49,7 @@ def remote_json(repo,path):
         ["gh","api",f"repos/{repo}/contents/{path}","--method","GET","-f","ref=main"],
         capture_output=True,text=True,check=True,timeout=35)
     response=json.loads(call.stdout)
-    return json.loads(base64.b64decode(response["content"],validate=True).decode("utf-8"))
+    return json.loads(base64.b64decode("".join(response["content"].split()),validate=True).decode("utf-8"))
 
 def capture(repo):
     lock=remote_json(repo,"evidence/p1_active_roster.json")
