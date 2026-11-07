@@ -16,11 +16,12 @@ class IndependentRecoveryWatchdogTests(unittest.TestCase):
             "32 1,2,4,6,8,10,12,14 * * 1-5",
             "32 16 * * 1-5",
             "32 18 * * 0-4",
+            "22 2,8,12,16 * * 6,0",
             "32 2,8,12,16 * * 6,0",
         ])
         self.assertIn("cancel-in-progress: false",self.workflow)
 
-    def test_each_beijing_source_slot_has_one_recovery_82_minutes_later(self):
+    def test_every_slot_keeps_82_minute_watchdog_with_weekend_72_minute_backup(self):
         # Build a complete UTC week using the actual minute/hour/weekday cron
         # expressions. Exercise rollover for Monday 01:10 and Sun 23:10.
         rules=re.findall(r"cron: '([^']+)'",self.workflow)
@@ -56,7 +57,25 @@ class IndependentRecoveryWatchdogTests(unittest.TestCase):
                 matches=[run for run in checks
                          if run-scheduled==timedelta(minutes=82)]
                 self.assertEqual(len(matches),1,(scheduled,matches))
-        self.assertEqual(len(checks),58) # full UTC week; includes boundary windows
+        # Only weekend source slots receive an extra 72-minute backup.
+        # Weekdays retain the existing one 82-minute watch; duplicate claims
+        # on weekend runs are still subject to the remote at-most-once guard.
+        for day in range(2,8):
+            hours=(1,8,9,11,13,15,17,19,21,23) if day<7 else (9,15,19,23)
+            for hour in hours:
+                source=datetime(2026,11,day,hour,10,tzinfo=china)
+                matches=[run for run in checks
+                         if run-source==timedelta(minutes=72)]
+                self.assertEqual(len(matches),0 if day<7 else 1,(source,matches))
+        self.assertEqual(len(checks),66) # full UTC week, 8 extra weekend checks
+
+    def test_weekend_backup_is_only_a_watchdog_not_direct_collection(self):
+        self.assertEqual(self.workflow.count("22 2,8,12,16 * * 6,0"),1)
+        self.assertIn("p1_recovery_claim",self.workflow)
+        self.assertIn("p1_recovery_dispatch_preflight",self.workflow)
+        self.assertIn("p1_recovery_dispatch_once",self.workflow)
+        self.assertIn("P1_RECOVERY_EXECUTION_ENABLED: 'true'",self.workflow)
+        self.assertNotIn("cancel-in-progress: true",self.workflow)
 
     def test_explicit_write_permission_not_pr_dispatch(self):
         self.assertIn("contents: write",self.workflow)
