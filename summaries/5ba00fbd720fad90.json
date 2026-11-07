@@ -12,7 +12,7 @@
   "checkpoint_completed_shards": 184,
   "checkpoint_total_shards": 400,
   "archived_original_shards": 184,
-  "coverage_report_count": 54,
+  "coverage_report_count": 55,
   "observed_archived_shards": 184,
   "feature_complete_shards": 174,
   "observed_with_feature_gaps_shards": 10,
@@ -236,6 +236,113 @@
     "sh.603400",
     "sh.603517"
   ],
+  "gap_repair_queue": [
+    {
+      "shard_id": "shard_0027",
+      "issuer_gap_count": 2,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.600293",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+        },
+        {
+          "issuer": "sh.600301",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0033",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.600363",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0078",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.600825",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0097",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.601091",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0104",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.601238",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0120",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.601995",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0137",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.603159",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0140",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.603183",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0161",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.603400",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0166",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.603517",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+        }
+      ]
+    }
+  ],
+  "gap_repair_queue_is_research_only": true,
   "full_archive_evidence_accounted": true,
   "full_archive_feature_coverage": false,
   "limitations": [
