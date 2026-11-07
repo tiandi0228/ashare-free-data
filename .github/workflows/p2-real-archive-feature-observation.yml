@@ -188,6 +188,18 @@ jobs:
               raise SystemExit('Unsafe coverage summary')
           Path('evidence/p2_real_archive_feature_coverage.json').write_text(
               json.dumps(summary,ensure_ascii=False,indent=2)+'\n')
+          # Research repair priorities are drawn exclusively from the SHA-
+          # replayed, cross-run reconciled coverage ledger. No trading.
+          queue=summary.get('gap_repair_queue')
+          if not isinstance(queue,list):
+              raise SystemExit('Missing verified feature-gap repair queue')
+          if (len(queue)!=summary['observed_with_feature_gaps_shards'] or
+              sum(x['issuer_gap_count'] for x in queue)!=summary['issuer_evidence_gap_count'] or
+              summary['trade_gate']!='BLOCKED' or
+              summary['coverage_certified_for_trading'] is not False):
+              raise SystemExit('P2 repair queue disagrees with source coverage')
+          print('P2_RESEARCH_FEATURE_REPAIR_QUEUE',
+                json.dumps(queue,ensure_ascii=False))
           print('DURABLE_FEATURE_COVERAGE',json.dumps({
               k:summary.get(k) for k in (
                  'observed_archived_shards','feature_complete_shards',
