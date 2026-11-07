@@ -52,7 +52,7 @@ class P1CurrentProgressTests(unittest.TestCase):
         from collector.p1_current_progress import remote_json
         payload=json.dumps({"phase":"EXACT","value":17}).encode()
         encoded=base64.b64encode(payload).decode()
-        wrapped=encoded[:12]+"\\n"+encoded[12:]
+        wrapped=encoded[:12]+chr(10)+encoded[12:]
         with patch("collector.p1_current_progress.subprocess.run",
                    return_value=SimpleNamespace(stdout=json.dumps({"content":wrapped}))):
             self.assertEqual(remote_json("owner/repo","evidence/test.json"),
