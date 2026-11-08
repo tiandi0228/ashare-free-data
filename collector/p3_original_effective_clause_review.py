@@ -21,6 +21,14 @@ EVENT_WORDS={
 PREFIX=r"(?:自|于|从|将于)"
 SEP=r"[^，,。；;！!？?\n]{0,18}"
 EXCLUDE=re.compile(r"(?:拟|预计|计划|可能|尚未|不予|不会|否认|并非|如若|如果|假设)")
+# A word match for 停牌/复牌 inside a negated action is NOT affirmative
+# evidence. Conservatively quarantine entire punctuation-bound clauses.
+NEGATED_ACTION=re.compile(
+    r"(?:不|未|暂不|尚不|无需|无须|取消|推迟|延期|暂缓|停止|终止|放弃)"
+    r"[^，,。；;！!？?\\n]{0,6}(?:停牌|复牌)"
+    r"|(?:停牌|复牌)[^，,。；;！!？?\\n]{0,6}(?:取消|延期|暂缓|推迟|不实施)"
+)
+
 CLAUSE_SPLIT=re.compile(r"[，,。；;！!？?\n]")
 MAX_LEADS=3000
 
@@ -37,7 +45,7 @@ def classify(text,day,kind):
         # Clauses mentioning multiple distinct dates are not one-to-one links.
         if len(set(DATE_RE.findall(clause)))!=1:
             ambiguous+=1;continue
-        if EXCLUDE.search(clause):
+        if EXCLUDE.search(clause) or NEGATED_ACTION.search(clause):
             ambiguous+=1;continue
         for direction,word in choices.items():
             expr=PREFIX+re.escape(day)+SEP+r"(?:起|开市起|开盘起|开始)?"+SEP+word
