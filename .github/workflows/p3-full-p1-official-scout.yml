@@ -120,13 +120,16 @@ jobs:
           fi
           python -m collector.p3_full_queue_scout \
             --queue evidence/full_p1_queue.json \
-            --out evidence/scout_queue.json "${ARGS[@]}"
+            --out evidence/scout_queue.json \
+            --rotation-index "${{ github.run_number }}" "${ARGS[@]}"
           python - <<'PY'
           import json
           r=json.load(open('evidence/scout_queue.json'))
           assert r['trade_gate']=='BLOCKED' and r['orders']==[]
           assert r['official_PIT_verified'] is False
           assert r['p2_hint_is_official_evidence'] is False
+          assert r['rotation_basis']=='P3_WORKFLOW_RUN_NUMBER'
+          assert r['rotation_index']==int('${{ github.run_number }}')
           print('P3 P2 SHA-BOUND PRIORITY RESEARCH TARGETS:',
                 r['p2_original_sha_priority_targets'])
           PY
