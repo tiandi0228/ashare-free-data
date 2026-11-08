@@ -1,0 +1,39 @@
+name: P3 P2 source-checked vendor halt priority offline guard (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p3_full_queue_scout.py'
+      - 'tests/test_p3_full_queue_scout.py'
+      - '.github/workflows/p3-p2-vendor-suspension-priority-offline.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p3_full_queue_scout.py'
+      - 'tests/test_p3_full_queue_scout.py'
+      - '.github/workflows/p3-p2-vendor-suspension-priority-offline.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify P3 bounded official scouting and P2 SHA-joined vendor suspensions
+        run: |
+          python -m unittest -v tests.test_p3_full_queue_scout tests.test_p3_real_target_index_probe
+          python - <<'PY'
+          from collector.p3_full_queue_scout import plan
+          from tests.test_p3_full_queue_scout import q,p2_source_hint
+          r=plan(q(),p2_coverage=p2_source_hint())
+          assert len(r['targets'])==3
+          assert r['p2_original_sha_priority_targets']==1
+          assert r['p2_hint_is_official_evidence'] is False
+          assert r['official_PIT_verified'] is False
+          assert r['trade_gate']=='BLOCKED' and r['orders']==[]
+          print('P3 bounded SHA-bound halt discovery priority research only; NO TRADES')
+          PY
