@@ -5,6 +5,8 @@ Old receipts are rechecked against current append-only archived originals.
 A shard with issuer feature gaps is *observed*, not fully feature-complete.
 """
 import argparse
+import csv
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -16,6 +18,63 @@ from collector.p2_independent_bars import assess
 SHA40=re.compile(r"[a-f0-9]{40}\Z")
 SHARD=re.compile(r"shard_(\d{4})\Z")
 PHASE="P2_PERSISTENT_ARCHIVE_FEATURE_COVERAGE"
+
+def diagnose_original_gap(folder, code, expected_sha256, reason):
+    """Categorize a reported indicator gap from the SHA-verified original only.
+
+    These row counts are vendor observations, NOT independently verified
+    trading sessions, exchange halt dates, or a reason to buy/recapture.
+    """
+    if not isinstance(code,str) or not re.fullmatch(r"(?:sh|sz)[.][0-9]{6}",code):
+        raise ValueError("invalid issuer code")
+    if not isinstance(expected_sha256,str) or not re.fullmatch(r"[a-f0-9]{64}",expected_sha256):
+        raise ValueError("invalid source digest")
+    path=Path(folder)/(code.replace(".","_")+".csv")
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("missing or symlinked original CSV")
+    raw=path.read_bytes()
+    if hashlib.sha256(raw).hexdigest()!=expected_sha256:
+        raise ValueError("gap diagnostic original SHA mismatch")
+    rows=list(csv.DictReader(raw.decode("utf-8-sig").splitlines()))
+    history=[row for row in rows if row["date"]<=END]
+    last21=history[-21:]
+    count=len(history)
+    paused=sum(row["tradestatus"]=="0" for row in last21)
+    has_asof=bool(history and history[-1]["date"]==END)
+    if reason=="INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS":
+        if not has_asof:
+            state="REPORTED_GAP_ASOF_MISMATCH"
+        elif count<21:
+            state="FEWER_THAN_21_VENDOR_ROWS_ASOF"
+        elif paused:
+            state="VENDOR_SUSPENDED_IN_LAST_21_ROWS"
+        else:
+            state="REPORTED_GAP_CONTRADICTS_ORIGINAL_REPLAY"
+            raise ValueError(state)
+    elif reason=="MISSING_EXACT_ASOF_CLOSE":
+        if has_asof:raise ValueError("asof gap contradicts original")
+        state="NO_EXACT_ASOF_VENDOR_ROW"
+    elif reason=="VENDOR_NOT_TRADABLE_ASOF":
+        if not has_asof or history[-1]["tradestatus"]!="0":
+            raise ValueError("asof status gap contradicts original")
+        state="VENDOR_MARKED_NOT_TRADABLE_AT_ASOF"
+    elif reason=="PRIOR_VOLUME_UNAVAILABLE":
+        state="PRIOR_VOLUME_REQUIRES_SEPARATE_REPLAY"
+    else:
+        raise ValueError("unknown P2 research gap reason")
+    return {
+        "category":state,
+        "vendor_rows_at_or_before_asof":count,
+        "last_21_vendor_rows_suspended":paused,
+        "first_vendor_row_day":history[0]["date"] if history else None,
+        "last_vendor_row_day":history[-1]["date"] if history else None,
+        "exact_asof_vendor_row_present":has_asof,
+        "original_csv_sha256":expected_sha256,
+        "vendor_calendar_independently_verified":False,
+        "historical_PIT_verified":False,
+        "repair_approved":False,
+    }
+
 
 def summarize(epoch,ledger,reports):
     base={"phase":PHASE,"status":"REJECTED","trade_gate":"BLOCKED",
@@ -153,7 +212,10 @@ def summarize(epoch,ledger,reports):
                 "shard_id":f"shard_{i:04d}",
                 "issuer_gap_count":sum(state=="GAP" for state in proven[i].values()),
                 "issuer_reasons":[
-                    {"issuer":code,"reason":gap_reason_by_issuer[code]}
+                    {"issuer":code,"reason":gap_reason_by_issuer[code],
+                     "original_gap_diagnostic":diagnose_original_gap(
+                         archived[i].parent,code,replayed[i][code][0],
+                         gap_reason_by_issuer[code])}
                     for code,state in sorted(proven[i].items()) if state=="GAP"
                 ],
             }

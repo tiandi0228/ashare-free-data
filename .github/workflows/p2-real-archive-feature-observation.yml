@@ -17,6 +17,8 @@ on:
       - 'tests/test_p2_paged_real_archive.py'
   pull_request:
     paths:
+      - 'collector/p2_feature_coverage_ledger.py'
+      - 'tests/test_p2_feature_coverage_ledger.py'
       - '.github/workflows/p2-real-archive-feature-observation.yml'
       - 'collector/p2_real_archive_features.py'
       - 'collector/p2_real_archive_research_screen.py'
