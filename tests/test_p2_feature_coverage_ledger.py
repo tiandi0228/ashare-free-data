@@ -83,12 +83,17 @@ class CoverageTests(unittest.TestCase):
             self.assertEqual(x["gap_reason_counts"],
                              {"INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS":1})
             self.assertEqual(x["gap_issuer_codes"],["sz.002249"])
-            self.assertEqual(x["gap_repair_queue"],[{
-                "shard_id":"shard_0001",
-                "issuer_gap_count":1,
-                "issuer_reasons":[{"issuer":"sz.002249",
-                                   "reason":"INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"}],
-            }])
+            queue=x["gap_repair_queue"]
+            self.assertEqual([r["shard_id"] for r in queue],["shard_0001"])
+            self.assertEqual(queue[0]["issuer_gap_count"],1)
+            issuer=queue[0]["issuer_reasons"][0]
+            self.assertEqual(issuer["issuer"],"sz.002249")
+            self.assertEqual(issuer["reason"],"INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS")
+            diag=issuer["original_gap_diagnostic"]
+            self.assertEqual(diag["category"],"FEWER_THAN_21_VENDOR_ROWS_ASOF")
+            self.assertEqual(diag["vendor_rows_at_or_before_asof"],1)
+            self.assertFalse(diag["repair_approved"])
+            self.assertFalse(diag["historical_PIT_verified"])
             self.assertTrue(x["gap_repair_queue_is_research_only"])
             self.assertTrue(x["full_archive_evidence_accounted"])
             self.assertFalse(x["full_archive_feature_coverage"])
@@ -160,6 +165,42 @@ class CoverageTests(unittest.TestCase):
             self.assertEqual(x["executable_candidates"],[])
             self.assertEqual(x["actionable_buy_signals"],[])
             self.assertEqual(len(x["gap_repair_queue"]),1)
+
+    def test_21_vendor_rows_with_suspension_is_not_short_history(self):
+        from collector.p2_feature_coverage_ledger import diagnose_original_gap
+        with tempfile.TemporaryDirectory() as d:
+            folder=Path(d)
+            header="date,code,open,high,low,close,volume,amount,adjustflag,tradestatus"
+            # 21 source rows are distinct observations, not verified exchange sessions.
+            from datetime import date,timedelta
+            start=date(2026,10,20)-timedelta(days=20)
+            lines=[header]
+            for i in range(21):
+                day=start+timedelta(days=i)
+                status="0" if i==8 else "1"
+                lines.append(f"{day.isoformat()},sh.600293,1,1,1,1,100,100,3,{status}")
+            raw=("\\n".join(lines)+"\\n").encode()
+            (folder/"sh_600293.csv").write_bytes(raw)
+            digest=hashlib.sha256(raw).hexdigest()
+            result=diagnose_original_gap(folder,"sh.600293",digest,
+                "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS")
+            self.assertEqual(result["category"],"VENDOR_SUSPENDED_IN_LAST_21_ROWS")
+            self.assertEqual(result["last_21_vendor_rows_suspended"],1)
+            self.assertFalse(result["vendor_calendar_independently_verified"])
+            with self.assertRaises(ValueError):
+                diagnose_original_gap(folder,"sh.600293","f"*64,
+                    "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS")
+
+    def test_original_gap_symlink_is_rejected(self):
+        from collector.p2_feature_coverage_ledger import diagnose_original_gap
+        with tempfile.TemporaryDirectory() as d:
+            folder=Path(d); source=folder/"external.csv"
+            source.write_bytes(b"not an original")
+            (folder/"sh_600293.csv").symlink_to(source)
+            with self.assertRaises(ValueError):
+                diagnose_original_gap(folder,"sh.600293",
+                    hashlib.sha256(source.read_bytes()).hexdigest(),
+                    "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS")
 
     def test_no_reports_is_explicit_no_coverage(self):
         with tempfile.TemporaryDirectory() as d:
