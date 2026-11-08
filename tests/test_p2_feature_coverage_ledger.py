@@ -179,7 +179,7 @@ class CoverageTests(unittest.TestCase):
                 day=start+timedelta(days=i)
                 status="0" if i==8 else "1"
                 lines.append(f"{day.isoformat()},sh.600293,1,1,1,1,100,100,3,{status}")
-            raw=("\\n".join(lines)+"\\n").encode()
+            raw=(chr(10).join(lines)+chr(10)).encode()
             (folder/"sh_600293.csv").write_bytes(raw)
             digest=hashlib.sha256(raw).hexdigest()
             result=diagnose_original_gap(folder,"sh.600293",digest,
