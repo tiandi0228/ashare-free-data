@@ -12,7 +12,74 @@ CODE=re.compile(r"(?:sh\.(?:600|601|603|605)|sz\.(?:000|001|002|003))\d{3}\Z")
 SHA=re.compile(r"[0-9a-f]{64}\Z")
 KINDS={"listing","st","halt","delisting"}
 
-def plan(full_queue,limit=3):
+def verified_p2_vendor_priority(coverage,queue,by_issuer):
+    """Read-only research hint, anchored to P3's independently checked P1 CSV."""
+    if coverage is None:
+        return []
+    if (not isinstance(coverage,dict)
+        or coverage.get("phase")!="P2_PERSISTENT_ARCHIVE_FEATURE_COVERAGE"
+        or coverage.get("status")!="DURABLE_RESEARCH_PAGE_COVERAGE_NOT_CERTIFIED"
+        or coverage.get("source_epoch_sha256")!=queue.get("roster_source_sha256")
+        or coverage.get("trade_gate")!="BLOCKED"
+        or coverage.get("historical_PIT_verified") is not False
+        or coverage.get("coverage_certified_for_trading") is not False
+        or coverage.get("orders")!=[]
+        or coverage.get("executable_candidates")!=[]
+        or coverage.get("actionable_buy_signals")!=[]
+        or coverage.get("gap_repair_queue_is_research_only") is not True):
+        raise ValueError("unsafe or mismatched P2 feature research hint")
+    rows=coverage.get("gap_repair_queue")
+    if (not isinstance(rows,list) or len(rows)>400
+        or len(rows)!=coverage.get("observed_with_feature_gaps_shards")
+        or type(coverage.get("issuer_evidence_gap_count")) is not int):
+        raise ValueError("invalid P2 gap queue accounting")
+    priorities=[];seen=set();count=0;seen_shards=set()
+    for row in rows:
+        shard=row.get("shard_id") if isinstance(row,dict) else None
+        items=row.get("issuer_reasons") if isinstance(row,dict) else None
+        if (not isinstance(shard,str) or not re.fullmatch(r"shard_[0-9]{4}",shard)
+            or shard in seen_shards or not isinstance(items,list)
+            or not 1<=len(items)<=8 or row.get("issuer_gap_count")!=len(items)):
+            raise ValueError("invalid P2 shard gap source")
+        seen_shards.add(shard)
+        shard_index=int(shard[-4:])
+        for item in items:
+            count+=1
+            code=item.get("issuer") if isinstance(item,dict) else None
+            diag=item.get("original_gap_diagnostic") if isinstance(item,dict) else None
+            reason=item.get("reason") if isinstance(item,dict) else None
+            if (not isinstance(code,str) or not CODE.fullmatch(code)
+                or code in seen or reason not in (
+                    "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+                    "MISSING_EXACT_ASOF_CLOSE","VENDOR_NOT_TRADABLE_ASOF",
+                    "PRIOR_VOLUME_UNAVAILABLE")
+                or not isinstance(diag,dict)
+                or diag.get("historical_PIT_verified") is not False
+                or diag.get("vendor_calendar_independently_verified") is not False
+                or diag.get("repair_approved") is not False
+                or not isinstance(diag.get("original_csv_sha256"),str)
+                or not SHA.fullmatch(diag["original_csv_sha256"])):
+                raise ValueError("invalid P2 original gap proof")
+            seen.add(code)
+            if code not in by_issuer:
+                # A later P2 coverage update can be ahead of the P3 upstream
+                # snapshot; no target until the source P3 queue catches up.
+                continue
+            p3=by_issuer[code]
+            if (p3["sources"]!={diag["original_csv_sha256"]}
+                or p3["shards"]!={shard_index}):
+                raise ValueError("P2 original SHA/shard contradicts P3 verified P1")
+            if (reason=="INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+                and diag.get("category")=="VENDOR_SUSPENDED_IN_LAST_21_ROWS"
+                and type(diag.get("last_21_vendor_rows_suspended")) is int
+                and diag["last_21_vendor_rows_suspended"]>0):
+                priorities.append(code)
+    if count!=coverage["issuer_evidence_gap_count"]:
+        raise ValueError("P2 gap issuer count mismatch")
+    return priorities
+
+
+def plan(full_queue,limit=3,p2_coverage=None):
     q=full_queue
     if (q.get("phase")!="P3_ALL_COMPLETED_P1_OFFICIAL_PIT_WORKLIST"
         or q.get("trade_gate")!="BLOCKED"
@@ -76,23 +143,41 @@ def plan(full_queue,limit=3):
             raise ValueError("issuer evidence count mismatch")
     issuers=sorted(by_issuer,key=lambda c:(next(iter(by_issuer[c]["shards"])),c))
     start=(max(0,shards//4-1)*3)%count
+    prioritized=verified_p2_vendor_priority(p2_coverage,q,by_issuer)
+    # Include three source-verified vendor-suspension suspects first; rotate
+    # over the bounded eligible set, then use existing whole-queue selection.
+    p2_selected=[]
+    if prioritized:
+        offset=(max(0,shards//4-1)*limit)%len(prioritized)
+        p2_selected=[prioritized[(offset+i)%len(prioritized)]
+                     for i in range(min(limit,len(prioritized)))]
     if has_vendor_status:
         # Evidence source is independently P2-checked vendor rows, never official halt certification.
         suspended=[c for c in issuers if "0" in by_issuer[c]["status_by_day"].values()]
         normal=[c for c in issuers if c not in set(suspended)]
-        picks=[]
-        if suspended:
+        picks=list(p2_selected)
+        if suspended and len(picks)<limit:
             offset=(max(0,shards//4-1)*limit)%len(suspended)
-            picks=[suspended[(offset+i)%len(suspended)] for i in range(min(limit,len(suspended)))]
+            for i in range(len(suspended)):
+                issuer=suspended[(offset+i)%len(suspended)]
+                if issuer not in picks:picks.append(issuer)
+                if len(picks)==limit:break
         if len(picks)<limit and normal:
             offset=start%len(normal)
-            picks.extend(normal[(offset+i)%len(normal)] for i in range(min(limit-len(picks),len(normal))))
+            for i in range(len(normal)):
+                issuer=normal[(offset+i)%len(normal)]
+                if issuer not in picks:picks.append(issuer)
+                if len(picks)==limit:break
     else:
-        picks=[issuers[(start+i)%count] for i in range(min(limit,count))]
+        picks=list(p2_selected)
+        for i in range(count):
+            issuer=issuers[(start+i)%count]
+            if issuer not in picks:picks.append(issuer)
+            if len(picks)==limit:break
     targets=[{"issuer":issuer,"observed_decision_dates":sorted(by_issuer[issuer]["days"]),
               "vendor_suspended_research_days":sorted(day for day,status in by_issuer[issuer]["status_by_day"].items() if status=="0"),
               "vendor_halt_transition_research_days":sorted(by_issuer[issuer]["transition_days"]),
-              "target_selection_basis":"VENDOR_NONTRADING_OBSERVED_NOT_OFFICIAL" if "0" in by_issuer[issuer]["status_by_day"].values() else "FROZEN_SHARD_ROTATION",
+              "target_selection_basis":("P2_SHA_CHECKED_RECENT_VENDOR_SUSPENSION_NOT_OFFICIAL" if issuer in p2_selected else "VENDOR_NONTRADING_OBSERVED_NOT_OFFICIAL" if "0" in by_issuer[issuer]["status_by_day"].values() else "FROZEN_SHARD_ROTATION"),
               "cells_to_research":len(by_issuer[issuer]["days"])*4,
               "original_official_url":None,"original_publication_time":None,
               "research_state":"SOURCE_DISCOVERY_REQUIRED_NOT_CERTIFIED"} for issuer in picks]
@@ -102,6 +187,8 @@ def plan(full_queue,limit=3):
             "rotating_start_index":start,
             "vendor_suspended_context_available":has_vendor_status,
             "vendor_nontrading_research_targets":sum(bool(t["vendor_suspended_research_days"]) for t in targets),
+            "p2_original_sha_priority_targets":len(p2_selected),
+            "p2_hint_is_official_evidence":False,
             "unmatched_issuer_kind_targets":len(targets)*4,
             "unmatched_cells":sum(t["cells_to_research"] for t in targets),
             "targets":targets,"official_PIT_verified":False,
@@ -110,8 +197,10 @@ def plan(full_queue,limit=3):
 def main():
     p=argparse.ArgumentParser()
     p.add_argument("--queue",required=True);p.add_argument("--out",required=True)
+    p.add_argument("--p2-feature-coverage")
     a=p.parse_args()
-    q=plan(json.loads(Path(a.queue).read_text()))
+    hint=json.loads(Path(a.p2_feature_coverage).read_text()) if a.p2_feature_coverage else None
+    q=plan(json.loads(Path(a.queue).read_text()),p2_coverage=hint)
     path=Path(a.out);path.parent.mkdir(parents=True,exist_ok=True)
     path.write_text(json.dumps(q,ensure_ascii=False,indent=2)+"\n")
     print(json.dumps({k:v for k,v in q.items() if k!="targets"}))

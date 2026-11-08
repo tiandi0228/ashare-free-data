@@ -88,8 +88,48 @@ jobs:
           Path('evidence/upstream.json').write_text(json.dumps({'upstream_run_id':run_id,'is_historical_official_PIT_authenticated':False,'trade_gate':'BLOCKED'})+'\n')
           print('P3_SOURCE_P1_RUN',run_id)
           PY
+      - name: Read optional independently SHA-checked P2 gap research priorities
+        run: |
+          if git ls-remote --exit-code --heads origin p2-feature-coverage >/dev/null 2>&1; then
+            git fetch --depth=1 origin p2-feature-coverage
+            python - <<'PY'
+          import json,re,subprocess
+          from pathlib import Path
+          q=json.loads(Path('evidence/full_p1_queue.json').read_text())
+          source=q['roster_source_sha256']
+          if not re.fullmatch(r'[0-9a-f]{64}',source):
+              raise SystemExit('Invalid current P3 source roster SHA')
+          file=f"summaries/{source[:16]}.json"
+          result=subprocess.run(['git','show',f'FETCH_HEAD:{file}'],
+                                capture_output=True,text=True,timeout=25)
+          if result.returncode==0:
+              dst=Path('evidence/p2_verified_research_hint.json')
+              dst.write_text(result.stdout)
+              print('P2 source-bound research gap hint found')
+          else:
+              print('No matching P2 gap hint; retain bounded P3 original rotation')
+          PY
+          else
+            echo "No prior P2 feature research branch; normal P3 source rotation"
+          fi
       - name: Select three distinct current P1 historical official-source targets
-        run: python -m collector.p3_full_queue_scout --queue evidence/full_p1_queue.json --out evidence/scout_queue.json
+        run: |
+          ARGS=()
+          if [ -s evidence/p2_verified_research_hint.json ]; then
+            ARGS+=(--p2-feature-coverage evidence/p2_verified_research_hint.json)
+          fi
+          python -m collector.p3_full_queue_scout \
+            --queue evidence/full_p1_queue.json \
+            --out evidence/scout_queue.json "${ARGS[@]}"
+          python - <<'PY'
+          import json
+          r=json.load(open('evidence/scout_queue.json'))
+          assert r['trade_gate']=='BLOCKED' and r['orders']==[]
+          assert r['official_PIT_verified'] is False
+          assert r['p2_hint_is_official_evidence'] is False
+          print('P3 P2 SHA-BOUND PRIORITY RESEARCH TARGETS:',
+                r['p2_original_sha_priority_targets'])
+          PY
       - name: Query free CNINFO official announcement index for selected issuers
         run: python -m collector.p3_real_target_index_probe --queue evidence/scout_queue.json --out evidence/index.json
       - name: Retrieve bounded original PDF bytes, no PIT certification
