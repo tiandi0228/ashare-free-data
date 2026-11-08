@@ -109,6 +109,54 @@ class Tests(unittest.TestCase):
         self.assertEqual(result["trade_gate"],"BLOCKED")
         self.assertEqual(result["orders"],[])
 
+    def test_p3_run_number_rotates_sha_checked_suspects_even_when_p1_stalls(self):
+        hint=p2_source_hint(issuer="sh.600000",shard_id="shard_0000")
+        codes=("sz.000001","sz.000002","sh.600003")
+        for index,code in enumerate(codes,1):
+            hint["gap_repair_queue"].append({
+                "shard_id":f"shard_{index:04d}",
+                "issuer_gap_count":1,
+                "issuer_reasons":[{
+                    "issuer":code,"reason":"INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+                    "original_gap_diagnostic":{
+                        "category":"VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+                        "original_csv_sha256":"a"*64,
+                        "last_21_vendor_rows_suspended":1,
+                        "historical_PIT_verified":False,
+                        "vendor_calendar_independently_verified":False,
+                        "repair_approved":False,
+                    },
+                }],
+            })
+        hint["observed_with_feature_gaps_shards"]=4
+        hint["issuer_evidence_gap_count"]=4
+        first=plan(q(8),p2_coverage=hint,rotation_index=1)
+        second=plan(q(8),p2_coverage=hint,rotation_index=2)
+        third=plan(q(8),p2_coverage=hint,rotation_index=3)
+        a=[t["issuer"] for t in first["targets"]]
+        b=[t["issuer"] for t in second["targets"]]
+        self.assertNotEqual(a,b)
+        self.assertEqual(len(a),3)
+        self.assertEqual(len(b),3)
+        self.assertEqual(set(a+b),{"sh.600000","sz.000001","sz.000002","sh.600003"})
+        self.assertEqual(first["rotation_basis"],"P3_WORKFLOW_RUN_NUMBER")
+        self.assertEqual(first["rotation_index"],1)
+        self.assertEqual(second["rotation_index"],2)
+        self.assertEqual(third["trade_gate"],"BLOCKED")
+        self.assertFalse(third["official_PIT_verified"])
+        self.assertEqual(third["orders"],[])
+
+    def test_p3_rotation_index_rejects_invalid_forged_runs(self):
+        for value in (True,False,0,-1,1.0,"2",None):
+            if value is None:
+                self.assertEqual(plan(q())["rotation_basis"],"P1_COMPLETED_SHARDS_LEGACY")
+                continue
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    plan(q(),rotation_index=value)
+        with self.assertRaises(ValueError):
+            plan(q(),rotation_index=1000000001)
+
     def test_p2_history_shortage_never_becomes_halt_priority(self):
         hint=p2_source_hint(category="FEWER_THAN_21_VENDOR_ROWS_ASOF")
         result=plan(q(),p2_coverage=hint)

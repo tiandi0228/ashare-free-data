@@ -79,8 +79,10 @@ def verified_p2_vendor_priority(coverage,queue,by_issuer):
     return priorities
 
 
-def plan(full_queue,limit=3,p2_coverage=None):
+def plan(full_queue,limit=3,p2_coverage=None,rotation_index=None):
     q=full_queue
+    if rotation_index is not None and (type(rotation_index) is not int or not 1<=rotation_index<=1000000000):
+        raise ValueError("invalid bounded P3 workflow rotation index")
     if (q.get("phase")!="P3_ALL_COMPLETED_P1_OFFICIAL_PIT_WORKLIST"
         or q.get("trade_gate")!="BLOCKED"
         or q.get("historical_PIT_verified") is not False
@@ -142,13 +144,17 @@ def plan(full_queue,limit=3,p2_coverage=None):
         if len([x for x in tasks if x["issuer"]==issuer])!=len(d["days"])*4:
             raise ValueError("issuer evidence count mismatch")
     issuers=sorted(by_issuer,key=lambda c:(next(iter(by_issuer[c]["shards"])),c))
-    start=(max(0,shards//4-1)*3)%count
+    # Legacy offline callers retain shard-based rotation. Real workflow runs
+    # use a positive run number so a frozen P1 count does not pin the same
+    # three official-source suspects forever.
+    cycle=(rotation_index-1) if rotation_index is not None else max(0,shards//4-1)
+    start=(cycle*limit)%count
     prioritized=verified_p2_vendor_priority(p2_coverage,q,by_issuer)
     # Include three source-verified vendor-suspension suspects first; rotate
     # over the bounded eligible set, then use existing whole-queue selection.
     p2_selected=[]
     if prioritized:
-        offset=(max(0,shards//4-1)*limit)%len(prioritized)
+        offset=(cycle*limit)%len(prioritized)
         p2_selected=[prioritized[(offset+i)%len(prioritized)]
                      for i in range(min(limit,len(prioritized)))]
     if has_vendor_status:
@@ -157,7 +163,7 @@ def plan(full_queue,limit=3,p2_coverage=None):
         normal=[c for c in issuers if c not in set(suspended)]
         picks=list(p2_selected)
         if suspended and len(picks)<limit:
-            offset=(max(0,shards//4-1)*limit)%len(suspended)
+            offset=(cycle*limit)%len(suspended)
             for i in range(len(suspended)):
                 issuer=suspended[(offset+i)%len(suspended)]
                 if issuer not in picks:picks.append(issuer)
@@ -185,6 +191,8 @@ def plan(full_queue,limit=3,p2_coverage=None):
             "source_roster_sha256":q["roster_source_sha256"],
             "full_source_issuers":count,"full_source_pending_cells":len(tasks),
             "rotating_start_index":start,
+            "rotation_basis":("P3_WORKFLOW_RUN_NUMBER" if rotation_index is not None else "P1_COMPLETED_SHARDS_LEGACY"),
+            "rotation_index":rotation_index,
             "vendor_suspended_context_available":has_vendor_status,
             "vendor_nontrading_research_targets":sum(bool(t["vendor_suspended_research_days"]) for t in targets),
             "p2_original_sha_priority_targets":len(p2_selected),
@@ -198,9 +206,10 @@ def main():
     p=argparse.ArgumentParser()
     p.add_argument("--queue",required=True);p.add_argument("--out",required=True)
     p.add_argument("--p2-feature-coverage")
+    p.add_argument("--rotation-index",type=int)
     a=p.parse_args()
     hint=json.loads(Path(a.p2_feature_coverage).read_text()) if a.p2_feature_coverage else None
-    q=plan(json.loads(Path(a.queue).read_text()),p2_coverage=hint)
+    q=plan(json.loads(Path(a.queue).read_text()),p2_coverage=hint,rotation_index=a.rotation_index)
     path=Path(a.out);path.parent.mkdir(parents=True,exist_ok=True)
     path.write_text(json.dumps(q,ensure_ascii=False,indent=2)+"\n")
     print(json.dumps({k:v for k,v in q.items() if k!="targets"}))
