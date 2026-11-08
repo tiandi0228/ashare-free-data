@@ -25,7 +25,7 @@ def diagnose_original_gap(folder, code, expected_sha256, reason):
     These row counts are vendor observations, NOT independently verified
     trading sessions, exchange halt dates, or a reason to buy/recapture.
     """
-    if not isinstance(code,str) or not re.fullmatch(r"(?:sh|sz)\\.[0-9]{6}",code):
+    if not isinstance(code,str) or not re.fullmatch(r"(?:sh|sz)[.][0-9]{6}",code):
         raise ValueError("invalid issuer code")
     if not isinstance(expected_sha256,str) or not re.fullmatch(r"[a-f0-9]{64}",expected_sha256):
         raise ValueError("invalid source digest")
