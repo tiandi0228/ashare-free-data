@@ -12,7 +12,7 @@
   "checkpoint_completed_shards": 188,
   "checkpoint_total_shards": 400,
   "archived_original_shards": 188,
-  "coverage_report_count": 59,
+  "coverage_report_count": 60,
   "observed_archived_shards": 188,
   "feature_complete_shards": 178,
   "observed_with_feature_gaps_shards": 10,
@@ -247,11 +247,35 @@
       "issuer_reasons": [
         {
           "issuer": "sh.600293",
-          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "vendor_rows_at_or_before_asof": 485,
+            "last_21_vendor_rows_suspended": 10,
+            "first_vendor_row_day": "2024-10-21",
+            "last_vendor_row_day": "2026-10-20",
+            "exact_asof_vendor_row_present": true,
+            "original_csv_sha256": "f18062e301843b403e52aa4ca7dbac511579a6f9683da74b414451a8ab38d56c",
+            "vendor_calendar_independently_verified": false,
+            "historical_PIT_verified": false,
+            "repair_approved": false
+          }
         },
         {
           "issuer": "sh.600301",
-          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "vendor_rows_at_or_before_asof": 485,
+            "last_21_vendor_rows_suspended": 5,
+            "first_vendor_row_day": "2024-10-21",
+            "last_vendor_row_day": "2026-10-20",
+            "exact_asof_vendor_row_present": true,
+            "original_csv_sha256": "2f163fecfb61ea758ecdbd98edb1d7a4b05c32172a78df31801ec3b9f3d5a5f4",
+            "vendor_calendar_independently_verified": false,
+            "historical_PIT_verified": false,
+            "repair_approved": false
+          }
         }
       ]
     },
@@ -261,7 +285,19 @@
       "issuer_reasons": [
         {
           "issuer": "sh.600363",
-          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "vendor_rows_at_or_before_asof": 485,
+            "last_21_vendor_rows_suspended": 1,
+            "first_vendor_row_day": "2024-10-21",
+            "last_vendor_row_day": "2026-10-20",
+            "exact_asof_vendor_row_present": true,
+            "original_csv_sha256": "e4c01fa609951f30d25ec28ff729fa862c4815eca4ae279c9d7aeb1940f0fee2",
+            "vendor_calendar_independently_verified": false,
+            "historical_PIT_verified": false,
+            "repair_approved": false
+          }
         }
       ]
     },
@@ -271,7 +307,19 @@
       "issuer_reasons": [
         {
           "issuer": "sh.600825",
-          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "vendor_rows_at_or_before_asof": 485,
+            "last_21_vendor_rows_suspended": 8,
+            "first_vendor_row_day": "2024-10-21",
+            "last_vendor_row_day": "2026-10-20",
+            "exact_asof_vendor_row_present": true,
+            "original_csv_sha256": "63ae1dd1502c2340aea79be6144a58d2256ed7edeb8c72b3bc69f289eb673e8a",
+            "vendor_calendar_independently_verified": false,
+            "historical_PIT_verified": false,
+            "repair_approved": false
+          }
         }
       ]
     },
@@ -281,7 +329,19 @@
       "issuer_reasons": [
         {
           "issuer": "sh.601091",
-          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "category": "FEWER_THAN_21_VENDOR_ROWS_ASOF",
+            "vendor_rows_at_or_before_asof": 18,
+            "last_21_vendor_rows_suspended": 0,
+            "first_vendor_row_day": "2026-09-17",
+            "last_vendor_row_day": "2026-10-20",
+            "exact_asof_vendor_row_present": true,
+            "original_csv_sha256": "a99a8383f8a3a41682a7264cac5a1a3097831bb2e456c2c36d09c188b8fcdf3d",
+            "vendor_calendar_independently_verified": false,
+            "historical_PIT_verified": false,
+            "repair_approved": false
+          }
         }
       ]
     },
@@ -291,7 +351,19 @@
       "issuer_reasons": [
         {
           "issuer": "sh.601238",
-          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "vendor_rows_at_or_before_asof": 485,
+            "last_21_vendor_rows_suspended": 10,
+            "first_vendor_row_day": "2024-10-21",
+            "last_vendor_row_day": "2026-10-20",
+            "exact_asof_vendor_row_present": true,
+            "original_csv_sha256": "a2f6d4f36ec5487329a8e66a56bdf872c4dfc1e9a1cb2eb565994628800b7e65",
+            "vendor_calendar_independently_verified": false,
+            "historical_PIT_verified": false,
+            "repair_approved": false
+          }
         }
       ]
     },
@@ -301,7 +373,19 @@
       "issuer_reasons": [
         {
           "issuer": "sh.601995",
-          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "vendor_rows_at_or_before_asof": 485,
+            "last_21_vendor_rows_suspended": 6,
+            "first_vendor_row_day": "2024-10-21",
+            "last_vendor_row_day": "2026-10-20",
+            "exact_asof_vendor_row_present": true,
+            "original_csv_sha256": "c62152568423890c5bfc384fa4e0ec34e9ef71b9a092011b75b83a9e282d6609",
+            "vendor_calendar_independently_verified": false,
+            "historical_PIT_verified": false,
+            "repair_approved": false
+          }
         }
       ]
     },
@@ -311,7 +395,19 @@
       "issuer_reasons": [
         {
           "issuer": "sh.603159",
-          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "vendor_rows_at_or_before_asof": 485,
+            "last_21_vendor_rows_suspended": 3,
+            "first_vendor_row_day": "2024-10-21",
+            "last_vendor_row_day": "2026-10-20",
+            "exact_asof_vendor_row_present": true,
+            "original_csv_sha256": "c36cfc0437a88c63a3f63385a147c8f203cb0fc29ea5086dd71f32607bc24eb2",
+            "vendor_calendar_independently_verified": false,
+            "historical_PIT_verified": false,
+            "repair_approved": false
+          }
         }
       ]
     },
@@ -321,7 +417,19 @@
       "issuer_reasons": [
         {
           "issuer": "sh.603183",
-          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "vendor_rows_at_or_before_asof": 485,
+            "last_21_vendor_rows_suspended": 2,
+            "first_vendor_row_day": "2024-10-21",
+            "last_vendor_row_day": "2026-10-20",
+            "exact_asof_vendor_row_present": true,
+            "original_csv_sha256": "3f53cf0bd447c2d757488614b4236632069885e793ee04959ae0c888c614168c",
+            "vendor_calendar_independently_verified": false,
+            "historical_PIT_verified": false,
+            "repair_approved": false
+          }
         }
       ]
     },
@@ -331,7 +439,19 @@
       "issuer_reasons": [
         {
           "issuer": "sh.603400",
-          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "vendor_rows_at_or_before_asof": 323,
+            "last_21_vendor_rows_suspended": 10,
+            "first_vendor_row_day": "2025-06-20",
+            "last_vendor_row_day": "2026-10-20",
+            "exact_asof_vendor_row_present": true,
+            "original_csv_sha256": "d7d67226a1430bc3c0a56a4e48f08871f1a6dfb996043cc8f6d5c1523a6d60f5",
+            "vendor_calendar_independently_verified": false,
+            "historical_PIT_verified": false,
+            "repair_approved": false
+          }
         }
       ]
     },
@@ -341,7 +461,19 @@
       "issuer_reasons": [
         {
           "issuer": "sh.603517",
-          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "vendor_rows_at_or_before_asof": 485,
+            "last_21_vendor_rows_suspended": 1,
+            "first_vendor_row_day": "2024-10-21",
+            "last_vendor_row_day": "2026-10-20",
+            "exact_asof_vendor_row_present": true,
+            "original_csv_sha256": "f6e5848ea8ff0e682608d96342adf68594140f9e7eac3aaad75afbfb2dc2394a",
+            "vendor_calendar_independently_verified": false,
+            "historical_PIT_verified": false,
+            "repair_approved": false
+          }
         }
       ]
     }
