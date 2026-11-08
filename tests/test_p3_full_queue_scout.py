@@ -48,6 +48,34 @@ def fixture():
                "historical_effective_date_verified":False,
                "historical_publication_time_verified":False}]}
     return [queue,scout,index,originals,replay,triage]
+def p2_source_hint(issuer="sz.000002", shard_id="shard_0002", digest=None,
+                   category="VENDOR_SUSPENDED_IN_LAST_21_ROWS"):
+    digest=digest or "a"*64
+    return {
+        "phase":"P2_PERSISTENT_ARCHIVE_FEATURE_COVERAGE",
+        "status":"DURABLE_RESEARCH_PAGE_COVERAGE_NOT_CERTIFIED",
+        "source_epoch_sha256":"b"*64,
+        "trade_gate":"BLOCKED","orders":[],"executable_candidates":[],
+        "actionable_buy_signals":[],"historical_PIT_verified":False,
+        "coverage_certified_for_trading":False,
+        "gap_repair_queue_is_research_only":True,
+        "observed_with_feature_gaps_shards":1,
+        "issuer_evidence_gap_count":1,
+        "gap_repair_queue":[{
+            "shard_id":shard_id,"issuer_gap_count":1,
+            "issuer_reasons":[{
+                "issuer":issuer,"reason":"INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+                "original_gap_diagnostic":{
+                    "category":category,"original_csv_sha256":digest,
+                    "last_21_vendor_rows_suspended":2,
+                    "historical_PIT_verified":False,
+                    "vendor_calendar_independently_verified":False,
+                    "repair_approved":False,
+                },
+            }],
+        }],
+    }
+
 class Tests(unittest.TestCase):
     def test_rotate_only_three_from_all_completed(self):
         s=plan(q())
@@ -68,6 +96,48 @@ class Tests(unittest.TestCase):
         self.assertEqual(result["targets"][0]["vendor_halt_transition_research_days"],[])
         self.assertEqual(result["vendor_nontrading_research_targets"],1)
         self.assertFalse(result["official_PIT_verified"])
+    def test_p2_original_sha_matched_suspension_priority(self):
+        data=q()
+        hint=p2_source_hint()
+        result=plan(data,p2_coverage=hint)
+        self.assertEqual(result["targets"][0]["issuer"],"sz.000002")
+        self.assertEqual(result["targets"][0]["target_selection_basis"],
+                         "P2_SHA_CHECKED_RECENT_VENDOR_SUSPENSION_NOT_OFFICIAL")
+        self.assertEqual(result["p2_original_sha_priority_targets"],1)
+        self.assertFalse(result["p2_hint_is_official_evidence"])
+        self.assertEqual(len({t["issuer"] for t in result["targets"]}),3)
+        self.assertEqual(result["trade_gate"],"BLOCKED")
+        self.assertEqual(result["orders"],[])
+
+    def test_p2_history_shortage_never_becomes_halt_priority(self):
+        hint=p2_source_hint(category="FEWER_THAN_21_VENDOR_ROWS_ASOF")
+        result=plan(q(),p2_coverage=hint)
+        self.assertEqual(result["p2_original_sha_priority_targets"],0)
+        self.assertFalse(any(
+            t["target_selection_basis"]=="P2_SHA_CHECKED_RECENT_VENDOR_SUSPENSION_NOT_OFFICIAL"
+            for t in result["targets"]))
+
+    def test_p2_source_mismatch_and_unsafe_hint_rejected(self):
+        import copy
+        hint=p2_source_hint()
+        for change,value in (
+            ("source_epoch_sha256","c"*64),
+            ("trade_gate","OPEN"),
+            ("issuer_evidence_gap_count",2),
+        ):
+            bad=copy.deepcopy(hint);bad[change]=value
+            with self.subTest(change=change):
+                with self.assertRaises(ValueError):plan(q(),p2_coverage=bad)
+        for change,value in (
+            ("shard_id","shard_0003"),
+            ("original_csv_sha256","d"*64),
+        ):
+            bad=copy.deepcopy(hint)
+            if change=="shard_id":bad["gap_repair_queue"][0][change]=value
+            else:bad["gap_repair_queue"][0]["issuer_reasons"][0]["original_gap_diagnostic"][change]=value
+            with self.subTest(change=change):
+                with self.assertRaises(ValueError):plan(q(),p2_coverage=bad)
+
     def test_vendor_transition_requires_nontrading(self):
         r=q()
         r["vendor_suspended_context_included"]=True
