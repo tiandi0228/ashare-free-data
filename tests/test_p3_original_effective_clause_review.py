@@ -37,6 +37,41 @@ class TestOriginalClauseReview(unittest.TestCase):
     def test_forecast_not_effective(self):
         r=review(*sample("公司股票预计自2026年10月20日起停牌。"))
         self.assertEqual(r["explicit_original_clause_candidates"],0)
+    def test_negated_halt_or_resumption_is_never_affirmative_event(self):
+        cases=(
+            ("公司股票自2026年10月20日起不停牌。","halt"),
+            ("公司股票自2026年10月20日起暂不复牌。","halt"),
+            ("公司股票自2026年10月20日起取消复牌。","halt"),
+            ("公司股票自2026年10月20日起无需停牌。","halt"),
+            ("公司股票自2026年10月20日起推迟复牌。","halt"),
+            ("公司股票自2026年10月20日起停牌取消。","halt"),
+            ("公司股票自2026年10月20日起复牌延期。","halt"),
+        )
+        for context,kind in cases:
+            with self.subTest(context=context):
+                result=classify(context,"2026年10月20日",kind)
+                self.assertIsNone(result["local_textual_direction_candidate"])
+                self.assertEqual(result["classification"],
+                                 "AMBIGUOUS_CONTEXT_REVIEW_REQUIRED")
+
+    def test_real_p3_review_does_not_promote_negated_original_clause(self):
+        report=review(*sample("公司股票自2026年10月20日起暂不复牌。"))
+        self.assertEqual(report["explicit_original_clause_candidates"],0)
+        self.assertIsNone(report["manual_review_only"][0]["local_textual_direction_candidate"])
+        self.assertFalse(report["historical_PIT_verified"])
+        self.assertEqual(report["trade_gate"],"BLOCKED")
+        self.assertEqual(report["orders"],[])
+
+    def test_true_unnegated_halt_and_resumption_remain_research_only(self):
+        for context,expected in (
+            ("公司股票自2026年10月20日起停牌。","HALT_START"),
+            ("公司股票自2026年10月20日起复牌。","RESUME_START"),
+        ):
+            result=classify(context,"2026年10月20日","halt")
+            self.assertEqual(result["local_textual_direction_candidate"],expected)
+            self.assertEqual(result["classification"],
+                             "EXPLICIT_SAME_CLAUSE_TEXT_RESEARCH_ONLY")
+
     def test_missing_pdf_sha_rejected(self):
         args=list(sample())
         args[2]["sources"][0]["original_sha256"]="d"*64
