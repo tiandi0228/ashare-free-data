@@ -71,6 +71,50 @@ class P3ArchivedResearchVisitTests(unittest.TestCase):
             self.assertFalse(result["official_history_search_exhaustive"])
             self.assertEqual(result["orders"],[])
 
+    def test_index_only_no_pdf_still_counts_as_attempted(self):
+        with tempfile.TemporaryDirectory() as d:
+            write_manifest(d,10,EPOCH,"sh.600000")
+            path=Path(d)/"runs/10.json"
+            m=json.loads(path.read_text())
+            m["index_query_attempted_issuers_research_only"]=[
+                {"issuer":"sh.600000",
+                 "index_status_research_only":"INDEX_CANDIDATES_UNVERIFIED",
+                 "historical_PIT_verified":False},
+                {"issuer":"sz.000001",
+                 "index_status_research_only":"NO_INDEX_MATCH_NOT_NO_RISK",
+                 "historical_PIT_verified":False},
+                {"issuer":"sz.000002",
+                 "index_status_research_only":"INDEX_UNAVAILABLE_NOT_NO_RISK",
+                 "historical_PIT_verified":False},
+            ]
+            path.write_text(json.dumps(m))
+            result=build(d,EPOCH)
+            self.assertEqual(result["total_archived_issuer_attempts"],3)
+            self.assertEqual(result["distinct_attempted_issuers"],3)
+            self.assertEqual(result["issuer_visit_counts"]["sz.000001"],1)
+            self.assertEqual(result["issuer_visit_counts"]["sz.000002"],1)
+            self.assertEqual(result["issuer_original_retrieval_counts"],
+                             {"sh.600000":1})
+            self.assertFalse(result["historical_PIT_verified"])
+            self.assertEqual(result["trade_gate"],"BLOCKED")
+
+    def test_archived_index_claim_and_pdf_receipt_must_match(self):
+        with tempfile.TemporaryDirectory() as d:
+            write_manifest(d,10,EPOCH,"sh.600000")
+            path=Path(d)/"runs/10.json"
+            m=json.loads(path.read_text())
+            m["index_query_attempted_issuers_research_only"]=[
+                {"issuer":"sz.000001",
+                 "index_status_research_only":"NO_INDEX_MATCH_NOT_NO_RISK",
+                 "historical_PIT_verified":False},
+            ]
+            path.write_text(json.dumps(m))
+            with self.assertRaises(ValueError):build(d,EPOCH)
+            m["index_query_attempted_issuers_research_only"][0]["issuer"]="sh.600000"
+            m["index_query_attempted_issuers_research_only"][0]["historical_PIT_verified"]=True
+            path.write_text(json.dumps(m))
+            with self.assertRaises(ValueError):build(d,EPOCH)
+
     def test_unsafe_manifest_and_fake_original_sha_fail_closed(self):
         with tempfile.TemporaryDirectory() as d:
             write_manifest(d,10,EPOCH,"sh.600000")
