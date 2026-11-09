@@ -34,7 +34,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest -v tests.test_p2_original_gap_window_triage tests.test_p2_real_archive_features tests.test_p2_p3_current_source_guard
+      - run: python -m unittest -v tests.test_p2_original_gap_window_triage tests.test_p2_real_archive_features tests.test_p2_p3_current_source_guard tests.test_p2_gap_workflow_epoch_binding tests.test_p1_active_migration_checkpoint
   replay_once:
     if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     needs: offline
