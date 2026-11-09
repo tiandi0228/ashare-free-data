@@ -39,8 +39,9 @@ def build(crosswalk,guard):
         or guard.get("P3_event_text_is_official_halt_authentication") is not False):
         raise ValueError("unsafe crosswalk or provenance guard")
     epoch=guard.get("source_epoch_sha256")
-    if not isinstance(epoch,str) or not SHA.fullmatch(epoch):
-        raise ValueError("missing verified source epoch")
+    if (not isinstance(epoch,str) or not SHA.fullmatch(epoch)
+        or crosswalk.get("source_epoch_sha256")!=epoch):
+        raise ValueError("P2/P3 crosswalk P1 epoch SHA mismatch")
     rows=crosswalk.get("issuer_evidence")
     codes=guard.get("issuer_codes")
     if (not isinstance(rows,list) or not 1<=len(rows)<=1000
