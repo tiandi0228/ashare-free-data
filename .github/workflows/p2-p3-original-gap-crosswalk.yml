@@ -3,8 +3,15 @@ on:
   pull_request:
     paths:
       - 'collector/p2_p3_gap_crosswalk.py'
+      - 'collector/p2_p3_current_source_guard.py'
+      - 'tests/test_p2_p3_current_source_guard.py'
       - 'tests/test_p2_p3_gap_crosswalk.py'
       - '.github/workflows/p2-p3-original-gap-crosswalk.yml'
+  workflow_run:
+    workflows:
+      - "P2 original CSV 21-bar gap root-cause audit (NO TRADES)"
+      - "P3 rotating official originals for full audited P1 issuer queue (NO TRADES)"
+    types: [completed]
   push:
     branches: [main]
     paths:
@@ -24,9 +31,9 @@ jobs:
         with:
           python-version: '3.11'
       - name: Test original issuer join without promoting PIT
-        run: python -m unittest -v tests.test_p2_p3_gap_crosswalk tests.test_p2_original_gap_window_triage
+        run: python -m unittest -v tests.test_p2_p3_gap_crosswalk tests.test_p2_original_gap_window_triage tests.test_p2_p3_current_source_guard
   replay_once:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     needs: offline
     runs-on: ubuntu-latest
     timeout-minutes: 6
@@ -35,39 +42,102 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Retrieve existing SHA-replayed P2/P3 source artifacts; no new vendor queries
+      - name: Resolve latest successful P2 and P3 archival source runs (no frozen historical IDs)
         env:
           GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p evidence/sources/p2 evidence/sources/p3
-          gh run download 42185675673 -R "${{ github.repository }}" -n p2-original-gap-triage-42185675673 -D evidence/sources/p2
-          gh run download 42183918441 -R "${{ github.repository }}" -n p3-full-p1-official-scout-42183918441 -D evidence/sources/p3
-      - name: Cross-reference exact original research issuer sources (NO PIT claims)
+          python - <<'PY'
+          import json,os,subprocess
+          from pathlib import Path
+          def latest(workflow):
+              rows=json.loads(subprocess.check_output([
+                  'gh','run','list','--workflow',workflow,'--limit','30',
+                  '--json','databaseId,conclusion,event'],text=True))
+              valid=[r for r in rows if r['conclusion']=='success'
+                     and r['event']!='pull_request']
+              if not valid:raise ValueError('no successful authentic source run: '+workflow)
+              return max(r['databaseId'] for r in valid)
+          p2=latest('p2-original-gap-window-triage.yml')
+          p3=latest('p3-full-p1-official-scout.yml')
+          if os.environ['GITHUB_EVENT_NAME']=='workflow_run':
+              event=json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+              run=event['workflow_run']
+              if run['conclusion']!='success':
+                  raise ValueError('invalid upstream success status')
+              if run['name']=='P2 original CSV 21-bar gap root-cause audit (NO TRADES)':
+                  p2=run['id']
+              elif run['name']=='P3 rotating official originals for full audited P1 issuer queue (NO TRADES)':
+                  p3=run['id']
+              else:raise ValueError('unrecognized upstream research workflow')
+          result={'p2_run_id':p2,'p3_run_id':p3}
+          Path('evidence/sources/selected-runs.json').write_text(json.dumps(result)+'\\n')
+          print('P2/P3 DYNAMIC SOURCE RUNS:',result)
+          PY
+          P2_RUN=$(python -c "import json;print(json.load(open('evidence/sources/selected-runs.json'))['p2_run_id'])")
+          P3_RUN=$(python -c "import json;print(json.load(open('evidence/sources/selected-runs.json'))['p3_run_id'])")
+          gh run download "$P2_RUN" -R "${{ github.repository }}" -n "p2-original-gap-triage-$P2_RUN" -D evidence/sources/p2
+          gh run download "$P3_RUN" -R "${{ github.repository }}" -n "p3-full-p1-official-scout-$P3_RUN" -D evidence/sources/p3
+      - name: Checkout latest durable P2 same-epoch coverage summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --depth=1 origin p2-feature-coverage
+          mkdir -p evidence/sources/coverage
+          git show FETCH_HEAD:summaries/5ba00fbd720fad90.json > evidence/sources/coverage/current.json
+      - name: Verify current P2 gap membership and current P3 P1 source epoch, then join unverified texts
         run: |
           python - <<'PY'
           from pathlib import Path
           import subprocess,json
-          def original(root,name):
-              hits=list(Path(root).rglob(name))
-              if len(hits)!=1:raise ValueError('Missing or ambiguous source: '+name)
-              return str(hits[0])
-          cmd=['python','-m','collector.p2_p3_gap_crosswalk',
-              '--p2-gap-triage',original('evidence/sources/p2','p2-original-gap-triage.json'),
-              '--p3-event-episodes',original('evidence/sources/p3','p3_all_archived_original_event_episodes.json'),
-              '--p3-pairs',original('evidence/sources/p3','p3_all_resume_original_text_pairs.json'),
-              '--out','evidence/p2-p3-gap-crosswalk.json']
-          subprocess.run(cmd,check=True)
+          def unique(root,name):
+              files=list(Path(root).rglob(name))
+              if len(files)!=1:raise ValueError('Missing/ambiguous archival source '+name)
+              return str(files[0])
+          chosen=json.loads(Path('evidence/sources/selected-runs.json').read_text())
+          p2=unique('evidence/sources/p2','p2-original-gap-triage.json')
+          p3queue=unique('evidence/sources/p3','full_p1_queue.json')
+          event=unique('evidence/sources/p3','p3_all_archived_original_event_episodes.json')
+          pairs=unique('evidence/sources/p3','p3_all_resume_original_text_pairs.json')
+          coverage='evidence/sources/coverage/current.json'
+          subprocess.run([
+              'python','-m','collector.p2_p3_current_source_guard',
+              '--p2-gaps',p2,'--p2-coverage',coverage,
+              '--p3-queue',p3queue,
+              '--p2-run',str(chosen['p2_run_id']),
+              '--p3-run',str(chosen['p3_run_id']),
+              '--out','evidence/p2-p3-source-provenance.json'],check=True)
+          subprocess.run([
+              'python','-m','collector.p2_p3_gap_crosswalk',
+              '--p2-gap-triage',p2,
+              '--p3-event-episodes',event,
+              '--p3-pairs',pairs,
+              '--out','evidence/p2-p3-gap-crosswalk.json'],check=True)
+          guard=json.loads(Path('evidence/p2-p3-source-provenance.json').read_text())
           result=json.loads(Path('evidence/p2-p3-gap-crosswalk.json').read_text())
-          assert result['gap_issuers_examined']==11
-          assert result['official_halt_intervals_authenticated']==0
-          assert result['feature_gaps_resolved']==0
-          assert result['trade_gate']=='BLOCKED'
+          if (result['gap_issuers_examined']!=guard['p2_vendor_gap_issuers']
+              or sorted(x['issuer'] for x in result['issuer_evidence'])!=guard['issuer_codes']
+              or result['official_halt_intervals_authenticated']!=0
+              or result['feature_gaps_resolved']!=0
+              or result['historical_PIT_verified'] is not False
+              or result['trade_gate']!='BLOCKED' or result['orders']!=[]):
+              raise ValueError('P2/P3 issuer join not same-source or falsely certified')
+          print('P2/P3 CURRENT ORIGINAL SHA RESEARCH CROSSWALK:',
+                guard['p2_current_archived_shards'],'P1 shards,',
+                result['gap_issuers_examined'],'gap issuers,',
+                result['gap_issuers_with_same_issuer_official_pdf_text_lead'],
+                'same-issuer text leads; 0 certified PIT intervals')
           PY
       - name: Archive source-bound report without modifying original vendor or official evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: p2-p3-original-gap-crosswalk-${{ github.run_id }}
-          path: evidence/p2-p3-gap-crosswalk.json
+          path: |
+            evidence/p2-p3-gap-crosswalk.json
+            evidence/p2-p3-source-provenance.json
+            evidence/sources/selected-runs.json
           if-no-files-found: warn
           retention-days: 14
