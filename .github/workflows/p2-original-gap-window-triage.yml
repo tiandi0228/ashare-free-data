@@ -5,6 +5,9 @@ on:
       - 'collector/p2_original_gap_window_triage.py'
       - 'tests/test_p2_original_gap_window_triage.py'
       - '.github/workflows/p2-original-gap-window-triage.yml'
+  workflow_run:
+    workflows: ["P2 real archived research features observation (NO TRADES)"]
+    types: [completed]
   push:
     branches: [main]
     paths:
@@ -25,7 +28,7 @@ jobs:
           python-version: '3.11'
       - run: python -m unittest -v tests.test_p2_original_gap_window_triage tests.test_p2_real_archive_features
   replay_once:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     needs: offline
     runs-on: ubuntu-latest
     timeout-minutes: 7
@@ -34,33 +37,43 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Reuse fixed successful P2 research coverage and archived original vendor CSV
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Fetch current same-epoch durable P2 coverage, original archive and checkpoint
         run: |
-          mkdir -p evidence/p2-prior
-          gh run download 42183918663 -R "${{ github.repository }}" -n p2-real-archive-feature-observation-42183918663 -D evidence/p2-prior
           git fetch --depth=1 origin research-csv-archive
           git worktree add --detach archived-research FETCH_HEAD
-      - name: SHA-reverify only original gap issuers, never bridge suspended rows
+          git fetch --depth=1 origin p2-feature-coverage
+          git worktree add --detach durable-p2-coverage FETCH_HEAD
+      - name: Reject stale P2 coverage, then re-diagnose every current SHA-original gap
         run: |
           python - <<'PY'
           import json,subprocess
           from pathlib import Path
-          reports=list(Path('evidence/p2-prior').rglob('p2_real_archive_feature_coverage.json'))
-          if len(reports)!=1:raise ValueError('missing or ambiguous original P2 coverage')
-          coverage=json.loads(reports[0].read_text())
-          epoch=coverage['source_epoch_sha256']
+          from collector.p2_original_gap_window_triage import check_current_checkpoint
+          epoch='5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022'
+          checkpoint_path=Path('evidence/checkpoints')/(epoch+'.json')
+          coverage_path=Path('durable-p2-coverage/summaries')/(epoch[:16]+'.json')
           source=Path('archived-research')/epoch[:16]
-          if not source.is_dir():raise ValueError('missing pinned original vendor archive epoch')
+          if not checkpoint_path.is_file() or not coverage_path.is_file():
+              raise ValueError('active checkpoint or P2 durable summary not yet available')
+          checkpoint=json.loads(checkpoint_path.read_text())
+          coverage=json.loads(coverage_path.read_text())
+          status=json.loads((source/'archive_status.json').read_text())
+          witness=check_current_checkpoint(coverage,checkpoint,status)
+          assert witness['trade_gate']=='BLOCKED'
           subprocess.run(['python','-m','collector.p2_original_gap_window_triage',
-              '--coverage',str(reports[0]),'--archive-epoch',str(source),
-              '--out','evidence/p2-original-gap-triage.json'],check=True)
+                          '--coverage',str(coverage_path),'--archive-epoch',str(source),
+                          '--out','evidence/p2-original-gap-triage.json'],check=True)
           result=json.loads(Path('evidence/p2-original-gap-triage.json').read_text())
+          assert result['source_epoch_sha256']==epoch
+          assert result['research_gap_issuers']==witness['gap_issuer_count']
           assert result['coverage_gaps_resolved']==0
-          assert not result['historical_PIT_verified']
+          assert result['historical_halt_intervals_certified']==0
+          assert result['historical_PIT_verified'] is False
           assert result['trade_gate']=='BLOCKED' and result['orders']==[]
-          print('RESEARCH TRIAGE:',result['diagnosis_counts'])
+          print('CURRENT P2 RESEARCH GAP TRIAGE:',json.dumps({
+              'checkpoint_completed_shards':witness['checkpoint_completed_shards'],
+              'checkpoint_completed_issuers':witness['checkpoint_completed_issuers'],
+              'diagnosis_counts':result['diagnosis_counts']},ensure_ascii=False))
           PY
       - name: Archive read-only gap triage, not signals or official status
         if: always()
