@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'collector/p2_p3_gap_crosswalk.py'
+      - 'collector/p1_active_migration_checkpoint.py'
+      - 'tests/test_p2_p3_workflow_epoch_binding.py'
       - 'collector/p2_p3_current_source_guard.py'
       - 'collector/p2_p3_issuer_proof_action_queue.py'
       - 'collector/p3_gap_original_provenance_index.py'
@@ -20,6 +22,8 @@ on:
     branches: [main]
     paths:
       - 'collector/p2_p3_gap_crosswalk.py'
+      - 'collector/p1_active_migration_checkpoint.py'
+      - 'tests/test_p2_p3_workflow_epoch_binding.py'
       - 'collector/p2_p3_current_source_guard.py'
       - 'collector/p2_p3_issuer_proof_action_queue.py'
       - 'collector/p3_gap_original_provenance_index.py'
@@ -41,7 +45,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Test original issuer join without promoting PIT
-        run: python -m unittest -v tests.test_p2_p3_gap_crosswalk tests.test_p2_original_gap_window_triage tests.test_p2_p3_current_source_guard tests.test_p2_p3_issuer_proof_action_queue tests.test_p3_gap_original_provenance_index
+        run: python -m unittest -v tests.test_p2_p3_gap_crosswalk tests.test_p2_original_gap_window_triage tests.test_p2_p3_current_source_guard tests.test_p2_p3_issuer_proof_action_queue tests.test_p3_gap_original_provenance_index tests.test_p2_p3_workflow_epoch_binding
   replay_once:
     if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     needs: offline
@@ -90,13 +94,38 @@ jobs:
           P3_RUN=$(python -c "import json;print(json.load(open('evidence/sources/selected-runs.json'))['p3_run_id'])")
           gh run download "$P2_RUN" -R "${{ github.repository }}" -n "p2-original-gap-triage-$P2_RUN" -D evidence/sources/p2
           gh run download "$P3_RUN" -R "${{ github.repository }}" -n "p3-full-p1-official-scout-$P3_RUN" -D evidence/sources/p3
-      - name: Checkout latest durable P2 same-epoch coverage summary
+      - name: Resolve active P1 roster and checkpoint (fail closed, same code commit)
+        id: pin
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p evidence/sources
+          python -m collector.p1_active_migration_checkpoint \
+            --root . \
+            --out evidence/sources/current-p1-checkpoint.json \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Read durable P2 summary for active validated P1 epoch
+        shell: bash
+        run: |
+          set -euo pipefail
+          EPOCH="${{ steps.pin.outputs.source_epoch }}"
+          PREFIX="${EPOCH:0:16}"
+          test "${#EPOCH}" -eq 64
           git fetch --depth=1 origin p2-feature-coverage
           mkdir -p evidence/sources/coverage
-          git show FETCH_HEAD:summaries/5ba00fbd720fad90.json > evidence/sources/coverage/current.json
+          git show "FETCH_HEAD:summaries/$PREFIX.json" > evidence/sources/coverage/current.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          active=json.loads(Path('evidence/sources/current-p1-checkpoint.json').read_text())
+          coverage=json.loads(Path('evidence/sources/coverage/current.json').read_text())
+          if (coverage.get('source_epoch_sha256')!=active['source_sha256']
+              or coverage.get('checkpoint_completed_shards')!=active['completed_shards']
+              or coverage.get('trade_gate')!='BLOCKED'
+              or coverage.get('historical_PIT_verified') is not False
+              or coverage.get('coverage_certified_for_trading') is not False):
+              raise ValueError('P2 coverage stale or unsafe for active P1 checkpoint')
+          PY
       - name: Verify current P2 gap membership and current P3 P1 source epoch, then join unverified texts
         run: |
           python - <<'PY'
@@ -183,5 +212,6 @@ jobs:
             evidence/p2-p3-issuer-proof-action-queue.json
             evidence/p3-gap-original-pdf-source-index.json
             evidence/sources/selected-runs.json
+            evidence/sources/current-p1-checkpoint.json
           if-no-files-found: warn
           retention-days: 14
