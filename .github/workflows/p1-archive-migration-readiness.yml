@@ -73,9 +73,9 @@ jobs:
         env:
           PYTHONPATH: code
         run: |
-          python -m collector.p1_active_migration_checkpoint \\
-            --root code \\
-            --out evidence/p1_selected_active_checkpoint.json \\
+          python -m collector.p1_active_migration_checkpoint \
+            --root code \
+            --out evidence/p1_selected_active_checkpoint.json \
             --github-output "$GITHUB_OUTPUT"
       - name: Replay frozen active checkpoint against archive originals
         env:
