@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 from pathlib import Path
 from urllib.parse import urlencode
 from urllib.request import Request,urlopen
+from urllib.error import HTTPError,URLError
 ENDPOINT="https://www.cninfo.com.cn/new/hisAnnouncement/query"
 CODE_RE=re.compile(r"(?:sh\.(?:600|601|603|605)|sz\.(?:000|001|002|003))\d{3}\Z")
 PDF_RE=re.compile(r"finalpage/\d{4}-\d{2}-\d{2}/\d+\.PDF\Z",re.I)
@@ -102,32 +103,59 @@ def query(issuer,fetch_page=None,max_pages=MAX_PAGES,observed_dates=None,researc
         if len(entries)<PAGE_SIZE or data.get("hasMore") is False:break
     return found
 
+def retryable_transport_failure(exc):
+    # Never retry malformed index data or a rejected source-schema guard.
+    # Only bounded network failures and HTTP 429/5xx get one extra attempt.
+    if isinstance(exc,HTTPError):
+        return exc.code==429 or 500<=exc.code<=599
+    return isinstance(exc,(TimeoutError,ConnectionError,URLError))
+
+
 def run(queue,client=query):
     codes=select_targets(queue)
     results=[]
     for issuer in codes:
-        try:
-            target=next((t for t in queue["targets"] if t["issuer"]==issuer),{})
-            transition=target.get("vendor_halt_transition_research_days") or []
-            vendor_nontrading=target.get("vendor_suspended_research_days") or []
-            if transition:
-                candidates=client(issuer,observed_dates=transition[-3:])
-            elif vendor_nontrading:
-                candidates=client(issuer,observed_dates=vendor_nontrading[-3:])
-            else:
-                candidates=client(issuer)
-            if not isinstance(candidates,list) or len(candidates)>MAX_PAGES*PAGE_SIZE:
-                raise ValueError("invalid or oversized client candidates")
-            results.append({"issuer":issuer,
-                "status":"INDEX_CANDIDATES_UNVERIFIED" if candidates else "NO_INDEX_MATCH_NOT_NO_RISK",
-                "historical_vendor_event_window_used":bool(transition or vendor_nontrading),
-                "historical_vendor_transition_days":transition[-3:],
-                "candidates":candidates})
-        except Exception as e:
-            results.append({"issuer":issuer,"status":"INDEX_UNAVAILABLE_NOT_NO_RISK",
-                            "error_type":type(e).__name__,"candidates":[]})
+        attempts=0
+        last_error=None
+        while attempts<2:
+            attempts+=1
+            try:
+                target=next((t for t in queue["targets"] if t["issuer"]==issuer),{})
+                transition=target.get("vendor_halt_transition_research_days") or []
+                vendor_nontrading=target.get("vendor_suspended_research_days") or []
+                if transition:
+                    candidates=client(issuer,observed_dates=transition[-3:])
+                elif vendor_nontrading:
+                    candidates=client(issuer,observed_dates=vendor_nontrading[-3:])
+                else:
+                    candidates=client(issuer)
+                if not isinstance(candidates,list) or len(candidates)>MAX_PAGES*PAGE_SIZE:
+                    raise ValueError("invalid or oversized client candidates")
+                results.append({"issuer":issuer,
+                    "status":"INDEX_CANDIDATES_UNVERIFIED" if candidates else "NO_INDEX_MATCH_NOT_NO_RISK",
+                    "historical_vendor_event_window_used":bool(transition or vendor_nontrading),
+                    "historical_vendor_transition_days":transition[-3:],
+                    "research_query_attempts":attempts,
+                    "transient_transport_retry_used":attempts==2,
+                    "candidates":candidates})
+                break
+            except Exception as exc:
+                last_error=exc
+                if attempts==1 and retryable_transport_failure(exc):
+                    continue
+                results.append({"issuer":issuer,"status":"INDEX_UNAVAILABLE_NOT_NO_RISK",
+                                "error_type":type(exc).__name__,
+                                "research_query_attempts":attempts,
+                                "transient_transport_retry_used":attempts==2,
+                                "candidates":[]})
+                break
+        else:
+            raise ValueError("unreconciled bounded P3 index retry")
     return {"phase":"P3_REAL_P1_LIVE_INDEX_DISCOVERY","attempted":len(results),
             "max_page_budget_per_issuer":MAX_PAGES,
+            "max_transient_query_attempts_per_issuer":2,
+            "total_issuer_query_attempts":sum(x["research_query_attempts"] for x in results),
+            "transient_retry_issuers":sum(x["transient_transport_retry_used"] for x in results),
             "index_exhaustive_or_historical_asof_proof":False,
             "results":results,"historical_PIT_verified":False,
             "trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}

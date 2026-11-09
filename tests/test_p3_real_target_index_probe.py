@@ -18,6 +18,78 @@ class ProbeTests(unittest.TestCase):
     def test_unavailable_is_not_clearance(self):
         def bad(x):raise TimeoutError("unavailable")
         self.assertEqual(run(self.sample(),bad)["results"][0]["status"],"INDEX_UNAVAILABLE_NOT_NO_RISK")
+    def test_one_bounded_timeout_retry_recovers_without_pit_clearance(self):
+        calls=[]
+        def intermittent(issuer):
+            calls.append(issuer)
+            if len(calls)==1:raise TimeoutError("temporary index outage")
+            return []
+        r=run(self.sample(),intermittent)
+        self.assertEqual(calls[:2],["sz.000001","sz.000001"])
+        self.assertEqual(r["results"][0]["status"],"NO_INDEX_MATCH_NOT_NO_RISK")
+        self.assertEqual(r["results"][0]["research_query_attempts"],2)
+        self.assertTrue(r["results"][0]["transient_transport_retry_used"])
+        self.assertEqual(r["transient_retry_issuers"],1)
+        self.assertFalse(r["historical_PIT_verified"])
+        self.assertEqual(r["trade_gate"],"BLOCKED")
+        self.assertEqual(r["orders"],[])
+
+    def test_persistent_transient_failure_stops_after_exactly_two(self):
+        calls=[]
+        def timeout(issuer):
+            calls.append(issuer)
+            raise TimeoutError("still unavailable")
+        r=run(self.sample(),timeout)
+        self.assertEqual(len(calls),4)
+        self.assertEqual(r["total_issuer_query_attempts"],4)
+        self.assertEqual(r["transient_retry_issuers"],2)
+        self.assertTrue(all(x["status"]=="INDEX_UNAVAILABLE_NOT_NO_RISK"
+                            and x["research_query_attempts"]==2 for x in r["results"]))
+        self.assertFalse(r["historical_PIT_verified"])
+
+    def test_invalid_index_schema_never_retried(self):
+        calls=[]
+        def broken(issuer):
+            calls.append(issuer)
+            raise ValueError("upstream JSON malformed")
+        r=run(self.sample(),broken)
+        self.assertEqual(len(calls),2)
+        self.assertEqual(r["transient_retry_issuers"],0)
+        self.assertEqual(r["total_issuer_query_attempts"],2)
+        self.assertTrue(all(x["status"]=="INDEX_UNAVAILABLE_NOT_NO_RISK"
+                            for x in r["results"]))
+
+    def test_http_429_and_503_retry_but_403_does_not(self):
+        from urllib.error import HTTPError
+        for status,expected in ((429,2),(503,2),(403,1)):
+            attempts=[]
+            def blocked(issuer):
+                attempts.append(issuer)
+                raise HTTPError("https://www.cninfo.com.cn/",status,
+                                "rate limited",{},None)
+            result=run({"phase":"P3_REAL_P1_UNMATCHED_OFFICIAL_DISCOVERY_QUEUE",
+                        "trade_gate":"BLOCKED",
+                        "targets":[{"issuer":"sh.600038"}]},blocked)
+            with self.subTest(status=status):
+                self.assertEqual(len(attempts),expected)
+                self.assertEqual(result["results"][0]["research_query_attempts"],expected)
+                self.assertEqual(result["results"][0]["status"],
+                                 "INDEX_UNAVAILABLE_NOT_NO_RISK")
+
+    def test_retry_preserves_frozen_vendor_halt_search_window(self):
+        q=self.sample()
+        q["targets"]=[{"issuer":"sh.600038",
+                       "vendor_halt_transition_research_days":["2026-09-14"]}]
+        windows=[]
+        def unstable(issuer,observed_dates=None):
+            windows.append(observed_dates)
+            if len(windows)==1:raise ConnectionError("network")
+            return []
+        r=run(q,unstable)
+        self.assertEqual(windows,[["2026-09-14"],["2026-09-14"]])
+        self.assertEqual(r["results"][0]["research_query_attempts"],2)
+        self.assertEqual(r["max_transient_query_attempts_per_issuer"],2)
+
     def test_second_page_risk_notice_retained(self):
         calls=[]
         def feed(params):
