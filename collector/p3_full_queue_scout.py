@@ -188,45 +188,63 @@ def plan(full_queue,limit=3,p2_coverage=None,rotation_index=None,visited_hint=No
     cycle=(rotation_index-1) if rotation_index is not None else max(0,shards//4-1)
     start=(cycle*limit)%count
     prioritized=verified_p2_vendor_priority(p2_coverage,q,by_issuer)
-    # Include three source-verified vendor-suspension suspects first; rotate
-    # over the bounded eligible set, then use existing whole-queue selection.
+    # Research coverage: with archive history, reserve ONE bounded slot for
+    # a source-SHA matched P2 halt suspect and use the other TWO for the
+    # lowest-visit issuers across ALL P1-audited source issuers. Without
+    # archive history the earlier bounded deterministic rotation is retained.
     p2_selected=[]
-    if prioritized:
-        offset=(cycle*limit)%len(prioritized)
-        rotated=[prioritized[(offset+i)%len(prioritized)]
-                 for i in range(len(prioritized))]
-        # A successfully archived selection counts as one past visit; prefer
-        # not-yet-attempted suspects while keeping deterministic tie rotation.
-        if visited is not None:
+    if visited is not None:
+        rotated=[]
+        if prioritized:
+            offset=(cycle*limit)%len(prioritized)
+            rotated=[prioritized[(offset+i)%len(prioritized)]
+                     for i in range(len(prioritized))]
             rotated.sort(key=lambda code:visit_counts.get(code,0))
-        p2_selected=rotated[:limit]
-    if has_vendor_status:
-        # Evidence source is independently P2-checked vendor rows, never official halt certification.
-        suspended=[c for c in issuers if "0" in by_issuer[c]["status_by_day"].values()]
-        normal=[c for c in issuers if c not in set(suspended)]
+        p2_selected=rotated[:1]
+        # Break equal-history ties by the run rotation, not by a static
+        # list that repeatedly privileges early roster entries.
+        all_rotated=[issuers[(start+i)%count] for i in range(count)]
+        all_rotated.sort(key=lambda code:visit_counts.get(code,0))
         picks=list(p2_selected)
-        if suspended and len(picks)<limit:
-            offset=(cycle*limit)%len(suspended)
-            for i in range(len(suspended)):
-                issuer=suspended[(offset+i)%len(suspended)]
-                if issuer not in picks:picks.append(issuer)
-                if len(picks)==limit:break
-        if len(picks)<limit and normal:
-            offset=start%len(normal)
-            for i in range(len(normal)):
-                issuer=normal[(offset+i)%len(normal)]
-                if issuer not in picks:picks.append(issuer)
-                if len(picks)==limit:break
-    else:
-        picks=list(p2_selected)
-        for i in range(count):
-            issuer=issuers[(start+i)%count]
+        for issuer in all_rotated:
             if issuer not in picks:picks.append(issuer)
             if len(picks)==limit:break
+    else:
+        if prioritized:
+            offset=(cycle*limit)%len(prioritized)
+            rotated=[prioritized[(offset+i)%len(prioritized)]
+                     for i in range(len(prioritized))]
+            p2_selected=rotated[:limit]
+        if has_vendor_status:
+            # Vendor flags are research observations, never PIT evidence.
+            suspended=[c for c in issuers if "0" in by_issuer[c]["status_by_day"].values()]
+            normal=[c for c in issuers if c not in set(suspended)]
+            picks=list(p2_selected)
+            if suspended and len(picks)<limit:
+                offset=(cycle*limit)%len(suspended)
+                for i in range(len(suspended)):
+                    issuer=suspended[(offset+i)%len(suspended)]
+                    if issuer not in picks:picks.append(issuer)
+                    if len(picks)==limit:break
+            if len(picks)<limit and normal:
+                offset=start%len(normal)
+                for i in range(len(normal)):
+                    issuer=normal[(offset+i)%len(normal)]
+                    if issuer not in picks:picks.append(issuer)
+                    if len(picks)==limit:break
+        else:
+            picks=list(p2_selected)
+            for i in range(count):
+                issuer=issuers[(start+i)%count]
+                if issuer not in picks:picks.append(issuer)
+                if len(picks)==limit:break
+    if not picks or len(picks)!=min(limit,count) or len(set(picks))!=len(picks):
+        raise ValueError("P3 bounded visit-aware target selection cannot reconcile")
+
     targets=[{"issuer":issuer,"observed_decision_dates":sorted(by_issuer[issuer]["days"]),
               "vendor_suspended_research_days":sorted(day for day,status in by_issuer[issuer]["status_by_day"].items() if status=="0"),
               "vendor_halt_transition_research_days":sorted(by_issuer[issuer]["transition_days"]),
-              "target_selection_basis":("P2_SHA_CHECKED_RECENT_VENDOR_SUSPENSION_NOT_OFFICIAL" if issuer in p2_selected else "VENDOR_NONTRADING_OBSERVED_NOT_OFFICIAL" if "0" in by_issuer[issuer]["status_by_day"].values() else "FROZEN_SHARD_ROTATION"),
+              "target_selection_basis":("P2_SHA_CHECKED_RECENT_VENDOR_SUSPENSION_NOT_OFFICIAL" if issuer in p2_selected else "ARCHIVED_LEAST_VISITED_P1_SOURCE_RESEARCH_ONLY" if visited is not None else "VENDOR_NONTRADING_OBSERVED_NOT_OFFICIAL" if "0" in by_issuer[issuer]["status_by_day"].values() else "FROZEN_SHARD_ROTATION"),
               "cells_to_research":len(by_issuer[issuer]["days"])*4,
               "prior_archived_scout_attempts":visit_counts.get(issuer,0) if visited is not None else None,
               "prior_archived_pdf_retrievals":original_counts.get(issuer,0) if visited is not None else None,
@@ -241,6 +259,8 @@ def plan(full_queue,limit=3,p2_coverage=None,rotation_index=None,visited_hint=No
             "vendor_suspended_context_available":has_vendor_status,
             "vendor_nontrading_research_targets":sum(bool(t["vendor_suspended_research_days"]) for t in targets),
             "p2_original_sha_priority_targets":len(p2_selected),
+            "full_p1_coverage_slots":len(picks)-len(p2_selected) if visited is not None else 0,
+            "newly_unvisited_p1_targets":sum(visit_counts.get(c,0)==0 for c in picks) if visited is not None else None,
             "p2_hint_is_official_evidence":False,
             "archive_visit_hint_present":visited is not None,
             "archive_visit_hint_is_official_proof":False,
