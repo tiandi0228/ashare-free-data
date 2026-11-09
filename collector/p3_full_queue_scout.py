@@ -79,7 +79,43 @@ def verified_p2_vendor_priority(coverage,queue,by_issuer):
     return priorities
 
 
-def plan(full_queue,limit=3,p2_coverage=None,rotation_index=None):
+def checked_archive_visit_hint(hint,source_epoch,known_issuers):
+    """History is a scheduling hint, never independently certified PDF proof."""
+    if hint is None:
+        return None,{},{}
+    if (not isinstance(hint,dict)
+        or hint.get("phase")!="P3_ARCHIVED_RESEARCH_VISIT_HINT_NOT_OFFICIAL_EVIDENCE"
+        or hint.get("source_roster_sha256")!=source_epoch
+        or hint.get("trade_gate")!="BLOCKED"
+        or hint.get("historical_PIT_verified") is not False
+        or hint.get("official_history_search_exhaustive") is not False
+        or hint.get("source_originals_fully_replayed_in_this_hint") is not False
+        or hint.get("orders")!=[]
+        or hint.get("executable_candidates")!=[]):
+        raise ValueError("unsafe archived research visit hint")
+    visits=hint.get("issuer_visit_counts")
+    originals=hint.get("issuer_original_retrieval_counts")
+    if (not isinstance(visits,dict) or not isinstance(originals,dict)
+        or len(visits)>10000 or len(originals)>10000
+        or type(hint.get("matching_archive_run_manifests")) is not int
+        or not 0<=hint["matching_archive_run_manifests"]<=1500):
+        raise ValueError("invalid prior issuer visit counts")
+    for code,count in list(visits.items())+list(originals.items()):
+        if (not isinstance(code,str) or not CODE.fullmatch(code)
+            or type(count) is not int or not 0<=count<=1500):
+            raise ValueError("corrupted archived visit hint")
+    if (not set(originals).issubset(visits)
+        or any(count>visits[code] for code,count in originals.items())
+        or hint.get("total_archived_issuer_attempts")!=sum(visits.values())
+        or hint.get("distinct_attempted_issuers")!=len(visits)):
+        raise ValueError("prior research visits not reconciled")
+    # Same-epoch archive can be ahead of a lagged P3 upstream artifact:
+    # such unmatched codes must never become selection candidates.
+    return hint,{c:visits[c] for c in known_issuers if c in visits},{
+        c:originals[c] for c in known_issuers if c in originals}
+
+
+def plan(full_queue,limit=3,p2_coverage=None,rotation_index=None,visited_hint=None):
     q=full_queue
     if rotation_index is not None and (type(rotation_index) is not int or not 1<=rotation_index<=1000000000):
         raise ValueError("invalid bounded P3 workflow rotation index")
@@ -144,6 +180,8 @@ def plan(full_queue,limit=3,p2_coverage=None,rotation_index=None):
         if len([x for x in tasks if x["issuer"]==issuer])!=len(d["days"])*4:
             raise ValueError("issuer evidence count mismatch")
     issuers=sorted(by_issuer,key=lambda c:(next(iter(by_issuer[c]["shards"])),c))
+    visited,visit_counts,original_counts=checked_archive_visit_hint(
+        visited_hint,q["roster_source_sha256"],set(issuers))
     # Legacy offline callers retain shard-based rotation. Real workflow runs
     # use a positive run number so a frozen P1 count does not pin the same
     # three official-source suspects forever.
@@ -155,8 +193,13 @@ def plan(full_queue,limit=3,p2_coverage=None,rotation_index=None):
     p2_selected=[]
     if prioritized:
         offset=(cycle*limit)%len(prioritized)
-        p2_selected=[prioritized[(offset+i)%len(prioritized)]
-                     for i in range(min(limit,len(prioritized)))]
+        rotated=[prioritized[(offset+i)%len(prioritized)]
+                 for i in range(len(prioritized))]
+        # A successfully archived selection counts as one past visit; prefer
+        # not-yet-attempted suspects while keeping deterministic tie rotation.
+        if visited is not None:
+            rotated.sort(key=lambda code:visit_counts.get(code,0))
+        p2_selected=rotated[:limit]
     if has_vendor_status:
         # Evidence source is independently P2-checked vendor rows, never official halt certification.
         suspended=[c for c in issuers if "0" in by_issuer[c]["status_by_day"].values()]
@@ -185,6 +228,8 @@ def plan(full_queue,limit=3,p2_coverage=None,rotation_index=None):
               "vendor_halt_transition_research_days":sorted(by_issuer[issuer]["transition_days"]),
               "target_selection_basis":("P2_SHA_CHECKED_RECENT_VENDOR_SUSPENSION_NOT_OFFICIAL" if issuer in p2_selected else "VENDOR_NONTRADING_OBSERVED_NOT_OFFICIAL" if "0" in by_issuer[issuer]["status_by_day"].values() else "FROZEN_SHARD_ROTATION"),
               "cells_to_research":len(by_issuer[issuer]["days"])*4,
+              "prior_archived_scout_attempts":visit_counts.get(issuer) if visited is not None else None,
+              "prior_archived_pdf_retrievals":original_counts.get(issuer,0) if visited is not None else None,
               "original_official_url":None,"original_publication_time":None,
               "research_state":"SOURCE_DISCOVERY_REQUIRED_NOT_CERTIFIED"} for issuer in picks]
     return {"phase":"P3_REAL_P1_UNMATCHED_OFFICIAL_DISCOVERY_QUEUE",
@@ -197,6 +242,9 @@ def plan(full_queue,limit=3,p2_coverage=None,rotation_index=None):
             "vendor_nontrading_research_targets":sum(bool(t["vendor_suspended_research_days"]) for t in targets),
             "p2_original_sha_priority_targets":len(p2_selected),
             "p2_hint_is_official_evidence":False,
+            "archive_visit_hint_present":visited is not None,
+            "archive_visit_hint_is_official_proof":False,
+            "archived_same_epoch_runs_checked":visited["matching_archive_run_manifests"] if visited is not None else None,
             "unmatched_issuer_kind_targets":len(targets)*4,
             "unmatched_cells":sum(t["cells_to_research"] for t in targets),
             "targets":targets,"official_PIT_verified":False,
@@ -206,10 +254,13 @@ def main():
     p=argparse.ArgumentParser()
     p.add_argument("--queue",required=True);p.add_argument("--out",required=True)
     p.add_argument("--p2-feature-coverage")
+    p.add_argument("--archive-visit-hint")
     p.add_argument("--rotation-index",type=int)
     a=p.parse_args()
     hint=json.loads(Path(a.p2_feature_coverage).read_text()) if a.p2_feature_coverage else None
-    q=plan(json.loads(Path(a.queue).read_text()),p2_coverage=hint,rotation_index=a.rotation_index)
+    history=json.loads(Path(a.archive_visit_hint).read_text()) if a.archive_visit_hint else None
+    q=plan(json.loads(Path(a.queue).read_text()),p2_coverage=hint,
+           rotation_index=a.rotation_index,visited_hint=history)
     path=Path(a.out);path.parent.mkdir(parents=True,exist_ok=True)
     path.write_text(json.dumps(q,ensure_ascii=False,indent=2)+"\n")
     print(json.dumps({k:v for k,v in q.items() if k!="targets"}))
