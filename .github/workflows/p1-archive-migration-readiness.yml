@@ -3,12 +3,16 @@ on:
   pull_request:
     paths:
       - 'collector/p1_archive_migration_readiness.py'
+      - 'collector/p1_legacy_original_receipt_gap_audit.py'
+      - 'tests/test_p1_legacy_original_receipt_gap_audit.py'
       - 'tests/test_p1_archive_migration_readiness.py'
       - '.github/workflows/p1-archive-migration-readiness.yml'
   push:
     branches: [main]
     paths:
       - 'collector/p1_archive_migration_readiness.py'
+      - 'collector/p1_legacy_original_receipt_gap_audit.py'
+      - 'tests/test_p1_legacy_original_receipt_gap_audit.py'
       - 'tests/test_p1_archive_migration_readiness.py'
       - '.github/workflows/p1-archive-migration-readiness.yml'
   # Read-only nightly reconciliation of the *latest* same-epoch checkpoint.
@@ -27,7 +31,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest -v tests.test_p1_archive_migration_readiness
+      - run: python -m unittest -v tests.test_p1_archive_migration_readiness tests.test_p1_legacy_original_receipt_gap_audit
   source-readback:
     if: github.event_name != 'pull_request'
     needs: offline
@@ -52,6 +56,24 @@ jobs:
             --checkpoint code/evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json \
             --archive source-archive \
             --out evidence/p1_archive_migration_readiness.json
+      - name: List immutable legacy original quality gaps (read-only, no fabricated receipts)
+        env:
+          PYTHONPATH: code
+        run: |
+          python -m collector.p1_legacy_original_receipt_gap_audit \
+            --archive source-archive \
+            --active-epoch 5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022 \
+            --out evidence/p1_legacy_quality_receipt_gaps.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path('evidence/p1_legacy_quality_receipt_gaps.json').read_text())
+          assert x['trade_gate']=='BLOCKED' and x['orders']==[]
+          assert x['writer_cutover_authorized'] is False
+          assert x['destination_mirror_verified'] is False
+          assert x['missing_receipts_synthesized'] is False
+          print('P1 LEGACY ORIGINAL RECEIPT GAPS:',x['missing_original_receipts'])
+          PY
       - name: Report source readiness without claiming writer cutover
         run: |
           python - <<'PY'
@@ -60,8 +82,15 @@ jobs:
           d=json.loads(Path('evidence/p1_archive_migration_readiness.json').read_text())
           assert d['trade_gate']=='BLOCKED' and not d['orders']
           assert d['writer_cutover_authorized'] is False
+          legacy=json.loads(Path('evidence/p1_legacy_quality_receipt_gaps.json').read_text())
+          assert legacy['trade_gate']=='BLOCKED'
+          assert legacy['writer_cutover_authorized'] is False
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
               out.write('### P1 archived source readiness (NO TRADES)\n')
+              out.write('### All-epoch original quality receipt gaps (NOT SHA certification)\\n')
+              out.write(f"- missing_receipts_total: {legacy['missing_receipts_total']}\\n")
+              for row in legacy['missing_original_receipts']:
+                  out.write(f"- {row['source_epoch_prefix']}/{row['shard_id']}: {row['reason']}\\n")
               for name in ('status','checkpoint_completed_shards',
                            'verified_original_shards','verified_original_csv_files',
                            'missing_or_invalid_shard_count','all_checkpoint_originals_durably_located'):
@@ -71,6 +100,8 @@ jobs:
         if: always()
         with:
           name: p1-source-archive-readiness-${{ github.run_id }}
-          path: evidence/p1_archive_migration_readiness.json
+          path: |
+            evidence/p1_archive_migration_readiness.json
+            evidence/p1_legacy_quality_receipt_gaps.json
           if-no-files-found: warn
           retention-days: 30
