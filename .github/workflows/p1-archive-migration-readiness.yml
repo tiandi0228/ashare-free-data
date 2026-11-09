@@ -46,7 +46,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-  actions: write
+  actions: read
 jobs:
   offline:
     runs-on: ubuntu-latest
