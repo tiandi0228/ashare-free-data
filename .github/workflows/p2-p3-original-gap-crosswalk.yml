@@ -16,6 +16,8 @@ on:
     branches: [main]
     paths:
       - 'collector/p2_p3_gap_crosswalk.py'
+      - 'collector/p2_p3_current_source_guard.py'
+      - 'tests/test_p2_p3_current_source_guard.py'
       - 'tests/test_p2_p3_gap_crosswalk.py'
       - '.github/workflows/p2-p3-original-gap-crosswalk.yml'
 permissions:
@@ -73,7 +75,7 @@ jobs:
                   p3=run['id']
               else:raise ValueError('unrecognized upstream research workflow')
           result={'p2_run_id':p2,'p3_run_id':p3}
-          Path('evidence/sources/selected-runs.json').write_text(json.dumps(result)+'\\n')
+          Path('evidence/sources/selected-runs.json').write_text(json.dumps(result))
           print('P2/P3 DYNAMIC SOURCE RUNS:',result)
           PY
           P2_RUN=$(python -c "import json;print(json.load(open('evidence/sources/selected-runs.json'))['p2_run_id'])")
