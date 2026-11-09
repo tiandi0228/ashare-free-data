@@ -1,0 +1,55 @@
+{
+  "phase": "P1_PUBLIC_INTRADAY_RESEARCH_SNAPSHOT",
+  "asof": "2026-11-10T00:02:47.852491+08:00",
+  "provider_type": "UNOFFICIAL_WEB_ENDPOINTS",
+  "trade_gate": "BLOCKED",
+  "orders": [],
+  "executable_candidates": [],
+  "symbols": {
+    "002249": {
+      "status": "SOURCE_UNAVAILABLE",
+      "error_stage": "EASTMONEY_MINUTES",
+      "error_type": "ValueError",
+      "executable_quote": false,
+      "trade_gate": "BLOCKED",
+      "orders": [],
+      "executable_candidates": []
+    },
+    "002696": {
+      "status": "SOURCE_UNAVAILABLE",
+      "error_stage": "EASTMONEY_MINUTES",
+      "error_type": "ValueError",
+      "executable_quote": false,
+      "trade_gate": "BLOCKED",
+      "orders": [],
+      "executable_candidates": []
+    },
+    "301015": {
+      "status": "SOURCE_UNAVAILABLE",
+      "error_stage": "EASTMONEY_MINUTES",
+      "error_type": "ValueError",
+      "executable_quote": false,
+      "trade_gate": "BLOCKED",
+      "orders": [],
+      "executable_candidates": []
+    },
+    "300015": {
+      "status": "SOURCE_UNAVAILABLE",
+      "error_stage": "EASTMONEY_MINUTES",
+      "error_type": "ValueError",
+      "executable_quote": false,
+      "trade_gate": "BLOCKED",
+      "orders": [],
+      "executable_candidates": []
+    },
+    "300896": {
+      "status": "SOURCE_UNAVAILABLE",
+      "error_stage": "EASTMONEY_MINUTES",
+      "error_type": "ValueError",
+      "executable_quote": false,
+      "trade_gate": "BLOCKED",
+      "orders": [],
+      "executable_candidates": []
+    }
+  }
+}
