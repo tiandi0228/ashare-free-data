@@ -4,6 +4,8 @@ on:
     paths:
       - 'collector/p1_archive_migration_readiness.py'
       - 'collector/p1_legacy_original_receipt_gap_audit.py'
+      - 'collector/p1_partial_sha_copy_plan.py'
+      - 'tests/test_p1_partial_sha_copy_plan.py'
       - 'tests/test_p1_legacy_original_receipt_gap_audit.py'
       - 'tests/test_p1_archive_migration_readiness.py'
       - '.github/workflows/p1-archive-migration-readiness.yml'
@@ -12,6 +14,8 @@ on:
     paths:
       - 'collector/p1_archive_migration_readiness.py'
       - 'collector/p1_legacy_original_receipt_gap_audit.py'
+      - 'collector/p1_partial_sha_copy_plan.py'
+      - 'tests/test_p1_partial_sha_copy_plan.py'
       - 'tests/test_p1_legacy_original_receipt_gap_audit.py'
       - 'tests/test_p1_archive_migration_readiness.py'
       - '.github/workflows/p1-archive-migration-readiness.yml'
@@ -31,7 +35,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest -v tests.test_p1_archive_migration_readiness tests.test_p1_legacy_original_receipt_gap_audit
+      - run: python -m unittest -v tests.test_p1_archive_migration_readiness tests.test_p1_legacy_original_receipt_gap_audit tests.test_p1_partial_sha_copy_plan
   source-readback:
     if: github.event_name != 'pull_request'
     needs: offline
@@ -74,6 +78,26 @@ jobs:
           assert x['missing_receipts_synthesized'] is False
           print('P1 LEGACY ORIGINAL RECEIPT GAPS:',x['missing_original_receipts'])
           PY
+      - name: SHA-replay each eligible source CSV and quarantine unverifiable shards (read only)
+        env:
+          PYTHONPATH: code
+        run: |
+          python -m collector.p1_partial_sha_copy_plan \
+            --archive source-archive \
+            --active-epoch 5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022 \
+            --out evidence/p1_partial_sha_copy_plan.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path('evidence/p1_partial_sha_copy_plan.json').read_text())
+          assert q['trade_gate']=='BLOCKED' and q['orders']==[]
+          assert q['automatic_copy_authorized'] is False
+          assert q['writer_cutover_authorized'] is False
+          assert q['destination_files_verified'] is False
+          assert sum(len(x['source_file_sha256']) for x in q['eligible_source_shards']) == q['eligible_original_files']
+          print('P1 ELIGIBLE SHA VERIFIED SHARDS:',q['eligible_shards'])
+          print('P1 QUARANTINED UNVERIFIABLE SHARDS:',q['quarantine'])
+          PY
       - name: Report source readiness without claiming writer cutover
         run: |
           python - <<'PY'
@@ -83,10 +107,15 @@ jobs:
           assert d['trade_gate']=='BLOCKED' and not d['orders']
           assert d['writer_cutover_authorized'] is False
           legacy=json.loads(Path('evidence/p1_legacy_quality_receipt_gaps.json').read_text())
+          partial=json.loads(Path('evidence/p1_partial_sha_copy_plan.json').read_text())
           assert legacy['trade_gate']=='BLOCKED'
           assert legacy['writer_cutover_authorized'] is False
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
               out.write('### P1 archived source readiness (NO TRADES)\n')
+              out.write('### SHA-replayed eligible original shards (NOT MIGRATED)\\n')
+              out.write(f"- eligible_shards: {partial['eligible_shards']}\\n")
+              out.write(f"- eligible_original_files: {partial['eligible_original_files']}\\n")
+              out.write(f"- quarantined_shards: {partial['quarantined_shards']}\\n")
               out.write('### All-epoch original quality receipt gaps (NOT SHA certification)\\n')
               out.write(f"- missing_receipts_total: {legacy['missing_receipts_total']}\\n")
               for row in legacy['missing_original_receipts']:
@@ -103,5 +132,6 @@ jobs:
           path: |
             evidence/p1_archive_migration_readiness.json
             evidence/p1_legacy_quality_receipt_gaps.json
+            evidence/p1_partial_sha_copy_plan.json
           if-no-files-found: warn
           retention-days: 30
