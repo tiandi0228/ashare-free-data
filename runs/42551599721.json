@@ -1,0 +1,67 @@
+{
+  "audited_issuer_count": 1544,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 0,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.601238"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603150"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_UNAVAILABLE_NOT_NO_RISK",
+      "issuer": "sh.603151"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 2,
+  "p1_upstream_run_id": 42523445928,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 13600,
+  "research_date_action_links": [],
+  "run_id": 42551599721,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225560026",
+      "archive_path": "pdf/sh_601238/1225560026/67d575c5dd894763a3c4e43738211b6abe7d64821bb6083b5499ff3cc67a6f0f.pdf",
+      "bytes": 91862,
+      "captured_at_utc": "2026-11-09T02:33:54.068953+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1789142400000,
+      "issuer": "sh.601238",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-12/1225560026.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "67d575c5dd894763a3c4e43738211b6abe7d64821bb6083b5499ff3cc67a6f0f",
+      "title_from_index_unverified": "广汽集团第七届董事会第29次会议决议公告"
+    },
+    {
+      "announcement_id": "1225611006",
+      "archive_path": "pdf/sh_603150/1225611006/ae0df0996a891fe5afa54e1e215c3165a1f4570ce1fffd33783e82a0b24b2f6b.pdf",
+      "bytes": 106598,
+      "captured_at_utc": "2026-11-09T02:33:54.958988+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1792425600000,
+      "issuer": "sh.603150",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-20/1225611006.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "ae0df0996a891fe5afa54e1e215c3165a1f4570ce1fffd33783e82a0b24b2f6b",
+      "title_from_index_unverified": "万朗磁塑关于向特定对象发行A股股票预案披露的提示性公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
