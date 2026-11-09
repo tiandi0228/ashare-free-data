@@ -65,6 +65,35 @@ def prepare(*,originals_root,review,queue,index,run_id,upstream_run_id):
             key=(issuer,str(notice.get("announcement_id")))
             if key in index_map:continue
             index_map[key]=notice
+    # An index query is a research attempt even when the index finds no
+    # candidate PDF. Persist this separately from downloaded original receipts.
+    # Legacy manifests remain immutable and are read via receipt fallback.
+    index_attempts=[]
+    seen_index_issuers=set()
+    results=index.get("results")
+    if (not isinstance(results,list) or not 1<=len(results)<=3
+        or index.get("attempted")!=len(results)):
+        raise ValueError("P3 index research attempt accounting mismatch")
+    issuers_in_queue={task.get("issuer") for task in
+                      queue.get("official_evidence_tasks",[])}
+    for result in results:
+        issuer=result.get("issuer") if isinstance(result,dict) else None
+        status=result.get("status") if isinstance(result,dict) else None
+        if (not isinstance(issuer,str) or not ISSUER.fullmatch(issuer)
+            or issuer not in issuers_in_queue or issuer in seen_index_issuers
+            or status not in ("INDEX_CANDIDATES_UNVERIFIED",
+                              "NO_INDEX_MATCH_NOT_NO_RISK",
+                              "INDEX_UNAVAILABLE_NOT_NO_RISK")):
+            raise ValueError("invalid official index research attempt")
+        seen_index_issuers.add(issuer)
+        candidates=result.get("candidates")
+        if not isinstance(candidates,list) or len(candidates)>90:
+            raise ValueError("unbounded index research candidates")
+        if ((status=="INDEX_CANDIDATES_UNVERIFIED" and not candidates)
+            or (status!="INDEX_CANDIDATES_UNVERIFIED" and candidates)):
+            raise ValueError("contradictory official index attempt status")
+        index_attempts.append({"issuer":issuer,"index_status_research_only":status,
+                               "historical_PIT_verified":False})
     evidence={}
     files={}
     total_bytes=0
@@ -175,6 +204,7 @@ def prepare(*,originals_root,review,queue,index,run_id,upstream_run_id):
               "required_official_PIT_cells":queue.get("required_official_evidence_cells"),
               "original_pdf_count":receipts["retrieved"],
               "source_pdf_receipts":[evidence[k] for k in sorted(evidence)],
+              "index_query_attempted_issuers_research_only":index_attempts,
               "research_date_action_links":clauses,
               "explicit_local_textual_candidate_count":review["explicit_original_clause_candidates"],
               "certified_first_publication_count":0,
