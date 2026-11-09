@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'collector/p2_original_gap_window_triage.py'
+      - 'collector/p2_p3_current_source_guard.py'
+      - 'tests/test_p2_p3_current_source_guard.py'
       - 'tests/test_p2_original_gap_window_triage.py'
       - '.github/workflows/p2-original-gap-window-triage.yml'
   workflow_run:
@@ -12,6 +14,8 @@ on:
     branches: [main]
     paths:
       - 'collector/p2_original_gap_window_triage.py'
+      - 'collector/p2_p3_current_source_guard.py'
+      - 'tests/test_p2_p3_current_source_guard.py'
       - 'tests/test_p2_original_gap_window_triage.py'
       - '.github/workflows/p2-original-gap-window-triage.yml'
 permissions:
@@ -26,7 +30,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest -v tests.test_p2_original_gap_window_triage tests.test_p2_real_archive_features
+      - run: python -m unittest -v tests.test_p2_original_gap_window_triage tests.test_p2_real_archive_features tests.test_p2_p3_current_source_guard
   replay_once:
     if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     needs: offline
