@@ -7,6 +7,8 @@ on:
       - 'collector/p1_partial_sha_copy_plan.py'
       - 'collector/p1_source_sha_handoff.py'
       - 'collector/p1_source_handoff_independent_replay.py'
+      - 'collector/p1_source_commit_envelope.py'
+      - 'tests/test_p1_source_commit_envelope.py'
       - 'tests/test_p1_source_handoff_independent_replay.py'
       - 'tests/test_p1_source_sha_handoff.py'
       - 'tests/test_p1_partial_sha_copy_plan.py'
@@ -21,6 +23,8 @@ on:
       - 'collector/p1_partial_sha_copy_plan.py'
       - 'collector/p1_source_sha_handoff.py'
       - 'collector/p1_source_handoff_independent_replay.py'
+      - 'collector/p1_source_commit_envelope.py'
+      - 'tests/test_p1_source_commit_envelope.py'
       - 'tests/test_p1_source_handoff_independent_replay.py'
       - 'tests/test_p1_source_sha_handoff.py'
       - 'tests/test_p1_partial_sha_copy_plan.py'
@@ -43,7 +47,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest -v tests.test_p1_archive_migration_readiness tests.test_p1_legacy_original_receipt_gap_audit tests.test_p1_partial_sha_copy_plan tests.test_p1_source_sha_handoff tests.test_p1_source_handoff_independent_replay
+      - run: python -m unittest -v tests.test_p1_archive_migration_readiness tests.test_p1_legacy_original_receipt_gap_audit tests.test_p1_partial_sha_copy_plan tests.test_p1_source_sha_handoff tests.test_p1_source_handoff_independent_replay tests.test_p1_source_commit_envelope
   source-readback:
     if: github.event_name != 'pull_request'
     needs: offline
@@ -149,6 +153,34 @@ jobs:
           assert b['trade_gate']=='BLOCKED' and b['orders']==[]
           print('P1 INDEPENDENT SOURCE HANDOFF SHA REPLAY PASSED')
           PY
+      - name: Seal SHA-replayed originals with exact immutable Git source and code commits
+        env:
+          PYTHONPATH: code
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_COMMIT=$(git -C source-archive rev-parse --verify HEAD)
+          EXECUTION_COMMIT=$(git -C code rev-parse --verify HEAD)
+          test "${#SOURCE_COMMIT}" -eq 40
+          test "${#EXECUTION_COMMIT}" -eq 40
+          python -m collector.p1_source_commit_envelope \
+            --handoff evidence/p1_source_sha_handoff.json \
+            --replay evidence/p1_source_handoff_independent_replay.json \
+            --source-commit "$SOURCE_COMMIT" \
+            --execution-commit "$EXECUTION_COMMIT" \
+            --out evidence/p1_source_commit_envelope.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('evidence/p1_source_commit_envelope.json').read_text())
+          assert p['trade_gate']=='BLOCKED' and p['orders']==[]
+          assert p['destination_files_verified'] is False
+          assert p['writer_cutover_authorized'] is False
+          assert p['migration_performed'] is False
+          assert p['destination_commit_sha'] is None
+          assert len(p['archive_status_original_sha256'])==4
+          print('P1 SOURCE IMMUTABLE GIT SNAPSHOT SEALED:',p['source_handoff_envelope_sha256'])
+          PY
       - name: Report source readiness without claiming writer cutover
         run: |
           python - <<'PY'
@@ -161,10 +193,13 @@ jobs:
           partial=json.loads(Path('evidence/p1_partial_sha_copy_plan.json').read_text())
           handoff=json.loads(Path('evidence/p1_source_sha_handoff.json').read_text())
           replay=json.loads(Path('evidence/p1_source_handoff_independent_replay.json').read_text())
+          envelope=json.loads(Path('evidence/p1_source_commit_envelope.json').read_text())
           assert legacy['trade_gate']=='BLOCKED'
           assert legacy['writer_cutover_authorized'] is False
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
-              out.write('### P1 archived source readiness (NO TRADES)\n')
+              out.write('### P1 archived source readiness (NO TRADES)\n')              out.write(f"- archive_commit: {envelope['source_archive_commit_sha']}\\n")
+              out.write(f"- snapshot_envelope_sha256: {envelope['source_handoff_envelope_sha256']}\\n")
+
               out.write(f"- source_handoff_manifest_sha256: {handoff['source_file_inventory_sha256']}\\n")
               out.write(f"- independent_source_files_replayed: {replay['source_files_replayed']}\\n")
               out.write(f"- separate_original_status_sha_count: {len(replay['archive_status_original_sha256'])}\\n")
@@ -191,5 +226,6 @@ jobs:
             evidence/p1_partial_sha_copy_plan.json
             evidence/p1_source_sha_handoff.json
             evidence/p1_source_handoff_independent_replay.json
+            evidence/p1_source_commit_envelope.json
           if-no-files-found: warn
           retention-days: 30
