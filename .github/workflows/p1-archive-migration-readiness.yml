@@ -197,7 +197,8 @@ jobs:
           assert legacy['trade_gate']=='BLOCKED'
           assert legacy['writer_cutover_authorized'] is False
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
-              out.write('### P1 archived source readiness (NO TRADES)\n')              out.write(f"- archive_commit: {envelope['source_archive_commit_sha']}\\n")
+              out.write('### P1 archived source readiness (NO TRADES)\n')
+              out.write(f"- archive_commit: {envelope['source_archive_commit_sha']}\\n")
               out.write(f"- snapshot_envelope_sha256: {envelope['source_handoff_envelope_sha256']}\\n")
 
               out.write(f"- source_handoff_manifest_sha256: {handoff['source_file_inventory_sha256']}\\n")
