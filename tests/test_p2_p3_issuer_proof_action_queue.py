@@ -26,6 +26,7 @@ def sample():
         })
     crosswalk={
         "phase":"P2_P3_SAME_ISSUER_RESEARCH_GAP_CROSSWALK",
+        "source_epoch_sha256":EPOCH,
         "status":"RESEARCH_JOIN_NO_PIT_EVENT_CAUSATION",
         "gap_issuers_examined":4,
         "gap_issuers_with_same_issuer_official_pdf_text_lead":2,
