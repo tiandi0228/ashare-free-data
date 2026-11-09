@@ -1,0 +1,82 @@
+{
+  "audited_issuer_count": 1648,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 0,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603759"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603099"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603100"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 42716389556,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 14532,
+  "research_date_action_links": [],
+  "run_id": 42716551936,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1224793435",
+      "archive_path": "pdf/sh_603099/1224793435/35fd9fa6b88b82ce8251f3a8eecfbfa12ecc47579b1e73f585c0c46c9d76b8b7.pdf",
+      "bytes": 884339,
+      "captured_at_utc": "2026-11-09T22:58:56.997811+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1762531200000,
+      "issuer": "sh.603099",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2025-11-08/1224793435.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "35fd9fa6b88b82ce8251f3a8eecfbfa12ecc47579b1e73f585c0c46c9d76b8b7",
+      "title_from_index_unverified": "长白山旅游股份有限公司向特定对象发行股票上市公告书"
+    },
+    {
+      "announcement_id": "1225605213",
+      "archive_path": "pdf/sh_603100/1225605213/fbc4115f94a55bebb8ede731102b6b626c0b9b34b9a283ea0abf7589449e5c81.pdf",
+      "bytes": 101742,
+      "captured_at_utc": "2026-11-09T22:58:57.668011+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1791993600000,
+      "issuer": "sh.603100",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-15/1225605213.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "fbc4115f94a55bebb8ede731102b6b626c0b9b34b9a283ea0abf7589449e5c81",
+      "title_from_index_unverified": "川仪股份控股股东持股比例因公司注销股份被动增加至30%以上暨免于发出要约的提示性公告"
+    },
+    {
+      "announcement_id": "1225602844",
+      "archive_path": "pdf/sh_603759/1225602844/395604493e9e1088b759fc45c75474d79db275112a1d13f3ba0ebabd4697cda8.pdf",
+      "bytes": 63642,
+      "captured_at_utc": "2026-11-09T22:58:56.052351+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1791907200000,
+      "issuer": "sh.603759",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-14/1225602844.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "395604493e9e1088b759fc45c75474d79db275112a1d13f3ba0ebabd4697cda8",
+      "title_from_index_unverified": "关于证券事务代表辞职的公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
