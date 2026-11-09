@@ -79,6 +79,7 @@ class SourceEvidenceActionQueueTests(unittest.TestCase):
             (0,"gap_issuers_with_same_issuer_official_pdf_text_lead",3),
             (0,"gap_issuers_with_same_issuer_resume_text_pair",2),
             (1,"p2_vendor_gap_issuers",3),
+            (0,"source_epoch_sha256","d"*64),
             (1,"source_epoch_sha256","c"*64),
             (1,"issuer_codes",["sh.600001","sh.600002"]),
             (0,"trade_gate","OPEN"),
