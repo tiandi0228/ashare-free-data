@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'collector/p1_archive_migration_readiness.py'
+      - 'collector/p1_active_migration_checkpoint.py'
+      - 'tests/test_p1_active_migration_checkpoint.py'
       - 'collector/p1_legacy_original_receipt_gap_audit.py'
       - 'collector/p1_partial_sha_copy_plan.py'
       - 'collector/p1_source_sha_handoff.py'
@@ -19,6 +21,8 @@ on:
     branches: [main]
     paths:
       - 'collector/p1_archive_migration_readiness.py'
+      - 'collector/p1_active_migration_checkpoint.py'
+      - 'tests/test_p1_active_migration_checkpoint.py'
       - 'collector/p1_legacy_original_receipt_gap_audit.py'
       - 'collector/p1_partial_sha_copy_plan.py'
       - 'collector/p1_source_sha_handoff.py'
@@ -47,7 +51,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest -v tests.test_p1_archive_migration_readiness tests.test_p1_legacy_original_receipt_gap_audit tests.test_p1_partial_sha_copy_plan tests.test_p1_source_sha_handoff tests.test_p1_source_handoff_independent_replay tests.test_p1_source_commit_envelope
+      - run: python -m unittest -v tests.test_p1_active_migration_checkpoint tests.test_p1_archive_migration_readiness tests.test_p1_legacy_original_receipt_gap_audit tests.test_p1_partial_sha_copy_plan tests.test_p1_source_sha_handoff tests.test_p1_source_handoff_independent_replay tests.test_p1_source_commit_envelope
   source-readback:
     if: github.event_name != 'pull_request'
     needs: offline
@@ -64,12 +68,21 @@ jobs:
           path: source-archive
           persist-credentials: false
           fetch-depth: 1
+      - name: Bind latest same-commit active P1 roster and checkpoint (fail closed)
+        id: pin
+        env:
+          PYTHONPATH: code
+        run: |
+          python -m collector.p1_active_migration_checkpoint \
+            --root code \
+            --out evidence/p1_selected_active_checkpoint.json \
+            --github-output "$GITHUB_OUTPUT"
       - name: Replay frozen active checkpoint against archive originals
         env:
           PYTHONPATH: code
         run: |
           python -m collector.p1_archive_migration_readiness \
-            --checkpoint code/evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json \
+            --checkpoint "code/${{ steps.pin.outputs.checkpoint_path }}" \
             --archive source-archive \
             --out evidence/p1_archive_migration_readiness.json
       - name: List immutable legacy original quality gaps (read-only, no fabricated receipts)
@@ -78,7 +91,7 @@ jobs:
         run: |
           python -m collector.p1_legacy_original_receipt_gap_audit \
             --archive source-archive \
-            --active-epoch 5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022 \
+            --active-epoch "${{ steps.pin.outputs.source_epoch }}" \
             --out evidence/p1_legacy_quality_receipt_gaps.json
           python - <<'PY'
           import json
@@ -96,7 +109,7 @@ jobs:
         run: |
           python -m collector.p1_partial_sha_copy_plan \
             --archive source-archive \
-            --active-epoch 5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022 \
+            --active-epoch "${{ steps.pin.outputs.source_epoch }}" \
             --out evidence/p1_partial_sha_copy_plan.json
           python - <<'PY'
           import json
@@ -222,6 +235,7 @@ jobs:
         with:
           name: p1-source-archive-readiness-${{ github.run_id }}
           path: |
+            evidence/p1_selected_active_checkpoint.json
             evidence/p1_archive_migration_readiness.json
             evidence/p1_legacy_quality_receipt_gaps.json
             evidence/p1_partial_sha_copy_plan.json
