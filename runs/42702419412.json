@@ -1,0 +1,82 @@
+{
+  "audited_issuer_count": 1640,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 0,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603759"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603105"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603106"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 42702133155,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 14468,
+  "research_date_action_links": [],
+  "run_id": 42702419412,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225610017",
+      "archive_path": "pdf/sh_603105/1225610017/6affe0261139736deb5e21c45a45240e3150ce08a41eeb48c8dfe48aa755da0c.pdf",
+      "bytes": 112229,
+      "captured_at_utc": "2026-11-09T21:26:21.892101+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1792339200000,
+      "issuer": "sh.603105",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-19/1225610017.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "6affe0261139736deb5e21c45a45240e3150ce08a41eeb48c8dfe48aa755da0c",
+      "title_from_index_unverified": "浙江芯能光伏科技股份有限公司关于“芯能转债”2026年付息的公告"
+    },
+    {
+      "announcement_id": "1225557516",
+      "archive_path": "pdf/sh_603106/1225557516/156523959221beb84b2bb2b5ac00bea9e7acb3fd7b47ab6c3abdb40c9b6eafc9.pdf",
+      "bytes": 402240,
+      "captured_at_utc": "2026-11-09T21:26:22.779101+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1789056000000,
+      "issuer": "sh.603106",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-11/1225557516.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "156523959221beb84b2bb2b5ac00bea9e7acb3fd7b47ab6c3abdb40c9b6eafc9",
+      "title_from_index_unverified": "北京国枫律师事务所关于恒银金融科技股份有限公司2026年第一次临时股东会的法律意见书"
+    },
+    {
+      "announcement_id": "1225602844",
+      "archive_path": "pdf/sh_603759/1225602844/395604493e9e1088b759fc45c75474d79db275112a1d13f3ba0ebabd4697cda8.pdf",
+      "bytes": 63642,
+      "captured_at_utc": "2026-11-09T21:26:21.466721+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1791907200000,
+      "issuer": "sh.603759",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-14/1225602844.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "395604493e9e1088b759fc45c75474d79db275112a1d13f3ba0ebabd4697cda8",
+      "title_from_index_unverified": "关于证券事务代表辞职的公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
