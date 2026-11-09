@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'collector/progress_baseline.py'
+      - 'collector/p0_p4_progress_snapshot.py'
+      - 'tests/test_p0_p4_progress_snapshot.py'
       - 'collector/p1_current_progress.py'
       - 'tests/test_p1_current_progress.py'
       - 'tests/test_progress_baseline.py'
@@ -34,6 +36,8 @@ on:
     branches: [main]
     paths:
       - 'collector/progress_baseline.py'
+      - 'collector/p0_p4_progress_snapshot.py'
+      - 'tests/test_p0_p4_progress_snapshot.py'
       - 'collector/p1_current_progress.py'
       - 'tests/test_p1_current_progress.py'
       - 'tests/test_progress_baseline.py'
@@ -72,7 +76,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Verify frozen milestones and zero unproved claims
-        run: python -m unittest -v tests.test_progress_baseline tests.test_p1_current_progress
+        run: python -m unittest -v tests.test_progress_baseline tests.test_p1_current_progress tests.test_p0_p4_progress_snapshot
       - name: Validate purged P2 research windows and independent P4 partial-fill accounting
         run: |
           python -m unittest -v \
@@ -116,6 +120,34 @@ jobs:
           assert p['orders']==[] and p['executable_candidates']==[]
           print('Current P1 SHA pinned research progress:',p['completed_shards'],'/',p['total_shards'])
           PY
+      - name: Build P0-P4 presentation snapshot from same-run proof (NO TRADES)
+        run: |
+          set -euo pipefail
+          ARGS=(--current evidence/progress_report.json --out evidence/p0_p4_progress_snapshot.json)
+          if [ -f evidence/p1_current_progress.json ]; then
+            ARGS+=(--p1 evidence/p1_current_progress.json)
+          fi
+          python -m collector.p0_p4_progress_snapshot "${ARGS[@]}"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          r=json.loads(Path('evidence/p0_p4_progress_snapshot.json').read_text())
+          assert r['trade_gate']=='BLOCKED' and r['historical_PIT_verified'] is False
+          assert r['orders']==[] and r['executable_candidates']==[]
+          assert r['production_ready'] is False
+          with Path(os.environ['GITHUB_STEP_SUMMARY']).open('a') as s:
+              s.write('### P0-P4 separated research progress (NO TRADES)\\n')
+              for name in ('P0','P1','P2','P3','P4'):
+                  row=r['stages'][name]
+                  s.write(f"- {name}: {row['verification']}; ")
+                  if name=='P1':
+                      s.write(f"same-epoch research shards {row['completed_shards']}/{row['total_shards']} ({row['research_shard_coverage_pct']}%)\\n")
+                  elif name in ('P2','P3','P4'):
+                      s.write(f"offline contract acceptance {row['current_offline_acceptance_pct']}%; overall development not certified\\n")
+                  else:
+                      s.write('prior historical completion claim not re-certified in this run\\n')
+              s.write('- trade gate: BLOCKED; no real orders\\n')
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -123,5 +155,6 @@ jobs:
           path: |
             evidence/progress_report.json
             evidence/p1_current_progress.json
+            evidence/p0_p4_progress_snapshot.json
           if-no-files-found: warn
           retention-days: 14
