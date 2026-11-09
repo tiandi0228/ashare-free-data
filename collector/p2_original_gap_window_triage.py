@@ -11,6 +11,48 @@ from collector.p2_independent_bars import assess
 
 GAP_REASON="INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
 SOURCE_PHASE="P2_PERSISTENT_ARCHIVE_FEATURE_COVERAGE"
+def check_current_checkpoint(coverage,checkpoint,archive_status):
+    """Refuse stale durable P2 summaries as if they cover newly archived P1 data."""
+    from collector.p1_checkpoint import validate
+    if not isinstance(coverage,dict) or not isinstance(archive_status,dict):
+        raise ValueError("invalid P2 current source inputs")
+    validate(checkpoint)
+    epoch=checkpoint["source_sha256"]
+    completed=checkpoint["completed"]
+    expected={f"shard_{r['index']:04d}" for r in completed}
+    observed=coverage.get("observed_shard_ids")
+    archived=archive_status.get("archived_shards")
+    if (coverage.get("phase")!=SOURCE_PHASE
+        or coverage.get("status")!="DURABLE_RESEARCH_PAGE_COVERAGE_NOT_CERTIFIED"
+        or coverage.get("source_epoch_sha256")!=epoch
+        or archive_status.get("source_sha256")!=epoch
+        or archive_status.get("trade_gate")!="BLOCKED"
+        or coverage.get("trade_gate")!="BLOCKED"
+        or coverage.get("orders")!=[]
+        or coverage.get("historical_PIT_verified") is not False
+        or coverage.get("coverage_certified_for_trading") is not False
+        or coverage.get("full_archive_evidence_accounted") is not True
+        or coverage.get("unobserved_archived_shards")!=0
+        or coverage.get("unobserved_issuer_count")!=0
+        or coverage.get("checkpoint_completed_shards")!=len(completed)
+        or coverage.get("archived_original_shards")!=len(completed)
+        or coverage.get("observed_archived_shards")!=len(completed)
+        or coverage.get("observed_feature_or_gap_issuers")!=checkpoint["completed_issuers"]
+        or not isinstance(observed,list)
+        or set(observed)!=expected or len(observed)!=len(expected)
+        or not isinstance(archived,list) or not archived
+        or any(type(i) is not int or not 0<=i<400 for i in archived)):
+        raise ValueError("stale or unsafe P2 coverage versus live checkpoint")
+    if (len(archived)!=len(expected) or len(set(archived))!=len(archived)
+        or {f"shard_{n:04d}" for n in archived}!=expected):
+        raise ValueError("source original archive status diverges from P2 coverage")
+    return {"source_epoch_sha256":epoch,
+            "checkpoint_completed_shards":len(completed),
+            "checkpoint_completed_issuers":checkpoint["completed_issuers"],
+            "gap_issuer_count":coverage.get("issuer_evidence_gap_count"),
+            "trade_gate":"BLOCKED",
+            "historical_PIT_verified":False}
+
 def classify(rows,asof=END):
     """Check frozen 21 vendor-row trailing window; no inferred missing dates."""
     try:
