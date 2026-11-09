@@ -38,6 +38,11 @@ on:
   # Read-only nightly reconciliation of the *latest* same-epoch checkpoint.
   schedule:
     - cron: '35 16 * * *' # 00:35 Beijing daily
+  # Also audit new source bytes immediately after the P1 origin attestation.
+  # workflow_run executes from default-branch code with read-only archive access.
+  workflow_run:
+    workflows: ["P1 final scheduled origin and archive attestation (NO TRADES)"]
+    types: [completed]
   workflow_dispatch:
 permissions:
   contents: read
@@ -53,7 +58,7 @@ jobs:
           python-version: '3.11'
       - run: python -m unittest -v tests.test_p1_active_migration_checkpoint tests.test_p1_archive_migration_readiness tests.test_p1_legacy_original_receipt_gap_audit tests.test_p1_partial_sha_copy_plan tests.test_p1_source_sha_handoff tests.test_p1_source_handoff_independent_replay tests.test_p1_source_commit_envelope
   source-readback:
-    if: github.event_name != 'pull_request'
+    if: ${{ github.event_name != 'pull_request' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success') }}
     needs: offline
     runs-on: ubuntu-latest
     timeout-minutes: 12
