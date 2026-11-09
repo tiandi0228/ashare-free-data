@@ -1,0 +1,82 @@
+{
+  "audited_issuer_count": 1624,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 0,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603759"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603110"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603111"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 42686210679,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 14340,
+  "research_date_action_links": [],
+  "run_id": 42686661112,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225609563",
+      "archive_path": "pdf/sh_603110/1225609563/6911ce76529aa07feafad07b853849e95b9a8788dcac00c973bcdacb7bece5bb.pdf",
+      "bytes": 185221,
+      "captured_at_utc": "2026-11-09T19:47:35.425493+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1792166400000,
+      "issuer": "sh.603110",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-17/1225609563.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "6911ce76529aa07feafad07b853849e95b9a8788dcac00c973bcdacb7bece5bb",
+      "title_from_index_unverified": "新东方新材料股份有限公司2026年第三次临时股东会决议公告"
+    },
+    {
+      "announcement_id": "1225559818",
+      "archive_path": "pdf/sh_603111/1225559818/37a77eda495e0f17376bdc12bb7e17f8a97a57213c8942c9e088242b914141ec.pdf",
+      "bytes": 178727,
+      "captured_at_utc": "2026-11-09T19:47:36.261897+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1789142400000,
+      "issuer": "sh.603111",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-12/1225559818.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "37a77eda495e0f17376bdc12bb7e17f8a97a57213c8942c9e088242b914141ec",
+      "title_from_index_unverified": "康尼机电2026年半年度权益分派实施公告"
+    },
+    {
+      "announcement_id": "1225602844",
+      "archive_path": "pdf/sh_603759/1225602844/395604493e9e1088b759fc45c75474d79db275112a1d13f3ba0ebabd4697cda8.pdf",
+      "bytes": 63642,
+      "captured_at_utc": "2026-11-09T19:47:34.898422+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1791907200000,
+      "issuer": "sh.603759",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-14/1225602844.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "395604493e9e1088b759fc45c75474d79db275112a1d13f3ba0ebabd4697cda8",
+      "title_from_index_unverified": "关于证券事务代表辞职的公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
