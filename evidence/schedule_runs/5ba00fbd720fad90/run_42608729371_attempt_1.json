@@ -1,0 +1,57 @@
+{
+  "actual_scheduled_execution_is_proven": true,
+  "archive_csv_replay_enabled": true,
+  "checkpoint_shards_after": 197,
+  "checkpoint_shards_before": 195,
+  "delay_exceeds_45_minutes": true,
+  "executable_candidates": [],
+  "github_queue_creation_delay_minutes": 493.967,
+  "github_run_created_at_utc": "2026-11-09T11:23:58+00:00",
+  "github_workflow_conclusion_authenticated": false,
+  "head_sha": "e07aaddb8357cb677787df7bf3ea8b52eed9211e",
+  "historical_PIT_verified": false,
+  "limitations": [
+    "GITHUB_RUN_CREATED_AT_IS_QUEUE_CREATION_NOT_RUNNER_STEP_START",
+    "LITERAL_EVENT_CRON_DOES_NOT_PROVE_FUTURE_SCHEDULE_RELIABILITY",
+    "SCHEDULED_NOMINAL_DATE_INFERRED_FROM_CREATED_AT_NOT_SIGNED_BY_GITHUB",
+    "IN_FLIGHT_SOURCE_RECEIPT_NOT_FINAL_ACTIONS_SUCCESS_ATTESTATION",
+    "SOURCE_BARS_NOT_HISTORICAL_PIT_OR_TRADING_ELIGIBILITY"
+  ],
+  "new_archived_shard_evidence": [
+    {
+      "index": 5,
+      "issuer_count": 8,
+      "manifest_sha256": "697d3f3592578eb08199647852e12113ff1d0225a32a58eab059abcb94ee926d",
+      "receipt_sha256": "3830fb10c93dfc8779d56a6702183502f556e0effd6f1a2feaccc49fe4558b76"
+    },
+    {
+      "index": 180,
+      "issuer_count": 8,
+      "manifest_sha256": "ffb3220cde671382a8b9df10265de84820a65550d4f040254062a9e2b4aeb071",
+      "receipt_sha256": "65a530aaf7c1afdc267505ea15363fca0f97cad50a0921a015e072603bdec8a7"
+    }
+  ],
+  "new_original_shard_indices": [
+    5,
+    180
+  ],
+  "nominal_slot_beijing": "2026-11-09T11:10:00+08:00",
+  "nominal_slot_date_is_inferred_not_authenticated": true,
+  "nominal_slot_utc": "2026-11-09T03:10:00+00:00",
+  "orders": [],
+  "per_shard_digests_from_locally_validated_ledger": true,
+  "phase": "P1_LITERAL_CRON_RUN_CREATION_PROVENANCE_PENDING_CONCLUSION",
+  "provider_collection_latency_measured_here": false,
+  "requested_shards": 2,
+  "run_attempt": 1,
+  "run_id": 42608729371,
+  "runner_step_start_authenticated": false,
+  "schedule_creation_delay_severity": "SEVERE_OVER_3H",
+  "schedule_creation_is_not_runner_start": true,
+  "shards_durably_accepted_by_run": 2,
+  "source_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_authorized": false,
+  "trade_gate": "BLOCKED",
+  "trigger": "schedule",
+  "trigger_cron_utc": "10 3 * * 1-5"
+}
