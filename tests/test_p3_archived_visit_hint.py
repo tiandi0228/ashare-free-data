@@ -104,6 +104,54 @@ class P3ArchivedResearchVisitTests(unittest.TestCase):
             self.assertEqual(result["trade_gate"],"BLOCKED")
             self.assertEqual(result["orders"],[])
 
+    def test_two_slots_reach_unvisited_full_p1_even_when_halt_suspects_recur(self):
+        # All 4 issuers are in the source-checked P2 gap queue, but the
+        # archive has already researched 3. Reserve only 1 anomaly slot;
+        # the other slots must have a chance to cover the wider P1 roster.
+        with tempfile.TemporaryDirectory() as d:
+            for i,issuer in ((10,"sh.600000"),(11,"sz.000001"),(12,"sz.000002")):
+                write_manifest(d,i,EPOCH,issuer)
+            history=build(d,EPOCH)
+            result=plan(q(),p2_coverage=four_issuer_p2_hint(),
+                        rotation_index=1,visited_hint=history)
+            self.assertEqual(len(result["targets"]),3)
+            self.assertEqual(result["p2_original_sha_priority_targets"],1)
+            self.assertEqual(result["full_p1_coverage_slots"],2)
+            self.assertEqual(result["newly_unvisited_p1_targets"],1)
+            self.assertEqual(result["targets"][0]["issuer"],"sh.600003")
+            self.assertEqual(result["targets"][1]["target_selection_basis"],
+                             "ARCHIVED_LEAST_VISITED_P1_SOURCE_RESEARCH_ONLY")
+            self.assertEqual(result["trade_gate"],"BLOCKED")
+            self.assertEqual(result["orders"],[])
+
+    def test_full_p1_slots_prefer_unvisited_normal_issuers_to_repeat_halt(self):
+        with tempfile.TemporaryDirectory() as d:
+            # P2 gap only for sh.600000: all other source issuers have never
+            # appeared in archived official-research manifests.
+            write_manifest(d,10,EPOCH,"sh.600000")
+            source=plan(q(),p2_coverage=p2_source_hint(
+                issuer="sh.600000",shard_id="shard_0000"),
+                rotation_index=1,visited_hint=build(d,EPOCH))
+            self.assertEqual(source["p2_original_sha_priority_targets"],1)
+            self.assertEqual(source["full_p1_coverage_slots"],2)
+            selected=[x["issuer"] for x in source["targets"]]
+            self.assertEqual(selected[0],"sh.600000")
+            self.assertEqual(len(set(selected)),3)
+            self.assertEqual(source["newly_unvisited_p1_targets"],2)
+            self.assertTrue(all(source["targets"][j]["prior_archived_scout_attempts"]==0
+                                for j in (1,2)))
+            self.assertFalse(source["archive_visit_hint_is_official_proof"])
+
+    def test_no_priority_still_explores_full_audited_p1_queue(self):
+        with tempfile.TemporaryDirectory() as d:
+            write_manifest(d,10,EPOCH,"sh.600000")
+            result=plan(q(),rotation_index=1,visited_hint=build(d,EPOCH))
+            self.assertEqual(result["p2_original_sha_priority_targets"],0)
+            self.assertEqual(result["full_p1_coverage_slots"],3)
+            self.assertEqual(result["newly_unvisited_p1_targets"],3)
+            self.assertEqual(len(result["targets"]),3)
+            self.assertEqual(result["orders"],[])
+
     def test_missing_hint_uses_legacy_run_rotation_no_forged_zero_visits(self):
         result=plan(q(),p2_coverage=four_issuer_p2_hint(),rotation_index=2)
         self.assertFalse(result["archive_visit_hint_present"])
