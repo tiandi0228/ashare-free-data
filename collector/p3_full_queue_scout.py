@@ -228,7 +228,7 @@ def plan(full_queue,limit=3,p2_coverage=None,rotation_index=None,visited_hint=No
               "vendor_halt_transition_research_days":sorted(by_issuer[issuer]["transition_days"]),
               "target_selection_basis":("P2_SHA_CHECKED_RECENT_VENDOR_SUSPENSION_NOT_OFFICIAL" if issuer in p2_selected else "VENDOR_NONTRADING_OBSERVED_NOT_OFFICIAL" if "0" in by_issuer[issuer]["status_by_day"].values() else "FROZEN_SHARD_ROTATION"),
               "cells_to_research":len(by_issuer[issuer]["days"])*4,
-              "prior_archived_scout_attempts":visit_counts.get(issuer) if visited is not None else None,
+              "prior_archived_scout_attempts":visit_counts.get(issuer,0) if visited is not None else None,
               "prior_archived_pdf_retrievals":original_counts.get(issuer,0) if visited is not None else None,
               "original_official_url":None,"original_publication_time":None,
               "research_state":"SOURCE_DISCOVERY_REQUIRED_NOT_CERTIFIED"} for issuer in picks]
