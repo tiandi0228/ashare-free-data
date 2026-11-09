@@ -10,9 +10,9 @@ import json
 import re
 from pathlib import Path
 
-SHA=re.compile(r"[a-f0-9]{40}\\Z")
-SHA256=re.compile(r"[a-f0-9]{64}\\Z")
-STATUS=re.compile(r"[a-f0-9]{16}/archive_status[.]json\\Z")
+SHA=re.compile(r"[a-f0-9]{40}\Z")
+SHA256=re.compile(r"[a-f0-9]{64}\Z")
+STATUS=re.compile(r"[a-f0-9]{16}/archive_status[.]json\Z")
 
 
 def seal(handoff,replay,source_commit,execution_commit):
@@ -116,7 +116,7 @@ def main():
              json.loads(a.replay.read_text()),
              a.source_commit,a.execution_commit)
     a.out.parent.mkdir(parents=True,exist_ok=True)
-    a.out.write_text(json.dumps(obj,ensure_ascii=False,indent=2)+"\\n")
+    a.out.write_text(json.dumps(obj,ensure_ascii=False,indent=2)+"\n")
     print(json.dumps({k:obj[k] for k in (
         "phase","status","source_archive_commit_sha",
         "execution_main_commit_sha","source_handoff_envelope_sha256",
