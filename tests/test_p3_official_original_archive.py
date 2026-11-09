@@ -33,7 +33,8 @@ class ArchiveEvidenceTests(unittest.TestCase):
             "vendor_tradestatus_observed":"0"}]}
         self.index={"phase":"P3_REAL_P1_LIVE_INDEX_DISCOVERY",
             "trade_gate":"BLOCKED","orders":[],"historical_PIT_verified":False,
-            "results":[{"issuer":ISSUER,"candidates":[{
+            "attempted":1,
+            "results":[{"issuer":ISSUER,"status":"INDEX_CANDIDATES_UNVERIFIED","candidates":[{
                 "announcement_id":NOTICE,"official_pdf_url":URL,
                 "announcement_title_unverified":"关于停牌的公告",
                 "index_published_milliseconds_unverified":1792560000000}]}]}
@@ -80,6 +81,46 @@ class ArchiveEvidenceTests(unittest.TestCase):
         self.assertFalse(checked["historical_PIT_verified"])
         (target).write_bytes(b"%PDF-different")
         with self.assertRaises(ValueError):verify_archive(archive,42)
+    def test_archived_index_attempt_is_separate_from_pdf_receipt(self):
+        m,files=self.make()
+        self.assertEqual(m["index_query_attempted_issuers_research_only"],[{
+            "issuer":ISSUER,"index_status_research_only":"INDEX_CANDIDATES_UNVERIFIED",
+            "historical_PIT_verified":False,
+        }])
+        self.assertEqual(m["original_pdf_count"],1)
+        self.assertFalse(m["historical_PIT_verified"])
+        self.assertEqual(m["orders"],[])
+
+    def test_index_has_no_matches_still_persists_research_attempt(self):
+        self.index["results"][0].update(
+            status="NO_INDEX_MATCH_NOT_NO_RISK",candidates=[])
+        self.receipts["retrieved"]=0
+        self.receipts["sources"]=[]
+        self.review["evaluated_research_links"]=0
+        self.review["explicit_original_clause_candidates"]=0
+        self.review["manual_review_only"]=[]
+        self.write_receipts()
+        m,files=self.make()
+        self.assertEqual(files,{})
+        self.assertEqual(m["original_pdf_count"],0)
+        self.assertEqual(len(m["index_query_attempted_issuers_research_only"]),1)
+        self.assertFalse(m["historical_PIT_verified"])
+
+    def test_index_attempt_status_contradiction_and_scope_mismatch_fail(self):
+        import copy
+        for invalid in (
+            lambda i:i["results"][0].update(
+                status="NO_INDEX_MATCH_NOT_NO_RISK"),
+            lambda i:i.update(attempted=2),
+            lambda i:i["results"][0].update(issuer="sh.603999"),
+            lambda i:i["results"].append(copy.deepcopy(i["results"][0])),
+        ):
+            original=copy.deepcopy(self.index)
+            invalid(self.index)
+            with self.assertRaises(ValueError):
+                self.make()
+            self.index=original
+
     def test_mutated_original_is_rejected(self):
         (self.source/"sh_600038_123456789.pdf").write_bytes(PDF+b"z")
         with self.assertRaises(ValueError):self.make()
