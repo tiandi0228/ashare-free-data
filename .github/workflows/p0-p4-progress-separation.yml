@@ -1,0 +1,26 @@
+name: P0-P4 progress presentation separation (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p0_p4_progress_snapshot.py'
+      - 'tests/test_p0_p4_progress_snapshot.py'
+      - '.github/workflows/p0-p4-progress-separation.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p0_p4_progress_snapshot.py'
+      - 'tests/test_p0_p4_progress_snapshot.py'
+      - '.github/workflows/p0-p4-progress-separation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest -v tests.test_p0_p4_progress_snapshot tests.test_progress_baseline
