@@ -36,6 +36,9 @@ def crosswalk(gaps,events,pairs):
         or pairs.get("authenticated_first_publication_count")!=0
         or pairs.get("orders")!=[]):
         raise ValueError("untrusted research source")
+    epoch=gaps.get("source_epoch_sha256")
+    if not isinstance(epoch,str) or SHA256_RE.fullmatch(epoch) is None:
+        raise ValueError("original P2 gap epoch SHA not independently present")
     gap_rows=gaps.get("results")
     event_rows=events.get("research_text_event_claims")
     pair_rows=pairs.get("text_only_halt_resume_pairs")
@@ -101,6 +104,7 @@ def crosswalk(gaps,events,pairs):
     with_pair=sum(x["same_issuer_sha_linked_resume_text_pairs"]>0 for x in output)
     return {
         "phase":"P2_P3_SAME_ISSUER_RESEARCH_GAP_CROSSWALK",
+        "source_epoch_sha256":epoch,
         "status":"RESEARCH_JOIN_NO_PIT_EVENT_CAUSATION",
         "gap_issuers_examined":len(output),
         "gap_issuers_with_same_issuer_official_pdf_text_lead":with_lead,

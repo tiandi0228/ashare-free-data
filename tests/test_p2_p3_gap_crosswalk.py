@@ -4,6 +4,7 @@ from collector.p2_p3_gap_crosswalk import crosswalk
 
 def samples():
     gaps={"phase":"P2_ORIGINAL_CSV_GAP_WINDOW_DIAGNOSIS",
+        "source_epoch_sha256":"a"*64,
         "status":"SOURCE_VERIFIED_VENDOR_WINDOW_RESEARCH_ONLY",
         "trade_gate":"BLOCKED","historical_PIT_verified":False,
         "coverage_gaps_resolved":0,"orders":[],

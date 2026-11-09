@@ -4,6 +4,8 @@ on:
     paths:
       - 'collector/p2_p3_gap_crosswalk.py'
       - 'collector/p2_p3_current_source_guard.py'
+      - 'collector/p2_p3_issuer_proof_action_queue.py'
+      - 'tests/test_p2_p3_issuer_proof_action_queue.py'
       - 'tests/test_p2_p3_current_source_guard.py'
       - 'tests/test_p2_p3_gap_crosswalk.py'
       - '.github/workflows/p2-p3-original-gap-crosswalk.yml'
@@ -17,6 +19,8 @@ on:
     paths:
       - 'collector/p2_p3_gap_crosswalk.py'
       - 'collector/p2_p3_current_source_guard.py'
+      - 'collector/p2_p3_issuer_proof_action_queue.py'
+      - 'tests/test_p2_p3_issuer_proof_action_queue.py'
       - 'tests/test_p2_p3_current_source_guard.py'
       - 'tests/test_p2_p3_gap_crosswalk.py'
       - '.github/workflows/p2-p3-original-gap-crosswalk.yml'
@@ -33,7 +37,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Test original issuer join without promoting PIT
-        run: python -m unittest -v tests.test_p2_p3_gap_crosswalk tests.test_p2_original_gap_window_triage tests.test_p2_p3_current_source_guard
+        run: python -m unittest -v tests.test_p2_p3_gap_crosswalk tests.test_p2_original_gap_window_triage tests.test_p2_p3_current_source_guard tests.test_p2_p3_issuer_proof_action_queue
   replay_once:
     if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     needs: offline
@@ -126,6 +130,21 @@ jobs:
               or result['historical_PIT_verified'] is not False
               or result['trade_gate']!='BLOCKED' or result['orders']!=[]):
               raise ValueError('P2/P3 issuer join not same-source or falsely certified')
+          subprocess.run([
+              'python','-m','collector.p2_p3_issuer_proof_action_queue',
+              '--crosswalk','evidence/p2-p3-gap-crosswalk.json',
+              '--guard','evidence/p2-p3-source-provenance.json',
+              '--out','evidence/p2-p3-issuer-proof-action-queue.json'],check=True)
+          review=json.loads(Path('evidence/p2-p3-issuer-proof-action-queue.json').read_text())
+          assert review['gap_issuer_count']==result['gap_issuers_examined']
+          assert review['unresolved_issuer_count']==guard['p2_vendor_gap_issuers']
+          assert sum(review['review_action_counts'].values())==review['gap_issuer_count']
+          assert review['official_halt_intervals_certified']==0
+          assert review['feature_gaps_resolved']==0
+          assert review['historical_PIT_verified'] is False
+          assert review['trade_gate']=='BLOCKED' and review['orders']==[]
+          print('P2/P3 SOURCE-SHA OFFICIAL PROOF TASKS:',
+                json.dumps(review['review_action_counts'],sort_keys=True))
           print('P2/P3 CURRENT ORIGINAL SHA RESEARCH CROSSWALK:',
                 guard['p2_current_archived_shards'],'P1 shards,',
                 result['gap_issuers_examined'],'gap issuers,',
@@ -140,6 +159,7 @@ jobs:
           path: |
             evidence/p2-p3-gap-crosswalk.json
             evidence/p2-p3-source-provenance.json
+            evidence/p2-p3-issuer-proof-action-queue.json
             evidence/sources/selected-runs.json
           if-no-files-found: warn
           retention-days: 14
