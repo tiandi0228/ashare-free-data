@@ -6,6 +6,8 @@ on:
       - 'collector/p1_legacy_original_receipt_gap_audit.py'
       - 'collector/p1_partial_sha_copy_plan.py'
       - 'collector/p1_source_sha_handoff.py'
+      - 'collector/p1_source_handoff_independent_replay.py'
+      - 'tests/test_p1_source_handoff_independent_replay.py'
       - 'tests/test_p1_source_sha_handoff.py'
       - 'tests/test_p1_partial_sha_copy_plan.py'
       - 'tests/test_p1_legacy_original_receipt_gap_audit.py'
@@ -18,6 +20,8 @@ on:
       - 'collector/p1_legacy_original_receipt_gap_audit.py'
       - 'collector/p1_partial_sha_copy_plan.py'
       - 'collector/p1_source_sha_handoff.py'
+      - 'collector/p1_source_handoff_independent_replay.py'
+      - 'tests/test_p1_source_handoff_independent_replay.py'
       - 'tests/test_p1_source_sha_handoff.py'
       - 'tests/test_p1_partial_sha_copy_plan.py'
       - 'tests/test_p1_legacy_original_receipt_gap_audit.py'
@@ -39,7 +43,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest -v tests.test_p1_archive_migration_readiness tests.test_p1_legacy_original_receipt_gap_audit tests.test_p1_partial_sha_copy_plan tests.test_p1_source_sha_handoff
+      - run: python -m unittest -v tests.test_p1_archive_migration_readiness tests.test_p1_legacy_original_receipt_gap_audit tests.test_p1_partial_sha_copy_plan tests.test_p1_source_sha_handoff tests.test_p1_source_handoff_independent_replay
   source-readback:
     if: github.event_name != 'pull_request'
     needs: offline
@@ -124,6 +128,27 @@ jobs:
           assert len(x['original_paths_and_sha256'])==x['eligible_original_files']
           print('P1 SOURCE HANDOFF DIGEST:',x['source_file_inventory_sha256'])
           PY
+      - name: Independently rehash source handoff bytes and archived status originals
+        env:
+          PYTHONPATH: code
+        run: |
+          python -m collector.p1_source_handoff_independent_replay \
+            --source source-archive \
+            --handoff evidence/p1_source_sha_handoff.json \
+            --out evidence/p1_source_handoff_independent_replay.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          a=json.loads(Path('evidence/p1_source_sha_handoff.json').read_text())
+          b=json.loads(Path('evidence/p1_source_handoff_independent_replay.json').read_text())
+          assert a['source_file_inventory_sha256']==b['source_file_inventory_sha256']
+          assert a['eligible_original_files']==b['source_files_replayed']
+          assert a['eligible_shards']==b['source_shards_replayed']
+          assert b['destination_files_verified'] is False
+          assert b['writer_cutover_authorized'] is False
+          assert b['trade_gate']=='BLOCKED' and b['orders']==[]
+          print('P1 INDEPENDENT SOURCE HANDOFF SHA REPLAY PASSED')
+          PY
       - name: Report source readiness without claiming writer cutover
         run: |
           python - <<'PY'
@@ -135,11 +160,14 @@ jobs:
           legacy=json.loads(Path('evidence/p1_legacy_quality_receipt_gaps.json').read_text())
           partial=json.loads(Path('evidence/p1_partial_sha_copy_plan.json').read_text())
           handoff=json.loads(Path('evidence/p1_source_sha_handoff.json').read_text())
+          replay=json.loads(Path('evidence/p1_source_handoff_independent_replay.json').read_text())
           assert legacy['trade_gate']=='BLOCKED'
           assert legacy['writer_cutover_authorized'] is False
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
               out.write('### P1 archived source readiness (NO TRADES)\n')
               out.write(f"- source_handoff_manifest_sha256: {handoff['source_file_inventory_sha256']}\\n")
+              out.write(f"- independent_source_files_replayed: {replay['source_files_replayed']}\\n")
+              out.write(f"- separate_original_status_sha_count: {len(replay['archive_status_original_sha256'])}\\n")
               out.write('### SHA-replayed eligible original shards (NOT MIGRATED)\\n')
               out.write(f"- eligible_shards: {partial['eligible_shards']}\\n")
               out.write(f"- eligible_original_files: {partial['eligible_original_files']}\\n")
@@ -162,5 +190,6 @@ jobs:
             evidence/p1_legacy_quality_receipt_gaps.json
             evidence/p1_partial_sha_copy_plan.json
             evidence/p1_source_sha_handoff.json
+            evidence/p1_source_handoff_independent_replay.json
           if-no-files-found: warn
           retention-days: 30
