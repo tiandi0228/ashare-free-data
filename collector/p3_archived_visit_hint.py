@@ -48,6 +48,27 @@ def build(root,source_epoch):
         if epoch!=source_epoch:
             continue
         runs+=1
+        # New manifests independently record index attempts even when no
+        # downloadable original existed. Legacy immutable manifests do not;
+        # fall back to their narrower source-PDF receipt evidence.
+        index_attempts=manifest.get("index_query_attempted_issuers_research_only")
+        if index_attempts is not None:
+            if not isinstance(index_attempts,list) or not 1<=len(index_attempts)<=3:
+                raise ValueError("invalid P3 index attempt receipts")
+            attempted=set()
+            for item in index_attempts:
+                issuer=item.get("issuer") if isinstance(item,dict) else None
+                status=item.get("index_status_research_only") if isinstance(item,dict) else None
+                if (not isinstance(issuer,str) or not ISSUER.fullmatch(issuer)
+                    or issuer in attempted
+                    or status not in ("INDEX_CANDIDATES_UNVERIFIED",
+                                      "NO_INDEX_MATCH_NOT_NO_RISK",
+                                      "INDEX_UNAVAILABLE_NOT_NO_RISK")
+                    or item.get("historical_PIT_verified") is not False):
+                    raise ValueError("invalid P3 archived index attempt")
+                attempted.add(issuer);visits[issuer]+=1
+        else:
+            attempted=None
         seen=set()
         for row in receipts:
             if not isinstance(row,dict):
@@ -58,9 +79,11 @@ def build(root,source_epoch):
                 or row.get("historical_PIT_verified") is not False
                 or row.get("historical_first_publication_authenticated") is not False
                 or row.get("effective_date_authenticated") is not False
-                or type(row.get("original_retrieved")) is not bool):
+                or type(row.get("original_retrieved")) is not bool
+                or (attempted is not None and issuer not in attempted)):
                 raise ValueError("forged prior research visit")
-            seen.add(issuer);visits[issuer]+=1
+            seen.add(issuer)
+            if attempted is None:visits[issuer]+=1
             if row["original_retrieved"]:
                 digest=row.get("pdf_sha256")
                 if (not isinstance(digest,str) or not SHA.fullmatch(digest)
@@ -77,6 +100,7 @@ def build(root,source_epoch):
         "matching_archive_run_manifests":runs,
         "total_archived_issuer_attempts":sum(visits.values()),
         "distinct_attempted_issuers":len(visits),
+        "visit_count_includes_index_only_research_where_archived":True,
         "issuer_visit_counts":dict(sorted(visits.items())),
         "issuer_original_retrieval_counts":dict(sorted(retrieved.items())),
         "official_history_search_exhaustive":False,
