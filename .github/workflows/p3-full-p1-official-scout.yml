@@ -4,6 +4,8 @@ on:
     branches: [main]
     paths:
       - 'collector/p3_full_queue_scout.py'
+      - 'collector/p3_archived_visit_hint.py'
+      - 'tests/test_p3_archived_visit_hint.py'
       - 'collector/p3_full_queue_source_join.py'
       - 'collector/p3_original_effective_clause_review.py'
       - 'collector/p3_real_p1_pdf_text_cues.py'
@@ -58,7 +60,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline boundaries and official-source tests
-        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture tests.test_p3_original_effective_clause_review tests.test_p3_official_original_archive tests.test_p3_persisted_temporal_risk_triage tests.test_p3_index_chronology_guard tests.test_p3_archived_event_episode_ledger tests.test_p3_event_proof_gap_queue tests.test_p3_proof_gap_triage tests.test_p3_conflict_review_packet tests.test_p3_official_review_packets tests.test_p3_resume_followup_discovery tests.test_p3_resume_original_archive tests.test_p3_halt_resume_pair_review -v
+        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_archived_visit_hint tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture tests.test_p3_original_effective_clause_review tests.test_p3_official_original_archive tests.test_p3_persisted_temporal_risk_triage tests.test_p3_index_chronology_guard tests.test_p3_archived_event_episode_ledger tests.test_p3_event_proof_gap_queue tests.test_p3_proof_gap_triage tests.test_p3_conflict_review_packet tests.test_p3_official_review_packets tests.test_p3_resume_followup_discovery tests.test_p3_resume_original_archive tests.test_p3_halt_resume_pair_review -v
       - name: Install free PDF text parser
         run: python -m pip install 'pypdf>=4,<7'
       - name: Verify malformed archived-PDF quarantine and SHA integrity fail-closed
@@ -112,11 +114,27 @@ jobs:
           else
             echo "No prior P2 feature research branch; normal P3 source rotation"
           fi
+      - name: Replay bounded previous P3 visit manifests as read-only research history
+        run: |
+          if git ls-remote --exit-code --heads origin research-official-originals-archive >/dev/null 2>&1; then
+            git fetch --depth=1 origin research-official-originals-archive
+            git worktree add --detach prior-official-research FETCH_HEAD
+            SOURCE_SHA=$(python -c "import json;print(json.load(open('evidence/full_p1_queue.json'))['roster_source_sha256'])")
+            python -m collector.p3_archived_visit_hint \
+              --archive-root prior-official-research \
+              --source-epoch "$SOURCE_SHA" \
+              --out evidence/p3_prior_research_visits.json
+          else
+            echo "No prior official originals research archive; rotation remains safe"
+          fi
       - name: Select three distinct current P1 historical official-source targets
         run: |
           ARGS=()
           if [ -s evidence/p2_verified_research_hint.json ]; then
             ARGS+=(--p2-feature-coverage evidence/p2_verified_research_hint.json)
+          fi
+          if [ -s evidence/p3_prior_research_visits.json ]; then
+            ARGS+=(--archive-visit-hint evidence/p3_prior_research_visits.json)
           fi
           python -m collector.p3_full_queue_scout \
             --queue evidence/full_p1_queue.json \
@@ -128,6 +146,9 @@ jobs:
           assert r['trade_gate']=='BLOCKED' and r['orders']==[]
           assert r['official_PIT_verified'] is False
           assert r['p2_hint_is_official_evidence'] is False
+          assert r['archive_visit_hint_is_official_proof'] is False
+          print('P3 research visit history used:',r['archive_visit_hint_present'],
+                'same-epoch archive runs:',r['archived_same_epoch_runs_checked'])
           assert r['rotation_basis']=='P3_WORKFLOW_RUN_NUMBER'
           assert r['rotation_index']==int('${{ github.run_number }}')
           print('P3 P2 SHA-BOUND PRIORITY RESEARCH TARGETS:',
