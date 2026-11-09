@@ -89,9 +89,9 @@ def prepare(*,originals_root,review,queue,index,run_id,upstream_run_id):
         candidates=result.get("candidates")
         if not isinstance(candidates,list) or len(candidates)>90:
             raise ValueError("unbounded index research candidates")
-        if ((status=="INDEX_CANDIDATES_UNVERIFIED") is not bool(candidates)):
-            if status!="INDEX_UNAVAILABLE_NOT_NO_RISK" or candidates:
-                raise ValueError("contradictory official index attempt status")
+        if ((status=="INDEX_CANDIDATES_UNVERIFIED" and not candidates)
+            or (status!="INDEX_CANDIDATES_UNVERIFIED" and candidates)):
+            raise ValueError("contradictory official index attempt status")
         index_attempts.append({"issuer":issuer,"index_status_research_only":status,
                                "historical_PIT_verified":False})
     evidence={}
