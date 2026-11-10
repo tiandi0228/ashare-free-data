@@ -45,6 +45,18 @@ class P1ScheduleQualityTests(unittest.TestCase):
         self.assertEqual(report["orders"], [])
         self.assertEqual(report["trade_gate"], "BLOCKED")
 
+    def test_legacy_receipt_has_lag_but_no_locally_SHA_proven_delta(self):
+        r=make_receipt(1201,"2026-11-05T03:20:00Z")
+        r["per_shard_digests_from_locally_validated_ledger"]=False
+        r["new_archived_shard_evidence"]=None
+        self.save(r)
+        summary=summarize(self.root,EPOCH)
+        self.assertEqual(summary["observed_receipts"],1)
+        self.assertEqual(summary["locally_SHA_ledger_accepted_shards_across_observed_runs"],0)
+        self.assertEqual(summary["legacy_receipt_runs_without_local_SHA_proofs"],1)
+        self.assertEqual(summary["legacy_reported_but_not_locally_SHA_proven_shard_deltas"],2)
+        self.assertFalse(summary["final_GitHub_workflow_conclusions_verified"])
+
     def test_inflight_receipt_not_promoted_to_final_success(self):
         self.save(make_receipt(2001, "2026-11-05T03:20:00Z"))
         r = summarize(self.root)
