@@ -186,6 +186,9 @@ jobs:
           assert pdf['issuer_with_original_halt_resume_text']==review['issuer_with_same_issuer_text_lead']
           assert pdf['issuer_with_resume_text_pair']==review['issuer_with_resume_text_pair']
           assert pdf['source_epoch_sha256']==review['source_epoch_sha256']
+          assert pdf['p2_source_run_id']==chosen['p2_run_id']
+          assert pdf['p3_source_run_id']==chosen['p3_run_id']
+          assert pdf['source_run_ids_are_research_artifact_locators_only'] is True
           assert pdf['authenticated_first_publication_count']==0
           assert pdf['certified_exchange_intervals']==0 and pdf['feature_gaps_resolved']==0
           assert pdf['historical_PIT_verified'] is False

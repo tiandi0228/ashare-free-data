@@ -12,6 +12,7 @@ def fixtures():
         "phase":"P2_P3_SOURCE_SHA_ISSUER_EVIDENCE_REVIEW_QUEUE",
         "status":"UNRESOLVED_OFFICIAL_PROOF_REQUIREMENTS_RESEARCH_ONLY",
         "source_epoch_sha256":EPOCH,"gap_issuer_count":2,
+        "p2_source_run_id":42723193588,"p3_source_run_id":42723131727,
         "unresolved_issuer_count":2,"official_halt_intervals_certified":0,
         "feature_gaps_resolved":0,"historical_PIT_verified":False,
         "trade_gate":"BLOCKED","orders":[],"executable_candidates":[],
@@ -71,6 +72,9 @@ class OriginalProofSourceIndexTests(unittest.TestCase):
     def test_same_issuer_sha_document_and_archival_capture_not_publication(self):
         out=index(*fixtures())
         self.assertEqual(out["gap_issuer_count"],2)
+        self.assertEqual(out["p2_source_run_id"],42723193588)
+        self.assertEqual(out["p3_source_run_id"],42723131727)
+        self.assertTrue(out["source_run_ids_are_research_artifact_locators_only"])
         self.assertEqual(out["issuer_with_original_halt_resume_text"],1)
         self.assertEqual(out["issuer_with_resume_text_pair"],1)
         self.assertEqual(out["total_source_document_text_leads"],1)
@@ -127,6 +131,27 @@ class OriginalProofSourceIndexTests(unittest.TestCase):
             p["text_only_halt_resume_pairs"][0][key]=value
             with self.subTest(key=key),self.assertRaises(ValueError):
                 index(q,e,p)
+
+    def test_source_run_id_forgery_rejected_without_promoting_official_status(self):
+        for key,value in (
+            ("p2_source_run_id",None),
+            ("p2_source_run_id",False),
+            ("p2_source_run_id",0),
+            ("p2_source_run_id","42723193588"),
+            ("p3_source_run_id",-1),
+            ("p3_source_run_id",True),
+        ):
+            q,e,p=copy.deepcopy(fixtures())
+            q[key]=value
+            with self.subTest(key=key,value=value),self.assertRaisesRegex(
+                ValueError,"source run IDs"):
+                index(q,e,p)
+        out=index(*fixtures())
+        self.assertEqual(out["authenticated_first_publication_count"],0)
+        self.assertEqual(out["certified_exchange_intervals"],0)
+        self.assertFalse(out["historical_PIT_verified"])
+        self.assertEqual(out["trade_gate"],"BLOCKED")
+        self.assertEqual(out["orders"],[])
 
     def test_cross_epoch_task_duplicates_and_count_fraud_rejected(self):
         for case in ("epoch","duplicate","count","gate"):
