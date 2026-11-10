@@ -46,6 +46,13 @@ class RecoveryPolicyTests(unittest.TestCase):
                    run(2,13,30,event="workflow_dispatch",conclusion="failure")],
                    total_count=2)
         self.assertEqual(r["reason"],"P1_RUN_ALREADY_STARTED_AFTER_SLOT")
+    def test_mismatched_actual_cron_prevents_unsafe_recovery(self):
+        delayed=run(3,13,20)
+        delayed["display_title"]="P1 origin 10 1 * * 1-5 [NO TRADES]"
+        result=eligibility(tm(14,20),[run(1,11,12),delayed],total_count=2)
+        self.assertEqual(result["reason"],"SCHEDULE_SLOT_NOT_MISSING")
+        self.assertFalse(result["auto_dispatched"])
+
     def test_malformed_or_missing_github_data_blocks(self):
         self.assertEqual(eligibility(tm(14,20),[],total_count=0)["reason"],
                          "RUN_COVERAGE_UNVERIFIED")

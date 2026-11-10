@@ -1,4 +1,6 @@
 name: P1 fresh Baostock mainboard roster observation (NO TRADES)
+# The scheduled cron is immutable run provenance even if Actions starts late.
+run-name: P1 origin ${{ github.event.schedule || github.event_name }} [NO TRADES]
 on:
   push:
     branches: [main]
