@@ -1,0 +1,50 @@
+{
+  "actual_scheduled_execution_is_proven": true,
+  "archive_csv_replay_enabled": true,
+  "checkpoint_shards_after": 222,
+  "checkpoint_shards_before": 221,
+  "delay_exceeds_45_minutes": true,
+  "executable_candidates": [],
+  "github_queue_creation_delay_minutes": 435.517,
+  "github_run_created_at_utc": "2026-11-10T20:25:31+00:00",
+  "github_workflow_conclusion_authenticated": false,
+  "head_sha": "318748a78033e6c641c25c34ab5964d82f68201e",
+  "historical_PIT_verified": false,
+  "limitations": [
+    "GITHUB_RUN_CREATED_AT_IS_QUEUE_CREATION_NOT_RUNNER_STEP_START",
+    "LITERAL_EVENT_CRON_DOES_NOT_PROVE_FUTURE_SCHEDULE_RELIABILITY",
+    "SCHEDULED_NOMINAL_DATE_INFERRED_FROM_CREATED_AT_NOT_SIGNED_BY_GITHUB",
+    "IN_FLIGHT_SOURCE_RECEIPT_NOT_FINAL_ACTIONS_SUCCESS_ATTESTATION",
+    "SOURCE_BARS_NOT_HISTORICAL_PIT_OR_TRADING_ELIGIBILITY"
+  ],
+  "new_archived_shard_evidence": [
+    {
+      "index": 389,
+      "issuer_count": 8,
+      "manifest_sha256": "abdfd3ef13fa4091beb84af5e818fd4e8390f92571f740b015ef5dace956fc3c",
+      "receipt_sha256": "14cf424827afc2e63643e64e46d95de709b697b8f46114df2dace9b20b9d63b2"
+    }
+  ],
+  "new_original_shard_indices": [
+    389
+  ],
+  "nominal_slot_beijing": "2026-11-10T21:10:00+08:00",
+  "nominal_slot_date_is_inferred_not_authenticated": true,
+  "nominal_slot_utc": "2026-11-10T13:10:00+00:00",
+  "orders": [],
+  "per_shard_digests_from_locally_validated_ledger": true,
+  "phase": "P1_LITERAL_CRON_RUN_CREATION_PROVENANCE_PENDING_CONCLUSION",
+  "provider_collection_latency_measured_here": false,
+  "requested_shards": 1,
+  "run_attempt": 1,
+  "run_id": 42895148611,
+  "runner_step_start_authenticated": false,
+  "schedule_creation_delay_severity": "SEVERE_OVER_3H",
+  "schedule_creation_is_not_runner_start": true,
+  "shards_durably_accepted_by_run": 1,
+  "source_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_authorized": false,
+  "trade_gate": "BLOCKED",
+  "trigger": "schedule",
+  "trigger_cron_utc": "10 13 * * 1-5"
+}
