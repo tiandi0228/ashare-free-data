@@ -8,9 +8,16 @@ from collector.p1_private_git_commit_preflight import ARCHIVE
 from tests.test_p1_private_remote_main_gate import RemoteMainGateTests, git
 
 
-class PostPushReadbackTests(RemoteMainGateTests):
+class PostPushReadbackTests(unittest.TestCase):
     def setUp(self):
-        super().setUp()
+        # Reuse only the disposable fixture setup, not its inherited test suite:
+        # those pre-push expectations do not hold after synthetic push.
+        fixture = RemoteMainGateTests("test_matching_remote_main_still_blocks_writes")
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        for key in ("source", "target", "repo", "remote", "scratch",
+                    "handoff", "proposal", "gitsha"):
+            setattr(self, key, getattr(fixture, key))
         self.sender = self.repo
         self.auditor = self.source.parent / "independent-clone"
         for row in self.proposal["selected_missing_files"]:
