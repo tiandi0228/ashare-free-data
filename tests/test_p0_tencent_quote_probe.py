@@ -63,7 +63,7 @@ class TencentQuoteTests(unittest.TestCase):
         for raw in samples:
             with self.subTest(raw=raw[:40]), self.assertRaises(ValueError):
                 parse(raw, [A, B])
-        rows=parse(b"\\r\\n" + line(A) + b" \\n" + line(B) + b"\\n", [A,B])
+        rows=parse(b"\r\n" + line(A) + b" \n" + line(B) + b"\n", [A,B])
         self.assertEqual(len(rows),2)
 
     def test_corrupted_response_preserved_for_forensic_replay(self):
