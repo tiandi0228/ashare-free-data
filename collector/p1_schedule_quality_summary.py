@@ -59,7 +59,7 @@ def summarize(root, active_source_sha=None):
             or row.get("historical_PIT_verified") is not False
             or row.get("github_workflow_conclusion_authenticated") is not False
             or row.get("actual_scheduled_execution_is_proven") is not True
-            or row.get("per_shard_digests_from_locally_validated_ledger") is not True):
+            or type(row.get("per_shard_digests_from_locally_validated_ledger")) is not bool):
             raise ValueError("unsafe or unpinned P1 run receipt")
         if (rid, attempt) in seen_run_ids:
             raise ValueError("duplicated run identity across epochs")
@@ -88,16 +88,29 @@ def summarize(root, active_source_sha=None):
             or after-before != n
             or not isinstance(indices, list) or len(indices) != n
             or len(set(indices)) != n or any(type(i) is not int or i < 0 for i in indices)
-            or not isinstance(proofs, list) or len(proofs) != n
-            or {x.get("index") for x in proofs if isinstance(x, dict)} != set(indices)):
-            raise ValueError("run receipt does not prove SHA-bound shard delta")
+            ):
+            raise ValueError("run receipt shard delta invalid")
+        sha_proven = row["per_shard_digests_from_locally_validated_ledger"]
+        if sha_proven:
+            if (not isinstance(proofs, list) or len(proofs) != n
+                or {x.get("index") for x in proofs if isinstance(x, dict)} != set(indices)
+                or any(not isinstance(x, dict) or type(x.get("issuer_count")) is not int
+                       or x["issuer_count"] < 1 or x["issuer_count"] > 8
+                       or any(not isinstance(x.get(key), str)
+                              or not SHA.fullmatch(x[key])
+                              for key in ("manifest_sha256", "receipt_sha256"))
+                       for x in proofs)):
+                raise ValueError("invalid locally SHA-bound shard proofs")
+        elif proofs is not None:
+            raise ValueError("legacy receipt falsely claims local SHA proof")
         rows.append({"source_epoch_sha256": sha,
                      "run_id": rid, "attempt": attempt,
                      "nominal_slot_utc": scheduled.isoformat(),
                      "github_created_at_utc": created.isoformat(),
                      "queue_creation_delay_minutes": round(delay, 3),
                      "requested_shards": requested,
-                     "locally_sha_ledger_accepted_shards": n,
+                     "locally_sha_ledger_accepted_shards": n if sha_proven else 0,
+                     "legacy_shard_delta_without_local_SHA_proofs": n if not sha_proven else 0,
                      "new_original_shard_indices": sorted(indices)})
     if active_source_sha is not None:
         rows = [r for r in rows if r["source_epoch_sha256"] == active_source_sha]
@@ -111,6 +124,10 @@ def summarize(root, active_source_sha=None):
         "observed_receipts": len(rows),
         "locally_SHA_ledger_accepted_shards_across_observed_runs": accepted,
         "observed_runs_with_new_shards": sum(r["locally_sha_ledger_accepted_shards"] > 0 for r in rows),
+        "legacy_receipt_runs_without_local_SHA_proofs": sum(
+            r["legacy_shard_delta_without_local_SHA_proofs"] > 0 for r in rows),
+        "legacy_reported_but_not_locally_SHA_proven_shard_deltas": sum(
+            r["legacy_shard_delta_without_local_SHA_proofs"] for r in rows),
         "creation_delay_over_45m_count": sum(d > 45 for d in delays),
         "creation_delay_over_180m_count": sum(d > 180 for d in delays),
         "max_creation_delay_minutes": max(delays) if delays else None,
