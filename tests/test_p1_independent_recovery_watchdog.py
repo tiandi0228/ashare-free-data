@@ -13,12 +13,12 @@ class IndependentRecoveryWatchdogTests(unittest.TestCase):
         cls.workflow=FILE.read_text(encoding="utf-8")
     def test_all_approved_weekday_and_weekend_followup_slots(self):
         self.assertEqual(re.findall(r"cron: '([^']+)'",self.workflow), [
-            "32 1,2,4,6,8,10,12,14 * * 1-5",
             "22 1,2,4,6,8,10,12,14 * * 1-5",
-            "32 16 * * 1-5",
+            "32 1,2,4,6,8,10,12,14 * * 1-5",
             "22 16 * * 1-5",
-            "32 18 * * 0-4",
+            "32 16 * * 1-5",
             "22 18 * * 0-4",
+            "32 18 * * 0-4",
             "22 2,8,12,16 * * 6,0",
             "32 2,8,12,16 * * 6,0",
         ])
