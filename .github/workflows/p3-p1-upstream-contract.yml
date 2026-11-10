@@ -5,6 +5,7 @@ on:
       - 'collector/p3_upstream_p1_guard.py'
       - 'tests/test_p3_upstream_p1_guard.py'
       - '.github/workflows/p3-full-p1-official-scout.yml'
+      - '.github/workflows/p4-real-ma20-forward-observation.yml'
       - '.github/workflows/p3-p1-upstream-contract.yml'
   push:
     branches: [main]
@@ -12,6 +13,7 @@ on:
       - 'collector/p3_upstream_p1_guard.py'
       - 'tests/test_p3_upstream_p1_guard.py'
       - '.github/workflows/p3-full-p1-official-scout.yml'
+      - '.github/workflows/p4-real-ma20-forward-observation.yml'
       - '.github/workflows/p3-p1-upstream-contract.yml'
 permissions:
   contents: read
@@ -34,5 +36,9 @@ jobs:
           assert "from collector.p3_upstream_p1_guard import p1_upstream_run_id" in workflow
           assert "run_id=p1_upstream_run_id(upstream, os.environ['GITHUB_REPOSITORY'])" in workflow
           assert "upstream['name']" not in workflow
+          p4=Path('.github/workflows/p4-real-ma20-forward-observation.yml').read_text()
+          assert "from collector.p3_upstream_p1_guard import p1_upstream_run_id" in p4
+          assert "p1_upstream_run_id(upstream,os.environ['GITHUB_REPOSITORY'])" in p4
+          assert 'upstream["name"]' not in p4
           assert "workflows: ['P1 fresh Baostock mainboard roster observation (NO TRADES)']" in workflow
           PY
