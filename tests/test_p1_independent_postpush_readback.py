@@ -75,7 +75,9 @@ class PostPushReadbackTests(unittest.TestCase):
         git(self.sender, "add", "--", str(ARCHIVE))
         git(self.sender, "commit", "-qm", "synthetic unexpected extra original")
         unexpected_sha = git(self.sender, "rev-parse", "HEAD")
-        # Test-only local bare remote: update-ref with previous SHA precondition.
+        # Make the synthetic object available on the disposable bare remote,
+        # then atomically replace its test main ref using expected-old SHA.
+        git(self.sender, "push", "-q", "origin", "extra-original:refs/heads/test-extra")
         git(self.remote, "update-ref", "refs/heads/main", unexpected_sha, self.newsha)
         git(self.auditor, "fetch", "-q", "origin", "main")
         git(self.auditor, "reset", "--hard", unexpected_sha)
