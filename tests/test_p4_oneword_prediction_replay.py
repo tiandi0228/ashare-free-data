@@ -53,7 +53,7 @@ class OneWordPredictionReplayTests(unittest.TestCase):
         data["observation"]=observation()
         data["observation"]["low"]="1.82"
         self.assertEqual(assess(data)["audit_state"], "FALSIFIED_BY_DAILY_COMPLETED_OHLC_CLAIM")
-        data["observation"]["low"]="1.87"
+        data["observation"]["low"]="1.83"
         data["observation"]["open"]="1.83"
         self.assertEqual(assess(data)["audit_state"], "FALSIFIED_BY_DAILY_COMPLETED_OHLC_CLAIM")
 
