@@ -12,7 +12,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 PHASE = "P4_DUAL_HORIZON_INDEPENDENT_RESEARCH_SCREEN"
-MAINBOARD = re.compile(r"(?:sh\\.(?:600|601|603|605)|sz\\.(?:000|001|002|003))[0-9]{3}\Z")
+MAINBOARD = re.compile(r"(?:sh\.(?:600|601|603|605)|sz\.(?:000|001|002|003))[0-9]{3}\Z")
 HORIZONS = {"short": "3_TO_5_TRADING_SESSIONS",
             "medium": "1_TO_3_CALENDAR_MONTHS"}
 SHORT = ("price_structure_confirmed", "relative_strength_confirmed",
