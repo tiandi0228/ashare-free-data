@@ -6,6 +6,7 @@ local file copy alone is not proof: commit ancestry, added-only paths, remote
 head, source SHA inventory, and every selected file's bytes are all checked.
 """
 import argparse
+import hashlib
 import json
 import re
 import subprocess
@@ -85,6 +86,13 @@ def verify(proposal, handoff, independent_checkout, old_commit, new_commit):
         expected_bytes += row["bytes"]
     if expected_bytes != proposal["selected_bytes"]:
         raise ValueError("selected byte total changed")
+    canonical = json.dumps(selected, sort_keys=True, separators=(",", ":"),
+                           ensure_ascii=False).encode()
+    if hashlib.sha256(canonical).hexdigest() != proposal.get("selected_inventory_sha256"):
+        raise ValueError("frozen selected inventory SHA mismatch")
+    if (not isinstance(proposal.get("source_archive_commit"), str)
+        or not COMMIT.fullmatch(proposal["source_archive_commit"])):
+        raise ValueError("source archive commit is not pinned")
     # Validate entire target against canonical allowlist (and its inventory
     # digest) before accepting any selected file as matching SHA.
     readback = reconcile(handoff, repo / ARCHIVE, new_commit)
