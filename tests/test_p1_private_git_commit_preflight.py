@@ -26,7 +26,7 @@ class PrivateGitPreflightTests(BoundedBatchTests):
         git(self.repo, "config", "user.email", "p1-test@example.invalid")
         self.archive = self.repo / ARCHIVE
         self.archive.mkdir(parents=True)
-        (self.archive / "README.md").write_text("test archive root")
+        (self.repo / "README.md").write_text("test checkout marker outside P1 archive")
         git(self.repo, "add", ".")
         git(self.repo, "commit", "-qm", "baseline")
         self.gitsha = git(self.repo, "rev-parse", "HEAD")
