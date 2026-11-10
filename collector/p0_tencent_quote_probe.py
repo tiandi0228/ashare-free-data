@@ -44,6 +44,16 @@ def parse(raw, symbols):
         raise ValueError("invalid response bytes")
     text = raw.decode("gb18030", errors="strict")
     matches = list(LINE.finditer(text))
+    # Tencent's wire format must consist only of expected assignments.
+    # Never accept one plausible quote embedded in an otherwise corrupted
+    # response: unmatched bytes are not evidence of a complete provider reply.
+    cursor = 0
+    for match in matches:
+        if text[cursor:match.start()].strip():
+            raise ValueError("unrecognized text in quote response")
+        cursor = match.end()
+    if text[cursor:].strip():
+        raise ValueError("unrecognized trailing text in quote response")
     observed = {}
     for match in matches:
         sym, fields_text = match.groups()
