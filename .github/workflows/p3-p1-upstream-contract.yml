@@ -1,0 +1,38 @@
+name: P3 P1 upstream cron identity offline contract (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p3_upstream_p1_guard.py'
+      - 'tests/test_p3_upstream_p1_guard.py'
+      - '.github/workflows/p3-full-p1-official-scout.yml'
+      - '.github/workflows/p3-p1-upstream-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p3_upstream_p1_guard.py'
+      - 'tests/test_p3_upstream_p1_guard.py'
+      - '.github/workflows/p3-full-p1-official-scout.yml'
+      - '.github/workflows/p3-p1-upstream-contract.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Reject foreign or spoofed P1 upstream runs
+        run: python -m unittest -v tests.test_p3_upstream_p1_guard
+      - name: Verify downstream only uses source identity, never display title
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          workflow=Path('.github/workflows/p3-full-p1-official-scout.yml').read_text()
+          assert "from collector.p3_upstream_p1_guard import p1_upstream_run_id" in workflow
+          assert "run_id=p1_upstream_run_id(upstream, os.environ['GITHUB_REPOSITORY'])" in workflow
+          assert "upstream['name']" not in workflow
+          assert "workflows: ['P1 fresh Baostock mainboard roster observation (NO TRADES)']" in workflow
+          PY
