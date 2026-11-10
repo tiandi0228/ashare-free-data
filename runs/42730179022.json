@@ -1,0 +1,82 @@
+{
+  "audited_issuer_count": 1666,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 0,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603759"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603107"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603108"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 42730014507,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 14700,
+  "research_date_action_links": [],
+  "run_id": 42730179022,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225596134",
+      "archive_path": "pdf/sh_603107/1225596134/78e302106bd0739130c6714a997315eeb9c533db33234795b236fb95f15f926b.pdf",
+      "bytes": 78337,
+      "captured_at_utc": "2026-11-10T00:41:38.001625+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1791475200000,
+      "issuer": "sh.603107",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-09/1225596134.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "78e302106bd0739130c6714a997315eeb9c533db33234795b236fb95f15f926b",
+      "title_from_index_unverified": "上海汽车空调配件股份有限公司关于使用部分暂时闲置募集资金进行现金管理到期赎回的公告"
+    },
+    {
+      "announcement_id": "1225597215",
+      "archive_path": "pdf/sh_603108/1225597215/135799481b8d7f1c7d7f51a3ff847d0603ea0b099ea9e0e468114da2afc80ecb.pdf",
+      "bytes": 253930,
+      "captured_at_utc": "2026-11-10T00:41:39.423527+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1791475200000,
+      "issuer": "sh.603108",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-09/1225597215.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "135799481b8d7f1c7d7f51a3ff847d0603ea0b099ea9e0e468114da2afc80ecb",
+      "title_from_index_unverified": "关于上月为子公司担保的进展情况公告"
+    },
+    {
+      "announcement_id": "1225602844",
+      "archive_path": "pdf/sh_603759/1225602844/395604493e9e1088b759fc45c75474d79db275112a1d13f3ba0ebabd4697cda8.pdf",
+      "bytes": 63642,
+      "captured_at_utc": "2026-11-10T00:41:37.415105+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1791907200000,
+      "issuer": "sh.603759",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-14/1225602844.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "395604493e9e1088b759fc45c75474d79db275112a1d13f3ba0ebabd4697cda8",
+      "title_from_index_unverified": "关于证券事务代表辞职的公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
