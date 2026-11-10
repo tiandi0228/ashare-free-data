@@ -67,7 +67,8 @@ def summarize(root, active_source_sha=None):
         created = parse_utc(row.get("github_run_created_at_utc"))
         scheduled, delay = nominal(cron, created)
         if (row.get("nominal_slot_utc") != scheduled.isoformat()
-            or row.get("schedule_creation_delay_severity") != delay_class(delay)
+            or (row.get("schedule_creation_delay_severity") is not None
+                and row["schedule_creation_delay_severity"] != delay_class(delay))
             or type(row.get("github_queue_creation_delay_minutes")) not in (int, float)
             or abs(row["github_queue_creation_delay_minutes"] - delay) > 0.01):
             raise ValueError(f"unreconciled schedule attribution or lag at {path}: recorded={row.get('nominal_slot_utc')} vs calculated={scheduled.isoformat()}, severity={row.get('schedule_creation_delay_severity')} vs {delay_class(delay)}, minutes={row.get('github_queue_creation_delay_minutes')} vs {delay}")
@@ -108,6 +109,7 @@ def summarize(root, active_source_sha=None):
                      "nominal_slot_utc": scheduled.isoformat(),
                      "github_created_at_utc": created.isoformat(),
                      "queue_creation_delay_minutes": round(delay, 3),
+                     "legacy_severity_field_missing": "schedule_creation_delay_severity" not in row,
                      "requested_shards": requested,
                      "locally_sha_ledger_accepted_shards": n if sha_proven else 0,
                      "legacy_shard_delta_without_local_SHA_proofs": n if not sha_proven else 0,
@@ -128,6 +130,7 @@ def summarize(root, active_source_sha=None):
             r["legacy_shard_delta_without_local_SHA_proofs"] > 0 for r in rows),
         "legacy_reported_but_not_locally_SHA_proven_shard_deltas": sum(
             r["legacy_shard_delta_without_local_SHA_proofs"] for r in rows),
+        "legacy_severity_field_missing_count": sum(r["legacy_severity_field_missing"] for r in rows),
         "creation_delay_over_45m_count": sum(d > 45 for d in delays),
         "creation_delay_over_180m_count": sum(d > 180 for d in delays),
         "max_creation_delay_minutes": max(delays) if delays else None,
