@@ -70,7 +70,7 @@ def summarize(root, active_source_sha=None):
             or row.get("schedule_creation_delay_severity") != delay_class(delay)
             or type(row.get("github_queue_creation_delay_minutes")) not in (int, float)
             or abs(row["github_queue_creation_delay_minutes"] - delay) > 0.01):
-            raise ValueError("unreconciled schedule attribution or lag")
+            raise ValueError(f"unreconciled schedule attribution or lag at {path}: recorded={row.get('nominal_slot_utc')} vs calculated={scheduled.isoformat()}, severity={row.get('schedule_creation_delay_severity')} vs {delay_class(delay)}, minutes={row.get('github_queue_creation_delay_minutes')} vs {delay}")
         slot = (sha, scheduled.isoformat())
         if slot in seen_nominal:
             raise ValueError("duplicate epoch and nominal cron slot")
