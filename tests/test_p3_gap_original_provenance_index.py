@@ -119,6 +119,23 @@ class OriginalProofSourceIndexTests(unittest.TestCase):
             with self.subTest(item=item),self.assertRaises(ValueError):
                 index(q,e,p)
 
+    def test_original_pdf_path_must_bind_exact_issuer_and_announcement(self):
+        for field,value in (
+            ("original_sha_verified_archive_path",
+             "pdf/sh_600002/123/"+DOC+".pdf"),
+            ("original_sha_verified_archive_path",
+             "pdf/sh_600001/999/"+DOC+".pdf"),
+            ("original_sha_verified_archive_path",
+             "untrusted/pdf/sh_600001/123/"+DOC+".pdf"),
+            ("original_sha_verified_archive_path",
+             "pdf/sh_600001/123/"+DOC+".pdf/extra"),
+            ("announcement_id","not-a-number"),
+        ):
+            q,e,p=copy.deepcopy(fixtures())
+            e["research_text_event_claims"][0][field]=value
+            with self.subTest(field=field,value=value),self.assertRaises(ValueError):
+                index(q,e,p)
+
     def test_same_issuer_resume_chronology_and_sha_mandatory(self):
         for key,value in (
             ("whole_interval_tradability_verified",True),

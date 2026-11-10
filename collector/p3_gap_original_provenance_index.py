@@ -82,7 +82,7 @@ def index(queue,events,pairs):
         if (not isinstance(issuer,str) or not ISSUER.fullmatch(issuer)
             or not isinstance(digest,str) or not SHA.fullmatch(digest)
             or not isinstance(day,str) or not isinstance(notice,str)
-            or not notice or not isinstance(archived,str)
+            or not notice.isdigit() or not isinstance(archived,str)
             or not isinstance(path,str)
             or item.get("first_publication_authenticated") is not False
             or item.get("effective_date_certified") is not False
@@ -93,8 +93,9 @@ def index(queue,events,pairs):
         at=datetime.fromisoformat(archived.replace("Z","+00:00"))
         if at.tzinfo is None:
             raise ValueError("naive research capture timestamp")
-        if not path.endswith("/"+digest+".pdf"):
-            raise ValueError("PDF path does not bind original digest")
+        expected_pdf_path=f"pdf/{issuer.replace('.', '_')}/{notice}/{digest}.pdf"
+        if path!=expected_pdf_path:
+            raise ValueError("PDF path does not bind issuer, announcement and original digest")
         key=(issuer,notice,digest,direction,day)
         if key in seen:
             raise ValueError("duplicate original event claim")
