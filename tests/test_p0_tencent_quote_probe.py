@@ -30,6 +30,18 @@ class TencentQuoteTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     validate_symbols(symbols)
 
+    def test_only_explicit_mainboard_prefixes_can_enter_quote_research(self):
+        valid=["sh600001","sh601001","sh603001","sh605001",
+               "sz000001","sz001001","sz002001","sz003001"]
+        self.assertEqual(validate_symbols(valid),valid)
+        rejected=["sh602001","sh604001","sh606001","sh607001",
+                  "sh608001","sh609001","sh688001","sh689001",
+                  "sh690001","sh699001","sz300015","sz301015",
+                  "bj920001"]
+        for sym in rejected:
+            with self.subTest(symbol=sym),self.assertRaises(ValueError):
+                validate_symbols([sym])
+
     def test_parse_two_names_independently(self):
         rows = parse(line(A) + line(B, "20.01"), [A, B])
         self.assertEqual(len(rows), 2)
