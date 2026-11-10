@@ -57,6 +57,15 @@ class P1ScheduleQualityTests(unittest.TestCase):
         self.assertEqual(summary["legacy_reported_but_not_locally_SHA_proven_shard_deltas"],2)
         self.assertFalse(summary["final_GitHub_workflow_conclusions_verified"])
 
+    def test_legacy_missing_severity_reconstructed_from_timestamp_only(self):
+        r=make_receipt(1301,"2026-11-05T09:04:14Z")
+        r.pop("schedule_creation_delay_severity")
+        self.save(r)
+        summary=summarize(self.root,EPOCH)
+        self.assertEqual(summary["legacy_severity_field_missing_count"],1)
+        self.assertEqual(summary["creation_delay_over_180m_count"],1)
+        self.assertEqual(summary["trade_gate"],"BLOCKED")
+
     def test_inflight_receipt_not_promoted_to_final_success(self):
         self.save(make_receipt(2001, "2026-11-05T03:20:00Z"))
         r = summarize(self.root)
