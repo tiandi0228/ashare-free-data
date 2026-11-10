@@ -1,0 +1,126 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 2,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 2,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1224814668",
+      "archival_pdf_path": "pdf/sh_603122/1224814668/f2caed0ed6ef1ff8687395f95e4ec8886520c6bb0bdc1a96cb625bcbb37b0f16.pdf",
+      "bytes": 122083,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.603122",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2025-11-20/1224814668.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "f2caed0ed6ef1ff8687395f95e4ec8886520c6bb0bdc1a96cb625bcbb37b0f16",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "合富（中国）医疗科技股份有限公司（以下简称“公司”）股票将于2025年11月20日（星期四）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "f2caed0ed6ef1ff8687395f95e4ec8886520c6bb0bdc1a96cb625bcbb37b0f16",
+          "pdf_date_phrase": "2025年11月20日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-11-10T07:09:16.516016+00:00",
+      "source_halt_original_sha256": "741c83959b2d2b72d9d875c5d14ebcfb5f9cb5dcd16c1d8cf715d536c38bfc83",
+      "source_halt_text_day": "2025-11-17",
+      "title_unverified": "合富中国关于股票交易停牌核查结果暨复牌的公告"
+    },
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1225400123",
+      "archival_pdf_path": "pdf/sh_603137/1225400123/dc148caa616960e0d2957fe6acb6546fc2d5c2cbf86893d1136e53c6f6363a2a.pdf",
+      "bytes": 110223,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.603137",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-07-01/1225400123.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "dc148caa616960e0d2957fe6acb6546fc2d5c2cbf86893d1136e53c6f6363a2a",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "公司股票将于2026年7月1日（星期三）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "dc148caa616960e0d2957fe6acb6546fc2d5c2cbf86893d1136e53c6f6363a2a",
+          "pdf_date_phrase": "2026年7月1日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-11-10T07:09:17.240444+00:00",
+      "source_halt_original_sha256": "dd43c5071a11b946e599c1372100b56c6150958a18fa6b86341b97340c157c89",
+      "source_halt_text_day": "2026-06-16",
+      "title_unverified": "恒尚节能：关于披露《发行股份及支付现金购买资产并募集配套资金暨关联交易预案》的一般风险提示暨公司股票复牌的公告"
+    }
+  ],
+  "run_id": 42773197743,
+  "source_halt_issuers_attempted": 3,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603122",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-02-14",
+      "search_window_start": "2025-11-16",
+      "source_halt_announcement_id": "1224807644",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-11-17",
+      "source_halt_original_sha256": "741c83959b2d2b72d9d875c5d14ebcfb5f9cb5dcd16c1d8cf715d536c38bfc83",
+      "window_segment_count": 4,
+      "window_segment_index": 0
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603137",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-09-13",
+      "search_window_start": "2026-06-15",
+      "source_halt_announcement_id": "1225371204",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-06-16",
+      "source_halt_original_sha256": "dd43c5071a11b946e599c1372100b56c6150958a18fa6b86341b97340c157c89",
+      "window_segment_count": 2,
+      "window_segment_index": 0
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603139",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-06-11",
+      "search_window_start": "2026-03-14",
+      "source_halt_announcement_id": "1222835100",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-03-19",
+      "source_halt_original_sha256": "d1bd1aecef9ab576a6fc72b52f7206db639fbd45c1a3a4aeae64b3a4475fdcb8",
+      "window_segment_count": 7,
+      "window_segment_index": 4
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.603122",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    },
+    {
+      "issuer": "sh.603137",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    },
+    {
+      "issuer": "sh.603139",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
