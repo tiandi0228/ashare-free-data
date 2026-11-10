@@ -46,11 +46,11 @@ class WatchdogTests(unittest.TestCase):
         self.assertEqual(slots(saturday)[0].strftime("%H:%M"),"19:10")
         self.assertEqual(slots(saturday)[0].weekday(),5)
     def test_delayed_different_cron_cannot_mask_15_10_slot(self):
-        # At 16:20 a delayed 09:10 scheduled run finally starts. The
-        # 15:10 slot must not be called successful based on created_at.
-        delayed=run(99,now(16,20))
+        # At 15:30 a delayed 09:10 scheduled run starts, inside the
+        # 15:10 slot attribution window. Do not mistake it for that slot.
+        delayed=run(99,now(15,30))
         delayed["display_title"]="P1 origin 10 1 * * 1-5 [NO TRADES]"
-        report=audit(now(16,22),[delayed])
+        report=audit(now(16,10),[delayed])
         self.assertEqual(report["state"],"SCHEDULE_ORIGIN_UNVERIFIED")
         self.assertEqual(report["expected_scheduled_cron"],"10 7 * * 1-5")
         self.assertIsNone(report["matched_schedule_run_id"])
