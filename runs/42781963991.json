@@ -1,0 +1,82 @@
+{
+  "audited_issuer_count": 1682,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 0,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.601238"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603113"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603115"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 42781792622,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 14832,
+  "research_date_action_links": [],
+  "run_id": 42781963991,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225560026",
+      "archive_path": "pdf/sh_601238/1225560026/67d575c5dd894763a3c4e43738211b6abe7d64821bb6083b5499ff3cc67a6f0f.pdf",
+      "bytes": 91862,
+      "captured_at_utc": "2026-11-10T08:21:40.339172+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1789142400000,
+      "issuer": "sh.601238",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-12/1225560026.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "67d575c5dd894763a3c4e43738211b6abe7d64821bb6083b5499ff3cc67a6f0f",
+      "title_from_index_unverified": "广汽集团第七届董事会第29次会议决议公告"
+    },
+    {
+      "announcement_id": "1225596933",
+      "archive_path": "pdf/sh_603113/1225596933/aa4e4ffc6622442410599f47e24bba76e3ff2d3589a7b7f33779834d6c5212c7.pdf",
+      "bytes": 222185,
+      "captured_at_utc": "2026-11-10T08:21:40.957702+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1791475200000,
+      "issuer": "sh.603113",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-09/1225596933.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "aa4e4ffc6622442410599f47e24bba76e3ff2d3589a7b7f33779834d6c5212c7",
+      "title_from_index_unverified": "金能科技股份有限公司关于为全资子公司提供担保的进展公告"
+    },
+    {
+      "announcement_id": "1225565621",
+      "archive_path": "pdf/sh_603115/1225565621/3a8b8f21ebf7c09939b0fa14519c3d4a6a7cf06ee82182c196047b677af2a729.pdf",
+      "bytes": 174410,
+      "captured_at_utc": "2026-11-10T08:21:41.671144+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1789488000000,
+      "issuer": "sh.603115",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-16/1225565621.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "3a8b8f21ebf7c09939b0fa14519c3d4a6a7cf06ee82182c196047b677af2a729",
+      "title_from_index_unverified": "国浩律师（上海）事务所关于南通海星电子股份有限公司2026年第二次临时股东会之法律意见书"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
