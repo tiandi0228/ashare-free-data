@@ -7,6 +7,7 @@ from pathlib import Path
 
 from collector.p1_private_git_commit_preflight import preflight, ARCHIVE
 from collector.p1_offline_batch_staging import stage
+from collector.p1_bounded_missing_shard_batch_plan import build
 from tests.test_p1_bounded_missing_shard_batch_plan import BoundedBatchTests, COMMIT
 
 
@@ -30,7 +31,8 @@ class PrivateGitPreflightTests(BoundedBatchTests):
         git(self.repo, "commit", "-qm", "baseline")
         self.gitsha = git(self.repo, "rev-parse", "HEAD")
         self.target = self.archive
-        self.proposal = self.plan(max_shards=1)
+        self.proposal = build(self.handoff, self.source, self.target,
+                              COMMIT, self.gitsha, max_shards=1)
         self.scratch = self.source.parent / "scratch"
         stage(self.proposal, self.handoff, self.source, self.target,
               COMMIT, self.gitsha, self.scratch)
