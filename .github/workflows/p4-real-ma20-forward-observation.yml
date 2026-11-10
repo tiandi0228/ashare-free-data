@@ -302,8 +302,8 @@ jobs:
           kind=os.environ["GITHUB_EVENT_NAME"]
           upstream=source.get("workflow_run",{}) if kind=="workflow_run" else {}
           if kind=="workflow_run":
-              assert upstream["conclusion"]=="success"
-              assert upstream["name"]=="P1 fresh Baostock mainboard roster observation (NO TRADES)"
+              from collector.p3_upstream_p1_guard import p1_upstream_run_id
+              assert p1_upstream_run_id(upstream,os.environ['GITHUB_REPOSITORY'])==upstream['id']
           proof={"p4_trigger":kind,
                  "upstream_p1_run_id":upstream.get("id"),
                  "upstream_p1_conclusion":upstream.get("conclusion"),
