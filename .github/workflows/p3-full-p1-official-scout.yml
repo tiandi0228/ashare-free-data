@@ -4,6 +4,8 @@ on:
     branches: [main]
     paths:
       - 'collector/p3_full_queue_scout.py'
+      - 'collector/p3_upstream_p1_guard.py'
+      - 'tests/test_p3_upstream_p1_guard.py'
       - 'collector/p3_archived_visit_hint.py'
       - 'tests/test_p3_archived_visit_hint.py'
       - 'collector/p3_full_queue_source_join.py'
@@ -60,7 +62,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline boundaries and official-source tests
-        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_archived_visit_hint tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture tests.test_p3_original_effective_clause_review tests.test_p3_official_original_archive tests.test_p3_persisted_temporal_risk_triage tests.test_p3_index_chronology_guard tests.test_p3_archived_event_episode_ledger tests.test_p3_event_proof_gap_queue tests.test_p3_proof_gap_triage tests.test_p3_conflict_review_packet tests.test_p3_official_review_packets tests.test_p3_resume_followup_discovery tests.test_p3_resume_original_archive tests.test_p3_halt_resume_pair_review -v
+        run: python -m unittest tests.test_p3_full_queue_scout tests.test_p3_upstream_p1_guard tests.test_p3_archived_visit_hint tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture tests.test_p3_original_effective_clause_review tests.test_p3_official_original_archive tests.test_p3_persisted_temporal_risk_triage tests.test_p3_index_chronology_guard tests.test_p3_archived_event_episode_ledger tests.test_p3_event_proof_gap_queue tests.test_p3_proof_gap_triage tests.test_p3_conflict_review_packet tests.test_p3_official_review_packets tests.test_p3_resume_followup_discovery tests.test_p3_resume_original_archive tests.test_p3_halt_resume_pair_review -v
       - name: Install free PDF text parser
         run: python -m pip install 'pypdf>=4,<7'
       - name: Verify malformed archived-PDF quarantine and SHA integrity fail-closed
@@ -72,12 +74,11 @@ jobs:
           python - <<'PY'
           import json,os,subprocess
           from pathlib import Path
+          from collector.p3_upstream_p1_guard import p1_upstream_run_id
           event=json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
           if os.environ['GITHUB_EVENT_NAME']=='workflow_run':
               upstream=event['workflow_run']
-              if upstream['conclusion']!='success' or upstream['name']!='P1 fresh Baostock mainboard roster observation (NO TRADES)':
-                  raise ValueError('unexpected upstream P1 run')
-              run_id=upstream['id']
+              run_id=p1_upstream_run_id(upstream, os.environ['GITHUB_REPOSITORY'])
           else:
               recent=json.loads(subprocess.check_output(['gh','run','list','--workflow','p1-fresh-vendor-roster.yml','--limit','20','--json','databaseId,conclusion'],text=True))
               run_id=next(row['databaseId'] for row in recent if row['conclusion']=='success')
