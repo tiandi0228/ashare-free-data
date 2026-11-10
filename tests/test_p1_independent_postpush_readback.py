@@ -58,6 +58,37 @@ class PostPushReadbackTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.readback(new=git(self.auditor, "rev-parse", "HEAD"))
 
+    def test_unselected_allowlisted_original_in_same_commit_is_rejected(self):
+        # Build a different synthetic child of the original base, containing
+        # this batch PLUS one otherwise valid handoff file from another shard.
+        git(self.sender, "checkout", "-qb", "extra-original", self.gitsha)
+        for row in self.proposal["selected_missing_files"]:
+            destination = self.sender / ARCHIVE / row["path"]
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes((self.source / row["path"]).read_bytes())
+        selected = {row["path"] for row in self.proposal["selected_missing_files"]}
+        extra = next(row["path"] for row in self.handoff["original_paths_and_sha256"]
+                     if row["path"] not in selected)
+        extra_path = self.sender / ARCHIVE / extra
+        extra_path.parent.mkdir(parents=True, exist_ok=True)
+        extra_path.write_bytes((self.source / extra).read_bytes())
+        git(self.sender, "add", "--", str(ARCHIVE))
+        git(self.sender, "commit", "-qm", "synthetic unexpected extra original")
+        unexpected_sha = git(self.sender, "rev-parse", "HEAD")
+        # Test-only local bare remote: update-ref with previous SHA precondition.
+        git(self.remote, "update-ref", "refs/heads/main", unexpected_sha, self.newsha)
+        git(self.auditor, "fetch", "-q", "origin", "main")
+        git(self.auditor, "reset", "--hard", unexpected_sha)
+        with self.assertRaisesRegex(ValueError, "commit additions differ"):
+            self.readback(new=unexpected_sha)
+
+    def test_mutated_frozen_selected_digest_rejected(self):
+        import copy
+        proposal = copy.deepcopy(self.proposal)
+        proposal["selected_inventory_sha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "selected inventory SHA mismatch"):
+            self.readback(proposal=proposal)
+
     def test_wrong_base_and_wrong_commit_refused(self):
         with self.assertRaises(ValueError):
             self.readback(old="a" * 40)
