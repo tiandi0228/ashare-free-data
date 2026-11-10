@@ -59,7 +59,7 @@ def summarize(root, active_source_sha=None):
             or row.get("historical_PIT_verified") is not False
             or row.get("github_workflow_conclusion_authenticated") is not False
             or row.get("actual_scheduled_execution_is_proven") is not True
-            or type(row.get("per_shard_digests_from_locally_validated_ledger")) is not bool):
+            or type(row.get("per_shard_digests_from_locally_validated_ledger", False)) is not bool):
             raise ValueError("unsafe or unpinned P1 run receipt")
         if (rid, attempt) in seen_run_ids:
             raise ValueError("duplicated run identity across epochs")
@@ -90,7 +90,7 @@ def summarize(root, active_source_sha=None):
             or len(set(indices)) != n or any(type(i) is not int or i < 0 for i in indices)
             ):
             raise ValueError("run receipt shard delta invalid")
-        sha_proven = row["per_shard_digests_from_locally_validated_ledger"]
+        sha_proven = row.get("per_shard_digests_from_locally_validated_ledger", False)
         if sha_proven:
             if (not isinstance(proofs, list) or len(proofs) != n
                 or {x.get("index") for x in proofs if isinstance(x, dict)} != set(indices)
