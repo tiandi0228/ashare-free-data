@@ -38,6 +38,11 @@ def index(queue,events,pairs):
         or pairs.get("orders")!=[]):
         raise ValueError("unsafe official-original research join")
     epoch=queue.get("source_epoch_sha256")
+    p2_run=queue.get("p2_source_run_id")
+    p3_run=queue.get("p3_source_run_id")
+    if (type(p2_run) is not int or p2_run<=0
+        or type(p3_run) is not int or p3_run<=0):
+        raise ValueError("missing or forged immutable P2/P3 source run IDs")
     tasks=queue.get("tasks")
     text=events.get("research_text_event_claims")
     matched=pairs.get("text_only_halt_resume_pairs")
@@ -167,6 +172,9 @@ def index(queue,events,pairs):
         "phase":"P3_GAP_ISSUER_ORIGINAL_PDF_PROVENANCE_REVIEW_INDEX",
         "status":"SHA_SOURCE_LOCATORS_ONLY_NO_FIRST_PUBLICATION_PROOF",
         "source_epoch_sha256":epoch,
+        "p2_source_run_id":p2_run,
+        "p3_source_run_id":p3_run,
+        "source_run_ids_are_research_artifact_locators_only":True,
         "gap_issuer_count":len(result),
         "issuer_with_original_halt_resume_text":sum(bool(r["original_halt_resume_text_documents"]) for r in result),
         "issuer_with_resume_text_pair":sum(bool(r["original_resume_research_text_pairs"]) for r in result),
