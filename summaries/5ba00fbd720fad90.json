@@ -9,12 +9,12 @@
   "historical_PIT_verified": false,
   "coverage_certified_for_trading": false,
   "source_epoch_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
-  "checkpoint_completed_shards": 208,
+  "checkpoint_completed_shards": 209,
   "checkpoint_total_shards": 400,
-  "archived_original_shards": 208,
-  "coverage_report_count": 73,
-  "observed_archived_shards": 208,
-  "feature_complete_shards": 197,
+  "archived_original_shards": 209,
+  "coverage_report_count": 74,
+  "observed_archived_shards": 209,
+  "feature_complete_shards": 198,
   "observed_with_feature_gaps_shards": 11,
   "unobserved_archived_shards": 0,
   "observed_shard_ids": [
@@ -225,6 +225,7 @@
     "shard_0222",
     "shard_0223",
     "shard_0224",
+    "shard_0398",
     "shard_0399"
   ],
   "unobserved_shard_ids": [],
@@ -241,9 +242,9 @@
     "shard_0166",
     "shard_0182"
   ],
-  "feature_issuer_count": 1646,
+  "feature_issuer_count": 1654,
   "issuer_evidence_gap_count": 12,
-  "observed_feature_or_gap_issuers": 1658,
+  "observed_feature_or_gap_issuers": 1666,
   "unobserved_issuer_count": 0,
   "gap_reason_counts": {
     "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS": 12
