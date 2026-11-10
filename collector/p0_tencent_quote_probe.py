@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.request import Request, urlopen
 
-SYMBOL = re.compile(r"^(?:sh6(?!88|89)[0-9]{5}|sz(?:000|001|002|003)[0-9]{3})$")
+SYMBOL = re.compile(r"^(?:sh(?:600|601|603|605)[0-9]{3}|sz(?:000|001|002|003)[0-9]{3})$")
 LINE = re.compile(r'v_(sh[0-9]{6}|sz[0-9]{6})="([^"\r\n]*)";?')
 STAMP = re.compile(r"^20[0-9]{12}$")
 MAX_SYMBOLS = 16
