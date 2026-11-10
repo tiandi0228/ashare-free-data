@@ -5,20 +5,18 @@ from zoneinfo import ZoneInfo
 
 from collector.p1_frozen_roster_age_audit import inspect
 from collector.p1_roster_lock import pack
-from tests.test_p1_roster_lock import RosterLockTests
+from tests.test_p1_roster_lock import PinnedRosterTests
 
 TZ = ZoneInfo("Asia/Shanghai")
 
 
 class FrozenRosterAgeTests(unittest.TestCase):
     def setUp(self):
-        fixture=RosterLockTests("test_pack_and_unpack")
-        self.fixture=fixture
+        self.fixture=PinnedRosterTests("test_pin_preserves_source_and_marks_reuse_stale")
 
     def sample(self):
         # Use the actual existing roster test fixture for well-formed SHA bytes.
-        from tests.test_p1_roster_lock import sample
-        raw, receipt = sample()
+        raw, receipt = self.fixture.source()
         return pack(raw, receipt, 1234)
 
     def test_three_week_old_snapshot_never_becomes_live(self):
