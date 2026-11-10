@@ -224,20 +224,20 @@ jobs:
           assert legacy['writer_cutover_authorized'] is False
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
               out.write('### P1 archived source readiness (NO TRADES)\n')
-              out.write(f"- archive_commit: {envelope['source_archive_commit_sha']}\\n")
-              out.write(f"- snapshot_envelope_sha256: {envelope['source_handoff_envelope_sha256']}\\n")
+              out.write(f"- archive_commit: {envelope['source_archive_commit_sha']}\n")
+              out.write(f"- snapshot_envelope_sha256: {envelope['source_handoff_envelope_sha256']}\n")
 
-              out.write(f"- source_handoff_manifest_sha256: {handoff['source_file_inventory_sha256']}\\n")
-              out.write(f"- independent_source_files_replayed: {replay['source_files_replayed']}\\n")
-              out.write(f"- separate_original_status_sha_count: {len(replay['archive_status_original_sha256'])}\\n")
-              out.write('### SHA-replayed eligible original shards (NOT MIGRATED)\\n')
-              out.write(f"- eligible_shards: {partial['eligible_shards']}\\n")
-              out.write(f"- eligible_original_files: {partial['eligible_original_files']}\\n")
-              out.write(f"- quarantined_shards: {partial['quarantined_shards']}\\n")
-              out.write('### All-epoch original quality receipt gaps (NOT SHA certification)\\n')
-              out.write(f"- missing_receipts_total: {legacy['missing_receipts_total']}\\n")
+              out.write(f"- source_handoff_manifest_sha256: {handoff['source_file_inventory_sha256']}\n")
+              out.write(f"- independent_source_files_replayed: {replay['source_files_replayed']}\n")
+              out.write(f"- separate_original_status_sha_count: {len(replay['archive_status_original_sha256'])}\n")
+              out.write('### SHA-replayed eligible original shards (NOT MIGRATED)\n')
+              out.write(f"- eligible_shards: {partial['eligible_shards']}\n")
+              out.write(f"- eligible_original_files: {partial['eligible_original_files']}\n")
+              out.write(f"- quarantined_shards: {partial['quarantined_shards']}\n")
+              out.write('### All-epoch original quality receipt gaps (NOT SHA certification)\n')
+              out.write(f"- missing_receipts_total: {legacy['missing_receipts_total']}\n")
               for row in legacy['missing_original_receipts']:
-                  out.write(f"- {row['source_epoch_prefix']}/{row['shard_id']}: {row['reason']}\\n")
+                  out.write(f"- {row['source_epoch_prefix']}/{row['shard_id']}: {row['reason']}\n")
               for name in ('status','checkpoint_completed_shards',
                            'verified_original_shards','verified_original_csv_files',
                            'missing_or_invalid_shard_count','all_checkpoint_originals_durably_located'):
