@@ -1,0 +1,67 @@
+{
+  "audited_issuer_count": 1674,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 0,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_UNAVAILABLE_NOT_NO_RISK",
+      "issuer": "sh.600825"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603109"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603112"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 2,
+  "p1_upstream_run_id": 42773057672,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 14768,
+  "research_date_action_links": [],
+  "run_id": 42773197743,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225610234",
+      "archive_path": "pdf/sh_603109/1225610234/44ff2f17f6bf8e427642e4561c34b142356cd5cdbaf6eb3d946994430d3c9616.pdf",
+      "bytes": 86126,
+      "captured_at_utc": "2026-11-10T07:08:51.946020+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1792425600000,
+      "issuer": "sh.603109",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-20/1225610234.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "44ff2f17f6bf8e427642e4561c34b142356cd5cdbaf6eb3d946994430d3c9616",
+      "title_from_index_unverified": "神驰机电股份有限公司关于变更保荐代表人的公告"
+    },
+    {
+      "announcement_id": "1225406577",
+      "archive_path": "pdf/sh_603112/1225406577/9b48bdc3304e8c353e74c3bac34bcf02b836e74359e1b0df23a1aba552dcf929.pdf",
+      "bytes": 892066,
+      "captured_at_utc": "2026-11-10T07:08:52.536512+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1783008000000,
+      "issuer": "sh.603112",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-07-03/1225406577.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "9b48bdc3304e8c353e74c3bac34bcf02b836e74359e1b0df23a1aba552dcf929",
+      "title_from_index_unverified": "向不特定对象发行可转换公司债券上市公告书"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
