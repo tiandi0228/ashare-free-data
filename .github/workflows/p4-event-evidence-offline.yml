@@ -6,9 +6,11 @@ on:
       - 'collector/p4_real_ma20_forward_observation.py'
       - 'collector/p4_independent_event_evidence.py'
       - 'collector/p4_event_exposure_research.py'
+      - 'collector/p4_oneword_prediction_replay.py'
       - 'tests/test_p4_real_ma20_forward_observation.py'
       - 'tests/test_p4_independent_event_evidence.py'
       - 'tests/test_p4_event_exposure_research.py'
+      - 'tests/test_p4_oneword_prediction_replay.py'
       - '.github/workflows/p4-event-evidence-offline.yml'
   push:
     branches: [main]
@@ -16,9 +18,11 @@ on:
       - 'collector/p4_real_ma20_forward_observation.py'
       - 'collector/p4_independent_event_evidence.py'
       - 'collector/p4_event_exposure_research.py'
+      - 'collector/p4_oneword_prediction_replay.py'
       - 'tests/test_p4_real_ma20_forward_observation.py'
       - 'tests/test_p4_independent_event_evidence.py'
       - 'tests/test_p4_event_exposure_research.py'
+      - 'tests/test_p4_oneword_prediction_replay.py'
       - '.github/workflows/p4-event-evidence-offline.yml'
   workflow_dispatch:
 
@@ -41,7 +45,7 @@ jobs:
           python-version: '3.11'
       - name: Verify complete event set, dropped-event regression and no-trade boundary
         run: |
-          python -m unittest tests.test_p4_real_ma20_forward_observation tests.test_p4_independent_event_evidence tests.test_p4_event_exposure_research -v
+          python -m unittest tests.test_p4_real_ma20_forward_observation tests.test_p4_independent_event_evidence tests.test_p4_event_exposure_research tests.test_p4_oneword_prediction_replay -v
           python - <<'PY'
           from collector.p4_independent_event_evidence import verify
           from collector.p4_real_ma20_forward_observation import audit
