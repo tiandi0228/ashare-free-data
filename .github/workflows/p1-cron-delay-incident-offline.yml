@@ -3,13 +3,17 @@ on:
   pull_request:
     paths:
       - 'collector/p1_schedule_run_provenance.py'
+      - 'collector/p1_schedule_quality_summary.py'
       - 'tests/test_p1_schedule_run_provenance.py'
+      - 'tests/test_p1_schedule_quality_summary.py'
       - '.github/workflows/p1-cron-delay-incident-offline.yml'
   push:
     branches: [main]
     paths:
       - 'collector/p1_schedule_run_provenance.py'
+      - 'collector/p1_schedule_quality_summary.py'
       - 'tests/test_p1_schedule_run_provenance.py'
+      - 'tests/test_p1_schedule_quality_summary.py'
       - '.github/workflows/p1-cron-delay-incident-offline.yml'
 permissions:
   contents: read
@@ -22,4 +26,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest -v tests.test_p1_schedule_run_provenance
+      - run: python -m unittest -v tests.test_p1_schedule_run_provenance tests.test_p1_schedule_quality_summary
+      - name: Summarize locally stored P1 cron receipts without guessing missing runs
+        run: |
+          python -m collector.p1_schedule_quality_summary --root evidence/schedule_runs --out /tmp/p1_schedule_quality_summary.json
+          python - <<'PY'
+          import json
+          r=json.load(open('/tmp/p1_schedule_quality_summary.json'))
+          assert r['trade_gate']=='BLOCKED' and r['orders']==[]
+          assert r['missing_cron_slots_inferred'] is False
+          assert r['final_GitHub_workflow_conclusions_verified'] is False
+          print('P1 SCHEDULE QUALITY RECEIPTS:',r['observed_receipts'])
+          print('P1 LATE CREATION RUNS:',r['creation_delay_over_45m_count'])
+          PY
