@@ -53,6 +53,29 @@ class TencentQuoteTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 parse(raw, [A])
 
+    def test_embedded_or_trailing_unknown_provider_material_is_rejected(self):
+        samples = (
+            b"corrupt\\n" + line(A),
+            line(A) + b"\\nunknown provider fragment",
+            line(A) + b"garbage" + line(B),
+            line(A) + b'v_sh600518="unexpected";',
+        )
+        for raw in samples:
+            with self.subTest(raw=raw[:40]), self.assertRaises(ValueError):
+                parse(raw, [A, B])
+        rows=parse(b"\\r\\n" + line(A) + b" \\n" + line(B) + b"\\n", [A,B])
+        self.assertEqual(len(rows),2)
+
+    def test_corrupted_response_preserved_for_forensic_replay(self):
+        with tempfile.TemporaryDirectory() as root:
+            raw=line(A) + b"unrecognized trailing garbage"
+            dest=Path(root)/"broken"
+            report=capture([A],dest,transport=lambda _: raw)
+            self.assertEqual(report["status"],"FAILED_NO_TRADING")
+            self.assertEqual((dest/"quote_response.bin").read_bytes(),raw)
+            self.assertEqual(report["trade_gate"],"BLOCKED")
+            self.assertEqual(report["orders"],[])
+
     def test_archives_original_bytes_and_blocks_trading(self):
         with tempfile.TemporaryDirectory() as root:
             dest = Path(root)/"probe"
