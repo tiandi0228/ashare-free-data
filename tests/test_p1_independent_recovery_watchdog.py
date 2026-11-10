@@ -14,14 +14,17 @@ class IndependentRecoveryWatchdogTests(unittest.TestCase):
     def test_all_approved_weekday_and_weekend_followup_slots(self):
         self.assertEqual(re.findall(r"cron: '([^']+)'",self.workflow), [
             "32 1,2,4,6,8,10,12,14 * * 1-5",
+            "22 1,2,4,6,8,10,12,14 * * 1-5",
             "32 16 * * 1-5",
+            "22 16 * * 1-5",
             "32 18 * * 0-4",
+            "22 18 * * 0-4",
             "22 2,8,12,16 * * 6,0",
             "32 2,8,12,16 * * 6,0",
         ])
         self.assertIn("cancel-in-progress: false",self.workflow)
 
-    def test_every_slot_keeps_82_minute_watchdog_with_weekend_72_minute_backup(self):
+    def test_every_slot_gets_72_and_82_minute_safe_watchdog_observations(self):
         # Build a complete UTC week using the actual minute/hour/weekday cron
         # expressions. Exercise rollover for Monday 01:10 and Sun 23:10.
         rules=re.findall(r"cron: '([^']+)'",self.workflow)
@@ -57,20 +60,26 @@ class IndependentRecoveryWatchdogTests(unittest.TestCase):
                 matches=[run for run in checks
                          if run-scheduled==timedelta(minutes=82)]
                 self.assertEqual(len(matches),1,(scheduled,matches))
-        # Only weekend source slots receive an extra 72-minute backup.
-        # Weekdays retain the existing one 82-minute watch; duplicate claims
-        # on weekend runs are still subject to the remote at-most-once guard.
+        # Both weekday and weekend source slots have a 72min early backup.
+        # Every duplicate check still passes through the same remote
+        # immutable at-most-once claim and the 65-90min strict window.
         for day in range(2,8):
             hours=(1,8,9,11,13,15,17,19,21,23) if day<7 else (9,15,19,23)
             for hour in hours:
                 source=datetime(2026,11,day,hour,10,tzinfo=china)
                 matches=[run for run in checks
                          if run-source==timedelta(minutes=72)]
-                self.assertEqual(len(matches),0 if day<7 else 1,(source,matches))
-        self.assertEqual(len(checks),66) # full UTC week, 8 extra weekend checks
+                self.assertEqual(len(matches),1,(source,matches))
+        self.assertEqual(len(checks),116) # +50 weekday early checks
 
-    def test_weekend_backup_is_only_a_watchdog_not_direct_collection(self):
+    def test_early_backups_are_only_watchdogs_not_direct_collection(self):
         self.assertEqual(self.workflow.count("22 2,8,12,16 * * 6,0"),1)
+        for weekday_backup in (
+            "22 1,2,4,6,8,10,12,14 * * 1-5",
+            "22 16 * * 1-5",
+            "22 18 * * 0-4",
+        ):
+            self.assertEqual(self.workflow.count(weekday_backup),1)
         self.assertIn("p1_recovery_claim",self.workflow)
         self.assertIn("p1_recovery_dispatch_preflight",self.workflow)
         self.assertIn("p1_recovery_dispatch_once",self.workflow)
