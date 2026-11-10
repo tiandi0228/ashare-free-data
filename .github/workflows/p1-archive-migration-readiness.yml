@@ -16,6 +16,7 @@ on:
       - 'collector/p1_private_git_commit_preflight.py'
       - 'collector/p1_private_remote_main_gate.py'
       - 'collector/p1_independent_postpush_readback.py'
+      - 'collector/p1_private_archive_retry_decision.py'
       - 'collector/p1_source_commit_envelope.py'
       - 'tests/test_p1_source_commit_envelope.py'
       - 'tests/test_p1_source_handoff_independent_replay.py'
@@ -26,6 +27,7 @@ on:
       - 'tests/test_p1_private_git_commit_preflight.py'
       - 'tests/test_p1_private_remote_main_gate.py'
       - 'tests/test_p1_independent_postpush_readback.py'
+      - 'tests/test_p1_private_archive_retry_decision.py'
       - 'tests/test_p1_batch_handoff_integration.py'
       - 'tests/test_p1_source_sha_handoff.py'
       - 'tests/test_p1_partial_sha_copy_plan.py'
@@ -49,6 +51,7 @@ on:
       - 'collector/p1_private_git_commit_preflight.py'
       - 'collector/p1_private_remote_main_gate.py'
       - 'collector/p1_independent_postpush_readback.py'
+      - 'collector/p1_private_archive_retry_decision.py'
       - 'collector/p1_source_commit_envelope.py'
       - 'tests/test_p1_source_commit_envelope.py'
       - 'tests/test_p1_source_handoff_independent_replay.py'
@@ -59,6 +62,7 @@ on:
       - 'tests/test_p1_private_git_commit_preflight.py'
       - 'tests/test_p1_private_remote_main_gate.py'
       - 'tests/test_p1_independent_postpush_readback.py'
+      - 'tests/test_p1_private_archive_retry_decision.py'
       - 'tests/test_p1_batch_handoff_integration.py'
       - 'tests/test_p1_source_sha_handoff.py'
       - 'tests/test_p1_partial_sha_copy_plan.py'
@@ -86,7 +90,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest -v tests.test_p1_active_migration_checkpoint tests.test_p1_archive_migration_readiness tests.test_p1_legacy_original_receipt_gap_audit tests.test_p1_partial_sha_copy_plan tests.test_p1_source_sha_handoff tests.test_p1_source_handoff_independent_replay tests.test_p1_target_sha_readback tests.test_p1_bounded_missing_shard_batch_plan tests.test_p1_batch_revalidation tests.test_p1_offline_batch_staging tests.test_p1_private_git_commit_preflight tests.test_p1_private_remote_main_gate tests.test_p1_independent_postpush_readback tests.test_p1_batch_handoff_integration tests.test_p1_source_commit_envelope
+      - run: python -m unittest -v tests.test_p1_active_migration_checkpoint tests.test_p1_archive_migration_readiness tests.test_p1_legacy_original_receipt_gap_audit tests.test_p1_partial_sha_copy_plan tests.test_p1_source_sha_handoff tests.test_p1_source_handoff_independent_replay tests.test_p1_target_sha_readback tests.test_p1_bounded_missing_shard_batch_plan tests.test_p1_batch_revalidation tests.test_p1_offline_batch_staging tests.test_p1_private_git_commit_preflight tests.test_p1_private_remote_main_gate tests.test_p1_independent_postpush_readback tests.test_p1_private_archive_retry_decision tests.test_p1_batch_handoff_integration tests.test_p1_source_commit_envelope
   source-readback:
     if: ${{ github.event_name != 'pull_request' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success') }}
     needs: offline
