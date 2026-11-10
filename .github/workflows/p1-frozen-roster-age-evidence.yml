@@ -1,0 +1,42 @@
+name: P1 frozen vendor roster age evidence (READ ONLY NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p1_frozen_roster_age_audit.py'
+      - 'tests/test_p1_frozen_roster_age_audit.py'
+      - '.github/workflows/p1-frozen-roster-age-evidence.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p1_frozen_roster_age_audit.py'
+      - 'tests/test_p1_frozen_roster_age_audit.py'
+      - '.github/workflows/p1-frozen-roster-age-evidence.yml'
+  schedule:
+    - cron: '50 13 * * *' # Daily 21:50 Beijing; no vendor calls
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Source age and fail-closed tests (no provider)
+        run: python -m unittest -v tests.test_p1_frozen_roster_age_audit
+      - name: Report actual immutable roster age (not freshness certification)
+        if: github.event_name != 'pull_request'
+        run: |
+          python -m collector.p1_frozen_roster_age_audit \
+            --lock evidence/p1_active_roster.json \
+            --out evidence/p1_frozen_roster_age.json
+      - uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request'
+        with:
+          name: p1-frozen-roster-age-${{ github.run_id }}
+          path: evidence/p1_frozen_roster_age.json
+          if-no-files-found: error
+          retention-days: 14
