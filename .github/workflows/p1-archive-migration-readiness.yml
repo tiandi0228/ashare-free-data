@@ -9,9 +9,11 @@ on:
       - 'collector/p1_partial_sha_copy_plan.py'
       - 'collector/p1_source_sha_handoff.py'
       - 'collector/p1_source_handoff_independent_replay.py'
+      - 'collector/p1_target_sha_readback.py'
       - 'collector/p1_source_commit_envelope.py'
       - 'tests/test_p1_source_commit_envelope.py'
       - 'tests/test_p1_source_handoff_independent_replay.py'
+      - 'tests/test_p1_target_sha_readback.py'
       - 'tests/test_p1_source_sha_handoff.py'
       - 'tests/test_p1_partial_sha_copy_plan.py'
       - 'tests/test_p1_legacy_original_receipt_gap_audit.py'
@@ -27,9 +29,11 @@ on:
       - 'collector/p1_partial_sha_copy_plan.py'
       - 'collector/p1_source_sha_handoff.py'
       - 'collector/p1_source_handoff_independent_replay.py'
+      - 'collector/p1_target_sha_readback.py'
       - 'collector/p1_source_commit_envelope.py'
       - 'tests/test_p1_source_commit_envelope.py'
       - 'tests/test_p1_source_handoff_independent_replay.py'
+      - 'tests/test_p1_target_sha_readback.py'
       - 'tests/test_p1_source_sha_handoff.py'
       - 'tests/test_p1_partial_sha_copy_plan.py'
       - 'tests/test_p1_legacy_original_receipt_gap_audit.py'
@@ -56,7 +60,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest -v tests.test_p1_active_migration_checkpoint tests.test_p1_archive_migration_readiness tests.test_p1_legacy_original_receipt_gap_audit tests.test_p1_partial_sha_copy_plan tests.test_p1_source_sha_handoff tests.test_p1_source_handoff_independent_replay tests.test_p1_source_commit_envelope
+      - run: python -m unittest -v tests.test_p1_active_migration_checkpoint tests.test_p1_archive_migration_readiness tests.test_p1_legacy_original_receipt_gap_audit tests.test_p1_partial_sha_copy_plan tests.test_p1_source_sha_handoff tests.test_p1_source_handoff_independent_replay tests.test_p1_target_sha_readback tests.test_p1_source_commit_envelope
   source-readback:
     if: ${{ github.event_name != 'pull_request' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success') }}
     needs: offline
