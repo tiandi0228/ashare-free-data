@@ -1,0 +1,107 @@
+name: P3 pinned original archive replay 20261111 (READ ONLY, NO TRADES)
+
+# A bounded ONE-TIME verification of the previously failed real handoff.
+# This file runs on its initial merge to main and does not run on schedules,
+# later P3 runs or unrelated commits.
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/p3-one-shot-real-replay-20261111.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p3-one-shot-real-replay-20261111.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test exact date-text differentiation and blocked proof queue
+        run: python -m unittest tests.test_p3_archived_episode_proof_bridge tests.test_p3_publication_proof_task_queue tests.test_p3_publication_asof_gate -v
+
+  real-archive-replay:
+    if: github.event_name == 'push'
+    needs: regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_RUN_ID: '42981560669'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate frozen successful upstream original archive source
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}" > upstream.json
+          python - <<'PY'
+          import json,os,re
+          from pathlib import Path
+          r=json.loads(Path("upstream.json").read_text())
+          assert r.get("id")==int(os.environ["SOURCE_RUN_ID"])
+          assert r.get("status")=="completed" and r.get("conclusion")=="success"
+          assert r.get("head_branch")=="main"
+          assert r.get("repository",{}).get("full_name")==os.environ["GITHUB_REPOSITORY"]
+          assert r.get("path")==".github/workflows/p3-full-p1-official-scout.yml"
+          assert re.fullmatch(r"[a-f0-9]{40}",r.get("head_sha",""))
+          print("Validated pinned P3 original source",r["id"],r["head_sha"])
+          PY
+      - name: Retrieve exact archived P3 episode report from existing successful run
+        run: |
+          set -euo pipefail
+          mkdir -p input
+          gh run download "$SOURCE_RUN_ID" --name "p3-full-p1-official-scout-$SOURCE_RUN_ID" --dir input
+          python - <<'PY'
+          from pathlib import Path
+          options=[Path("input/p3_all_archived_original_event_episodes.json"),
+                   Path("input/evidence/p3_all_archived_original_event_episodes.json")]
+          available=[p for p in options if p.is_file() and not p.is_symlink()]
+          if len(available)!=1:raise SystemExit("expected precisely one archival episode JSON")
+          if available[0].stat().st_size>25000000:
+              raise SystemExit("archival original episode exceeds safety bound")
+          Path("episode.json").write_bytes(available[0].read_bytes())
+          print("Found actual P3 episode report",available[0])
+          PY
+      - name: Replay real SHA source as research tasks without PIT promotion
+        run: |
+          set -euo pipefail
+          python -m collector.p3_archived_episode_proof_bridge \
+            --episode episode.json --decision-instant "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --out evidence/p3_real_archive_proof_tasks.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path("evidence/p3_real_archive_proof_tasks.json").read_text())
+          q=p["proof_queue"]
+          assert p["phase"]=="P3_ARCHIVED_TEXT_TO_PUBLICATION_PROOF_QUEUE"
+          assert q["task_count"]==p["research_issuer_claims"]
+          assert q["task_count"]>0
+          assert p["trade_gate"]=="BLOCKED" and q["trade_gate"]=="BLOCKED"
+          assert p["orders"]==[] and q["orders"]==[]
+          assert p["historical_PIT_verified"] is False
+          assert all(x["trade_eligible"] is False
+                     and x["historical_PIT_verified"] is False
+                     for x in q["tasks"])
+          print("REAL P3 QUEUE PASS",json.dumps(q["task_counts_by_missing_proof"],sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p3-one-shot-real-archive-tasks-${{ github.run_id }}
+          path: evidence/p3_real_archive_proof_tasks.json
+          retention-days: 30
+          if-no-files-found: ignore
