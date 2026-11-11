@@ -77,6 +77,20 @@ class ProofTaskQueueTests(unittest.TestCase):
             build(row)
 
 
+    def test_direct_queue_rejects_missing_or_forged_decision_instant(self):
+        baseline = assess([claim()], DECISION)
+        self.assertEqual(build(baseline)["source_decision_instant_utc"],
+                         baseline["decision_instant_utc"])
+        for bad in (None, "", "2026-10-20T01:30:00",
+                    "2026-10-20T09:30:00+08:00",
+                    "2026-02-30T01:30:00+00:00",
+                    "2026-10-20T25:30:00+00:00"):
+            report = copy.deepcopy(baseline)
+            report["decision_instant_utc"] = bad
+            with self.subTest(value=bad), self.assertRaisesRegex(
+                    ValueError, "invalid P3 UTC decision instant"):
+                build(report)
+
     def test_direct_queue_rejects_impossible_calendar_days(self):
         # A forged as-of report must not bypass the date check in assess().
         for bad in ("2026-02-30", "2026-13-01", "2026-00-01"):
