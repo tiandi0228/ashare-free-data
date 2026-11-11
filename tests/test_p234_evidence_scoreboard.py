@@ -59,5 +59,29 @@ class TestEvidenceScoreboard(unittest.TestCase):
         p=list(copy.deepcopy(base));p[2]["trade_gate"]="OPEN"
         with self.assertRaises(ValueError):scoreboard(*p,{"p2":11,"p3":12,"p4":13})
 
+
+    def test_reject_duplicate_run_ids_or_boolean_run_id(self):
+        p2,p3,p4=fixtures()
+        for ids in (
+            {"p2":11,"p3":11,"p4":13},
+            {"p2":11,"p3":12,"p4":True},
+        ):
+            with self.subTest(ids=ids), self.assertRaises(ValueError):
+                scoreboard(p2,p3,p4,ids)
+
+    def test_reject_overlapping_modelled_passes_and_erased_pairs(self):
+        p2,p3,p4=fixtures()
+        p4["source_frozen_5pct_reward_risk_passes"]=1
+        # All cash-eligible pairs have already been counted as erased by fees;
+        # a new pass would double count at least one observation.
+        with self.assertRaises(ValueError):
+            scoreboard(p2,p3,p4,{"p2":11,"p3":12,"p4":13})
+
+    def test_reject_nonlist_p3_evidence_with_clear_error(self):
+        p2,p3,p4=fixtures()
+        p3["text_only_halt_resume_pairs"]=None
+        with self.assertRaisesRegex(ValueError,"unreconciled P3"):
+            scoreboard(p2,p3,p4,{"p2":11,"p3":12,"p4":13})
+
 if __name__=="__main__":
     unittest.main()
