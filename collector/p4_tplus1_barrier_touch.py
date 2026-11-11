@@ -170,6 +170,10 @@ def audit(root, manifest_file, proxy_file):
             seen.add(key)
             event = expected[key]
             digest, rows = sources[code]
+            # A valid file hash does not prove its rows belong to this issuer.
+            # Reject a cross-issuer CSV even if every surrounding SHA is repinned.
+            if not rows or any(row.get("code") != code for row in rows):
+                return reject("SOURCE_CSV_ISSUER_MISMATCH")
             if (digest != event["source_csv_sha256"]
                     or pair.get("original_csv_sha256") != digest
                     or pair.get("next_open_fill_assumed") is not False

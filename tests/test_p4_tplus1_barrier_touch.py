@@ -167,6 +167,33 @@ class BarrierTouchTests(unittest.TestCase):
             r=audit(root,manifest,proxy)
             self.assertEqual(r["reason"],"ARCHIVED_ORIGINAL_SHA_MISMATCH")
 
+    @patch("collector.p4_tplus1_barrier_touch.verify",
+           return_value={"trade_gate":"BLOCKED","orders":[],
+                         "independently_verified_events":1,
+                         "independently_verified_forward_ready":1})
+    def test_sha_consistent_cross_issuer_csv_rejected(self,verified):
+        # Re-pin all receipts to malicious bytes; SHA consistency alone is insufficient.
+        with tempfile.TemporaryDirectory() as d:
+            root,manifest_file,proxy_file=fixture(d)
+            csv_path=root/"epoch"/"shard_0000"/"sh_600000.csv"
+            csv_path.write_text(csv_path.read_text().replace(
+                "sh.600000", "sh.600001"))
+            new_sha=hashlib.sha256(csv_path.read_bytes()).hexdigest()
+            receipt=root/"epoch"/"shard_0000"/"quality.json"
+            data=json.loads(receipt.read_text())
+            data["results"][0]["sha256"]=new_sha
+            receipt.write_text(json.dumps(data))
+            manifest=json.loads(manifest_file.read_text())
+            manifest["nonoverlapping_event_evidence"][0]["source_csv_sha256"]=new_sha
+            manifest_file.write_text(json.dumps(manifest))
+            proxy=json.loads(proxy_file.read_text())
+            proxy["observed_price_pairs"][0]["original_csv_sha256"]=new_sha
+            proxy_file.write_text(json.dumps(proxy))
+            result=audit(root,manifest_file,proxy_file)
+            self.assertEqual(result["reason"],"SOURCE_CSV_ISSUER_MISMATCH")
+            self.assertEqual(result["trade_gate"],"BLOCKED")
+            self.assertEqual(result["orders"],[])
+
     def test_ceiling_tick_rounding_and_ohlc_ambiguity(self):
         self.assertEqual(barrier(Decimal("10.01")),
                          (Decimal("9.81"),Decimal("10.52")))
