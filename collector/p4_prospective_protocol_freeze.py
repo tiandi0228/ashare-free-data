@@ -24,7 +24,7 @@ def _decimal(value, *, positive=False):
 
 
 def freeze(*, source_commit, baseline_artifact_sha256, created_at_utc,
-           window_start, window_end, strategy_id, fee_model):
+           window_start, window_end, strategy_id, fee_model, strategy_rules):
     base = {
         "phase": PHASE, "status": "REJECTED",
         "historical_PIT_verified": False, "historical_OOS_validated": False,
@@ -67,8 +67,32 @@ def freeze(*, source_commit, baseline_artifact_sha256, created_at_utc,
             or values["slippage_bps_each_side"] >= 10000
             or values["maximum_net_loss_fraction"] > 1):
             return reject("UNSAFE_FEE_OR_RISK_ASSUMPTION")
+        # A cost-only fingerprint is not a frozen strategy: lock every
+        # entry/exit, timing and barrier input that determines a candidate.
+        rule_fields = {
+            "signal_rule", "entry_rule", "stop_fraction", "target_fraction",
+            "min_holding_sessions", "max_holding_sessions",
+            "friday_exit_rule", "same_day_sale_allowed",
+        }
+        if not isinstance(strategy_rules, dict) or set(strategy_rules) != rule_fields:
+            return reject("STRATEGY_RULES_NOT_COMPLETELY_FROZEN")
+        if (strategy_rules["signal_rule"] != "COMPLETED_CLOSE_CROSSES_ABOVE_MA20"
+            or strategy_rules["entry_rule"] != "NEXT_VENDOR_OPEN_PROXY_NOT_FILL"
+            or strategy_rules["friday_exit_rule"] != "FRIDAY_FORCE_EXIT_RESEARCH_ONLY"
+            or strategy_rules["same_day_sale_allowed"] is not False):
+            return reject("UNSAFE_OR_UNKNOWN_STRATEGY_RULES")
+        if (type(strategy_rules["min_holding_sessions"]) is not int
+            or type(strategy_rules["max_holding_sessions"]) is not int
+            or not 1 <= strategy_rules["min_holding_sessions"]
+                 <= strategy_rules["max_holding_sessions"] <= 5):
+            return reject("INVALID_HOLDING_WINDOW")
+        stop = _decimal(strategy_rules["stop_fraction"], positive=True)
+        target = _decimal(strategy_rules["target_fraction"], positive=True)
+        if stop >= 1 or target >= 1:
+            return reject("INVALID_BARRIER_FRACTIONS")
         fixed = {
-            "schema_version": 1, "strategy_id": strategy_id,
+            "schema_version": 2, "strategy_id": strategy_id,
+            "frozen_strategy_rules": strategy_rules,
             "source_commit": source_commit,
             "negative_baseline_artifact_sha256": baseline_artifact_sha256,
             "claimed_created_at_utc": created_at_utc,
