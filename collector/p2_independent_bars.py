@@ -15,11 +15,31 @@ def audit_csv(raw,code):
             raise ValueError("repeated/out-of-order day or different issuer")
         seen.add(day);last=day
         if row["adjustflag"]!="3":raise ValueError("unexpected adjusted prices")
-        if row["tradestatus"]=="0":
+        status=row["tradestatus"]
+        if status not in ("0","1"):raise ValueError("unknown vendor trade status")
+        # A vendor-suspended session must never become executable merely
+        # because stale OHLC values are present. BaoStock may encode missing
+        # suspended turnover as empty strings, not numeric zero.
+        if status=="0":
+            for field in ("volume","amount"):
+                raw=row[field]
+                if raw!="":
+                    try:amount=float(raw)
+                    except ValueError as e:raise ValueError("invalid suspended turnover") from e
+                    if not math.isfinite(amount) or amount!=0:
+                        raise ValueError("suspended session with nonzero or invalid turnover")
+            prices=[row[k] for k in ("open","high","low","close")]
+            if any(prices):
+                if not all(prices):raise ValueError("incomplete suspended OHLC")
+                try:o,h,l,c=map(float,prices)
+                except ValueError as e:raise ValueError("invalid suspended OHLC") from e
+                if (not all(math.isfinite(x) for x in (o,h,l,c)) or
+                    min(o,h,l,c)<=0 or l>min(o,c,h) or h<max(o,c,l)):
+                    raise ValueError("invalid suspended OHLC")
             suspended+=1
             continue
-        if row["tradestatus"]!="1":raise ValueError("unknown vendor trade status")
-        vals=[float(row[k]) for k in ("open","high","low","close","volume","amount")]
+        try:vals=[float(row[k]) for k in ("open","high","low","close","volume","amount")]
+        except ValueError as e:raise ValueError("missing or invalid active quote") from e
         if not all(math.isfinite(v) for v in vals):raise ValueError("nonfinite quote")
         o,h,l,c,v,a=vals
         if min(o,h,l,c)<=0 or l>min(o,c,h) or h<max(o,c,l) or min(v,a)<0:
