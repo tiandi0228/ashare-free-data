@@ -1,0 +1,14 @@
+{
+  "attempt_path": "recovery-dispatch-attempts/2026-11-11/2310.json",
+  "dry_run_claim_path": "recovery-claims/2026-11-11/2310.json",
+  "executable_candidates": [],
+  "orders": [],
+  "origin_check_run_id": 43057018635,
+  "phase": "P1_SINGLE_SHARD_DISPATCH_ATTEMPT",
+  "ref": "main",
+  "requested_shards": 1,
+  "slot": "2026-11-11T23:10:00+08:00",
+  "state": "DISPATCH_ATTEMPT_RESERVED",
+  "trade_gate": "BLOCKED",
+  "workflow": "p1-fresh-vendor-roster.yml"
+}
