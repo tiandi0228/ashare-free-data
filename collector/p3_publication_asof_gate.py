@@ -41,6 +41,22 @@ def assess(events, decision_instant):
                   e.get("publication_timestamp_independently_authenticated") is True)
         if attested and published is None:raise ValueError("authenticated publication missing")
         published_at=instant(published) if published is not None else None
+        # Evidence triage is descriptive only; none of these categories
+        # certifies a full historical security state or authorizes trading.
+        if e.get("original_bytes_verified") is not True:
+            gap="ORIGINAL_BYTES_NOT_VERIFIED"
+        elif e.get("publisher_independently_authenticated") is not True:
+            gap="PUBLISHER_NOT_AUTHENTICATED"
+        elif e.get("publication_timestamp_independently_authenticated") is not True:
+            gap="FIRST_PUBLICATION_NOT_AUTHENTICATED"
+        elif published_at is None:
+            raise ValueError("authenticated publication missing")
+        elif published_at>asof:
+            gap="PUBLICATION_AFTER_DECISION"
+        elif effective>asof.astimezone(ZoneInfo('Asia/Shanghai')).date():
+            gap="EFFECTIVE_DATE_AFTER_DECISION"
+        else:
+            gap="EVENT_KNOWN_FULL_DAILY_STATE_UNCERTIFIED"
         known=bool(attested and published_at<=asof)
         effective_at_asof=bool(known and effective<=asof.astimezone(ZoneInfo('Asia/Shanghai')).date())
         results.append({"issuer":e["issuer"],"kind":e["kind"],
@@ -48,11 +64,17 @@ def assess(events, decision_instant):
                         "known_before_decision":known,
                         "effective_by_decision_date":effective_at_asof,
                         "certified_full_daily_state":False,
+                        "publication_proof_status":gap,
                         "original_sha256":digest})
+    proof_status_counts={}
+    for row in results:
+        status=row["publication_proof_status"]
+        proof_status_counts[status]=proof_status_counts.get(status,0)+1
     return {"phase":"P3_EVENT_PUBLICATION_ASOF_BOUNDARY",
             "decision_instant_utc":asof.isoformat(),
             "events":results,
             "known_event_count":sum(r["known_before_decision"] for r in results),
+            "publication_proof_status_counts":dict(sorted(proof_status_counts.items())),
             "complete_historical_risk_state":False,
             "eligible_for_trading":False,
             "trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
