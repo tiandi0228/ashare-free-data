@@ -1,0 +1,119 @@
+{
+  "audited_issuer_count": 1874,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 2,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.605303"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603179"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603180"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 43064426836,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 16508,
+  "research_date_action_links": [
+    {
+      "announcement_id": "1225560951",
+      "claimed_index_publication_utc_unverified": "2026-09-11T16:00:00+00:00",
+      "decision_day": "2026-09-14",
+      "decision_time_available_certified": false,
+      "effective_date_authenticated": false,
+      "event_kind": "halt",
+      "first_publication_authenticated": false,
+      "index_time_screen": "INDEX_TIME_NOT_AFTER_DECISION_CLOSE_UNVERIFIED",
+      "issuer": "sh.605303",
+      "local_textual_direction_candidate": "HALT_START",
+      "original_pdf_sha256": "bda7902c826f548ce891c4b97f74b8775e8b6adadeec2262344728722d21b3d9",
+      "source_clause_excerpt": "证券代码：605303）自2026年9月14日（星期一）起开始停牌",
+      "source_date_text": "2026年9月14日",
+      "source_shard": 208,
+      "vendor_csv_sha256": "6c96135604c6cacdccc054c0babd022c3ac21488ab1c3597c7628f763b653688",
+      "vendor_tradestatus_observed": "0"
+    },
+    {
+      "announcement_id": "1225560951",
+      "claimed_index_publication_utc_unverified": "2026-09-11T16:00:00+00:00",
+      "decision_day": "2026-09-28",
+      "decision_time_available_certified": false,
+      "effective_date_authenticated": false,
+      "event_kind": "halt",
+      "first_publication_authenticated": false,
+      "index_time_screen": "INDEX_TIME_NOT_AFTER_DECISION_CLOSE_UNVERIFIED",
+      "issuer": "sh.605303",
+      "local_textual_direction_candidate": "HALT_START",
+      "original_pdf_sha256": "bda7902c826f548ce891c4b97f74b8775e8b6adadeec2262344728722d21b3d9",
+      "source_clause_excerpt": "证券代码：605303）自2026年9月14日（星期一）起开始停牌",
+      "source_date_text": "2026年9月14日",
+      "source_shard": 208,
+      "vendor_csv_sha256": "6c96135604c6cacdccc054c0babd022c3ac21488ab1c3597c7628f763b653688",
+      "vendor_tradestatus_observed": "0"
+    }
+  ],
+  "run_id": 43064757319,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225596350",
+      "archive_path": "pdf/sh_603179/1225596350/e2aa3bd1b276195bacc002eb21c206effcc72ef9af59808e6279c11325c5109d.pdf",
+      "bytes": 69713,
+      "captured_at_utc": "2026-11-11T17:06:06.539235+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1791475200000,
+      "issuer": "sh.603179",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-09/1225596350.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "e2aa3bd1b276195bacc002eb21c206effcc72ef9af59808e6279c11325c5109d",
+      "title_from_index_unverified": "江苏新泉汽车饰件股份有限公司第五届董事会提名委员会关于独立董事候选人任职资格的审查意见"
+    },
+    {
+      "announcement_id": "1225596324",
+      "archive_path": "pdf/sh_603180/1225596324/d25541a039a2d7a61ff7ad932c984e49c5aa21315d3d8d65ee4c6658d19d8608.pdf",
+      "bytes": 96840,
+      "captured_at_utc": "2026-11-11T17:06:07.029648+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1791475200000,
+      "issuer": "sh.603180",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-09/1225596324.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "d25541a039a2d7a61ff7ad932c984e49c5aa21315d3d8d65ee4c6658d19d8608",
+      "title_from_index_unverified": "金牌家居关于可转换公司债券转股结果暨股份变动公告"
+    },
+    {
+      "announcement_id": "1225560951",
+      "archive_path": "pdf/sh_605303/1225560951/bda7902c826f548ce891c4b97f74b8775e8b6adadeec2262344728722d21b3d9.pdf",
+      "bytes": 116634,
+      "captured_at_utc": "2026-11-11T17:06:05.768414+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1789142400000,
+      "issuer": "sh.605303",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-12/1225560951.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "bda7902c826f548ce891c4b97f74b8775e8b6adadeec2262344728722d21b3d9",
+      "title_from_index_unverified": "关于筹划发行股份及支付现金购买资产的停牌公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
