@@ -53,7 +53,10 @@ def build(report):
             or type(event.get("known_before_decision")) is not bool
             or type(event.get("effective_by_decision_date")) is not bool):
             raise ValueError("untrusted or promoted P3 event")
-        key = issuer, kind, digest
+        day = event.get("effective_date")
+        if not isinstance(day,str) or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}",day):
+            raise ValueError("missing candidate event day")
+        key = issuer, kind, digest, day
         if key in seen:
             raise ValueError("duplicate P3 event identity")
         seen.add(key)
@@ -73,7 +76,8 @@ def build(report):
         counts[status] += 1
         tasks.append({
             "priority": priority, "issuer": issuer, "kind": kind,
-            "original_sha256": digest, "missing_proof": status,
+            "original_sha256": digest, "candidate_text_day_unverified": day,
+            "missing_proof": status,
             "research_action": action,
             "historical_PIT_verified": False, "trade_eligible": False,
         })
@@ -83,7 +87,7 @@ def build(report):
         or report["known_event_count"] != sum(
             bool(row["known_before_decision"]) for row in events)):
         raise ValueError("P3 counts do not reconcile")
-    tasks.sort(key=lambda x: (x["priority"], x["issuer"], x["kind"], x["original_sha256"]))
+    tasks.sort(key=lambda x: (x["priority"], x["issuer"], x["kind"], x["original_sha256"], x["candidate_text_day_unverified"]))
     return {
         "phase": PHASE, "status": "OFFICIAL_PROOF_RESEARCH_TASKS_ONLY",
         "source_phase": SOURCE_PHASE,
