@@ -37,6 +37,7 @@ def bridge(source, decision_instant):
         raise ValueError("wrong event claim count")
     events=[]
     seen=set()
+    source_locators={}
     for claim in claims:
         if not isinstance(claim,dict):
             raise ValueError("malformed archived event claim")
@@ -55,7 +56,10 @@ def bridge(source, decision_instant):
             or type(claim.get("original_first_archived_research_run_id")) is not int
             or claim["original_first_archived_research_run_id"]<=0):
             raise ValueError("untrusted or promoted archived text candidate")
-        expected=f"pdf/{issuer.replace('.','_')}/{claim.get('announcement_id')}/{digest}.pdf"
+        notice=claim.get("announcement_id")
+        if not isinstance(notice,str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,80}",notice):
+            raise ValueError("invalid archived announcement ID")
+        expected=f"pdf/{issuer.replace('.','_')}/{notice}/{digest}.pdf"
         if claim.get("original_sha_verified_archive_path")!=expected:
             raise ValueError("original archive path not pinned to digest")
         capture=claim.get("original_first_archived_research_capture_at_utc")
@@ -68,6 +72,16 @@ def bridge(source, decision_instant):
             # reject ambiguity rather than silently discarding one date.
             raise ValueError("ambiguous source claim identity")
         seen.add(key)
+        source_locators[key]={
+            "archived_announcement_id":notice,
+            "sha_pinned_original_archive_path":expected,
+            "first_archived_research_run_id":claim["original_first_archived_research_run_id"],
+            "first_archived_research_capture_utc_not_first_publication":capture,
+            "publisher_independently_authenticated":False,
+            "historical_first_publication_authenticated":False,
+            "official_source_url_verified":False,
+            "candidate_text_date_is_not_official_effective_date":True,
+        }
         events.append({
             "issuer":issuer,"kind":kind,"original_sha256":digest,
             "effective_date":day, # UNVERIFIED SOURCE TEXT ONLY
@@ -79,6 +93,16 @@ def bridge(source, decision_instant):
         })
     asof=assess(events,decision_instant)
     queue=build_tasks(asof)
+    matched=set()
+    for task in queue["tasks"]:
+        key=(task["issuer"],task["kind"],task["original_sha256"],
+             task["candidate_text_day_unverified"])
+        if key not in source_locators or key in matched:
+            raise ValueError("P3 task not matched to exact original event source")
+        matched.add(key)
+        task.update(source_locators[key])
+    if matched!=set(source_locators):
+        raise ValueError("some original event sources lost in task lineage")
     if queue["task_count"]!=len(claims):
         raise ValueError("archived claims vanished in proof bridge")
     return {
