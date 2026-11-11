@@ -30,6 +30,8 @@ on:
       - 'tests/test_p1_eight_committed_receipt_integrity.py'
       - 'collector/p1_eight_reacquire_compare.py'
       - 'tests/test_p1_eight_reacquire_compare.py'
+      - 'collector/p3_publication_time_provenance_gate.py'
+      - 'tests/test_p3_publication_time_provenance_gate.py'
       - 'collector/p3_historical_evidence_coverage.py'
       - 'tests/test_p3_historical_evidence_coverage.py'
       - 'collector/p3_evidence_gap_report.py'
@@ -64,6 +66,11 @@ on:
       - 'tests/test_audit_24_reacquisition.py'
       - 'reports/p1_reacquire_8_of_24_batch_2_20261021.json'
       - 'reports/p1_reacquire_16_batches_01_20261021.json'
+      - '.github/workflows/offline-source-contracts.yml'
+  pull_request:
+    paths:
+      - 'collector/p3_publication_time_provenance_gate.py'
+      - 'tests/test_p3_publication_time_provenance_gate.py'
       - '.github/workflows/offline-source-contracts.yml'
   workflow_dispatch:
 
