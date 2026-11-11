@@ -30,6 +30,8 @@ on:
       - 'tests/test_p1_eight_committed_receipt_integrity.py'
       - 'collector/p1_eight_reacquire_compare.py'
       - 'tests/test_p1_eight_reacquire_compare.py'
+      - 'collector/p3_publication_time_provenance_gate.py'
+      - 'tests/test_p3_publication_time_provenance_gate.py'
       - 'collector/p3_historical_evidence_coverage.py'
       - 'tests/test_p3_historical_evidence_coverage.py'
       - 'collector/p3_evidence_gap_report.py'
