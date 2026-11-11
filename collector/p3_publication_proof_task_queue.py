@@ -7,7 +7,7 @@ import argparse
 import json
 import re
 from collections import Counter
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 PHASE = "P3_PUBLICATION_PROOF_GAP_TASK_QUEUE"
@@ -33,6 +33,17 @@ def build(report):
         or report.get("eligible_for_trading") is not False
         or report.get("complete_historical_risk_state") is not False):
         raise ValueError("unsafe or unexpected P3 as-of source")
+    # A proof queue must not silently carry a missing or forged decision instant.
+    decision = report.get("decision_instant_utc")
+    if (not isinstance(decision, str)
+        or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,6})?\+00:00", decision)):
+        raise ValueError("invalid P3 UTC decision instant")
+    try:
+        parsed = datetime.fromisoformat(decision)
+        if parsed.utcoffset() != timezone.utc.utcoffset(None) or parsed.isoformat() != decision:
+            raise ValueError("non-canonical P3 UTC decision instant")
+    except ValueError as exc:
+        raise ValueError("invalid P3 UTC decision instant") from exc
     events = report.get("events")
     if not isinstance(events, list) or len(events) > 10000:
         raise ValueError("invalid P3 events inventory")
@@ -98,7 +109,7 @@ def build(report):
     return {
         "phase": PHASE, "status": "OFFICIAL_PROOF_RESEARCH_TASKS_ONLY",
         "source_phase": SOURCE_PHASE,
-        "source_decision_instant_utc": report.get("decision_instant_utc"),
+        "source_decision_instant_utc": decision,
         "task_count": len(tasks), "task_counts_by_missing_proof": dict(sorted(counts.items())),
         "tasks": tasks, "historical_PIT_verified": False,
         "full_market_historical_state_verified": False,
