@@ -17,9 +17,13 @@ def instant(value):
 
 def assess(events, decision_instant):
     asof=instant(decision_instant)
-    if not isinstance(events,list):raise ValueError("event inventory missing")
+    if not isinstance(events,list) or len(events)>10000:raise ValueError("event inventory missing or unbounded")
     results=[];seen=set()
     for e in events:
+        if not isinstance(e,dict):raise ValueError("malformed event row")
+        if (not isinstance(e.get("issuer"),str) or not e["issuer"].strip()
+            or not isinstance(e.get("kind"),str) or not e["kind"].strip()):
+            raise ValueError("event issuer or kind missing")
         if e.get("trade_gate")!="BLOCKED" or e.get("orders")!=[] or e.get("executable_candidates",[])!=[]:
             raise ValueError("upstream risk boundary violated")
         key=(e.get("issuer"),e.get("kind"),e.get("original_sha256"))
@@ -27,7 +31,10 @@ def assess(events, decision_instant):
         seen.add(key)
         digest=e.get("original_sha256")
         if not isinstance(digest,str) or not SHA.fullmatch(digest):raise ValueError("invalid original SHA")
-        effective=date.fromisoformat(e["effective_date"])
+        effective_str=e.get("effective_date")
+        if not isinstance(effective_str,str) or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}",effective_str):
+            raise ValueError("invalid ISO effective date")
+        effective=date.fromisoformat(effective_str)
         published=e.get("authenticated_first_published_at")
         attested=(e.get("publisher_independently_authenticated") is True and
                   e.get("original_bytes_verified") is True and
