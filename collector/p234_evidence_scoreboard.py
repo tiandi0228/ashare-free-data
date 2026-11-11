@@ -46,7 +46,8 @@ def scoreboard(p2,p3,p4,source_runs):
         or p4.get("strategy_backtest_certified") is not False):
         raise ValueError("source scope or certification changed; re-review required")
     if (not isinstance(source_runs,dict) or set(source_runs)!={"p2","p3","p4"}
-        or any(type(v) is not int or v<=0 for v in source_runs.values())):
+        or any(type(v) is not int or v<=0 for v in source_runs.values())
+        or len(set(source_runs.values())) != 3):
         raise ValueError("three exact historical run IDs required")
     p2total=_integer(p2,"observed_archived_shards")
     p2complete=_integer(p2,"feature_complete_shards")
@@ -59,6 +60,7 @@ def scoreboard(p2,p3,p4,source_runs):
     p2issuer_unseen=_integer(p2,"unobserved_issuer_count")
     if (p2total!=p2complete+p2gaps or p2total+p2unseen!=p2source
         or p2issuers!=p2feature+p2issuer_gaps
+        or p2feature>p2issuers
         or p2unseen!=0 or p2issuer_unseen!=0
         or p2.get("full_archive_evidence_accounted") is not True
         or p2.get("full_archive_feature_coverage") is not (p2gaps==0)):
@@ -67,16 +69,16 @@ def scoreboard(p2,p3,p4,source_runs):
     pending=_integer(p3,"unpaired_halt_sources_remaining_in_bounded_research")
     unique=_integer(p3,"unique_resume_pdf_originals_replayed")
     runs=_integer(p3,"archived_resume_runs_replayed")
-    if (len(p3.get("text_only_halt_resume_pairs",[]))!=pairs
-        or len(p3.get("unpaired_original_halt_followups",[]))!=pending
-        or not isinstance(p3.get("text_only_halt_resume_pairs"),list)
-        or not isinstance(p3.get("unpaired_original_halt_followups"),list)):
+    if (not isinstance(p3.get("text_only_halt_resume_pairs"),list)
+        or not isinstance(p3.get("unpaired_original_halt_followups"),list)
+        or len(p3["text_only_halt_resume_pairs"])!=pairs
+        or len(p3["unpaired_original_halt_followups"])!=pending):
         raise ValueError("unreconciled P3 original proof pairs")
     count=_integer(p4,"source_verified_price_pairs")
     cash=_integer(p4,"cash_eligible_observation_pairs")
     passed=_integer(p4,"source_frozen_5pct_reward_risk_passes")
     lost=_integer(p4,"gross_2to1_erased_by_modelled_friction")
-    if count==0 or not (0<=passed<=cash<=count) or lost>cash:
+    if count==0 or not (0<=passed<=cash<=count) or lost>cash-passed:
         raise ValueError("unreconciled P4 theoretical observation counts")
     return {
         "phase":PHASE,
