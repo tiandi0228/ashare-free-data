@@ -19,7 +19,10 @@ def fixture(root,code="sh.600000",last_status="1",future=False):
     for i,day in enumerate(values):
         status=last_status if i==len(values)-1 else "1"
         price="10.00" if i<20 else "10.40"
-        rows.append(f"{day},{code},{price},{price},{price},{price},{100+i},1000,3,{status}")
+        # Vendor halt records may retain stale OHLC but do not report traded
+        # volume/amount; positive turnover alongside status=0 is inconsistent.
+        volume,amount=(str(100+i),"1000") if status=="1" else ("","")
+        rows.append(f"{day},{code},{price},{price},{price},{price},{volume},{amount},3,{status}")
     if future:
         rows.append(f"2026-11-03,{code},15,15,15,15,200,3000,3,1")
     raw=("\n".join(rows)+"\n").encode()
