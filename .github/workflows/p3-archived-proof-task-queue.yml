@@ -1,0 +1,106 @@
+name: P3 archived original proof tasks (READ ONLY, NO TRADES)
+
+on:
+  pull_request:
+    paths:
+      - 'collector/p3_archived_episode_proof_bridge.py'
+      - 'tests/test_p3_archived_episode_proof_bridge.py'
+      - 'collector/p3_publication_proof_task_queue.py'
+      - '.github/workflows/p3-archived-proof-task-queue.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p3_archived_episode_proof_bridge.py'
+      - 'tests/test_p3_archived_episode_proof_bridge.py'
+      - '.github/workflows/p3-archived-proof-task-queue.yml'
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Successful main branch source run containing the verified episode report
+        required: true
+        type: string
+      artifact_name:
+        description: Exact artifact name containing p3_archived_event_episode.json
+        required: true
+        type: string
+      decision_instant:
+        description: Research decision instant with timezone (e.g. 2026-11-11T14:30:00+08:00)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify research-only archive-to-proof bridge
+        run: python -m unittest tests.test_p3_archived_episode_proof_bridge tests.test_p3_publication_proof_task_queue tests.test_p3_publication_asof_gate -v
+
+  archived-evidence:
+    if: github.event_name == 'workflow_dispatch'
+    needs: regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate exact successful main source run and artifact input
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN: ${{ inputs.source_run_id }}
+          ARTIFACT: ${{ inputs.artifact_name }}
+        run: |
+          set -euo pipefail
+          [[ "$RUN" =~ ^[0-9]{6,20}$ ]]
+          [[ "$ARTIFACT" =~ ^[a-zA-Z0-9._-]{1,128}$ ]]
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$RUN" > source-run.json
+          python - <<'PY'
+          import json,os
+          run=json.load(open("source-run.json"))
+          if (run.get("status")!="completed" or run.get("conclusion")!="success"
+              or run.get("head_branch")!="main"
+              or run.get("repository",{}).get("full_name")!=os.environ["GITHUB_REPOSITORY"]):
+              raise SystemExit("unsafe or unsuccessful source artifact run")
+          PY
+          mkdir -p input
+          gh run download "$RUN" --name "$ARTIFACT" --dir input
+          test -f input/p3_archived_event_episode.json
+          test "$(find input -type f | wc -l)" -eq 1
+      - name: Create blocked evidence follow-up tasks from archived text
+        env:
+          DECISION: ${{ inputs.decision_instant }}
+        run: |
+          set -euo pipefail
+          python -m collector.p3_archived_episode_proof_bridge \
+            --episode input/p3_archived_event_episode.json \
+            --decision-instant "$DECISION" \
+            --out evidence/p3_archived_proof_tasks.json
+          python - <<'PY'
+          import json
+          p=json.load(open("evidence/p3_archived_proof_tasks.json"))
+          assert p["trade_gate"]=="BLOCKED" and p["orders"]==[]
+          assert p["historical_PIT_verified"] is False
+          assert p["proof_queue"]["trade_gate"]=="BLOCKED"
+          assert p["proof_queue"]["task_count"]==p["research_issuer_claims"]
+          assert all(not x["trade_eligible"] for x in p["proof_queue"]["tasks"])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p3-archived-proof-tasks-${{ github.run_id }}
+          path: evidence/p3_archived_proof_tasks.json
+          if-no-files-found: ignore
+          retention-days: 30
