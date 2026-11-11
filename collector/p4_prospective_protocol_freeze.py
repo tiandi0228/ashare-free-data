@@ -90,14 +90,18 @@ def freeze(*, source_commit, baseline_artifact_sha256, created_at_utc,
         target = _decimal(strategy_rules["target_fraction"], positive=True)
         if stop >= 1 or target >= 1:
             return reject("INVALID_BARRIER_FRACTIONS")
+        # Detach mutable caller-owned dictionaries before hashing and returning.
+        # Otherwise callers can mutate displayed frozen fields without moving SHA.
+        fees_snapshot = dict(fee_model)
+        rules_snapshot = dict(strategy_rules)
         fixed = {
             "schema_version": 2, "strategy_id": strategy_id,
-            "frozen_strategy_rules": strategy_rules,
+            "frozen_strategy_rules": rules_snapshot,
             "source_commit": source_commit,
             "negative_baseline_artifact_sha256": baseline_artifact_sha256,
             "claimed_created_at_utc": created_at_utc,
             "window_start": window_start, "window_end": window_end,
-            "fee_model_assumptions_not_observed": fee_model,
+            "fee_model_assumptions_not_observed": fees_snapshot,
             "minimum_lot_shares": 100, "signal_use": "RESEARCH_ONLY",
             "trade_gate": "BLOCKED",
         }
