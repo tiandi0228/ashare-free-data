@@ -93,5 +93,37 @@ class ArchivedEpisodeBridgeTests(unittest.TestCase):
         self.assertEqual(result["trade_gate"],"BLOCKED")
         self.assertFalse(result["publication_asof"]["complete_historical_risk_state"])
 
+    def test_proof_tasks_preserve_source_notice_path_and_run(self):
+        result=bridge(fixture(),DECISION)
+        task=result["proof_queue"]["tasks"][0]
+        self.assertEqual(task["archived_announcement_id"],"test123")
+        self.assertEqual(task["first_archived_research_run_id"],123)
+        self.assertEqual(task["sha_pinned_original_archive_path"],
+                         "pdf/sh_600421/test123/"+"a"*64+".pdf")
+        self.assertEqual(task["first_archived_research_capture_utc_not_first_publication"],
+                         "2026-11-11T06:00:00+00:00")
+        self.assertFalse(task["publisher_independently_authenticated"])
+        self.assertFalse(task["official_source_url_verified"])
+        self.assertFalse(task["historical_first_publication_authenticated"])
+        self.assertFalse(task["trade_eligible"])
+
+    def test_distinct_text_dates_keep_exact_same_provenance_anchor(self):
+        x=fixture()
+        second=copy.deepcopy(x["research_text_event_claims"][0])
+        second["claimed_event_day"]="2026-06-03"
+        x["research_text_event_claims"].append(second)
+        x["deduplicated_text_event_claims"]=2
+        result=bridge(x,DECISION)
+        tasks=result["proof_queue"]["tasks"]
+        self.assertEqual(len(tasks),2)
+        self.assertEqual(len({x["sha_pinned_original_archive_path"] for x in tasks}),1)
+        self.assertEqual(len({x["candidate_text_day_unverified"] for x in tasks}),2)
+
+    def test_reject_unsafe_announcement_id_and_unpinned_source_path(self):
+        for bad in ("../123","bad/123","",None):
+            x=fixture();x["research_text_event_claims"][0]["announcement_id"]=bad
+            with self.subTest(notice=bad),self.assertRaises(ValueError):
+                bridge(x,DECISION)
+
 if __name__=="__main__":
     unittest.main()

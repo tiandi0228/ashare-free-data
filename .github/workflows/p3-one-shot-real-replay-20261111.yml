@@ -1,16 +1,19 @@
-name: P3 pinned original archive replay 20261111 (READ ONLY, NO TRADES)
+name: P3 pinned original archive lineage regression (READ ONLY, NO TRADES)
 
-# A bounded ONE-TIME verification of the previously failed real handoff.
-# This file runs on its initial merge to main and does not run on schedules,
-# later P3 runs or unrelated commits.
+# Bounded read-only replay of one trusted successful archive artifact.
+# Runs only for this verifier and its input bridge; never scheduled.
 on:
   pull_request:
     paths:
       - '.github/workflows/p3-one-shot-real-replay-20261111.yml'
+      - 'collector/p3_archived_episode_proof_bridge.py'
+      - 'tests/test_p3_archived_episode_proof_bridge.py'
   push:
     branches: [main]
     paths:
       - '.github/workflows/p3-one-shot-real-replay-20261111.yml'
+      - 'collector/p3_archived_episode_proof_bridge.py'
+      - 'tests/test_p3_archived_episode_proof_bridge.py'
 
 permissions:
   contents: read
@@ -29,7 +32,6 @@ jobs:
         run: python -m unittest tests.test_p3_archived_episode_proof_bridge tests.test_p3_publication_proof_task_queue tests.test_p3_publication_asof_gate -v
 
   real-archive-replay:
-    if: github.event_name == 'push'
     needs: regression
     runs-on: ubuntu-latest
     timeout-minutes: 6
@@ -39,7 +41,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
@@ -95,7 +96,17 @@ jobs:
           assert p["historical_PIT_verified"] is False
           assert all(x["trade_eligible"] is False
                      and x["historical_PIT_verified"] is False
+                     and x["publisher_independently_authenticated"] is False
+                     and x["official_source_url_verified"] is False
+                     and x["historical_first_publication_authenticated"] is False
                      for x in q["tasks"])
+          for x in q["tasks"]:
+              expected=(f"pdf/{x['issuer'].replace('.','_')}/"
+                        f"{x['archived_announcement_id']}/{x['original_sha256']}.pdf")
+              assert x["sha_pinned_original_archive_path"]==expected
+              assert type(x["first_archived_research_run_id"]) is int
+              assert x["first_archived_research_run_id"]>0
+          assert q["task_count"]==172
           print("REAL P3 QUEUE PASS",json.dumps(q["task_counts_by_missing_proof"],sort_keys=True))
           PY
       - uses: actions/upload-artifact@v4
