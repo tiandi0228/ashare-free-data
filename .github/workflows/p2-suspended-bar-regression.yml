@@ -5,11 +5,13 @@ on:
     paths:
       - 'collector/p2_independent_bars.py'
       - 'tests/test_p2_suspended_bar_integrity.py'
+      - 'tests/test_p2_real_archive_features.py'
       - '.github/workflows/p2-suspended-bar-regression.yml'
   pull_request:
     paths:
       - 'collector/p2_independent_bars.py'
       - 'tests/test_p2_suspended_bar_integrity.py'
+      - 'tests/test_p2_real_archive_features.py'
       - '.github/workflows/p2-suspended-bar-regression.yml'
   workflow_dispatch:
 permissions:
@@ -26,7 +28,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Test fail-closed suspended and active CSV parsing
-        run: python -m unittest -v tests.test_p2_independent_bars tests.test_p2_suspended_bar_integrity
+        run: python -m unittest -v tests.test_p2_independent_bars tests.test_p2_suspended_bar_integrity tests.test_p2_real_archive_features
       - name: Replay frozen original vendor suspension samples (NO TRADES)
         run: |
           set -euo pipefail
