@@ -77,6 +77,15 @@ class ProofTaskQueueTests(unittest.TestCase):
             build(row)
 
 
+    def test_direct_queue_rejects_impossible_calendar_days(self):
+        # A forged as-of report must not bypass the date check in assess().
+        for bad in ("2026-02-30", "2026-13-01", "2026-00-01"):
+            report = assess([claim()], DECISION)
+            report["events"][0]["effective_date"] = bad
+            with self.subTest(day=bad), self.assertRaisesRegex(
+                    ValueError, "invalid candidate event calendar day"):
+                build(report)
+
     def test_same_original_sha_distinct_text_dates_remain_separate_tasks(self):
         a=claim()
         b=claim();b["effective_date"]="2026-10-21"
