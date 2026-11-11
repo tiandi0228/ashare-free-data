@@ -3,7 +3,7 @@ import argparse,json,re
 from datetime import datetime,timezone
 from pathlib import Path
 
-DIGEST=re.compile(r"[0-9a-f]{64}\\Z")
+DIGEST=re.compile(r"[0-9a-f]{64}\Z")
 
 def _observation_instant(value):
     if not isinstance(value,str):raise ValueError("missing observation timestamp")
