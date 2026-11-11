@@ -13,14 +13,13 @@ on:
       - 'collector/p3_archived_episode_proof_bridge.py'
       - 'tests/test_p3_archived_episode_proof_bridge.py'
       - '.github/workflows/p3-archived-proof-task-queue.yml'
+  workflow_run:
+    workflows: ['P3 rotating official originals for full audited P1 issuer queue (NO TRADES)']
+    types: [completed]
   workflow_dispatch:
     inputs:
       source_run_id:
-        description: Successful main branch source run containing the verified episode report
-        required: true
-        type: string
-      artifact_name:
-        description: Exact artifact name containing p3_archived_event_episode.json
+        description: Successful main branch P3 full P1 official scout workflow run ID
         required: true
         type: string
       decision_instant:
@@ -45,7 +44,7 @@ jobs:
         run: python -m unittest tests.test_p3_archived_episode_proof_bridge tests.test_p3_publication_proof_task_queue tests.test_p3_publication_asof_gate -v
 
   archived-evidence:
-    if: github.event_name == 'workflow_dispatch'
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     needs: regression
     runs-on: ubuntu-latest
     timeout-minutes: 6
@@ -57,35 +56,66 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Validate exact successful main source run and artifact input
+      - name: Validate upstream successful trusted main run and retrieve exact episode report
         env:
           GH_TOKEN: ${{ github.token }}
-          RUN: ${{ inputs.source_run_id }}
-          ARTIFACT: ${{ inputs.artifact_name }}
+          MANUAL_RUN: ${{ inputs.source_run_id }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_FILE: ${{ github.event_path }}
         run: |
           set -euo pipefail
-          [[ "$RUN" =~ ^[0-9]{6,20}$ ]]
-          [[ "$ARTIFACT" =~ ^[a-zA-Z0-9._-]{1,128}$ ]]
-          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$RUN" > source-run.json
           python - <<'PY'
-          import json,os
-          run=json.load(open("source-run.json"))
-          if (run.get("status")!="completed" or run.get("conclusion")!="success"
+          import json,os,re,subprocess
+          from pathlib import Path
+          event=json.loads(Path(os.environ["EVENT_FILE"]).read_text())
+          if os.environ["EVENT_NAME"]=="workflow_run":
+              candidate=event["workflow_run"]["id"]
+          else:
+              candidate=os.environ["MANUAL_RUN"]
+          if not re.fullmatch(r"[0-9]{6,20}",str(candidate)):
+              raise SystemExit("invalid P3 upstream run identity")
+          rid=int(candidate)
+          response=subprocess.run(
+              ["gh","api",f"repos/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{rid}"],
+              text=True,capture_output=True,check=True,timeout=25)
+          run=json.loads(response.stdout)
+          if (run.get("status")!="completed"
+              or run.get("conclusion")!="success"
               or run.get("head_branch")!="main"
+              or run.get("path")!=".github/workflows/p3-full-p1-official-scout.yml"
               or run.get("repository",{}).get("full_name")!=os.environ["GITHUB_REPOSITORY"]):
-              raise SystemExit("unsafe or unsuccessful source artifact run")
+              raise SystemExit("untrusted or incomplete P3 original source run")
+          if os.environ["EVENT_NAME"]=="workflow_run":
+              ev=event["workflow_run"]
+              if ev.get("id")!=rid or ev.get("head_sha")!=run.get("head_sha"):
+                  raise SystemExit("mismatched workflow_run event provenance")
+          Path("upstream_run_id.txt").write_text(str(rid)+"\n")
+          print("Trusted P3 source run",rid,run["head_sha"])
           PY
+          RUN=$(cat upstream_run_id.txt)
           mkdir -p input
-          gh run download "$RUN" --name "$ARTIFACT" --dir input
-          test -f input/p3_archived_event_episode.json
-          test "$(find input -type f | wc -l)" -eq 1
+          gh run download "$RUN" --name "p3-full-p1-official-scout-$RUN" --dir input
+          python - <<'PY'
+          from pathlib import Path
+          candidates=[Path("input/p3_all_archived_original_event_episodes.json"),
+                      Path("input/evidence/p3_all_archived_original_event_episodes.json")]
+          present=[p for p in candidates if p.is_file() and not p.is_symlink()]
+          if len(present)!=1:
+              raise SystemExit("missing or ambiguous exact archived P3 episode report")
+          Path("p3_episode_input.json").write_bytes(present[0].read_bytes())
+          print("Verified exact P3 episode artifact path",present[0])
+          PY
       - name: Create blocked evidence follow-up tasks from archived text
         env:
           DECISION: ${{ inputs.decision_instant }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            DECISION="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          fi
           python -m collector.p3_archived_episode_proof_bridge \
-            --episode input/p3_archived_event_episode.json \
+            --episode p3_episode_input.json \
             --decision-instant "$DECISION" \
             --out evidence/p3_archived_proof_tasks.json
           python - <<'PY'
