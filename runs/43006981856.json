@@ -1,0 +1,82 @@
+{
+  "audited_issuer_count": 1826,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 0,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603183"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603172"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603173"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 43006665387,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 16096,
+  "research_date_action_links": [],
+  "run_id": 43006981856,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225550473",
+      "archive_path": "pdf/sh_603172/1225550473/7a7a26f43e95fc264f5f5f3fa282856e9566399be01a50ef586cb73638b128f1.pdf",
+      "bytes": 152721,
+      "captured_at_utc": "2026-11-11T10:51:05.555013+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1788796800000,
+      "issuer": "sh.603172",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-08/1225550473.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "7a7a26f43e95fc264f5f5f3fa282856e9566399be01a50ef586cb73638b128f1",
+      "title_from_index_unverified": "关于召开2026年半年度业绩说明会的公告"
+    },
+    {
+      "announcement_id": "1225589654",
+      "archive_path": "pdf/sh_603173/1225589654/732c3e9ddd4848fca4e3e728b66dbd68ee439d27ff921d382b91adf8603ee09f.pdf",
+      "bytes": 93569,
+      "captured_at_utc": "2026-11-11T10:51:06.111269+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1790784000000,
+      "issuer": "sh.603173",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-01/1225589654.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "732c3e9ddd4848fca4e3e728b66dbd68ee439d27ff921d382b91adf8603ee09f",
+      "title_from_index_unverified": "关于对外投资的进展公告"
+    },
+    {
+      "announcement_id": "1225550973",
+      "archive_path": "pdf/sh_603183/1225550973/56f8fba8751f04cd51ea0f175f09afef56529e2ee6c72025808df2e62286085a.pdf",
+      "bytes": 97964,
+      "captured_at_utc": "2026-11-11T10:51:04.615033+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1788796800000,
+      "issuer": "sh.603183",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-08/1225550973.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "56f8fba8751f04cd51ea0f175f09afef56529e2ee6c72025808df2e62286085a",
+      "title_from_index_unverified": "2026年第一次临时股东会决议公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
