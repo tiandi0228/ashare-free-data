@@ -72,8 +72,8 @@ class HaltGapReceiptTests(unittest.TestCase):
             folder.mkdir(parents=True)
             raw = (
                 "date,code,open,high,low,close,volume,amount,adjustflag,tradestatus\n"
-                "2025-08-11,sh.600150,38.5,38.5,38.5,38.5,100,3850,3,1\n"
-                "2025-08-14,sh.600150,38.5,38.5,38.5,38.5,,,3,0\n"
+                "2026-08-11,sh.600150,38.5,38.5,38.5,38.5,100,3850,3,1\n"
+                "2026-08-14,sh.600150,38.5,38.5,38.5,38.5,,,3,0\n"
             ).encode()
             (folder / "sh_600150.csv").write_bytes(raw)
             digest = hashlib.sha256(raw).hexdigest()
@@ -86,7 +86,7 @@ class HaltGapReceiptTests(unittest.TestCase):
                              "sha256": digest}]
             }))
             with patch("collector.p4_real_exit_availability.research_exit",
-                       return_value={"candidate_earlier_exit": "2025-08-14"}):
+                       return_value={"candidate_earlier_exit": "2026-08-14"}):
                 result = build(tmp)
             self.assertEqual(result["vendor_suspended_exit_observations"], 1)
             self.assertEqual(result["pending_official_evidence"][0]["original_csv_sha256"], digest)
