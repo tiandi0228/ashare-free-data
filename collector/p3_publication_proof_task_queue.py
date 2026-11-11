@@ -7,6 +7,7 @@ import argparse
 import json
 import re
 from collections import Counter
+from datetime import date
 from pathlib import Path
 
 PHASE = "P3_PUBLICATION_PROOF_GAP_TASK_QUEUE"
@@ -56,6 +57,12 @@ def build(report):
         day = event.get("effective_date")
         if not isinstance(day,str) or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}",day):
             raise ValueError("missing candidate event day")
+        # Independently validate calendar dates even for direct queue consumers.
+        try:
+            if date.fromisoformat(day).isoformat() != day:
+                raise ValueError("non-canonical candidate event day")
+        except ValueError as exc:
+            raise ValueError("invalid candidate event calendar day") from exc
         key = issuer, kind, digest, day
         if key in seen:
             raise ValueError("duplicate P3 event identity")
