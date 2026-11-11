@@ -1,0 +1,82 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 1,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 1,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1225585581",
+      "archival_pdf_path": "pdf/sh_605303/1225585581/65b1689bf62d543d06caa5d13248dc0a380dc43c79d2e78ee9e00d7f6cbfd68e.pdf",
+      "bytes": 88827,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.605303",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-29/1225585581.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "65b1689bf62d543d06caa5d13248dc0a380dc43c79d2e78ee9e00d7f6cbfd68e",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "证券代码：605303）将于2026年9月29日（星期二）复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "65b1689bf62d543d06caa5d13248dc0a380dc43c79d2e78ee9e00d7f6cbfd68e",
+          "pdf_date_phrase": "2026年9月29日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-11-11T17:06:19.702042+00:00",
+      "source_halt_original_sha256": "bda7902c826f548ce891c4b97f74b8775e8b6adadeec2262344728722d21b3d9",
+      "source_halt_text_day": "2026-09-14",
+      "title_unverified": "关于发行股份及支付现金购买资产并募集配套资金的一般风险提示暨公司股票复牌的公告"
+    }
+  ],
+  "run_id": 43064757319,
+  "source_halt_issuers_attempted": 2,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.605199",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-10-20",
+      "search_window_start": "2026-07-23",
+      "source_halt_announcement_id": "1223387331",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-04-29",
+      "source_halt_original_sha256": "1ca36d78c00b463b20b681bdc6d200f2ef3694a9bde1541fa9e9ef99675d6228",
+      "window_segment_count": 7,
+      "window_segment_index": 5
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.605303",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-11-12",
+      "search_window_start": "2026-09-13",
+      "source_halt_announcement_id": "1225560951",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-09-14",
+      "source_halt_original_sha256": "bda7902c826f548ce891c4b97f74b8775e8b6adadeec2262344728722d21b3d9",
+      "window_segment_count": 1,
+      "window_segment_index": 0
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.605199",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    },
+    {
+      "issuer": "sh.605303",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
