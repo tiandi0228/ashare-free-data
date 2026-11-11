@@ -1,0 +1,119 @@
+{
+  "audited_issuer_count": 1842,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 2,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.605303"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603175"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603176"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 43022010004,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 16232,
+  "research_date_action_links": [
+    {
+      "announcement_id": "1225560951",
+      "claimed_index_publication_utc_unverified": "2026-09-11T16:00:00+00:00",
+      "decision_day": "2026-09-14",
+      "decision_time_available_certified": false,
+      "effective_date_authenticated": false,
+      "event_kind": "halt",
+      "first_publication_authenticated": false,
+      "index_time_screen": "INDEX_TIME_NOT_AFTER_DECISION_CLOSE_UNVERIFIED",
+      "issuer": "sh.605303",
+      "local_textual_direction_candidate": "HALT_START",
+      "original_pdf_sha256": "bda7902c826f548ce891c4b97f74b8775e8b6adadeec2262344728722d21b3d9",
+      "source_clause_excerpt": "证券代码：605303）自2026年9月14日（星期一）起开始停牌",
+      "source_date_text": "2026年9月14日",
+      "source_shard": 208,
+      "vendor_csv_sha256": "6c96135604c6cacdccc054c0babd022c3ac21488ab1c3597c7628f763b653688",
+      "vendor_tradestatus_observed": "0"
+    },
+    {
+      "announcement_id": "1225560951",
+      "claimed_index_publication_utc_unverified": "2026-09-11T16:00:00+00:00",
+      "decision_day": "2026-09-28",
+      "decision_time_available_certified": false,
+      "effective_date_authenticated": false,
+      "event_kind": "halt",
+      "first_publication_authenticated": false,
+      "index_time_screen": "INDEX_TIME_NOT_AFTER_DECISION_CLOSE_UNVERIFIED",
+      "issuer": "sh.605303",
+      "local_textual_direction_candidate": "HALT_START",
+      "original_pdf_sha256": "bda7902c826f548ce891c4b97f74b8775e8b6adadeec2262344728722d21b3d9",
+      "source_clause_excerpt": "证券代码：605303）自2026年9月14日（星期一）起开始停牌",
+      "source_date_text": "2026年9月14日",
+      "source_shard": 208,
+      "vendor_csv_sha256": "6c96135604c6cacdccc054c0babd022c3ac21488ab1c3597c7628f763b653688",
+      "vendor_tradestatus_observed": "0"
+    }
+  ],
+  "run_id": 43022615582,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225575550",
+      "archive_path": "pdf/sh_603175/1225575550/e4b02f23f0ee4b7f787607f9b5219d2ad7b80c40ac626334a9bbec5cba246ad7.pdf",
+      "bytes": 125538,
+      "captured_at_utc": "2026-11-11T12:42:40.456388+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1790006400000,
+      "issuer": "sh.603175",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-22/1225575550.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "e4b02f23f0ee4b7f787607f9b5219d2ad7b80c40ac626334a9bbec5cba246ad7",
+      "title_from_index_unverified": "关于向香港联交所递交境外上市股份（H股）发行并上市申请并刊发申请资料的公告"
+    },
+    {
+      "announcement_id": "1224671517",
+      "archive_path": "pdf/sh_603176/1224671517/343544427dafac4abe37b2b04cd6c6af63c622f5686f5144fb215adac9ad4396.pdf",
+      "bytes": 132417,
+      "captured_at_utc": "2026-11-11T12:42:40.898668+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1758297600000,
+      "issuer": "sh.603176",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2025-09-20/1224671517.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "343544427dafac4abe37b2b04cd6c6af63c622f5686f5144fb215adac9ad4396",
+      "title_from_index_unverified": "汇通集团关于“汇通转债”转股价格调整暨转股停牌的公告"
+    },
+    {
+      "announcement_id": "1225560951",
+      "archive_path": "pdf/sh_605303/1225560951/bda7902c826f548ce891c4b97f74b8775e8b6adadeec2262344728722d21b3d9.pdf",
+      "bytes": 116634,
+      "captured_at_utc": "2026-11-11T12:42:39.942994+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1789142400000,
+      "issuer": "sh.605303",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-12/1225560951.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "bda7902c826f548ce891c4b97f74b8775e8b6adadeec2262344728722d21b3d9",
+      "title_from_index_unverified": "关于筹划发行股份及支付现金购买资产的停牌公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
