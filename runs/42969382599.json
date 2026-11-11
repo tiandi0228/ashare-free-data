@@ -1,0 +1,101 @@
+{
+  "audited_issuer_count": 1802,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 1,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.600293"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603168"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603169"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 42969231067,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 15888,
+  "research_date_action_links": [
+    {
+      "announcement_id": "1225586063",
+      "claimed_index_publication_utc_unverified": "2026-09-28T16:00:00+00:00",
+      "decision_day": "2026-09-29",
+      "decision_time_available_certified": false,
+      "effective_date_authenticated": false,
+      "event_kind": "halt",
+      "first_publication_authenticated": false,
+      "index_time_screen": "INDEX_TIME_NOT_AFTER_DECISION_CLOSE_UNVERIFIED",
+      "issuer": "sh.600293",
+      "local_textual_direction_candidate": "HALT_START",
+      "original_pdf_sha256": "8107cc4d7ecedc8c57d18e8edc8ac6f0e3a8bfa0b49e811c4d2a4b8fa1c8e0b9",
+      "source_clause_excerpt": "证券代码：600293）自2026年9月29日（星期二）开市起开始停牌",
+      "source_date_text": "2026年9月29日",
+      "source_shard": 27,
+      "vendor_csv_sha256": "f18062e301843b403e52aa4ca7dbac511579a6f9683da74b414451a8ab38d56c",
+      "vendor_tradestatus_observed": "0"
+    }
+  ],
+  "run_id": 42969382599,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225586063",
+      "archive_path": "pdf/sh_600293/1225586063/8107cc4d7ecedc8c57d18e8edc8ac6f0e3a8bfa0b49e811c4d2a4b8fa1c8e0b9.pdf",
+      "bytes": 106010,
+      "captured_at_utc": "2026-11-11T06:00:37.152136+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1790611200000,
+      "issuer": "sh.600293",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-29/1225586063.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "8107cc4d7ecedc8c57d18e8edc8ac6f0e3a8bfa0b49e811c4d2a4b8fa1c8e0b9",
+      "title_from_index_unverified": "湖北三峡新型建材股份有限公司关于筹划发行股份及支付现金购买资产的停牌公告"
+    },
+    {
+      "announcement_id": "1225575262",
+      "archive_path": "pdf/sh_603168/1225575262/a9dacb7fba275a8befd7ddf74e1a66c1fe0fddd8a1ccb33c57fb99a42d386ab4.pdf",
+      "bytes": 752638,
+      "captured_at_utc": "2026-11-11T06:00:38.248318+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1790006400000,
+      "issuer": "sh.603168",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-22/1225575262.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "a9dacb7fba275a8befd7ddf74e1a66c1fe0fddd8a1ccb33c57fb99a42d386ab4",
+      "title_from_index_unverified": "上海君澜律师事务所关于莎普爱思2023年股票期权与限制性股票激励计划回购注销实施相关事项之法律意见书"
+    },
+    {
+      "announcement_id": "1225585187",
+      "archive_path": "pdf/sh_603169/1225585187/16c6a94888ae9810ae40a11de5f7931e8dfe8212d76663e755f42243eb93a548.pdf",
+      "bytes": 94007,
+      "captured_at_utc": "2026-11-11T06:00:39.053702+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1790611200000,
+      "issuer": "sh.603169",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-29/1225585187.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "16c6a94888ae9810ae40a11de5f7931e8dfe8212d76663e755f42243eb93a548",
+      "title_from_index_unverified": "兰石重装关于控股股东部分股份质押的公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
