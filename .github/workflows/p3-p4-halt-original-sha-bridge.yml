@@ -1,0 +1,39 @@
+name: P3 P4 original SHA-bound vendor halt review (NO TRADES)
+on:
+  push:
+    branches: ['fix/p3-p4-halt-original-sha-receipts-20261111']
+    paths:
+      - 'collector/p4_real_exit_availability.py'
+      - 'collector/p3_p4_official_halt_gap_manifest.py'
+      - 'tests/test_p3_p4_halt_original_sha_bridge.py'
+      - '.github/workflows/p3-p4-halt-original-sha-bridge.yml'
+  pull_request:
+    paths:
+      - 'collector/p4_real_exit_availability.py'
+      - 'collector/p3_p4_official_halt_gap_manifest.py'
+      - 'tests/test_p3_p4_halt_original_sha_bridge.py'
+      - '.github/workflows/p3-p4-halt-original-sha-bridge.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify immutable original vendor SHA handoff with synthetic and archived fixtures
+        run: python -m unittest -v tests.test_p3_p4_halt_original_sha_bridge tests.test_p4_real_exit_availability
+      - name: Assert source code cannot produce broker authorization
+        run: |
+          python - <<'PY'
+          from collector.p3_p4_official_halt_gap_manifest import build
+          from collector.p4_real_exit_availability import audit
+          assert 'BLOCKED' in build.__code__.co_consts
+          print('P3/P4 immutable-source review only; no trading authorized')
+          PY
