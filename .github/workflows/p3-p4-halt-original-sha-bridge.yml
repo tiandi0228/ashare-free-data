@@ -37,3 +37,66 @@ jobs:
           assert 'BLOCKED' in build.__code__.co_consts
           print('P3/P4 immutable-source review only; no trading authorized')
           PY
+      - name: Cross-check frozen real originals through P2 to P4 to P3 without authorizing trades
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin 5be9d6ad76d8635defe02f8d90bc50ad4c03c086
+          git worktree add --detach source-archive FETCH_HEAD
+          mkdir -p bounded-originals/epoch
+          for n in 0012 0013 0014 0015; do
+            cp -a "source-archive/3529685a3d2d6402/shard_${n}" "bounded-originals/epoch/"
+          done
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          from collector.p2_independent_bars import assess
+          from collector.p4_real_exit_availability import audit
+          from collector.p3_p4_official_halt_gap_manifest import build
+
+          root=Path("bounded-originals")
+          csv_shas={}
+          active=suspended=0
+          for shard in sorted((root/"epoch").glob("shard_*")):
+              r=assess(shard)
+              assert r["trade_gate"]=="BLOCKED" and r["historical_PIT_verified"] is False
+              active+=r["total_active_rows"]
+              suspended+=r["vendor_suspended_rows"]
+              for item in r["details"]:
+                  p=shard/(item["code"].replace(".","_")+".csv")
+                  csv_shas[item["code"]]=hashlib.sha256(p.read_bytes()).hexdigest()
+          assert len(csv_shas)==32 and active==15488 and suspended==32
+          p4=audit(root)
+          p3=build(root)
+          assert p4["trade_gate"]=="BLOCKED" and p4["orders"]==[] and p4["fills_verified"]==0
+          assert p3["trade_gate"]=="BLOCKED" and p3["orders"]==[] and p3["executable_candidates"]==[]
+          assert p3["officially_certified_halt_dates"]==0
+          assert p3["historical_PIT_trade_eligible"] is False
+          assert p3["vendor_suspended_exit_observations"]==p4["target_vendor_suspended"]
+          assert sum(map(lambda x:len(x["affected_entry_dates"]),p3["pending_official_evidence"]))==p4["target_vendor_suspended"]
+          for row in p4["vendor_halt_crosscheck_queue"]:
+              assert row["original_csv_sha256"]==csv_shas[row["code"]]
+              assert row["official_halt_verified"] is False
+          for row in p3["pending_official_evidence"]:
+              assert row["original_csv_sha256"]==csv_shas[row["code"]]
+              assert row["official_effective_date_authenticated"] is False
+              assert row["official_publication_time_authenticated"] is False
+          report={
+              "phase":"P3_P4_BOUNDED_FROZEN_REAL_ORIGINAL_SHA_JOIN",
+              "source_commit":"5be9d6ad76d8635defe02f8d90bc50ad4c03c086",
+              "shards":[12,13,14,15],"issuers":len(csv_shas),
+              "vendor_active_rows":active,"vendor_suspended_rows":suspended,
+              "p4_suspended_exit_observations":p4["target_vendor_suspended"],
+              "p3_sha_bound_gap_dates":p3["distinct_issuer_halt_dates"],
+              "official_halts_authenticated":0,"historical_PIT_verified":False,
+              "fills_verified":0,"trade_gate":"BLOCKED","orders":[],"executable_candidates":[]
+          }
+          Path("p3_p4_frozen_sha_join_report.json").write_text(json.dumps(report,indent=2)+"\\n")
+          print(json.dumps(report))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p3-p4-frozen-original-sha-join-${{ github.run_id }}
+          path: p3_p4_frozen_sha_join_report.json
+          if-no-files-found: ignore
+          retention-days: 30
