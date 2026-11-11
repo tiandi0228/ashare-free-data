@@ -43,4 +43,24 @@ class PublicationAsOfTests(unittest.TestCase):
     def test_wrong_digest_rejected(self):
         a=self.sample();a["original_sha256"]="invalid"
         with self.assertRaises(ValueError):assess([a],"2026-10-20T09:30:00+08:00")
+    def test_malformed_event_rows_fail_closed(self):
+        for bad in (None, "event", [], 7):
+            with self.subTest(row=bad), self.assertRaises(ValueError):
+                assess([bad], "2026-10-20T09:30:00+08:00")
+
+    def test_invalid_event_identity_and_effective_date(self):
+        cases=(("issuer",None),("issuer",[]),("kind",""),
+               ("kind",{}),("effective_date",None),
+               ("effective_date",20261020),
+               ("effective_date","2026-10-20T00:00:00+08:00"))
+        for field,value in cases:
+            with self.subTest(field=field,value=value):
+                e=self.sample();e[field]=value
+                with self.assertRaises(ValueError):
+                    assess([e], "2026-10-20T09:30:00+08:00")
+
+    def test_unbounded_inventory_rejected(self):
+        with self.assertRaises(ValueError):
+            assess([None]*10001, "2026-10-20T09:30:00+08:00")
+
 if __name__=="__main__":unittest.main()

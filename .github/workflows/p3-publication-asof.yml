@@ -8,6 +8,13 @@ on:
       - 'collector/p3_publication_bar_gap.py'
       - 'tests/test_p3_publication_bar_gap.py'
       - '.github/workflows/p3-publication-asof.yml'
+  pull_request:
+    paths:
+      - 'collector/p3_publication_asof_gate.py'
+      - 'tests/test_p3_publication_asof_gate.py'
+      - 'collector/p3_publication_bar_gap.py'
+      - 'tests/test_p3_publication_bar_gap.py'
+      - '.github/workflows/p3-publication-asof.yml'
   workflow_dispatch:
 permissions:
   contents: read
