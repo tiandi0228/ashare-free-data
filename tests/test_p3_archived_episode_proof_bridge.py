@@ -78,5 +78,20 @@ class ArchivedEpisodeBridgeTests(unittest.TestCase):
         with self.assertRaises(ValueError):bridge(x,DECISION)
 
 
+    def test_same_sha_multiple_distinct_candidate_text_days_preserved(self):
+        x=fixture()
+        second=copy.deepcopy(x["research_text_event_claims"][0])
+        second["claimed_event_day"]="2026-06-03"
+        x["research_text_event_claims"].append(second)
+        x["deduplicated_text_event_claims"]=2
+        result=bridge(x,DECISION)
+        self.assertEqual(result["proof_queue"]["task_count"],2)
+        days={task["candidate_text_day_unverified"]
+              for task in result["proof_queue"]["tasks"]}
+        self.assertEqual(days,{"2026-06-01","2026-06-03"})
+        self.assertFalse(result["historical_PIT_verified"])
+        self.assertEqual(result["trade_gate"],"BLOCKED")
+        self.assertFalse(result["publication_asof"]["complete_historical_risk_state"])
+
 if __name__=="__main__":
     unittest.main()
