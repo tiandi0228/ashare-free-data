@@ -34,6 +34,24 @@ class ProtocolFreezeTests(unittest.TestCase):
         self.assertEqual(a["trade_gate"], "BLOCKED")
         self.assertEqual(a["orders"], [])
 
+    def test_caller_mutation_cannot_change_returned_frozen_candidate(self):
+        fee = dict(BASE["fee_model"])
+        rules = dict(BASE["strategy_rules"])
+        result = freeze(**dict(BASE, fee_model=fee, strategy_rules=rules))
+        fingerprint = result["candidate_sha256"]
+        fee["commission_min_cny"] = "999"
+        rules["target_fraction"] = "0.90"
+        self.assertEqual(
+            result["candidate"]["fee_model_assumptions_not_observed"]["commission_min_cny"], "5"
+        )
+        self.assertEqual(
+            result["candidate"]["frozen_strategy_rules"]["target_fraction"], "0.05"
+        )
+        self.assertEqual(result["candidate_sha256"], fingerprint)
+        changed = freeze(**dict(BASE, fee_model=fee, strategy_rules=rules))
+        self.assertNotEqual(changed["candidate_sha256"], fingerprint)
+        self.assertEqual(changed["trade_gate"], "BLOCKED")
+
     def test_changed_costs_change_fingerprint(self):
         x = dict(BASE["fee_model"], commission_min_cny="6")
         self.assertNotEqual(freeze(**BASE)["candidate_sha256"],
