@@ -7,6 +7,14 @@ BASE = dict(
     created_at_utc="2026-11-11T09:00:00Z",
     window_start="2026-12-01", window_end="2027-02-01",
     strategy_id="MA20_COMPLETED_SIGNAL_V1",
+    strategy_rules={
+        "signal_rule": "COMPLETED_CLOSE_CROSSES_ABOVE_MA20",
+        "entry_rule": "NEXT_VENDOR_OPEN_PROXY_NOT_FILL",
+        "stop_fraction": "0.02", "target_fraction": "0.05",
+        "min_holding_sessions": 3, "max_holding_sessions": 5,
+        "friday_exit_rule": "FRIDAY_FORCE_EXIT_RESEARCH_ONLY",
+        "same_day_sale_allowed": False,
+    },
     fee_model={
         "commission_rate":"0.0002854", "commission_min_cny":"5",
         "sell_stamp_rate":"0.0005", "slippage_bps_each_side":"10",
@@ -30,6 +38,33 @@ class ProtocolFreezeTests(unittest.TestCase):
         x = dict(BASE["fee_model"], commission_min_cny="6")
         self.assertNotEqual(freeze(**BASE)["candidate_sha256"],
                             freeze(**dict(BASE, fee_model=x))["candidate_sha256"])
+
+    def test_all_strategy_inputs_change_fingerprint(self):
+        baseline = freeze(**BASE)["candidate_sha256"]
+        for field, new_value in (
+            ("stop_fraction", "0.025"), ("target_fraction", "0.08"),
+            ("min_holding_sessions", 2), ("max_holding_sessions", 4),
+        ):
+            rules = dict(BASE["strategy_rules"], **{field: new_value})
+            with self.subTest(field=field):
+                altered = freeze(**dict(BASE, strategy_rules=rules))
+                self.assertEqual(altered["status"], "CANDIDATE_FINGERPRINT_ONLY_NOT_OOS")
+                self.assertNotEqual(altered["candidate_sha256"], baseline)
+
+    def test_missing_or_unsafe_trade_rules_rejected(self):
+        for rules in (
+            None,
+            {k: v for k, v in BASE["strategy_rules"].items() if k != "entry_rule"},
+            dict(BASE["strategy_rules"], same_day_sale_allowed=True),
+            dict(BASE["strategy_rules"], min_holding_sessions=True),
+            dict(BASE["strategy_rules"], target_fraction="0"),
+            dict(BASE["strategy_rules"], signal_rule="USE_FUTURE_CLOSE"),
+        ):
+            with self.subTest(rules=rules):
+                result = freeze(**dict(BASE, strategy_rules=rules))
+                self.assertEqual(result["status"], "REJECTED")
+                self.assertEqual(result["orders"], [])
+                self.assertEqual(result["trade_gate"], "BLOCKED")
 
     def test_retrospective_and_same_day_refused(self):
         for day in ("2026-10-01", "2026-11-11"):
