@@ -9,13 +9,13 @@ import re
 from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 
-SHA40 = re.compile(r"[0-9a-f]{40}\\Z")
-SHA64 = re.compile(r"[0-9a-f]{64}\\Z")
+SHA40 = re.compile(r"[0-9a-f]{40}\Z")
+SHA64 = re.compile(r"[0-9a-f]{64}\Z")
 PHASE = "P4_PROSPECTIVE_RESEARCH_PROTOCOL_FREEZE"
 
 
 def _decimal(value, *, positive=False):
-    if not isinstance(value, str) or not re.fullmatch(r"(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?", value):
+    if not isinstance(value, str) or not re.fullmatch(r"(?:0|[1-9][0-9]*)(?:\.[0-9]+)?", value):
         raise ValueError("noncanonical numeric assumption")
     number = Decimal(value)
     if not number.is_finite() or (positive and number <= 0):
