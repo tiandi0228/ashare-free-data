@@ -26,7 +26,7 @@ def assess(events, decision_instant):
             raise ValueError("event issuer or kind missing")
         if e.get("trade_gate")!="BLOCKED" or e.get("orders")!=[] or e.get("executable_candidates",[])!=[]:
             raise ValueError("upstream risk boundary violated")
-        key=(e.get("issuer"),e.get("kind"),e.get("original_sha256"))
+        key=(e.get("issuer"),e.get("kind"),e.get("original_sha256"),e.get("effective_date"))
         if key in seen:raise ValueError("duplicate event provenance")
         seen.add(key)
         digest=e.get("original_sha256")

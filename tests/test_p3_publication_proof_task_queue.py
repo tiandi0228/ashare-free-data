@@ -77,5 +77,16 @@ class ProofTaskQueueTests(unittest.TestCase):
             build(row)
 
 
+    def test_same_original_sha_distinct_text_dates_remain_separate_tasks(self):
+        a=claim()
+        b=claim();b["effective_date"]="2026-10-21"
+        result=build(assess([a,b],DECISION))
+        self.assertEqual(result["task_count"],2)
+        self.assertEqual(
+            {x["candidate_text_day_unverified"] for x in result["tasks"]},
+            {"2026-10-20","2026-10-21"})
+        self.assertTrue(all(x["trade_eligible"] is False for x in result["tasks"]))
+        self.assertFalse(result["historical_PIT_verified"])
+
 if __name__ == "__main__":
     unittest.main()

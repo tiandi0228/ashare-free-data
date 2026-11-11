@@ -94,4 +94,13 @@ class PublicationAsOfTests(unittest.TestCase):
         self.assertEqual(result["publication_proof_status_counts"],{})
         self.assertEqual(result["known_event_count"],0)
 
+    def test_same_sha_distinct_text_dates_are_not_duplicate_records(self):
+        a=self.sample()
+        b=self.sample();b["effective_date"]="2026-10-21"
+        result=assess([a,b],"2026-10-20T09:30:00+08:00")
+        self.assertEqual(len(result["events"]),2)
+        self.assertFalse(result["eligible_for_trading"])
+        with self.assertRaisesRegex(ValueError,"duplicate"):
+            assess([a,a],"2026-10-20T09:30:00+08:00")
+
 if __name__=="__main__":unittest.main()

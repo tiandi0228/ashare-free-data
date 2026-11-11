@@ -62,7 +62,7 @@ def bridge(source, decision_instant):
         if not isinstance(capture,str) or not capture.endswith("+00:00"):
             raise ValueError("archived original capture must be UTC")
         instant(capture)
-        key=(issuer,kind,digest)
+        key=(issuer,kind,digest,day)
         if key in seen:
             # Current as-of model cannot distinguish repeated same-origin claims;
             # reject ambiguity rather than silently discarding one date.
