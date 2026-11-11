@@ -63,4 +63,35 @@ class PublicationAsOfTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             assess([None]*10001, "2026-10-20T09:30:00+08:00")
 
+    def test_reason_codes_explain_missing_publication_proof(self):
+        checks=(
+            ("original_bytes_verified",False,"ORIGINAL_BYTES_NOT_VERIFIED"),
+            ("publisher_independently_authenticated",False,"PUBLISHER_NOT_AUTHENTICATED"),
+            ("publication_timestamp_independently_authenticated",False,"FIRST_PUBLICATION_NOT_AUTHENTICATED"),
+            ("authenticated_first_published_at","2026-10-20T17:00:00+08:00","PUBLICATION_AFTER_DECISION"),
+            ("effective_date","2026-10-21","EFFECTIVE_DATE_AFTER_DECISION"),
+        )
+        for key,value,expected in checks:
+            with self.subTest(field=key,expected=expected):
+                row=self.sample();row[key]=value
+                result=assess([row],"2026-10-20T09:30:00+08:00")
+                self.assertEqual(result["events"][0]["publication_proof_status"],expected)
+                self.assertEqual(result["publication_proof_status_counts"],{expected:1})
+                self.assertFalse(result["eligible_for_trading"])
+                self.assertEqual(result["trade_gate"],"BLOCKED")
+
+    def test_known_event_still_not_full_historical_tradability(self):
+        result=assess([self.sample()],"2026-10-20T09:30:00+08:00")
+        self.assertEqual(result["publication_proof_status_counts"],
+                         {"EVENT_KNOWN_FULL_DAILY_STATE_UNCERTIFIED":1})
+        self.assertEqual(result["known_event_count"],1)
+        self.assertFalse(result["complete_historical_risk_state"])
+        self.assertFalse(result["eligible_for_trading"])
+        self.assertFalse(result["events"][0]["certified_full_daily_state"])
+
+    def test_empty_inventory_has_no_fake_proof_progress(self):
+        result=assess([],"2026-10-20T09:30:00+08:00")
+        self.assertEqual(result["publication_proof_status_counts"],{})
+        self.assertEqual(result["known_event_count"],0)
+
 if __name__=="__main__":unittest.main()
