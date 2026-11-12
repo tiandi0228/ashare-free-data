@@ -601,7 +601,7 @@ jobs:
           import copy,json
           from pathlib import Path
           from collector.p1_shared_scheduler_ownership_prewrite import evaluate
-          from tests.test_p1_shared_scheduler_ownership_prewrite import CONTRACT,RUN,DIGEST,CONTRACT_SHA
+          from tests.test_p1_shared_scheduler_ownership_prewrite import CONTRACT,RUN,DIGEST,CONTRACT_SHA,RAW_CONTRACT
           text=Path("reports/p2_current_full_replay/p1_native_workflow_main.yml").read_text()
           assert "\n  schedule:\n" in text
           assert "p1-fresh-mainboard-roster-serial" in text
@@ -610,7 +610,7 @@ jobs:
           for owner in ("NATIVE_ONLY","FREEZE_ALL","EXTERNAL_ONLY"):
               c=copy.deepcopy(CONTRACT)
               c["owner"]=owner
-              out=evaluate(c,copy.deepcopy(RUN),contract_blob_sha=CONTRACT_SHA,contract_bytes_sha256=DIGEST)
+              out=evaluate(c,copy.deepcopy(RUN),contract_blob_sha=CONTRACT_SHA,contract_bytes_sha256=DIGEST,contract_raw_bytes=RAW_CONTRACT)
               assert out["collector_write_authorized"] is False
               assert out["external_dispatch_authorized"] is False
               assert out["trade_gate"]=="BLOCKED"
