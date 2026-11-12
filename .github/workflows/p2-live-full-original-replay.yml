@@ -1,0 +1,117 @@
+name: P2 LIVE full original CSV and 242-shard feature receipts SHA replay (READ ONLY, NO TRADES)
+on:
+  push:
+    branches: ['ci/stockmate-p2-p4-frozen-baseline-20261112']
+    paths:
+      - '.github/workflows/p2-live-full-original-replay.yml'
+      - 'collector/p2_live_full_source_feature_reconciliation.py'
+      - 'tests/test_p2_live_full_source_feature_reconciliation.py'
+  pull_request:
+    paths:
+      - '.github/workflows/p2-live-full-original-replay.yml'
+      - 'collector/p2_live_full_source_feature_reconciliation.py'
+      - 'tests/test_p2_live_full_source_feature_reconciliation.py'
+permissions:
+  contents: read
+jobs:
+  verify-live-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout reviewed code from original PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Checkout live MAIN checkpoint as isolated evidence
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: live-main
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Checkout live append-only original CSV research branch
+        uses: actions/checkout@v4
+        with:
+          ref: research-csv-archive
+          path: live-archive
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Checkout live feature receipt branch
+        uses: actions/checkout@v4
+        with:
+          ref: p2-feature-coverage
+          path: live-receipts
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test fail-closed live same-epoch feature reconciliation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p2_live_full_source_feature_reconciliation
+      - name: Recompute ALL live P2 receipts against original SHA-verified CSVs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports/p2_live_source_replay
+          python -m collector.p2_feature_coverage_ledger \
+            --archive-epoch live-archive/5ba00fbd720fad90 \
+            --checkpoint live-main/evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json \
+            --receipts live-receipts/reports/5ba00fbd720fad90 \
+            --out reports/p2_live_source_replay/live_recomputed.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("reports/p2_live_source_replay/live_recomputed.json")
+          r=json.loads(p.read_text())
+          assert r["status"]=="DURABLE_RESEARCH_PAGE_COVERAGE_NOT_CERTIFIED"
+          assert r["observed_archived_shards"]>=242
+          assert r["feature_complete_shards"]>=227
+          assert r["observed_with_feature_gaps_shards"]==15
+          assert r["unobserved_archived_shards"]==0
+          assert r["full_archive_evidence_accounted"] is True
+          assert r["historical_PIT_verified"] is False
+          assert r["trade_gate"]=="BLOCKED"
+          assert r["orders"]==[] and r["executable_candidates"]==[]
+          print("P2_LIVE_ALL_VENDOR_CSV_AND_FEATURE_RECEIPTS_SHA_REPLAY_PASSED")
+          PY
+      - name: Compare full live recomputation to independently persisted P2 summary and source branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m collector.p2_live_full_source_feature_reconciliation \
+            --replayed reports/p2_live_source_replay/live_recomputed.json \
+            --published live-receipts/summaries/5ba00fbd720fad90.json \
+            --checkpoint live-main/evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json \
+            --archive live-archive/5ba00fbd720fad90/archive_status.json \
+            --checkpoint-git-sha "$(git -C live-main rev-parse HEAD)" \
+            --original-csv-archive-git-sha "$(git -C live-archive rev-parse HEAD)" \
+            --feature-receipts-git-sha "$(git -C live-receipts rev-parse HEAD)" \
+            --out reports/p2_live_source_replay/live_acceptance.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_live_source_replay/live_acceptance.json").read_text())
+          assert r["accepted_main_shards"]>=242
+          assert r["P2_feature_complete_shards"]>=227
+          assert r["independent_replayed_feature_summary_matches_published"] is True
+          assert r["same_epoch_original_archived_shards_verified"] is True
+          assert r["historical_PIT_verified"] is False
+          assert r["no_data_written_or_overwritten"] is True
+          assert r["cutover_authorized"] is False
+          assert r["trading_authorized"] is False
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P2_LIVE_SOURCE_COVERAGE_RECONCILED_READ_ONLY",r["P2_feature_complete_shards"],r["P2_observed_original_shards"])
+          PY
+      - name: Preserve independent read-only source SHA report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p2-live-full-original-sha-replay-${{ github.run_id }}
+          path: reports/p2_live_source_replay/
+          if-no-files-found: ignore
+          retention-days: 30
