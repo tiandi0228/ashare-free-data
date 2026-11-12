@@ -372,6 +372,18 @@ jobs:
           Path('evidence/pilot_selection.json').write_text(json.dumps(receipt,indent=2)+'\n')
           print('P1 PILOT SELECTION:',receipt)
           PY
+      - name: Recheck live checkpoint and archive before manual gap vendor requests (NO WRITES)
+        if: github.event_name == 'workflow_dispatch' && env.P1_GAP_WINDOW != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test -s evidence/prior_ledger.json
+          python -m collector.p1_gap_remote_preflight \
+            --plan evidence/shards/plan.json \
+            --selection evidence/pilot_selection.json \
+            --prior evidence/prior_ledger.json \
+            --out evidence/p1_gap_remote_before_vendor.json
       - name: Fetch first real roster shard historical bars (bounded 8 only)
         run: |
           python - <<'PY'
@@ -487,6 +499,18 @@ jobs:
           assert x['completed_issuers']<=json.loads(Path('evidence/shards/plan.json').read_text())['issuer_count']
           print('AUDIT: source-bound completed issuers',x['completed_issuers'])
           PY
+      - name: Recheck remote checkpoint and archive just before manual gap archival (NO WRITES)
+        if: github.event_name == 'workflow_dispatch' && env.P1_GAP_WINDOW != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test -s evidence/p1_gap_remote_before_vendor.json
+          python -m collector.p1_gap_remote_preflight \
+            --plan evidence/shards/plan.json \
+            --selection evidence/pilot_selection.json \
+            --prior evidence/prior_ledger.json \
+            --out evidence/p1_gap_remote_before_archive.json
       - name: Archive raw CSV to durable free Git research branch
         id: diag_5
         env:
