@@ -54,23 +54,31 @@ def integrate(page,crosswalk,triage):
     codes=[x["issuer"] for x in ranking["descriptive_order"]]
     if len(codes)!=len(set(codes)) or "sh.600363" in codes:
         raise ValueError("suspended/ST issuer was ranked")
-    records=[{"issuer":issuer,"signal_known_after_close_date":page["asof_completed_day"],
-              "research_only":True,"buy_signal":False}
-             for issuer in codes]
-    # Additional on-page risk audit for the P2 gap issuer, even though the
-    # genuine candidate generator already excluded it for missing features.
-    records.append({"issuer":"sh.600363",
-                    "signal_known_after_close_date":page["asof_completed_day"],
-                    "research_only":True,"buy_signal":False})
-    veto=classify(crosswalk,records)
-    if (veto.get("historical_PIT_verified") is not False
-        or veto.get("trade_gate")!="BLOCKED"
-        or veto.get("approved_entries")!=0
-        or veto.get("orders")!=[]
-        or len(veto.get("research_decisions",[]))!=len(records)):
-        raise ValueError("untrusted risk screening")
-    by={row["issuer"]:row for row in veto["research_decisions"]}
-    if (len(by)!=len(records)
+    # The frozen risk classifier accepts at most 100 observations per call.
+    # Chunk actual ranked page issuers without dropping the tail.
+    by={}
+    batches=[codes[i:i+90] for i in range(0,len(codes),90)]
+    if not batches:batches=[[]]
+    for batch_index, batch in enumerate(batches):
+        selected=list(batch)
+        if batch_index==0:
+            selected.append("sh.600363")
+        records=[{"issuer":issuer,
+                  "signal_known_after_close_date":page["asof_completed_day"],
+                  "research_only":True,"buy_signal":False}
+                 for issuer in selected]
+        veto=classify(crosswalk,records)
+        if (veto.get("historical_PIT_verified") is not False
+            or veto.get("trade_gate")!="BLOCKED"
+            or veto.get("approved_entries")!=0
+            or veto.get("orders")!=[]
+            or len(veto.get("research_decisions",[]))!=len(records)):
+            raise ValueError("untrusted risk screening")
+        for row in veto["research_decisions"]:
+            code=row["issuer"]
+            if code in by:raise ValueError("duplicate risk-audited issuer")
+            by[code]=row
+    if (len(by)!=len(codes)+1
         or by["sh.600363"]["candidate_policy_research_state"]!="VETO_ISSUER_NOTICE_ST_EFFECTIVE"
         or any(by[k]["candidate_policy_research_state"]!="UNKNOWN_PIT_STATUS_FAIL_CLOSED"
                for k in codes)):
