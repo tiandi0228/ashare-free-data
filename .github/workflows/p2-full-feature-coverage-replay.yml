@@ -28,6 +28,11 @@ on:
       - 'tests/test_p1_live_schedule_archive_health.py'
       - 'collector/p1_schedule_latency_durable_yield.py'
       - 'tests/test_p1_schedule_latency_durable_yield.py'
+      - 'external-p1-cron/src/index.mjs'
+      - 'external-p1-cron/src/shadow-audit.mjs'
+      - 'external-p1-cron/tests/worker.test.mjs'
+      - 'external-p1-cron/tests/shadow-audit.test.mjs'
+      - 'external-p1-cron/README.md'
   pull_request:
     paths:
       - '.github/workflows/p2-full-feature-coverage-replay.yml'
@@ -55,6 +60,11 @@ on:
       - 'tests/test_p1_live_schedule_archive_health.py'
       - 'collector/p1_schedule_latency_durable_yield.py'
       - 'tests/test_p1_schedule_latency_durable_yield.py'
+      - 'external-p1-cron/src/index.mjs'
+      - 'external-p1-cron/src/shadow-audit.mjs'
+      - 'external-p1-cron/tests/worker.test.mjs'
+      - 'external-p1-cron/tests/shadow-audit.test.mjs'
+      - 'external-p1-cron/README.md'
 permissions:
   contents: read
   actions: read
@@ -502,7 +512,7 @@ jobs:
             --receipts reports/p2_current_full_replay/p1_latency_receipts_raw.json \
             --checkpoint evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json \
             --out reports/p2_current_full_replay/p1_24h_scheduled_lag_and_sha_yield.json
-          rm -f reports/p2_current_full_replay/p1_latency_runs_raw.json reports/p2_current_full_replay/p1_latency_receipts_raw.json
+          rm -f reports/p2_current_full_replay/p1_latency_receipts_raw.json
           python - <<'PY'
           import json
           from pathlib import Path
@@ -512,6 +522,29 @@ jobs:
           assert r["active_completed_shards"]==241
           assert r["not_derived_as_new_since_current_checkpoint"] is True
           print("P1_LATENCY_FINAL_RECEIPT_AUDIT_READ_ONLY_PASSED")
+          PY
+      - name: Run external cron default-disabled tests and retrospectively shadow delayed P1 slots
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test external-p1-cron/tests/worker.test.mjs external-p1-cron/tests/shadow-audit.test.mjs
+          node external-p1-cron/src/shadow-audit.mjs \
+            reports/p2_current_full_replay/p1_24h_scheduled_lag_and_sha_yield.json \
+            reports/p2_current_full_replay/p1_latency_runs_raw.json \
+            reports/p2_current_full_replay/p1_external_worker_shadow_overlap.json
+          rm -f reports/p2_current_full_replay/p1_latency_runs_raw.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_current_full_replay/p1_external_worker_shadow_overlap.json").read_text())
+          assert r["active_source_shards"]==241
+          assert r["external_dispatch_enabled"] is False
+          assert r["extra_collection_started"] is False
+          assert r["actual_external_worker_trigger_proven"] is False
+          assert r["deploy_authorized"] is False
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          assert r["evaluated_scheduled_runs"]==9
+          print("P1_EXTERNAL_CRON_SHADOW_NO_DISPATCH_VERIFIED")
           PY
       - name: Preserve read-only full original replay verification
         uses: actions/upload-artifact@v4
