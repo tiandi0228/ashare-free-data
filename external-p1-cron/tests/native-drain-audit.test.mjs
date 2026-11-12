@@ -5,8 +5,8 @@ import {assessDrain} from "../src/native-drain-audit.mjs";
 const enabled="name: P1\non:\n  schedule:\n    - cron: '10 1 * * 1-5'\n  workflow_dispatch:\n";
 const disabled="name: P1\non:\n  workflow_dispatch:\n";
 const now="2026-11-12T06:00:00.000Z";
-const old="2026-11-11T04:00:00.000Z";
-const early="2026-11-09T00:00:00.000Z";
+const old="2026-11-11T08:00:00.000Z";
+const early="2026-11-10T20:00:00.000Z";
 const run=(id,created_at="2026-11-09T12:00:00Z",status="completed",event="schedule")=>({
  id,created_at,status,event,
  conclusion:status==="completed"?"success":null,
