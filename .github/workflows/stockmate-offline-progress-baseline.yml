@@ -3,11 +3,17 @@ on:
   pull_request:
     paths:
       - '.github/workflows/stockmate-offline-progress-baseline.yml'
+      - 'collector/p2_separated_progress_report.py'
+      - 'tests/test_p2_separated_progress_report.py'
+      - 'evidence/p2_prior_reported_feature_shard_history.json'
   push:
     branches:
       - 'ci/stockmate-p2-p4-frozen-baseline-20261112'
     paths:
       - '.github/workflows/stockmate-offline-progress-baseline.yml'
+      - 'collector/p2_separated_progress_report.py'
+      - 'tests/test_p2_separated_progress_report.py'
+      - 'evidence/p2_prior_reported_feature_shard_history.json'
 permissions:
   contents: read
 jobs:
@@ -143,6 +149,28 @@ jobs:
               "gate":result["gate"]},sort_keys=True))
           if result["gate"]!="OFFLINE_CONTRACT_TESTS_PASSED_NOT_PRODUCTION_READY":
               raise SystemExit("P0/P1 selected offline regression failed")
+          PY
+      - name: Preserve previously reported P2 200+ feature shards without conflating 30 percent engineering tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p2_separated_progress_report
+          python -m collector.p2_separated_progress_report \
+            --engineering /tmp/stockmate-offline-baseline.json \
+            --historical evidence/p2_prior_reported_feature_shard_history.json \
+            --out reports/stockmate_offline_progress/p2_feature_vs_engineering.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/stockmate_offline_progress/p2_feature_vs_engineering.json").read_text())
+          assert r["P2_offline_engineering_pct"]==30
+          assert r["P2_latest_historical_report"]["feature_complete_shards"]==215
+          assert r["P2_latest_historical_report"]["observed_shards"]==227
+          assert r["P2_latest_historical_report"]["evidence_status"]=="HISTORICAL_REPORTED_UNREPLAYED"
+          assert r["P2_current_feature_coverage"] is None
+          assert r["P2_overall_project_completion_pct"] is None
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P2_HISTORICAL_215_OF_227_RETAINED_NOT_CURRENTLY_CERTIFIED")
           PY
       - name: Upload read-only engineering acceptance report (not PIT certification)
         if: always()
