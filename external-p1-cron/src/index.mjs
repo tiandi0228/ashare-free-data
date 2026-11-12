@@ -106,7 +106,15 @@ function base64(str) {
   return btoa(str);
 }
 export async function run(cron, scheduledMs, nowMs, env) {
-  if (!env || typeof env.GITHUB_TOKEN !== "string" || !env.GITHUB_TOKEN)
+  // Deployment alone MUST NOT turn an optional scheduler into a writer.
+  // Even a valid GitHub token and scheduled cron leave the Worker inert until
+  // an explicit, separately reviewed production configuration opts in.
+  // Safe default requires no GitHub API call, marker write or dispatch.
+  if (!env || env.P1_EXTERNAL_DISPATCH_ENABLED !== "true")
+    return {dispatch:false,reason:"SHADOW_ONLY_DISPATCH_DISABLED",
+      networkRequests:0,sourceMutationAuthorized:false,
+      trade_gate:"BLOCKED"};
+  if (typeof env.GITHUB_TOKEN !== "string" || !env.GITHUB_TOKEN)
     throw new Error("MISSING_GITHUB_TOKEN");
   // Fetch the exact P1 workflow runs, not the generic repository run stream.
   const runs = await jsonResponse(await api(env.GITHUB_TOKEN,
