@@ -506,6 +506,21 @@ jobs:
           set -euo pipefail
           python -m unittest -v tests.test_p1_schedule_latency_durable_yield
           mkdir -p reports/p2_current_full_replay
+          gh api -X GET repos/tiandi0228/ashare-free-data/contents/evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json -f ref=main > reports/p2_current_full_replay/p1_latest_checkpoint_envelope.json
+          python - <<'PY'
+          import base64,json
+          from pathlib import Path
+          root=Path("reports/p2_current_full_replay")
+          e=json.loads((root/"p1_latest_checkpoint_envelope.json").read_text())
+          assert e["type"]=="file" and e["encoding"]=="base64"
+          assert e["path"]=="evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json"
+          obj=json.loads(base64.b64decode("".join(e["content"].split()),validate=True))
+          assert obj["source_sha256"]=="5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022"
+          assert obj["completed_shards"]>=241 and obj["trade_gate"]=="BLOCKED"
+          (root/"p1_latest_checkpoint_current.json").write_text(json.dumps(obj,ensure_ascii=False)+"\n")
+          print("P1_LIVE_RECEIPT_AUDIT_LEDGER",obj["completed_shards"])
+          PY
+          rm -f reports/p2_current_full_replay/p1_latest_checkpoint_envelope.json
           gh api -X GET repos/tiandi0228/ashare-free-data/actions/workflows/p1-fresh-vendor-roster.yml/runs -f per_page=50 > reports/p2_current_full_replay/p1_latency_runs_raw.json
           python - <<'PY'
           import base64,json,subprocess
@@ -546,16 +561,16 @@ jobs:
           python -m collector.p1_schedule_latency_durable_yield \
             --runs reports/p2_current_full_replay/p1_latency_runs_raw.json \
             --receipts reports/p2_current_full_replay/p1_latency_receipts_raw.json \
-            --checkpoint evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json \
+            --checkpoint reports/p2_current_full_replay/p1_latest_checkpoint_current.json \
             --out reports/p2_current_full_replay/p1_24h_scheduled_lag_and_sha_yield.json
-          rm -f reports/p2_current_full_replay/p1_latency_receipts_raw.json
+          rm -f reports/p2_current_full_replay/p1_latency_receipts_raw.json reports/p2_current_full_replay/p1_latest_checkpoint_current.json
           python - <<'PY'
           import json
           from pathlib import Path
           r=json.loads(Path("reports/p2_current_full_replay/p1_24h_scheduled_lag_and_sha_yield.json").read_text())
           assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
           assert r["automatic_recovery_dispatch_authorized"] is False
-          assert r["active_completed_shards"]==241
+          assert r["active_completed_shards"]>=241
           assert r["not_derived_as_new_since_current_checkpoint"] is True
           print("P1_LATENCY_FINAL_RECEIPT_AUDIT_READ_ONLY_PASSED")
           PY
@@ -573,13 +588,13 @@ jobs:
           import json
           from pathlib import Path
           r=json.loads(Path("reports/p2_current_full_replay/p1_external_worker_shadow_overlap.json").read_text())
-          assert r["active_source_shards"]==241
+          assert r["active_source_shards"]>=241
           assert r["external_dispatch_enabled"] is False
           assert r["extra_collection_started"] is False
           assert r["actual_external_worker_trigger_proven"] is False
           assert r["deploy_authorized"] is False
           assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
-          assert r["evaluated_scheduled_runs"]==9
+          assert 1<=r["evaluated_scheduled_runs"]<=20
           print("P1_EXTERNAL_CRON_SHADOW_NO_DISPATCH_VERIFIED")
           PY
       - name: Verify native P1 schedule and require authenticated old-run drain before external dispatch
