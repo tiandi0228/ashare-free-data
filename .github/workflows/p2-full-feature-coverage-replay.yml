@@ -93,9 +93,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Checkout code and aligned frozen checkpoint from main
+      - name: Checkout original PR head or push commit, never GitHub merge-preview checkpoint
         uses: actions/checkout@v4
         with:
+          # PR merge refs silently include live main's 242+ checkpoint, which
+          # MUST NOT replace this original 241-shard P2 frozen replay input.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
           fetch-depth: 1
       - name: Checkout frozen 241-shard original CSV snapshot for reproducible P2 replay
