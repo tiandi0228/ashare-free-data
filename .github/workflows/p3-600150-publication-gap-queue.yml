@@ -1,0 +1,28 @@
+name: P3 600150 publication proof-gap regressions (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p3_600150_official_publication_gap_queue.py'
+      - 'tests/test_p3_600150_official_publication_gap_queue.py'
+      - '.github/workflows/p3-600150-publication-gap-queue.yml'
+  push:
+    branches: ['feat/p3-600150-publication-gap-queue-20261112']
+    paths:
+      - 'collector/p3_600150_official_publication_gap_queue.py'
+      - 'tests/test_p3_600150_official_publication_gap_queue.py'
+      - '.github/workflows/p3-600150-publication-gap-queue.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify publication evidence cannot be promoted by download timestamp
+        run: python -m unittest -v tests.test_p3_600150_official_publication_gap_queue
