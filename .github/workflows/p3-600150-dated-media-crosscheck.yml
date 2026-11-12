@@ -8,6 +8,8 @@ on:
       - 'tests/test_p3_600150_halt_window_exclusion.py'
       - 'collector/p3_600150_sse_daily_bulletin_mirror.py'
       - 'tests/test_p3_600150_sse_daily_bulletin_mirror.py'
+      - 'collector/p3_600150_sse_daily_artifact_replay.py'
+      - 'tests/test_p3_600150_sse_daily_artifact_replay.py'
       - '.github/workflows/p3-600150-dated-media-crosscheck.yml'
   push:
     branches: ['feat/p3-600150-dated-media-crosscheck-20261112']
@@ -18,9 +20,12 @@ on:
       - 'tests/test_p3_600150_halt_window_exclusion.py'
       - 'collector/p3_600150_sse_daily_bulletin_mirror.py'
       - 'tests/test_p3_600150_sse_daily_bulletin_mirror.py'
+      - 'collector/p3_600150_sse_daily_artifact_replay.py'
+      - 'tests/test_p3_600150_sse_daily_artifact_replay.py'
       - '.github/workflows/p3-600150-dated-media-crosscheck.yml'
 permissions:
   contents: read
+  actions: read
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -37,7 +42,8 @@ jobs:
           python -m unittest -v \
             tests.test_p3_600150_dated_media_crosscheck \
             tests.test_p3_600150_halt_window_exclusion \
-            tests.test_p3_600150_sse_daily_bulletin_mirror
+            tests.test_p3_600150_sse_daily_bulletin_mirror \
+            tests.test_p3_600150_sse_daily_artifact_replay
       - name: Fetch one exact SSE-titled 2025-08-18 source PDF as research artifact
         run: python -m collector.p3_600150_sse_daily_bulletin_mirror --output-dir evidence/p3_sse_daily_research
       - name: Preserve original research PDF and SHA receipt (30 days, NO TRADES)
@@ -48,3 +54,15 @@ jobs:
           path: evidence/p3_sse_daily_research/
           if-no-files-found: ignore
           retention-days: 30
+      - name: Independently replay frozen real daily-bulletin ZIP/PDF receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --max-time 60 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/tiandi0228/ashare-free-data/actions/artifacts/13908412596/zip" \
+            --output /tmp/p3_sse_daily_original.zip
+          python -m collector.p3_600150_sse_daily_artifact_replay \
+            --zip /tmp/p3_sse_daily_original.zip
