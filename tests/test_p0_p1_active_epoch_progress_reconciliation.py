@@ -55,7 +55,7 @@ class ActiveEpochReconciliationTests(unittest.TestCase):
         self.args[3]["archived_shards"]=self.args[3]["archived_shards"][:-1]
         self.must_reject()
     def test_archived_shard_membership_tamper(self):
-        self.args[3]["archived_shards"][0]=398 if 398 not in self.args[3]["archived_shards"] else 397
+        self.args[3]["archived_shards"][0]=400
         self.must_reject()
     def test_replay_unverified(self):
         self.args[4]["original_CSVs_independently_replayed_in_this_run"]=False
