@@ -16,6 +16,8 @@ on:
       - 'tests/test_p3_pdf_content_anchor_replay.py'
       - 'collector/p3_historical_st_temporal_veto.py'
       - 'tests/test_p3_historical_st_temporal_veto.py'
+      - 'collector/p3_remaining_six_pdf_content_replay.py'
+      - 'tests/test_p3_remaining_six_pdf_content_replay.py'
       - 'evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json'
       - 'evidence/p3_issuer_halt_resume_three_research_refs.json'
       - 'evidence/p3_four_issuer_halt_st_research_refs.json'
@@ -34,6 +36,8 @@ on:
       - 'tests/test_p3_pdf_content_anchor_replay.py'
       - 'collector/p3_historical_st_temporal_veto.py'
       - 'tests/test_p3_historical_st_temporal_veto.py'
+      - 'collector/p3_remaining_six_pdf_content_replay.py'
+      - 'tests/test_p3_remaining_six_pdf_content_replay.py'
       - 'evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json'
       - 'evidence/p3_issuer_halt_resume_three_research_refs.json'
       - 'evidence/p3_four_issuer_halt_st_research_refs.json'
@@ -256,6 +260,32 @@ jobs:
           assert all(x["historical_PIT_verified"] is False for x in r["historical_examples"])
           assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
           print("P3_NO_HISTORICAL_ST_LOOKAHEAD_AND_NO_DISPUTED_DATE_PROMOTION")
+          PY
+      - name: Double-read six remaining curated issuer PDFs and validate document text anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p3_remaining_six_pdf_content_replay
+          python -m collector.p3_remaining_six_pdf_content_replay \
+            --manifest evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json \
+            --first-probe reports/p2_live_source_replay/p3_nine_pdf_byte_sha256_network_probes.json \
+            --out reports/p2_live_source_replay/p3_remaining_six_pdf_sha_and_text.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_live_source_replay/p3_remaining_six_pdf_sha_and_text.json").read_text())
+          assert r["remaining_original_pdf_count"]==6
+          assert len(r["rows"])==6
+          assert r["two_read_sha_matching_count"]<=6
+          assert r["issuer_company_notice_term_text_matched_count"]<=6
+          assert r["issuer_signature_authenticated"] is False
+          assert r["exchange_PIT_trading_calendar_authenticated"] is False
+          assert r["historical_PIT_verified"] is False
+          assert r["feature_shards_promoted"]==0
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P3_REMAINING_SIX_PDF_CONTENT_RESEARCH_ONLY",
+            r["two_read_sha_matching_count"],
+            r["issuer_company_notice_term_text_matched_count"])
           PY
       - name: Preserve independent read-only source SHA report
         if: always()
