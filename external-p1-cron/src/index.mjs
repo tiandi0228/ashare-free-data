@@ -101,10 +101,6 @@ async function jsonResponse(response) {
   if (!response.ok) throw new Error("GITHUB_API_" + response.status);
   return response.json();
 }
-function base64(str) {
-  // GitHub Contents API requires base64. ASCII-only audit marker by design.
-  return btoa(str);
-}
 // Mutually exclusive scheduler ownership: an enabled native P1 schedule
 // renders an independent dispatch unsafe even after manual Worker opt-in.
 // This verifies the *live main-branch source*, not a cached documentation
@@ -160,45 +156,7 @@ export async function run(cron, scheduledMs, nowMs, env) {
   return {dispatch:false,reason:"SOURCE_RUN_DRAIN_NOT_AUTHENTICATED",
     nativeScheduleState:native.state,sourceWorkflowSha:native.sha,
     noMarkerWritten:true,trade_gate:"BLOCKED"};
-  // Fetch the exact P1 workflow runs, not the generic repository run stream.
-  const runs = await jsonResponse(await api(env.GITHUB_TOKEN,
-    "actions/workflows/" + TARGET + "/runs?per_page=100"));
-  const decision = decide({cron, scheduledMs, nowMs, data: runs});
-  if (!decision.dispatch) return decision;
-  const marker = decision.markerPath;
-  const prior = await api(env.GITHUB_TOKEN,
-    "contents/" + marker + "?ref=" + encodeURIComponent(BRANCH));
-  if (prior.status === 200) return {dispatch:false,reason:"SLOT_ALREADY_RESERVED"};
-  if (prior.status !== 404) throw new Error("MARKER_READ_FAILED_" + prior.status);
-  const receipt = JSON.stringify({
-    phase:"P1_EXTERNAL_SINGLE_SHARD_DISPATCH_ATTEMPT",
-    slot:decision.sourceSlot, state:"DISPATCH_REQUEST_RESERVED_NOT_COMPLETED",
-    requested_shards:1, trade_gate:"BLOCKED",
-    historical_PIT_verified:false, orders:[], executable_candidates:[]
-  }) + "\n";
-  const created = await api(env.GITHUB_TOKEN, "contents/" + marker, {
-    method:"PUT", body:JSON.stringify({branch:BRANCH,
-      message:"audit(p1): reserve external one-shard recovery request [NO TRADES]",
-      content:base64(receipt)})
-  });
-  // Create-only conflict is a safe loss in a race, never a reason to retry.
-  if (created.status === 409 || created.status === 422)
-    return {dispatch:false,reason:"ATOMIC_SLOT_RESERVATION_LOST"};
-  if (created.status !== 201) throw new Error("MARKER_CREATE_FAILED_" + created.status);
-  const readback = await jsonResponse(await api(env.GITHUB_TOKEN,
-    "contents/" + marker + "?ref=" + encodeURIComponent(BRANCH)));
-  if (readback.path !== marker || atob(readback.content.replace(/\s/g,"")) !== receipt)
-    throw new Error("MARKER_READBACK_NOT_VERIFIED_NO_DISPATCH");
-  // Never retry a failed or uncertain POST; the marker prevents later retries.
-  const resp = await api(env.GITHUB_TOKEN,
-    "actions/workflows/" + TARGET + "/dispatches", {
-      method:"POST", body:JSON.stringify({ref:"main",
-        inputs:{shards_per_run:"1",recovery_token:""}})
-    });
-  if (resp.status !== 204)
-    throw new Error("DISPATCH_OUTCOME_UNKNOWN_DO_NOT_RETRY_" + resp.status);
-  return {dispatch:true,reason:"REQUEST_ACCEPTED_NOT_COLLECTION_VERIFIED",
-    sourceSlot:decision.sourceSlot};
+
 }
 
 export default {
