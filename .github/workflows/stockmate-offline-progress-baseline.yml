@@ -66,6 +66,84 @@ jobs:
           (out/"summary.json").write_text(json.dumps(summary,ensure_ascii=False,indent=2)+"\n")
           print(json.dumps(summary,ensure_ascii=False,sort_keys=True))
           PY
+      - name: Read-only P0 quote and P1 frozen-roster evidence checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,pathlib,subprocess,sys
+          from collector.p1_checkpoint import validate
+          root=pathlib.Path(".")
+          groups={
+              "P0": [
+                  "tests.test_p0_tencent_quote_probe",
+                  "tests.test_intraday_minute_coverage",
+                  "tests.test_intraday_cross_source_audit",
+                  "tests.test_intraday_snapshot_archive",
+              ],
+              "P1": [
+                  "tests.test_p1_checkpoint",
+                  "tests.test_p1_run_progress",
+                  "tests.test_p1_all_epoch_archive_audit",
+                  "tests.test_p1_archive_migration_readiness",
+              ],
+          }
+          result={"phase":"STOCKMATE_P0_P1_READ_ONLY_EVIDENCE_INVENTORY",
+                  "current_source_commit":None,
+                  "P0_overall_completion_pct":None,"P1_overall_completion_pct":None,
+                  "trade_gate":"BLOCKED","orders":[],"executable_candidates":[],
+                  "historical_PIT_verified":False,"P0_real_quote_freshness_verified":False,
+                  "P0_multiday_live_continuity_verified":False,
+                  "P1_full_archive_copy_verified":False,
+                  "P1_writer_cutover_authorized":False,
+                  "groups":{}}
+          for phase,modules in groups.items():
+              checks=[]
+              for name in modules:
+                  attempt=subprocess.run(
+                      [sys.executable,"-m","unittest","-q",name],
+                      capture_output=True,text=True,timeout=90)
+                  ok=(attempt.returncode==0 and "Ran " in attempt.stderr
+                      and "OK" in attempt.stderr)
+                  checks.append({"test_module":name,"offline_contract_passed":ok,
+                                 "result":"OFFLINE_CONTRACT_PASS" if ok else "OFFLINE_CONTRACT_FAIL",
+                                 "diagnostic_tail":"" if ok else attempt.stderr[-800:]})
+              result["groups"][phase]={
+                  "offline_modules_passed":sum(x["offline_contract_passed"] for x in checks),
+                  "offline_modules_executed":len(checks),
+                  "results":checks,
+                  "overall_phase_completion_pct":None,
+                  "interpretation":"selected_offline_code_tests_only_not_whole_phase"}
+          checkpoint=json.loads((root/"evidence/p1_checkpoint.json").read_text())
+          validate(checkpoint)
+          completed=checkpoint["completed_shards"]
+          total=checkpoint["shard_count"]
+          result["P1_roster_checkpoint"]={
+              "completed_shards":completed,
+              "total_shards":total,
+              "research_roster_coverage_pct":round(100*completed/total,4),
+              "source_sha256":checkpoint["source_sha256"],
+              "status":"LEDGER_COUNTS_ONLY_NOT_FULL_ARCHIVE_OR_PIT"}
+          if (result["groups"]["P0"]["offline_modules_passed"]!=4 or
+              result["groups"]["P1"]["offline_modules_passed"]!=4):
+              result["gate"]="OFFLINE_CONTRACT_REGRESSION"
+          else: result["gate"]="OFFLINE_CONTRACT_TESTS_PASSED_NOT_PRODUCTION_READY"
+          dest=root/"reports/stockmate_offline_progress"
+          dest.mkdir(parents=True,exist_ok=True)
+          (dest/"p0_p1_evidence_inventory.json").write_text(
+              json.dumps(result,ensure_ascii=False,indent=2)+"\n")
+          print(json.dumps({
+              "P0_offline_contract_modules_passed":result["groups"]["P0"]["offline_modules_passed"],
+              "P1_offline_contract_modules_passed":result["groups"]["P1"]["offline_modules_passed"],
+              "P1_checkpoint_completed_shards":completed,
+              "P1_checkpoint_total_shards":total,
+              "P1_research_roster_coverage_pct":round(100*completed/total,4),
+              "P0_overall_completion_pct":None,"P1_overall_completion_pct":None,
+              "trade_gate":"BLOCKED",
+              "gate":result["gate"]},sort_keys=True))
+          if result["gate"]!="OFFLINE_CONTRACT_TESTS_PASSED_NOT_PRODUCTION_READY":
+              raise SystemExit("P0/P1 selected offline regression failed")
+          PY
       - name: Upload read-only engineering acceptance report (not PIT certification)
         if: always()
         uses: actions/upload-artifact@v4
