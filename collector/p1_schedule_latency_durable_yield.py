@@ -25,7 +25,7 @@ MAX_RECEIPTS=20
 
 def review(api,receipts,checkpoint,now):
     validate_checkpoint(checkpoint)
-    if checkpoint["source_sha256"]!=EPOCH or checkpoint["completed_shards"]!=241:
+    if checkpoint["source_sha256"]!=EPOCH or checkpoint["completed_shards"]<241:
         raise ValueError("wrong current active ledger, no cross-epoch aggregation")
     if (not isinstance(api,dict) or not isinstance(api.get("workflow_runs"),list)
         or len(api["workflow_runs"])>MAX_RUNS
@@ -110,7 +110,7 @@ def review(api,receipts,checkpoint,now):
     return {
         "phase":PHASE,
         "active_source_epoch_sha256":EPOCH,
-        "active_completed_shards":241,"active_total_shards":400,
+        "active_completed_shards":checkpoint["completed_shards"],"active_total_shards":checkpoint["shard_count"],
         "recent_24h_workflow_runs":len(result),
         "recent_24h_scheduled_runs":len(scheduled),
         "scheduled_creation_lag_bucket_counts":bucket,
