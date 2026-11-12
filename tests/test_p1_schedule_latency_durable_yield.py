@@ -73,7 +73,12 @@ class LatencyYieldTests(unittest.TestCase):
     def test_nonselected_receipt_rejected(self):
         self.args[1]["111"]=copy.deepcopy(self.args[1]["43119727655"])
         self.reject()
-    def test_old_runs_outside_window(self):
+    def test_old_run_receipt_outside_window_rejected(self):
+        with self.assertRaises(ValueError):
+            review(*self.args,datetime(2026,11,14,5,55,tzinfo=timezone.utc))
+
+    def test_old_runs_outside_window_with_no_stale_receipt(self):
+        self.args[1]={}
         result=review(*self.args,datetime(2026,11,14,5,55,tzinfo=timezone.utc))
         self.assertEqual(result["recent_24h_workflow_runs"],0)
         self.assertEqual(result["final_verified_source_run_shards_sample_total"],0)
