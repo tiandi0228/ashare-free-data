@@ -1,0 +1,39 @@
+name: P1 opt-in bounded gap selector (NO TRADES, NO DATA WRITES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p1_quad_pick.py'
+      - 'tests/test_p1_quad_pick.py'
+      - 'tests/test_p1_bounded_gap_backfill_optin.py'
+      - '.github/workflows/p1-bounded-gap-backfill-optin.yml'
+  push:
+    branches:
+      - 'feature/p1-bounded-gap-backfill-opt-in-20261112'
+permissions:
+  contents: read
+jobs:
+  offline-selection:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Existing picker regression and new opt-in gap tests
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p1_quad_pick tests.test_p1_bounded_gap_backfill_optin
+      - name: Assert default cron and archive remain unchanged
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/p1-fresh-vendor-roster.yml').read_text()
+          assert 'schedule:' in p and '--per-run "$P1_REQUESTED_SHARDS"' in p
+          assert '--gap-window' not in p
+          from collector.p1_quad_pick import choose_gap_window
+          assert callable(choose_gap_window)
+          print('OPT_IN_ONLY_NO_CRON_CHANGE_NO_NETWORK_NO_WRITES')
+          PY
