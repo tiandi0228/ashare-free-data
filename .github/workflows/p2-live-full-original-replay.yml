@@ -12,6 +12,8 @@ on:
       - 'tests/test_p3_eight_issuer_announcement_crosswalk.py'
       - 'collector/p3_curated_pdf_byte_probe.py'
       - 'tests/test_p3_curated_pdf_byte_probe.py'
+      - 'collector/p3_pdf_content_anchor_replay.py'
+      - 'tests/test_p3_pdf_content_anchor_replay.py'
       - 'evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json'
       - 'evidence/p3_issuer_halt_resume_three_research_refs.json'
       - 'evidence/p3_four_issuer_halt_st_research_refs.json'
@@ -26,6 +28,8 @@ on:
       - 'tests/test_p3_eight_issuer_announcement_crosswalk.py'
       - 'collector/p3_curated_pdf_byte_probe.py'
       - 'tests/test_p3_curated_pdf_byte_probe.py'
+      - 'collector/p3_pdf_content_anchor_replay.py'
+      - 'tests/test_p3_pdf_content_anchor_replay.py'
       - 'evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json'
       - 'evidence/p3_issuer_halt_resume_three_research_refs.json'
       - 'evidence/p3_four_issuer_halt_st_research_refs.json'
@@ -202,6 +206,32 @@ jobs:
           assert r["source_feature_shards_promoted"]==0
           assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
           print("P3_NETWORK_PDF_SHA_READ_ONLY_NO_PIT_CERTIFICATION")
+          PY
+      - name: Bind three high-risk PDF text claims to SHA-matched second-read bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p3_pdf_content_anchor_replay
+          command -v pdftotext || true
+          python -m collector.p3_pdf_content_anchor_replay \
+            --manifest evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json \
+            --first-probe reports/p2_live_source_replay/p3_nine_pdf_byte_sha256_network_probes.json \
+            --out reports/p2_live_source_replay/p3_priority_pdf_content_anchor_second_read.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_live_source_replay/p3_priority_pdf_content_anchor_second_read.json").read_text())
+          assert r["priority_issuer_count"]==3
+          assert r["content_sha256_is_NOT_issuer_authenticity"] is True
+          assert r["guangqi_conflicting_halt_date_unresolved"] is True
+          assert r["pre_st_removal_dates_conservatively_excluded"] is True
+          assert r["full_issuer_halt_calendar_certified"] is False
+          assert r["historical_PIT_verified"] is False
+          assert r["feature_shards_promoted"]==0
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          assert len(r["rows"])==3
+          print("P3_PDF_TEXT_SHA_SECOND_READ_RESEARCH_ONLY",
+            r["same_bytes_twice_count"],r["issuer_notice_and_term_text_observed_count"])
           PY
       - name: Preserve independent read-only source SHA report
         if: always()
