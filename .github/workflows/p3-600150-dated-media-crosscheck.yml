@@ -1,0 +1,28 @@
+name: P3 dated media crosscheck regression (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p3_600150_dated_media_crosscheck.py'
+      - 'tests/test_p3_600150_dated_media_crosscheck.py'
+      - '.github/workflows/p3-600150-dated-media-crosscheck.yml'
+  push:
+    branches: ['feat/p3-600150-dated-media-crosscheck-20261112']
+    paths:
+      - 'collector/p3_600150_dated_media_crosscheck.py'
+      - 'tests/test_p3_600150_dated_media_crosscheck.py'
+      - '.github/workflows/p3-600150-dated-media-crosscheck.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify research-only dated media crosswalk does not certify first-publication PIT
+        run: python -m unittest -v tests.test_p3_600150_dated_media_crosscheck
