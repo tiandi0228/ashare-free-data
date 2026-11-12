@@ -30,6 +30,8 @@ on:
       - 'tests/test_p1_shared_scheduler_ownership_prewrite.py'
       - 'collector/p1_native_remote_write_boundary_inventory.py'
       - 'tests/test_p1_native_remote_write_boundary_inventory.py'
+      - 'collector/p1_seven_boundary_ownership_transition_rehearsal.py'
+      - 'tests/test_p1_seven_boundary_ownership_transition_rehearsal.py'
       - 'collector/p1_schedule_latency_durable_yield.py'
       - 'tests/test_p1_schedule_latency_durable_yield.py'
       - 'external-p1-cron/src/index.mjs'
@@ -68,6 +70,8 @@ on:
       - 'tests/test_p1_shared_scheduler_ownership_prewrite.py'
       - 'collector/p1_native_remote_write_boundary_inventory.py'
       - 'tests/test_p1_native_remote_write_boundary_inventory.py'
+      - 'collector/p1_seven_boundary_ownership_transition_rehearsal.py'
+      - 'tests/test_p1_seven_boundary_ownership_transition_rehearsal.py'
       - 'collector/p1_schedule_latency_durable_yield.py'
       - 'tests/test_p1_schedule_latency_durable_yield.py'
       - 'external-p1-cron/src/index.mjs'
@@ -669,6 +673,30 @@ jobs:
           assert inventory["production_cutover_authorized"] is False
           assert inventory["trade_gate"]=="BLOCKED" and inventory["orders"]==[]
           print("P1_SEVEN_REAL_REMOTE_WRITE_BOUNDARIES_SHADOW_FENCE_PASSED")
+          PY
+      - name: Replay all seven P1 remote write sites against mid-job freeze and late-native cutover
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p1_seven_boundary_ownership_transition_rehearsal
+          python -m collector.p1_seven_boundary_ownership_transition_rehearsal \
+            --workflow reports/p2_current_full_replay/p1_native_workflow_main.yml \
+            --out reports/p2_current_full_replay/p1_seven_writer_transition_matrix.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('reports/p2_current_full_replay/p1_seven_writer_transition_matrix.json')
+          r=json.loads(p.read_text())
+          assert r["tested_source_remote_write_boundaries"]==7
+          assert r["transition_scenarios"]==45
+          assert r["total_replayed_write_boundary_preflights"]==315
+          assert r["all_after_transition_native_attempts_blocked"] is True
+          assert r["all_actual_remote_writes_zero"] is True
+          assert r["production_write_path_integrated"] is False
+          assert r["candidate_cutover_ready"] is False
+          assert r["trade_gate"]=="BLOCKED"
+          assert r["orders"]==[] and r["executable_candidates"]==[]
+          print("P1_SEVEN_WRITERS_45_SCENARIOS_315_CHECKS_ZERO_WRITES_PASSED")
           PY
       - name: Preserve read-only full original replay verification
         uses: actions/upload-artifact@v4
