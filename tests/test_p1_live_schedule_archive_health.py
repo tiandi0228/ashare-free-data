@@ -52,6 +52,23 @@ class RunHealthTests(unittest.TestCase):
     def test_missing_archive_shard_rejected(self):
         self.args[2]["archived_shards"].pop()
         self.reject()
+    def test_real_scheduled_custom_run_name_accepted(self):
+        self.args[3]["workflow_runs"][0]["name"]="P1 origin 10 17 * * 0-4 [NO TRADES]"
+        r=audit(*self.args,NOW)
+        self.assertEqual(r["last_actions_run"]["run_id"],23)
+        self.assertIsNone(r["new_shards_from_run_history"])
+
+    def test_forged_cron_title_rejected(self):
+        self.args[3]["workflow_runs"][0]["name"]="P1 origin 10 16 * * 1-5 [NO TRADES]"
+        self.reject()
+
+    def test_manual_run_name_accepted(self):
+        self.args[3]["workflow_runs"][0]["event"]="workflow_dispatch"
+        self.args[3]["workflow_runs"][0]["name"]="P1 origin workflow_dispatch [NO TRADES]"
+        r=audit(*self.args,NOW)
+        self.assertEqual(r["recent_24h_successful_runs"],1)
+        self.assertIsNone(r["new_shards_from_run_history"])
+
     def test_wrong_workflow_name_rejected(self):
         self.args[3]["workflow_runs"][0]["name"]="Other workflow"
         self.reject()
