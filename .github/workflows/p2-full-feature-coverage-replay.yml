@@ -22,6 +22,8 @@ on:
       - 'evidence/p4_synthetic_dual_horizon_st_adversarial.json'
       - 'collector/p4_real_archived_ranking_st_join.py'
       - 'tests/test_p4_real_archived_ranking_st_join.py'
+      - 'collector/p0_p1_active_epoch_progress_reconciliation.py'
+      - 'tests/test_p0_p1_active_epoch_progress_reconciliation.py'
   pull_request:
     paths:
       - '.github/workflows/p2-full-feature-coverage-replay.yml'
@@ -43,6 +45,8 @@ on:
       - 'evidence/p4_synthetic_dual_horizon_st_adversarial.json'
       - 'collector/p4_real_archived_ranking_st_join.py'
       - 'tests/test_p4_real_archived_ranking_st_join.py'
+      - 'collector/p0_p1_active_epoch_progress_reconciliation.py'
+      - 'tests/test_p0_p1_active_epoch_progress_reconciliation.py'
 permissions:
   contents: read
 jobs:
@@ -348,6 +352,37 @@ jobs:
           assert r["production_candidate_pipeline_integrated"] is False
           assert r["descriptive_ranked_original_issuers"]==len(r["real_original_candidate_rows"])
           print("P4_REAL_SOURCE_RANKING_NONEXECUTABLE_ST_JOIN_PASSED")
+          PY
+      - name: Verify P0 historical development versus production and P1 live pinned 241/400 epoch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p0_tencent_quote_probe tests.test_p0_p4_progress_snapshot
+          python -m unittest -v tests.test_p0_p1_active_epoch_progress_reconciliation
+          python -m collector.p0_p1_active_epoch_progress_reconciliation \
+            --lock evidence/p1_active_roster.json \
+            --active evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json \
+            --legacy evidence/p1_checkpoint.json \
+            --archive-status archived-research/5ba00fbd720fad90/archive_status.json \
+            --p2-replay reports/p2_current_full_replay/verified.json \
+            --p0-offline-ok \
+            --out reports/p2_current_full_replay/p0_p1_source_epoch_corrected_progress.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_current_full_replay/p0_p1_source_epoch_corrected_progress.json").read_text())
+          assert r["P0"]["historical_development_pct_reported"]==100
+          assert r["P0"]["current_full_production_acceptance_pct"] is None
+          assert r["P0"]["production_approved"] is False
+          assert r["P1"]["active_completed_shards"]==241
+          assert r["P1"]["active_total_shards"]==400
+          assert r["P1"]["active_coverage_pct"]==60.25
+          assert r["P1"]["legacy_alias_completed_shards"]==44
+          assert r["P1"]["legacy_alias_is_active_source"] is False
+          assert r["P1"]["original_CSV_replay_verified_in_this_run"] is True
+          assert r["P1"]["production_writer_cutover_authorized"] is False
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P0_P1_ACTIVE_EPOCH_RECONCILED_241_OF_400_NOT_LEGACY_44")
           PY
       - name: Preserve read-only full original replay verification
         uses: actions/upload-artifact@v4
