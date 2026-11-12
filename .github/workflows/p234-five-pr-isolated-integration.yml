@@ -4,6 +4,9 @@ on:
     branches: ['ci/p234-five-pr-isolated-integration-20261112']
     paths:
       - '.github/workflows/p234-five-pr-isolated-integration.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/p234-five-pr-isolated-integration.yml'
   workflow_dispatch:
 permissions:
   contents: read
