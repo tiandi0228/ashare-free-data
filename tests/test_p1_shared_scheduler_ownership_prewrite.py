@@ -42,7 +42,7 @@ class OwnershipFenceTests(unittest.TestCase):
         # Altered policy contracts in tests are independently rehashed as
         # their own immutable blobs so schema gates are exercised AFTER
         # provenance; raw-tamper tests deliberately skip this.
-        self.raw=(json.dumps(self.contract,sort_keys=True)+"\\n").encode()
+        self.raw=(json.dumps(self.contract,sort_keys=True)+chr(10)).encode()
         self.digest=hashlib.sha256(self.raw).hexdigest()
         self.sha=hashlib.sha1(
             b"blob "+str(len(self.raw)).encode()+bytes([0])+self.raw).hexdigest()
@@ -82,7 +82,7 @@ class OwnershipFenceTests(unittest.TestCase):
         self.run["observed_contract_generation"]=6
         self.blocked("RUN_PROVENANCE_OR_OWNERSHIP_GENERATION_MISMATCH")
     def test_actual_raw_bytes_mismatch_rejected(self):
-        self.raw=b"{}\\n"
+        self.raw=b"{}"+bytes([10])
         self.blocked("RAW_CONTRACT_CONTENT_MISMATCH")
     def test_actual_raw_sha256_mismatch_rejected(self):
         self.digest="d"*64
