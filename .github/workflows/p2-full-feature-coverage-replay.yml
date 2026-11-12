@@ -26,6 +26,8 @@ on:
       - 'tests/test_p0_p1_active_epoch_progress_reconciliation.py'
       - 'collector/p1_live_schedule_archive_health.py'
       - 'tests/test_p1_live_schedule_archive_health.py'
+      - 'collector/p1_schedule_latency_durable_yield.py'
+      - 'tests/test_p1_schedule_latency_durable_yield.py'
   pull_request:
     paths:
       - '.github/workflows/p2-full-feature-coverage-replay.yml'
@@ -51,6 +53,8 @@ on:
       - 'tests/test_p0_p1_active_epoch_progress_reconciliation.py'
       - 'collector/p1_live_schedule_archive_health.py'
       - 'tests/test_p1_live_schedule_archive_health.py'
+      - 'collector/p1_schedule_latency_durable_yield.py'
+      - 'tests/test_p1_schedule_latency_durable_yield.py'
 permissions:
   contents: read
   actions: read
@@ -447,6 +451,67 @@ jobs:
           assert r["recovery_dispatch_authorized"] is False
           assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
           print("P1_RUN_HEALTH_READ_ONLY_SUCCESS_NO_UNVERIFIED_DELTA")
+          PY
+      - name: Reconcile 24h scheduled creation lag with concluded SHA-accepted original shards
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p1_schedule_latency_durable_yield
+          mkdir -p reports/p2_current_full_replay
+          gh api -X GET repos/tiandi0228/ashare-free-data/actions/workflows/p1-fresh-vendor-roster.yml/runs -f per_page=50 > reports/p2_current_full_replay/p1_latency_runs_raw.json
+          python - <<'PY'
+          import base64,json,subprocess
+          from datetime import datetime,timezone,timedelta
+          from pathlib import Path
+          root=Path("reports/p2_current_full_replay")
+          data=json.loads((root/"p1_latency_runs_raw.json").read_text())
+          now=datetime.now(timezone.utc)
+          selected=[]
+          for run in data["workflow_runs"]:
+              t=datetime.fromisoformat(run["created_at"].replace("Z","+00:00"))
+              if t>=now-timedelta(hours=24) and run.get("event")=="schedule":
+                  selected.append(run)
+          if len(selected)>20:raise SystemExit("too many scheduled runs for bounded audit")
+          receipts={}
+          for run in selected:
+              rid=run["id"]
+              attempt=run.get("run_attempt")
+              if type(attempt) is not int or attempt<1:
+                  continue
+              path=f"evidence/schedule_runs/5ba00fbd720fad90/run_{rid}_attempt_{attempt}.json"
+              fetch=subprocess.run([
+                  "gh","api","-X","GET",
+                  "repos/tiandi0228/ashare-free-data/contents/"+path,
+                  "-f","ref=main"],capture_output=True,text=True,timeout=35)
+              if fetch.returncode!=0:
+                  if "404" in fetch.stderr and "Not Found" in fetch.stderr:continue
+                  raise SystemExit("P1 receipt fetch failed for run "+str(rid))
+              envelope=json.loads(fetch.stdout)
+              if envelope.get("path")!=path or envelope.get("type")!="file":
+                  raise SystemExit("wrong P1 receipt path")
+              contents=base64.b64decode("".join(envelope["content"].split()),validate=True)
+              receipts[str(rid)]=json.loads(contents)
+          (root/"p1_latency_receipts_raw.json").write_text(
+              json.dumps(receipts,ensure_ascii=False)+"\n")
+          print("P1_BOUND_RECEIPTS_FOUND",len(receipts),"SCHEDULES",len(selected))
+          PY
+          python -m collector.p1_schedule_latency_durable_yield \
+            --runs reports/p2_current_full_replay/p1_latency_runs_raw.json \
+            --receipts reports/p2_current_full_replay/p1_latency_receipts_raw.json \
+            --checkpoint evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json \
+            --out reports/p2_current_full_replay/p1_24h_scheduled_lag_and_sha_yield.json
+          rm -f reports/p2_current_full_replay/p1_latency_runs_raw.json reports/p2_current_full_replay/p1_latency_receipts_raw.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_current_full_replay/p1_24h_scheduled_lag_and_sha_yield.json").read_text())
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          assert r["automatic_recovery_dispatch_authorized"] is False
+          assert r["active_completed_shards"]==241
+          assert r["not_derived_as_new_since_current_checkpoint"] is True
+          print("P1_LATENCY_FINAL_RECEIPT_AUDIT_READ_ONLY_PASSED")
           PY
       - name: Preserve read-only full original replay verification
         uses: actions/upload-artifact@v4
