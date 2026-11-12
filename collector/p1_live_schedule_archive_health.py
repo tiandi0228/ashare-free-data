@@ -52,7 +52,7 @@ def audit(lock,checkpoint,archive,runs,now_utc):
         if (x.get("path")!=TARGET or x.get("name")!=WORKFLOW_NAME
             or x.get("head_branch")!="main"
             or x.get("event") not in ("schedule","workflow_dispatch","push")):
-            raise ValueError("wrong P1 workflow or execution context")
+            raise ValueError("wrong P1 workflow or execution context: "+json.dumps({"id":run_id,"name":x.get("name"),"path":x.get("path"),"branch":x.get("head_branch"),"event":x.get("event")},ensure_ascii=False))
         try:
             created=datetime.fromisoformat(x["created_at"].replace("Z","+00:00"))
         except (KeyError,ValueError,TypeError,AttributeError) as exc:
