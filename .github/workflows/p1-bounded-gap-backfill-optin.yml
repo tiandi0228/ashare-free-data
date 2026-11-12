@@ -11,6 +11,8 @@ on:
       - 'collector/p1_gap_remote_preflight.py'
       - 'tests/test_p1_gap_remote_preflight.py'
       - 'tests/test_p1_gap_remote_wiring.py'
+      - 'collector/p1_live_gap_rehearsal.py'
+      - 'tests/test_p1_live_gap_rehearsal.py'
       - '.github/workflows/p1-fresh-vendor-roster.yml'
       - '.github/workflows/p1-bounded-gap-backfill-optin.yml'
   push:
@@ -32,7 +34,7 @@ jobs:
       - name: Existing picker regression and new opt-in gap tests
         run: |
           set -euo pipefail
-          python -m unittest -v tests.test_p1_quad_pick tests.test_p1_bounded_gap_backfill_optin tests.test_p1_gap_dispatch_wiring tests.test_p1_prewrite_gap_guard tests.test_p1_gap_remote_preflight tests.test_p1_gap_remote_wiring
+          python -m unittest -v tests.test_p1_quad_pick tests.test_p1_bounded_gap_backfill_optin tests.test_p1_gap_dispatch_wiring tests.test_p1_prewrite_gap_guard tests.test_p1_gap_remote_preflight tests.test_p1_gap_remote_wiring tests.test_p1_live_gap_rehearsal
       - name: Assert default cron and archive remain unchanged
         run: |
           python - <<'PY'
@@ -44,4 +46,39 @@ jobs:
           from collector.p1_quad_pick import choose_gap_window
           assert callable(choose_gap_window)
           print('MANUAL_ONLY_NO_CRON_CHANGE_NO_NETWORK_NO_WRITES')
+          PY
+
+  live-readonly-rehearsal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Read active ORIGINAL roster + same-epoch checkpoint + archive index
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python -m collector.p1_live_gap_rehearsal \
+            --repo "${{ github.repository }}" \
+            --out /tmp/p1-live-gap-rehearsal.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('/tmp/p1-live-gap-rehearsal.json').read_text())
+          assert p['status']=='LIVE_ORIGINAL_ROSTER_CHECKPOINT_ARCHIVE_RECHECKED'
+          assert p['active_completed_shards']<=p['total_shards']
+          assert p['pending_shards']>0
+          assert 1<=len(p['proposed_manual_shards'])<=2
+          assert p['archive_index_parity_checked'] is True
+          assert p['vendor_requests']==0 and p['archive_writes']==0
+          assert p['historical_PIT_verified'] is False
+          assert p['trade_gate']=='BLOCKED'
+          assert p['orders']==[] and p['executable_candidates']==[]
+          assert p['permission_to_write_or_trade'] is False
+          print('LIVE_REMOTE_READ_ONLY_NO_DATA_WRITES_NO_TRADES')
           PY
