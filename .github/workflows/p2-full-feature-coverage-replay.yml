@@ -98,10 +98,12 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 1
-      - name: Checkout the original CSV archive research branch
+      - name: Checkout frozen 241-shard original CSV snapshot for reproducible P2 replay
         uses: actions/checkout@v4
         with:
-          ref: research-csv-archive
+          # Source branch is actively growing (242+ shards); P2 published
+          # 226/241 receipt baseline MUST replay against its fixed Git commit.
+          ref: d92d86386c29b566562b0f9ac89920f3e3b7985f
           path: archived-research
           persist-credentials: false
           fetch-depth: 1
