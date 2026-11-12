@@ -1,0 +1,43 @@
+name: P2 historical versus current original replay contract (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p2_history_current_original_reconcile.py'
+      - 'tests/test_p2_history_current_original_reconcile.py'
+      - '.github/workflows/p2-history-current-original-reconcile.yml'
+  push:
+    branches:
+      - 'audit/p2-current-evidence-vs-history-20261112'
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Isolated offline regression
+        run: python -m unittest -v tests.test_p2_history_current_original_reconcile
+      - name: Demonstrate current P2 is still unverified without originals
+        run: |
+          set -euo pipefail
+          python -m collector.p2_history_current_original_reconcile \
+            --checkpoint evidence/p1_checkpoint.json \
+            --history evidence/progress_p2_historical_unreplayed_20261112.json \
+            --out /tmp/p2-historical-vs-current.json
+          python - <<'PY'
+          import json
+          r=json.load(open('/tmp/p2-historical-vs-current.json'))
+          assert r['status']=='MISSING_CURRENT_ORIGINAL_REPLAY'
+          assert r['P1_checkpoint_shards']==44
+          assert r['historical_report_unreplayed']['feature_complete_shards']==215
+          assert r['current_research_replay'] is None
+          assert r['trade_gate']=='BLOCKED'
+          assert r['orders']==[] and r['executable_candidates']==[]
+          assert r['historical_PIT_verified'] is False
+          PY
