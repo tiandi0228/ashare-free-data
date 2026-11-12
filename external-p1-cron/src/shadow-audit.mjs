@@ -21,7 +21,7 @@ function ruleFor(timeMs){
 }
 export function shadow(audit,api){
   if(!audit || audit.phase!=="P1_OBSERVED_SCHEDULE_LATENCY_AND_DURABLE_SHARD_ATTESTATION" ||
-     audit.active_completed_shards!==241 || audit.active_total_shards!==400 ||
+     audit.active_completed_shards<241 || audit.active_total_shards!==400 ||
      audit.trade_gate!=="BLOCKED" ||
      !Array.isArray(audit.runs) ||
      !api || !Array.isArray(api.workflow_runs) ||
@@ -79,7 +79,7 @@ export function shadow(audit,api){
   }
   return {
     phase:"P1_RETROSPECTIVE_EXTERNAL_CRON_SHADOW_COMPARISON",
-    active_source_shards:241,
+    active_source_shards:audit.active_completed_shards,
     evaluated_scheduled_runs:rows.length,
     severe_delayed_runs:rows.filter(x=>x.creation_lag_minutes>180).length,
     counterfactual_recovery_eligible_runs:rows.filter(x=>x.would_dispatch_under_reconstructed_available_run_page).length,
