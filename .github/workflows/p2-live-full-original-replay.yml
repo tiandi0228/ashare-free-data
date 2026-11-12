@@ -8,6 +8,9 @@ on:
       - 'tests/test_p2_live_full_source_feature_reconciliation.py'
       - 'collector/p2_p3_live_gap_reference_queue.py'
       - 'tests/test_p2_p3_live_gap_reference_queue.py'
+      - 'collector/p3_eight_issuer_announcement_crosswalk.py'
+      - 'tests/test_p3_eight_issuer_announcement_crosswalk.py'
+      - 'evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json'
       - 'evidence/p3_issuer_halt_resume_three_research_refs.json'
       - 'evidence/p3_four_issuer_halt_st_research_refs.json'
   pull_request:
@@ -17,6 +20,9 @@ on:
       - 'tests/test_p2_live_full_source_feature_reconciliation.py'
       - 'collector/p2_p3_live_gap_reference_queue.py'
       - 'tests/test_p2_p3_live_gap_reference_queue.py'
+      - 'collector/p3_eight_issuer_announcement_crosswalk.py'
+      - 'tests/test_p3_eight_issuer_announcement_crosswalk.py'
+      - 'evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json'
       - 'evidence/p3_issuer_halt_resume_three_research_refs.json'
       - 'evidence/p3_four_issuer_halt_st_research_refs.json'
 permissions:
@@ -144,6 +150,32 @@ jobs:
           assert r["historical_PIT_verified"] is False
           assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
           print("P2_P3_LIVE_7_REFERENCED_8_MISSING_1_SHORT_IPO_GAPS_VERIFIED")
+          PY
+      - name: Crosswalk eight dated issuer disclosures without promoting PDF/PIT authenticity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p3_eight_issuer_announcement_crosswalk
+          python -m collector.p3_eight_issuer_announcement_crosswalk \
+            --queue reports/p2_live_source_replay/live_p2_p3_gap_and_unlinked_issuer_queue.json \
+            --sources evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json \
+            --out reports/p2_live_source_replay/p3_eight_issuer_disclosure_research_crosswalk.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_live_source_replay/p3_eight_issuer_disclosure_research_crosswalk.json").read_text())
+          assert r["research_issuer_reference_count"]==8
+          assert r["combined_research_reference_issuer_count"]==15
+          assert r["still_missing_a_research_link_issuer_count"]==0
+          assert r["pdf_original_bytes_sha_independently_verified_count"]==0
+          assert r["official_full_pit_halt_certified_count"]==0
+          assert r["original_feature_gap_issuers_unresolved"]==16
+          assert r["original_feature_gap_shards_unresolved"]==15
+          assert r["P2_feature_shards_promoted"]==0
+          assert r["P3_offline_engineering_acceptance_automatically_changed"] is False
+          assert r["historical_PIT_verified"] is False
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P3_EIGHT_DATED_DISCLOSURE_REFERENCES_15_OF_15_NO_PIT_PROMOTION")
           PY
       - name: Preserve independent read-only source SHA report
         if: always()
