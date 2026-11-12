@@ -6,6 +6,8 @@ on:
       - 'tests/test_p1_quad_pick.py'
       - 'tests/test_p1_bounded_gap_backfill_optin.py'
       - 'tests/test_p1_gap_dispatch_wiring.py'
+      - 'collector/p1_prewrite_gap_guard.py'
+      - 'tests/test_p1_prewrite_gap_guard.py'
       - '.github/workflows/p1-fresh-vendor-roster.yml'
       - '.github/workflows/p1-bounded-gap-backfill-optin.yml'
   push:
@@ -27,7 +29,7 @@ jobs:
       - name: Existing picker regression and new opt-in gap tests
         run: |
           set -euo pipefail
-          python -m unittest -v tests.test_p1_quad_pick tests.test_p1_bounded_gap_backfill_optin tests.test_p1_gap_dispatch_wiring
+          python -m unittest -v tests.test_p1_quad_pick tests.test_p1_bounded_gap_backfill_optin tests.test_p1_gap_dispatch_wiring tests.test_p1_prewrite_gap_guard
       - name: Assert default cron and archive remain unchanged
         run: |
           python - <<'PY'
