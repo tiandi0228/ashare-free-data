@@ -1,0 +1,78 @@
+name: P2 feature coverage branch evidence discovery (NO TRADES)
+on:
+  push:
+    branches: ['ci/stockmate-p2-p4-frozen-baseline-20261112']
+    paths: ['.github/workflows/p2-feature-coverage-branch-discovery.yml']
+  pull_request:
+    paths: ['.github/workflows/p2-feature-coverage-branch-discovery.yml']
+permissions:
+  contents: read
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Enumerate branch tree and inspect source-aligned P2 summaries
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64,json,os,re,urllib.request
+          from pathlib import Path
+          base="https://api.github.com/repos/tiandi0228/ashare-free-data"
+          token=os.environ["GH_TOKEN"]
+          def req(path,limit=5_000_000):
+              url=base+path
+              with urllib.request.urlopen(urllib.request.Request(url,headers={
+                  "Authorization":"Bearer "+token,"Accept":"application/vnd.github+json",
+                  "User-Agent":"StockMateP2ReadOnlyDiscovery/1.0"
+              }),timeout=35) as response:
+                  if response.status!=200: raise ValueError("non-200 GitHub source")
+                  data=response.read(limit+1)
+                  if len(data)>limit:raise ValueError("GitHub metadata oversized")
+              return json.loads(data)
+          branch=req("/branches/p2-feature-coverage")
+          head=branch["commit"]["sha"]
+          assert re.fullmatch("[a-f0-9]{40}",head)
+          tree=req("/git/trees/"+head+"?recursive=1")
+          if tree.get("truncated") is not False:raise ValueError("branch tree incomplete")
+          paths=[x["path"] for x in tree["tree"] if x["type"]=="blob"]
+          summaries=sorted(p for p in paths if re.fullmatch(r"summaries/[a-f0-9]{16}\.json",p))
+          report={"phase":"P2_COVERAGE_BRANCH_DISCOVERY_RESEARCH_ONLY",
+              "branch":"p2-feature-coverage","branch_head_sha":head,
+              "branch_tree_complete":True,"summary_file_count":len(summaries),
+              "summary_paths":summaries[:150],"summary_snapshots":[],
+              "source_originals_replayed_in_this_run":False,
+              "current_feature_coverage_certified":False,
+              "historical_PIT_verified":False,"trade_gate":"BLOCKED",
+              "orders":[],"executable_candidates":[]}
+          if len(summaries)>150:raise ValueError("too many summaries to review safely")
+          for path in summaries:
+              item=req("/contents/"+path+"?ref="+head,1_000_000)
+              raw=base64.b64decode(item["content"],validate=False)
+              if len(raw)>200000:raise ValueError("large summary")
+              v=json.loads(raw)
+              keys=("phase","status","source_epoch_sha256","checkpoint_completed_shards",
+                    "observed_archived_shards","feature_complete_shards",
+                    "observed_with_feature_gaps_shards","unobserved_archived_shards",
+                    "feature_issuer_count","issuer_evidence_gap_count",
+                    "full_archive_evidence_accounted","full_archive_feature_coverage",
+                    "historical_PIT_verified","trade_gate")
+              report["summary_snapshots"].append({"path":path,"blob_sha":item["sha"],
+                  **{k:v.get(k) for k in keys}})
+          out=Path("reports/p2_feature_coverage_discovery")
+          out.mkdir(parents=True,exist_ok=True)
+          (out/"summary.json").write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\n")
+          print("P2_READ_ONLY_DISCOVERY",json.dumps(report,ensure_ascii=False,sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p2-feature-coverage-branch-inventory-${{ github.run_id }}
+          path: reports/p2_feature_coverage_discovery/summary.json
+          if-no-files-found: ignore
+          retention-days: 30
