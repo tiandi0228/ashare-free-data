@@ -1,7 +1,7 @@
 # P1 external watchdog — deployment is OPTIONAL and NOT ACTIVE yet
 
 This independent Cloudflare Workers Cron Trigger is a free-tier-compatible
-**research-only** dispatch fallback for the existing GitHub P1 workflow.
+**research-only, non-dispatching** audit prototype for the existing GitHub P1 workflow.
 It does not collect data, place orders, certify PIT, or prove completion.
 
 **SAFE DEFAULT (2026-11-12): deployment alone does NOT dispatch.** The Worker
@@ -11,7 +11,13 @@ Cron Trigger and successful deployment do not enable recovery. Do not set
 that flag as part of a routine install: it requires a separate reviewed
 authorization, a time-of-check race assessment and an approved rollback plan.
 The historical GitHub scheduled source can be created >3 hours late, so a
-+75-minute recovery might race with a legitimate future source job.
++75-minute recovery might race with a legitimate future source job. **The
+current Worker is therefore strictly non-dispatching even if the opt-in string
+is set.** It checks the live `main` P1 workflow source read-only; when a native
+schedule exists it blocks. When no native schedule exists it still blocks
+until independently authenticated queued-source drain and a separate cutover
+contract are implemented. No marker PUT or workflow_dispatch exists in this
+revision's reachable Worker path.
 A GitHub API 204 only confirms **a request was accepted**.
 
 ## Why
@@ -23,12 +29,12 @@ Cloudflare's own scheduling/availability uncertainty.
 ## Deployment (requires owner's Cloudflare account and explicit setup)
 1. Use an existing Cloudflare Workers Free account. Check current free
    allowances and permissions; this code uses three Cron Triggers. Workers Free currently allows up to five Cron Triggers **per account**, so check other Workers before deploying.
-2. In GitHub, create a **fine-grained PAT** restricted to only
-   `tiandi0228/ashare-free-data`. Grant **Actions: read/write** and
-   **Contents: read/write** only, since the recovery claim is a create-only
-   GitHub Contents file in the existing research branch.
+2. No production connection or deployment is needed for the current phase.
+   For optional read-only experimentation, scope a fine-grained GitHub token
+   to this repository with **Contents: read** only. Do not grant write
+   permissions for this non-dispatching version.
    Do not use a classic broad `repo` PAT and never commit or paste the token.
-3. From this directory run:
+3. Only after explicitly approving a separate read-only deployment, from this directory run:
    ```sh
    npm install --no-save wrangler@4
    npx wrangler login
