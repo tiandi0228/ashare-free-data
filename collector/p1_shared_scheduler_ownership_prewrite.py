@@ -56,7 +56,7 @@ def evaluate(contract,run,*,contract_blob_sha,contract_bytes_sha256,contract_raw
         return block("RAW_CONTRACT_CONTENT_MISMATCH")
     if hashlib.sha256(contract_raw_bytes).hexdigest()!=contract_bytes_sha256:
         return block("RAW_CONTRACT_SHA256_MISMATCH")
-    git_blob=b"blob "+str(len(contract_raw_bytes)).encode()+b"\\x00"+contract_raw_bytes
+    git_blob=b"blob "+str(len(contract_raw_bytes)).encode()+bytes([0])+contract_raw_bytes
     if hashlib.sha1(git_blob).hexdigest()!=contract_blob_sha:
         return block("RAW_CONTRACT_GIT_BLOB_SHA_MISMATCH")
     if not isinstance(contract,dict) or not isinstance(run,dict):
