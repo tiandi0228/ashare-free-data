@@ -109,13 +109,13 @@ async function jsonResponse(response) {
 // before any future deployment may be considered production-safe.
 export function nativeSchedulePresence(source) {
   if(typeof source !== "string" || source.length > 200000 ||
-     !/^on:\\s*$/m.test(source) ||
-     !/^  workflow_dispatch:\\s*$/m.test(source)) return "UNVERIFIED";
+     !/^on:\s*$/m.test(source) ||
+     !/^  workflow_dispatch:\s*$/m.test(source)) return "UNVERIFIED";
   // Match a complete top-level (two-space indent) YAML schedule key, not
   // a comment, a run-name string or a shell code snippet.
-  if(/^  schedule:\\s*$/m.test(source))return "ENABLED";
+  if(/^  schedule:\s*$/m.test(source))return "ENABLED";
   // Refuse a different workflow event syntax rather than assume no cron.
-  if(/^  ['"]?schedule['"]?\\s*:/m.test(source))return "UNVERIFIED";
+  if(/^  ['"]?schedule['"]?\s*:/m.test(source))return "UNVERIFIED";
   return "ABSENT_IN_READ_MAIN_WORKFLOW";
 }
 async function proveNativeScheduleAbsent(token) {
@@ -128,7 +128,7 @@ async function proveNativeScheduleAbsent(token) {
      document.encoding!=="base64" || typeof document.content!=="string")
      throw new Error("NATIVE_SCHEDULE_SOURCE_NOT_ATTESTED");
   let decoded;
-  try{decoded=atob(document.content.replace(/\\s/g,""));}
+  try{decoded=atob(document.content.replace(/\s/g,""));}
   catch{throw new Error("NATIVE_SCHEDULE_SOURCE_NOT_DECODABLE");}
   const state=nativeSchedulePresence(decoded);
   return {state,sha:document.sha};
