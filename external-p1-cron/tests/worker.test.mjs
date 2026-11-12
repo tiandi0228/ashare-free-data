@@ -14,6 +14,24 @@ const previous=mk(101,"2026-11-05T00:20:00Z");
 const approved=()=>decide({cron,scheduledMs:t,nowMs:now,
   data:history([previous])});
 
+test("default is shadow-only, even when secret is connected; no network or dispatch",async()=>{
+  const oldFetch=globalThis.fetch;
+  let calls=0;
+  try{
+    globalThis.fetch=async()=>{calls++;throw Error("should never be reached");};
+    for(const enabled of [undefined,"false","TRUE","1",true]){
+      const r=await run(cron,t,t,{GITHUB_TOKEN:"connected-secret",
+         P1_EXTERNAL_DISPATCH_ENABLED:enabled});
+      assert.equal(r.dispatch,false);
+      assert.equal(r.reason,"SHADOW_ONLY_DISPATCH_DISABLED");
+      assert.equal(r.networkRequests,0);
+      assert.equal(r.trade_gate,"BLOCKED");
+    }
+    assert.equal((await run(cron,t,t,{})).dispatch,false);
+    assert.equal(calls,0);
+  }finally{globalThis.fetch=oldFetch;}
+});
+
 test("bounded one-shard recovery admits only historical run gaps",()=>{
   const r=approved();
   assert.equal(r.dispatch,true);
@@ -81,7 +99,7 @@ test("404 create-only claim, readback, dispatch 204: accepted not completed",asy
       }
       throw Error("unexpected "+url);
     };
-    const r=await run(cron,t,t,{GITHUB_TOKEN:"test-token"});
+    const r=await run(cron,t,t,{GITHUB_TOKEN:"test-token",P1_EXTERNAL_DISPATCH_ENABLED:"true"});
     assert.equal(r.reason,"REQUEST_ACCEPTED_NOT_COLLECTION_VERIFIED");
     assert.equal(calls.filter(x=>x.url.endsWith("/dispatches")).length,1);
     assert.ok(receipt[0].includes('"trade_gate":"BLOCKED"'));
@@ -96,7 +114,7 @@ test("existing reserved slot forbids dispatch",async()=>{
       if(url.includes("/contents/")) return {status:200};
       posts++;throw Error("should not be reached");
     };
-    const result=await run(cron,t,t,{GITHUB_TOKEN:"test-token"});
+    const result=await run(cron,t,t,{GITHUB_TOKEN:"test-token",P1_EXTERNAL_DISPATCH_ENABLED:"true"});
     assert.equal(result.reason,"SLOT_ALREADY_RESERVED");
     assert.equal(posts,0);
   }finally{globalThis.fetch=oldFetch;}
@@ -113,8 +131,8 @@ test("create race and unreadable marker both fail closed",async()=>{
         if(opts.method==="PUT") return {status:code};
         requests++;throw Error("unexpected dispatch");
       };
-      if(code===500) await assert.rejects(run(cron,t,t,{GITHUB_TOKEN:"t"}));
-      else assert.equal((await run(cron,t,t,{GITHUB_TOKEN:"t"})).dispatch,false);
+      if(code===500) await assert.rejects(run(cron,t,t,{GITHUB_TOKEN:"t",P1_EXTERNAL_DISPATCH_ENABLED:"true"}));
+      else assert.equal((await run(cron,t,t,{GITHUB_TOKEN:"t",P1_EXTERNAL_DISPATCH_ENABLED:"true"})).dispatch,false);
       assert.equal(requests,0);
     }finally{globalThis.fetch=oldFetch;}
   }
