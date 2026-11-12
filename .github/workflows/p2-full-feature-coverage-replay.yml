@@ -32,6 +32,8 @@ on:
       - 'tests/test_p1_native_remote_write_boundary_inventory.py'
       - 'collector/p1_seven_boundary_ownership_transition_rehearsal.py'
       - 'tests/test_p1_seven_boundary_ownership_transition_rehearsal.py'
+      - 'collector/p1_live_dynamic_archive_delta_attestation.py'
+      - 'tests/test_p1_live_dynamic_archive_delta_attestation.py'
       - 'collector/p1_schedule_latency_durable_yield.py'
       - 'tests/test_p1_schedule_latency_durable_yield.py'
       - 'external-p1-cron/src/index.mjs'
@@ -72,6 +74,8 @@ on:
       - 'tests/test_p1_native_remote_write_boundary_inventory.py'
       - 'collector/p1_seven_boundary_ownership_transition_rehearsal.py'
       - 'tests/test_p1_seven_boundary_ownership_transition_rehearsal.py'
+      - 'collector/p1_live_dynamic_archive_delta_attestation.py'
+      - 'tests/test_p1_live_dynamic_archive_delta_attestation.py'
       - 'collector/p1_schedule_latency_durable_yield.py'
       - 'tests/test_p1_schedule_latency_durable_yield.py'
       - 'external-p1-cron/src/index.mjs'
@@ -697,6 +701,57 @@ jobs:
           assert r["trade_gate"]=="BLOCKED"
           assert r["orders"]==[] and r["executable_candidates"]==[]
           print("P1_SEVEN_WRITERS_45_SCENARIOS_315_CHECKS_ZERO_WRITES_PASSED")
+          PY
+      - name: Validate latest live P1 accepted 241 to 242 growth against final Actions SHA and archive status
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p1_live_dynamic_archive_delta_attestation
+          mkdir -p reports/p2_current_full_replay/live_p1_source
+          gh api -X GET repos/tiandi0228/ashare-free-data/actions/runs/43172085079 > reports/p2_current_full_replay/live_p1_source/final_actions_run.json
+          gh api -X GET repos/tiandi0228/ashare-free-data/contents/evidence/schedule_runs/5ba00fbd720fad90/run_43172085079_attempt_1.json -f ref=main > reports/p2_current_full_replay/live_p1_source/source_receipt_envelope.json
+          gh api -X GET repos/tiandi0228/ashare-free-data/contents/evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json -f ref=main > reports/p2_current_full_replay/live_p1_source/checkpoint_envelope.json
+          gh api -X GET repos/tiandi0228/ashare-free-data/contents/5ba00fbd720fad90/archive_status.json -f ref=research-csv-archive > reports/p2_current_full_replay/live_p1_source/archive_envelope.json
+          python - <<'PY'
+          import base64,json
+          from pathlib import Path
+          root=Path("reports/p2_current_full_replay/live_p1_source")
+          for name,path in (
+              ("source_receipt","evidence/schedule_runs/5ba00fbd720fad90/run_43172085079_attempt_1.json"),
+              ("checkpoint","evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json"),
+              ("archive","5ba00fbd720fad90/archive_status.json"),
+          ):
+              envelope=json.loads((root/(name+"_envelope.json")).read_text())
+              assert envelope.get("path")==path and envelope.get("type")=="file"
+              assert envelope.get("encoding")=="base64" and len(envelope["sha"])==40
+              raw=base64.b64decode("".join(envelope["content"].split()),validate=True)
+              data=json.loads(raw)
+              (root/(name+".json")).write_text(json.dumps(data,ensure_ascii=False)+"\n")
+              (root/(name+"_blob_sha.txt")).write_text(envelope["sha"]+"\n")
+          PY
+          python -m collector.p1_live_dynamic_archive_delta_attestation \
+            --run reports/p2_current_full_replay/live_p1_source/final_actions_run.json \
+            --receipt reports/p2_current_full_replay/live_p1_source/source_receipt.json \
+            --checkpoint reports/p2_current_full_replay/live_p1_source/checkpoint.json \
+            --archive reports/p2_current_full_replay/live_p1_source/archive.json \
+            --out reports/p2_current_full_replay/p1_live_actual_growth_dynamic_verified.json
+          rm -rf reports/p2_current_full_replay/live_p1_source
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_current_full_replay/p1_live_actual_growth_dynamic_verified.json").read_text())
+          assert r["live_completed_shards"]>=242
+          assert r["source_run_id"]==43172085079
+          assert r["source_run_before"]==241 and r["source_run_after"]==242
+          assert r["source_run_shard_indices"]==[376]
+          assert r["source_final_success_authenticated"] is True
+          assert r["source_run_sha_receipts_verified"] is True
+          assert r["source_run_increment_already_in_checkpoint"] is True
+          assert r["trade_gate"]=="BLOCKED"
+          assert r["orders"]==[] and r["executable_candidates"]==[]
+          print("P1_LIVE_242_ACTUAL_SOURCE_SHA_AND_FINAL_ACTIONS_ACCEPTED")
           PY
       - name: Preserve read-only full original replay verification
         uses: actions/upload-artifact@v4
