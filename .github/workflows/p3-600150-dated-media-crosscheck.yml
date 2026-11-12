@@ -10,6 +10,9 @@ on:
       - 'tests/test_p3_600150_sse_daily_bulletin_mirror.py'
       - 'collector/p3_600150_sse_daily_artifact_replay.py'
       - 'tests/test_p3_600150_sse_daily_artifact_replay.py'
+      - 'collector/p3_600150_artifact_retention_audit.py'
+      - 'tests/test_p3_600150_artifact_retention_audit.py'
+      - 'evidence/p3_600150_research_artifact_retention_manifest.json'
       - '.github/workflows/p3-600150-dated-media-crosscheck.yml'
   push:
     branches: ['feat/p3-600150-dated-media-crosscheck-20261112']
@@ -22,6 +25,9 @@ on:
       - 'tests/test_p3_600150_sse_daily_bulletin_mirror.py'
       - 'collector/p3_600150_sse_daily_artifact_replay.py'
       - 'tests/test_p3_600150_sse_daily_artifact_replay.py'
+      - 'collector/p3_600150_artifact_retention_audit.py'
+      - 'tests/test_p3_600150_artifact_retention_audit.py'
+      - 'evidence/p3_600150_research_artifact_retention_manifest.json'
       - '.github/workflows/p3-600150-dated-media-crosscheck.yml'
 permissions:
   contents: read
@@ -43,7 +49,8 @@ jobs:
             tests.test_p3_600150_dated_media_crosscheck \
             tests.test_p3_600150_halt_window_exclusion \
             tests.test_p3_600150_sse_daily_bulletin_mirror \
-            tests.test_p3_600150_sse_daily_artifact_replay
+            tests.test_p3_600150_sse_daily_artifact_replay \
+            tests.test_p3_600150_artifact_retention_audit
       - name: Fetch one exact SSE-titled 2025-08-18 source PDF as research artifact
         run: python -m collector.p3_600150_sse_daily_bulletin_mirror --output-dir evidence/p3_sse_daily_research
       - name: Preserve original research PDF and SHA receipt (30 days, NO TRADES)
@@ -66,3 +73,20 @@ jobs:
             --output /tmp/p3_sse_daily_original.zip
           python -m collector.p3_600150_sse_daily_artifact_replay \
             --zip /tmp/p3_sse_daily_original.zip
+      - name: Audit actual GitHub source artifact metadata/retention (read only)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for ID in 13905959428 13908412596; do
+            curl --fail --silent --show-error --location --max-time 30 \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/tiandi0228/ashare-free-data/actions/artifacts/$ID" \
+              --output "/tmp/p3-artifact-$ID.json"
+          done
+          python -m collector.p3_600150_artifact_retention_audit \
+            --manifest evidence/p3_600150_research_artifact_retention_manifest.json \
+            --source-metadata /tmp/p3-artifact-13905959428.json \
+            --daily-metadata /tmp/p3-artifact-13908412596.json \
+            --asof-utc "$(date -u '+%Y-%m-%dT%H:%M:%S+00:00')"
