@@ -26,7 +26,7 @@ class ProbeTests(unittest.TestCase):
         self.assertFalse(x["official_exchange_pit_certified"])
         return x
     def test_exact_nine_pdf_sources_hashed_without_pit_claim(self):
-        opener=Mock(open=Mock(return_value=FakeResponse()))
+        opener=Mock(open=Mock(side_effect=lambda *args,**kwargs: FakeResponse()))
         r=run(self.manifest,opener,self.good)
         self.assertEqual(r["approved_pdf_url_count"],9)
         self.assertEqual(r["downloaded_pdf_with_sha_count"],9)
