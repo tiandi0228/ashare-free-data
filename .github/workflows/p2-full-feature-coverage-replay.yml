@@ -20,6 +20,8 @@ on:
       - 'collector/p4_historical_st_dual_horizon_integration.py'
       - 'tests/test_p4_historical_st_dual_horizon_integration.py'
       - 'evidence/p4_synthetic_dual_horizon_st_adversarial.json'
+      - 'collector/p4_real_archived_ranking_st_join.py'
+      - 'tests/test_p4_real_archived_ranking_st_join.py'
   pull_request:
     paths:
       - '.github/workflows/p2-full-feature-coverage-replay.yml'
@@ -39,6 +41,8 @@ on:
       - 'collector/p4_historical_st_dual_horizon_integration.py'
       - 'tests/test_p4_historical_st_dual_horizon_integration.py'
       - 'evidence/p4_synthetic_dual_horizon_st_adversarial.json'
+      - 'collector/p4_real_archived_ranking_st_join.py'
+      - 'tests/test_p4_real_archived_ranking_st_join.py'
 permissions:
   contents: read
 jobs:
@@ -302,6 +306,48 @@ jobs:
           assert r["production_candidate_pipeline_integrated"] is False
           assert r["historical_PIT_verified"] is False and r["trade_gate"]=="BLOCKED"
           print("P4_HISTORICAL_ST_DUAL_HORIZON_END_TO_END_RESEARCH_BLOCKED")
+          PY
+      - name: Replay real archived P2 candidate ranking page and join official-notice ST research veto
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p4_real_archived_ranking_st_join
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from collector.p2_paged_real_archive import run, PAGE_SHARDS
+          epoch=Path("archived-research/5ba00fbd720fad90")
+          quality=sorted(epoch.glob("shard_*/quality.json"))
+          indices=[int(p.parent.name[6:]) for p in quality]
+          assert len(indices)==241 and 33 in indices
+          selected_page=indices.index(33)//PAGE_SHARDS
+          output=Path("reports/p2_current_full_replay/p2_real_paged_shard_0033.json")
+          r=run("archived-research","evidence/checkpoints",output,
+                page=selected_page,run_number=1)
+          assert r["status"]=="PAGED_REAL_ARCHIVE_RESEARCH_ONLY"
+          assert "shard_0033" in r["selected_shards"]
+          assert r["source_epoch_sha256"]=="5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022"
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P2_REAL_ORIGINAL_RANKING_PAGE",selected_page,
+                r["scoped_verified_issuers"],r["computed_feature_issuers"],
+                r["missing_feature_evidence_issuers"])
+          PY
+          python -m collector.p4_real_archived_ranking_st_join \
+            --page reports/p2_current_full_replay/p2_real_paged_shard_0033.json \
+            --crosswalk reports/p2_current_full_replay/four_issuer_st_research_refs.json \
+            --triage reports/p2_current_full_replay/gap_action_queue.json \
+            --out reports/p2_current_full_replay/p4_real_original_ranked_st_join.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_current_full_replay/p4_real_original_ranked_st_join.json").read_text())
+          assert r["st_600363_source_gap_held_out_of_ranking"] is True
+          assert r["st_600363_dated_veto_verified_in_research"] is True
+          assert r["candidate_approvals"]==0 and r["trade_gate"]=="BLOCKED"
+          assert r["orders"]==[] and r["executable_candidates"]==[]
+          assert r["production_candidate_pipeline_integrated"] is False
+          assert r["descriptive_ranked_original_issuers"]==len(r["real_original_candidate_rows"])
+          print("P4_REAL_SOURCE_RANKING_NONEXECUTABLE_ST_JOIN_PASSED")
           PY
       - name: Preserve read-only full original replay verification
         uses: actions/upload-artifact@v4
