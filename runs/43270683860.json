@@ -1,0 +1,119 @@
+{
+  "audited_issuer_count": 2002,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 2,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sz.002813"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603210"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603211"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 43270312805,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 17668,
+  "research_date_action_links": [
+    {
+      "announcement_id": "1225589222",
+      "claimed_index_publication_utc_unverified": "2026-09-29T16:00:00+00:00",
+      "decision_day": "2026-09-30",
+      "decision_time_available_certified": false,
+      "effective_date_authenticated": false,
+      "event_kind": "halt",
+      "first_publication_authenticated": false,
+      "index_time_screen": "INDEX_TIME_NOT_AFTER_DECISION_CLOSE_UNVERIFIED",
+      "issuer": "sz.002813",
+      "local_textual_direction_candidate": "HALT_START",
+      "original_pdf_sha256": "fcce28bc349aeaacc741148048fbac47fdf10136eaaef4c8b24bd3dfcf03aa4c",
+      "source_clause_excerpt": "证券代码：002813）自2026年9月30日（星期三）开市起停牌",
+      "source_date_text": "2026年9月30日",
+      "source_shard": 372,
+      "vendor_csv_sha256": "cb54189b8e76230ba70324a16fb53c6b316c0ce4c64dd3e2ff066177e82cf08f",
+      "vendor_tradestatus_observed": "0"
+    },
+    {
+      "announcement_id": "1225589222",
+      "claimed_index_publication_utc_unverified": "2026-09-29T16:00:00+00:00",
+      "decision_day": "2026-10-13",
+      "decision_time_available_certified": false,
+      "effective_date_authenticated": false,
+      "event_kind": "halt",
+      "first_publication_authenticated": false,
+      "index_time_screen": "INDEX_TIME_NOT_AFTER_DECISION_CLOSE_UNVERIFIED",
+      "issuer": "sz.002813",
+      "local_textual_direction_candidate": "HALT_START",
+      "original_pdf_sha256": "fcce28bc349aeaacc741148048fbac47fdf10136eaaef4c8b24bd3dfcf03aa4c",
+      "source_clause_excerpt": "证券代码：002813）自2026年9月30日（星期三）开市起停牌",
+      "source_date_text": "2026年9月30日",
+      "source_shard": 372,
+      "vendor_csv_sha256": "cb54189b8e76230ba70324a16fb53c6b316c0ce4c64dd3e2ff066177e82cf08f",
+      "vendor_tradestatus_observed": "0"
+    }
+  ],
+  "run_id": 43270683860,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225604436",
+      "archive_path": "pdf/sh_603210/1225604436/3d34b78e90ea30d3423cbeea5cc7577b20c4a91aaf440eb9e3ec511290915093.pdf",
+      "bytes": 67966,
+      "captured_at_utc": "2026-11-12T17:33:51.274937+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1791993600000,
+      "issuer": "sh.603210",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-15/1225604436.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "3d34b78e90ea30d3423cbeea5cc7577b20c4a91aaf440eb9e3ec511290915093",
+      "title_from_index_unverified": "浙江泰鸿万立科技股份有限公司关于募集资金专户注销完成的公告"
+    },
+    {
+      "announcement_id": "1225550800",
+      "archive_path": "pdf/sh_603211/1225550800/c8173894ddaa48645aff6b5f8517523f339d2fbfda154974df61fc4fb65694eb.pdf",
+      "bytes": 70466,
+      "captured_at_utc": "2026-11-12T17:33:51.748558+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1788796800000,
+      "issuer": "sh.603211",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-08/1225550800.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "c8173894ddaa48645aff6b5f8517523f339d2fbfda154974df61fc4fb65694eb",
+      "title_from_index_unverified": "关于向特定对象发行A股股票申请获得上海证券交易所审核通过的公告"
+    },
+    {
+      "announcement_id": "1225589222",
+      "archive_path": "pdf/sz_002813/1225589222/fcce28bc349aeaacc741148048fbac47fdf10136eaaef4c8b24bd3dfcf03aa4c.pdf",
+      "bytes": 66260,
+      "captured_at_utc": "2026-11-12T17:33:50.897684+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1790697600000,
+      "issuer": "sz.002813",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-30/1225589222.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "fcce28bc349aeaacc741148048fbac47fdf10136eaaef4c8b24bd3dfcf03aa4c",
+      "title_from_index_unverified": "关于控股股东筹划控制权变更暨停牌的公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
