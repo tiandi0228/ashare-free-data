@@ -212,7 +212,9 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest -v tests.test_p3_pdf_content_anchor_replay
-          command -v pdftotext || true
+          # Ubuntu runners may not ship poppler: make text extraction
+          # deterministic using a pinned pure-Python parser instead.
+          python -m pip install --disable-pip-version-check --no-input pypdf==5.9.0
           python -m collector.p3_pdf_content_anchor_replay \
             --manifest evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json \
             --first-probe reports/p2_live_source_replay/p3_nine_pdf_byte_sha256_network_probes.json \
