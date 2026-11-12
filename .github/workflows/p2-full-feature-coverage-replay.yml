@@ -608,9 +608,16 @@ jobs:
           assert "cancel-in-progress: false" in text
           results={}
           for owner in ("NATIVE_ONLY","FREEZE_ALL","EXTERNAL_ONLY"):
+              import hashlib
               c=copy.deepcopy(CONTRACT)
               c["owner"]=owner
-              out=evaluate(c,copy.deepcopy(RUN),contract_blob_sha=CONTRACT_SHA,contract_bytes_sha256=DIGEST,contract_raw_bytes=RAW_CONTRACT)
+              raw=(json.dumps(c,sort_keys=True)+chr(10)).encode()
+              digest=hashlib.sha256(raw).hexdigest()
+              blob=hashlib.sha1(b"blob "+str(len(raw)).encode()+bytes([0])+raw).hexdigest()
+              run=copy.deepcopy(RUN)
+              run["observed_contract_blob_sha"]=blob
+              run["observed_contract_bytes_sha256"]=digest
+              out=evaluate(c,run,contract_blob_sha=blob,contract_bytes_sha256=digest,contract_raw_bytes=raw)
               assert out["collector_write_authorized"] is False
               assert out["external_dispatch_authorized"] is False
               assert out["trade_gate"]=="BLOCKED"
