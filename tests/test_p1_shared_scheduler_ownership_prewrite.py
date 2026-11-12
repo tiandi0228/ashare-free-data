@@ -5,7 +5,6 @@ import json
 import unittest
 from collector.p1_shared_scheduler_ownership_prewrite import evaluate,EPOCH,WORKFLOW
 
-CONTRACT_SHA="a"*40
 CONTRACT={
     "phase":"P1_SHARED_SCHEDULER_OWNERSHIP_V1",
     "source_epoch_sha256":EPOCH,
@@ -17,7 +16,9 @@ CONTRACT={
     "executable_candidates":[],
     "allow_write_before_fence_confirmation":False
 }
-DIGEST=hashlib.sha256((json.dumps(CONTRACT,sort_keys=True)+"\n").encode()).hexdigest()
+RAW_CONTRACT=(json.dumps(CONTRACT,sort_keys=True)+"\n").encode()
+DIGEST=hashlib.sha256(RAW_CONTRACT).hexdigest()
+CONTRACT_SHA=hashlib.sha1(b"blob "+str(len(RAW_CONTRACT)).encode()+b"\x00"+RAW_CONTRACT).hexdigest()
 RUN={
     "run_created_at_utc":"2026-11-12T01:10:00Z",
     "ownership_checked_at_utc":"2026-11-12T01:11:00Z",
@@ -36,10 +37,12 @@ class OwnershipFenceTests(unittest.TestCase):
         self.run=copy.deepcopy(RUN)
         self.sha=CONTRACT_SHA
         self.digest=DIGEST
+        self.raw=RAW_CONTRACT
     def check(self):
         return evaluate(self.contract,self.run,
                         contract_blob_sha=self.sha,
-                        contract_bytes_sha256=self.digest)
+                        contract_bytes_sha256=self.digest,
+                        contract_raw_bytes=self.raw)
     def blocked(self,reason):
         r=self.check()
         self.assertEqual(r["decision"],"BLOCK")
@@ -66,6 +69,17 @@ class OwnershipFenceTests(unittest.TestCase):
     def test_wrong_generation_rejected(self):
         self.run["observed_contract_generation"]=6
         self.blocked("RUN_PROVENANCE_OR_OWNERSHIP_GENERATION_MISMATCH")
+    def test_actual_raw_bytes_mismatch_rejected(self):
+        self.raw=b"{}\\n"
+        self.blocked("RAW_CONTRACT_CONTENT_MISMATCH")
+    def test_actual_raw_sha256_mismatch_rejected(self):
+        self.digest="d"*64
+        self.run["observed_contract_bytes_sha256"]=self.digest
+        self.blocked("RAW_CONTRACT_SHA256_MISMATCH")
+    def test_actual_git_blob_sha_mismatch_rejected(self):
+        self.sha="c"*40
+        self.run["observed_contract_blob_sha"]=self.sha
+        self.blocked("RAW_CONTRACT_GIT_BLOB_SHA_MISMATCH")
     def test_wrong_immutable_contract_sha_rejected(self):
         self.run["observed_contract_blob_sha"]="c"*40
         self.blocked("RUN_PROVENANCE_OR_OWNERSHIP_GENERATION_MISMATCH")
