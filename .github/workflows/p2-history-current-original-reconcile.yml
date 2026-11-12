@@ -4,6 +4,7 @@ on:
     paths:
       - 'collector/p2_history_current_original_reconcile.py'
       - 'tests/test_p2_history_current_original_reconcile.py'
+      - 'evidence/p2_unreplayed_history_for_current_reconcile_20261112.json'
       - '.github/workflows/p2-history-current-original-reconcile.yml'
   push:
     branches:
@@ -28,7 +29,7 @@ jobs:
           set -euo pipefail
           python -m collector.p2_history_current_original_reconcile \
             --checkpoint evidence/p1_checkpoint.json \
-            --history evidence/progress_p2_historical_unreplayed_20261112.json \
+            --history evidence/p2_unreplayed_history_for_current_reconcile_20261112.json \
             --out /tmp/p2-historical-vs-current.json
           python - <<'PY'
           import json
