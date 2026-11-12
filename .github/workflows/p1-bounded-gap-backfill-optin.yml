@@ -5,6 +5,8 @@ on:
       - 'collector/p1_quad_pick.py'
       - 'tests/test_p1_quad_pick.py'
       - 'tests/test_p1_bounded_gap_backfill_optin.py'
+      - 'tests/test_p1_gap_dispatch_wiring.py'
+      - '.github/workflows/p1-fresh-vendor-roster.yml'
       - '.github/workflows/p1-bounded-gap-backfill-optin.yml'
   push:
     branches:
@@ -25,15 +27,16 @@ jobs:
       - name: Existing picker regression and new opt-in gap tests
         run: |
           set -euo pipefail
-          python -m unittest -v tests.test_p1_quad_pick tests.test_p1_bounded_gap_backfill_optin
+          python -m unittest -v tests.test_p1_quad_pick tests.test_p1_bounded_gap_backfill_optin tests.test_p1_gap_dispatch_wiring
       - name: Assert default cron and archive remain unchanged
         run: |
           python - <<'PY'
           from pathlib import Path
           p=Path('.github/workflows/p1-fresh-vendor-roster.yml').read_text()
           assert 'schedule:' in p and '--per-run "$P1_REQUESTED_SHARDS"' in p
-          assert '--gap-window' not in p
+          assert 'GAP_ARGS=(--gap-window "$P1_GAP_WINDOW")' in p
+          assert "github.event_name == 'workflow_dispatch' && inputs.gap_window || ''" in p
           from collector.p1_quad_pick import choose_gap_window
           assert callable(choose_gap_window)
-          print('OPT_IN_ONLY_NO_CRON_CHANGE_NO_NETWORK_NO_WRITES')
+          print('MANUAL_ONLY_NO_CRON_CHANGE_NO_NETWORK_NO_WRITES')
           PY
