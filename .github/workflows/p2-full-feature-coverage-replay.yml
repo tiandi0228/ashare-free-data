@@ -17,6 +17,9 @@ on:
       - 'collector/p4_historical_st_research_veto.py'
       - 'tests/test_p4_historical_st_research_veto.py'
       - 'evidence/p4_st_historical_research_dates_600363.json'
+      - 'collector/p4_historical_st_dual_horizon_integration.py'
+      - 'tests/test_p4_historical_st_dual_horizon_integration.py'
+      - 'evidence/p4_synthetic_dual_horizon_st_adversarial.json'
   pull_request:
     paths:
       - '.github/workflows/p2-full-feature-coverage-replay.yml'
@@ -33,6 +36,9 @@ on:
       - 'collector/p4_historical_st_research_veto.py'
       - 'tests/test_p4_historical_st_research_veto.py'
       - 'evidence/p4_st_historical_research_dates_600363.json'
+      - 'collector/p4_historical_st_dual_horizon_integration.py'
+      - 'tests/test_p4_historical_st_dual_horizon_integration.py'
+      - 'evidence/p4_synthetic_dual_horizon_st_adversarial.json'
 permissions:
   contents: read
 jobs:
@@ -260,6 +266,42 @@ jobs:
           assert found["2026-09-30"]=="VETO_ISSUER_NOTICE_ST_EFFECTIVE"
           assert found["2026-10-20"]=="VETO_ISSUER_NOTICE_ST_EFFECTIVE"
           print("P4_HISTORICAL_ST_RESEARCH_VETO_TEST_PASSED_NOT_PRODUCTION")
+          PY
+      - name: Integrate dual-horizon candidate research with dated ST risk veto (synthetic adversarial)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p4_historical_st_dual_horizon_integration
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("evidence/p4_synthetic_dual_horizon_st_adversarial.json")
+          a=json.loads(p.read_text())
+          assert a["fixture_kind"]=="SYNTHETIC_ADVERSARIAL_UPSTREAM_OPTIMISM_NOT_REAL_PIT"
+          samples=[
+            {"issuer":row["issuer"],"signal_known_after_close_date":a["asof"],
+             "research_only":True,"buy_signal":False}
+            for row in a["symbols"]]
+          assert len(samples)==2
+          root=Path("reports/p2_current_full_replay")
+          (root/"p4_dual_horizon_st_joined_inputs.json").write_text(json.dumps(samples,ensure_ascii=False,indent=2)+"\n")
+          PY
+          python -m collector.p4_historical_st_dual_horizon_integration \
+            --crosswalk reports/p2_current_full_replay/four_issuer_st_research_refs.json \
+            --research evidence/p4_synthetic_dual_horizon_st_adversarial.json \
+            --risk-samples reports/p2_current_full_replay/p4_dual_horizon_st_joined_inputs.json \
+            --out reports/p2_current_full_replay/p4_dual_horizon_st_integration.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_current_full_replay/p4_dual_horizon_st_integration.json").read_text())
+          assert r["assessed_issuers"]==2
+          assert r["dated_issuer_notice_veto_count"]==1
+          assert r["research_labels_safety_blocked"]==2
+          assert r["orders"]==[] and r["executable_candidates"]==[]
+          assert r["production_candidate_pipeline_integrated"] is False
+          assert r["historical_PIT_verified"] is False and r["trade_gate"]=="BLOCKED"
+          print("P4_HISTORICAL_ST_DUAL_HORIZON_END_TO_END_RESEARCH_BLOCKED")
           PY
       - name: Preserve read-only full original replay verification
         uses: actions/upload-artifact@v4
