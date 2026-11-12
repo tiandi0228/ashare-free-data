@@ -53,12 +53,20 @@ test("no preceding visible Actions run means shadow refuses proof",()=>{
  assert.equal(r.rows[0].retrospective_worker_decision,"UNTRUSTED_RUN_COVERAGE");
 });
 test("reject wrong epoch report, missing source, and contradictory timestamps",()=>{
- const [c,d]=fixture();c.active_completed_shards=242;
+ const [c,d]=fixture();c.active_completed_shards=240;
  assert.throws(()=>shadow(c,d));
  const [e,f]=fixture();e.runs[0].created_at_utc="2026-11-11T23:25:38+00:00";
  assert.throws(()=>shadow(e,f));
  const [g,h]=fixture();h.workflow_runs=[];
  assert.throws(()=>shadow(g,h));
+});
+test("same-epoch live 242/400 is allowed but still cannot dispatch",()=>{
+ const [report,data]=fixture();
+ report.active_completed_shards=242;
+ const r=shadow(report,data);
+ assert.equal(r.active_source_shards,242);
+ assert.equal(r.extra_collection_started,false);
+ assert.equal(r.external_dispatch_enabled,false);
 });
 test("unknown cron slot must not be silently accepted",()=>{
  const [a,b]=fixture();
