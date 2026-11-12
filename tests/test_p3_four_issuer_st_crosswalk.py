@@ -61,7 +61,7 @@ class FourIssuerTests(unittest.TestCase):
         self.should_reject()
 
     def test_no_original_csv_drift(self):
-        self.g["research_actions"][1]["original_csv_sha256"]="a"*64
+        next(x for x in self.g["research_actions"] if x["issuer"]=="sh.600363")["original_csv_sha256"]="a"*64
         self.should_reject()
 
     def test_no_issuer_swap(self):
