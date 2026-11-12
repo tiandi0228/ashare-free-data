@@ -18,7 +18,7 @@ CONTRACT={
 }
 RAW_CONTRACT=(json.dumps(CONTRACT,sort_keys=True)+"\n").encode()
 DIGEST=hashlib.sha256(RAW_CONTRACT).hexdigest()
-CONTRACT_SHA=hashlib.sha1(b"blob "+str(len(RAW_CONTRACT)).encode()+b"\x00"+RAW_CONTRACT).hexdigest()
+CONTRACT_SHA=hashlib.sha1(b"blob "+str(len(RAW_CONTRACT)).encode()+bytes([0])+RAW_CONTRACT).hexdigest()
 RUN={
     "run_created_at_utc":"2026-11-12T01:10:00Z",
     "ownership_checked_at_utc":"2026-11-12T01:11:00Z",
@@ -38,6 +38,16 @@ class OwnershipFenceTests(unittest.TestCase):
         self.sha=CONTRACT_SHA
         self.digest=DIGEST
         self.raw=RAW_CONTRACT
+    def sync_contract(self):
+        # Altered policy contracts in tests are independently rehashed as
+        # their own immutable blobs so schema gates are exercised AFTER
+        # provenance; raw-tamper tests deliberately skip this.
+        self.raw=(json.dumps(self.contract,sort_keys=True)+"\\n").encode()
+        self.digest=hashlib.sha256(self.raw).hexdigest()
+        self.sha=hashlib.sha1(
+            b"blob "+str(len(self.raw)).encode()+bytes([0])+self.raw).hexdigest()
+        self.run["observed_contract_blob_sha"]=self.sha
+        self.run["observed_contract_bytes_sha256"]=self.digest
     def check(self):
         return evaluate(self.contract,self.run,
                         contract_blob_sha=self.sha,
@@ -59,9 +69,11 @@ class OwnershipFenceTests(unittest.TestCase):
         self.assertFalse(r["production_installation_verified"])
     def test_frozen_generation_denies_new_and_old_native(self):
         self.contract["owner"]="FREEZE_ALL"
+        self.sync_contract()
         self.blocked("CUTOVER_FREEZE_BLOCKS_ALL_P1_WRITES")
     def test_external_generation_denies_old_native(self):
         self.contract["owner"]="EXTERNAL_ONLY"
+        self.sync_contract()
         self.blocked("EXTERNAL_OWNER_NATIVE_SOURCE_VETO")
     def test_old_run_created_before_new_generation(self):
         self.run["run_created_at_utc"]="2026-11-11T23:50:00Z"
@@ -97,15 +109,19 @@ class OwnershipFenceTests(unittest.TestCase):
         self.blocked("NATIVE_CRON_ENABLED_STATUS_NOT_AUTHENTICATED")
     def test_future_source_contract_denied(self):
         self.contract["effective_from_utc"]="2026-11-13T00:00:00Z"
+        self.sync_contract()
         self.blocked("NONCAUSAL_OWNERSHIP_TIMELINE")
     def test_unknown_owner_denied(self):
         self.contract["owner"]="BOTH"
+        self.sync_contract()
         self.blocked("UNKNOWN_SCHEDULER_OWNER")
     def test_active_stage_cannot_authorize_trades(self):
         self.contract["trade_gate"]="OPEN"
+        self.sync_contract()
         self.blocked("CONTRACT_SOURCE_EPOCH_OR_SAFETY_INVALID")
     def test_wrong_epoch_denied(self):
         self.contract["source_epoch_sha256"]="f"*64
+        self.sync_contract()
         self.blocked("CONTRACT_SOURCE_EPOCH_OR_SAFETY_INVALID")
     def test_bad_utc_timestamp_denied(self):
         self.run["ownership_checked_at_utc"]="2026-11-12T01:11:00+08:00"
