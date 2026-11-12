@@ -1,0 +1,76 @@
+name: StockMate P2-P4 offline acceptance baseline (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/stockmate-offline-progress-baseline.yml'
+  push:
+    branches:
+      - 'ci/stockmate-p2-p4-frozen-baseline-20261112'
+    paths:
+      - '.github/workflows/stockmate-offline-progress-baseline.yml'
+permissions:
+  contents: read
+jobs:
+  frozen-offline-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run frozen 10-criterion software-only acceptance (no external data or trades)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m collector.progress_baseline \
+            --root . --manifest progress_manifest.json \
+            --commit "${GITHUB_SHA}" --run-tests \
+            --out /tmp/stockmate-offline-baseline.json
+          python - <<'PY'
+          import json,pathlib
+          p=pathlib.Path("/tmp/stockmate-offline-baseline.json")
+          r=json.loads(p.read_text())
+          assert r["phase"]=="STOCKMATE_P2_P4_ENGINEERING_BASELINE"
+          assert r["status"]=="OFFLINE_ACCEPTANCE_ONLY" and r["tests_executed"] is True
+          assert set(r["stages"])=={"P2","P3","P4"}
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[] and r["executable_candidates"]==[]
+          assert r["historical_PIT_verified"] is False
+          summary={"phase":"STOCKMATE_FROZEN_OFFLINE_PROGRESS_REPORT","stages":{},
+                   "P0_overall_completion_pct":None,"P1_overall_completion_pct":None,
+                   "P2_P3_P4_overall_completion_pct":None,
+                   "trade_gate":"BLOCKED","historical_PIT_verified":False,
+                   "orders":[],"executable_candidates":[],
+                   "disclaimer":"OFFLINE_CONTRACT_TEST_PERCENTAGES_ARE_NOT_PROJECT_COMPLETION"}
+          for name,stage in r["stages"].items():
+              criteria=stage["criteria"]
+              assert len(criteria)==10 and stage["total_weight"]==100
+              assert sum(x["weight"] for x in criteria)==100
+              assert all(type(x["passed"]) is bool for x in criteria)
+              count=sum(x["passed"] for x in criteria)
+              assert count*10==stage["engineering_acceptance_baseline_pct"]
+              assert stage["data_certification_pct"] is None
+              assert stage["formal_trading_ready"] is False
+              summary["stages"][name]={
+                  "offline_engineering_tests_admitted":count,
+                  "offline_engineering_tests_denominator":10,
+                  "offline_engineering_baseline_pct":count*10,
+                  "overall_project_completion_pct":None,
+                  "missing_criteria":[x["id"] for x in criteria if not x["passed"]],
+              }
+          out=pathlib.Path("reports/stockmate_offline_progress")
+          out.mkdir(parents=True,exist_ok=True)
+          (out/"full_audit.json").write_text(json.dumps(r,ensure_ascii=False,indent=2)+"\n")
+          (out/"summary.json").write_text(json.dumps(summary,ensure_ascii=False,indent=2)+"\n")
+          print(json.dumps(summary,ensure_ascii=False,sort_keys=True))
+          PY
+      - name: Upload read-only engineering acceptance report (not PIT certification)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stockmate-offline-baseline-${{ github.run_id }}
+          path: reports/stockmate_offline_progress/
+          if-no-files-found: warn
+          retention-days: 30
