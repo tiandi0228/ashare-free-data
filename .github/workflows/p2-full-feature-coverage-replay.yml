@@ -11,6 +11,9 @@ on:
       - 'collector/p3_three_issuer_halt_source_crosswalk.py'
       - 'tests/test_p3_three_issuer_halt_source_crosswalk.py'
       - 'evidence/p3_issuer_halt_resume_three_research_refs.json'
+      - 'collector/p3_four_issuer_st_crosswalk.py'
+      - 'tests/test_p3_four_issuer_st_crosswalk.py'
+      - 'evidence/p3_four_issuer_halt_st_research_refs.json'
   pull_request:
     paths:
       - '.github/workflows/p2-full-feature-coverage-replay.yml'
@@ -21,6 +24,9 @@ on:
       - 'collector/p3_three_issuer_halt_source_crosswalk.py'
       - 'tests/test_p3_three_issuer_halt_source_crosswalk.py'
       - 'evidence/p3_issuer_halt_resume_three_research_refs.json'
+      - 'collector/p3_four_issuer_st_crosswalk.py'
+      - 'tests/test_p3_four_issuer_st_crosswalk.py'
+      - 'evidence/p3_four_issuer_halt_st_research_refs.json'
 permissions:
   contents: read
 jobs:
@@ -201,6 +207,29 @@ jobs:
           assert r['source_pdf_originals_byte_sha_verified'] is False
           assert r['trade_gate']=='BLOCKED' and r['orders']==[]
           print('P3_THREE_ISSUER_ANNOUNCEMENT_DATE_CROSSWALK_PASSED_RESEARCH_ONLY')
+          PY
+      - name: Validate four more issuer notices and ST effective-date exclusion
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p3_four_issuer_st_crosswalk
+          python -m collector.p3_four_issuer_st_crosswalk \
+            --triage reports/p2_current_full_replay/gap_action_queue.json \
+            --sources evidence/p3_four_issuer_halt_st_research_refs.json \
+            --out reports/p2_current_full_replay/four_issuer_st_research_refs.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_current_full_replay/four_issuer_st_research_refs.json").read_text())
+          assert r["new_issuer_sources_linked"]==4
+          assert r["total_vendor_suspension_issuer_sources_linked"]==7
+          assert r["remaining_vendor_suspension_issuers_without_source_links"]==8
+          assert r["st_risk_exclusion"]["effective_from"]=="2026-09-30"
+          assert r["st_risk_exclusion"]["non_st_mainboard_screen_allowed_from_effective_day"] is False
+          assert r["feature_shards_promoted"]==0
+          assert r["issuer_source_pdf_bytes_sha_verified"] is False
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P3_FOUR_ISSUER_ST_RESEARCH_REFERENCES_PASS_WITHOUT_TRADING_PIT_PROMOTION")
           PY
       - name: Preserve read-only full original replay verification
         uses: actions/upload-artifact@v4
