@@ -10,6 +10,8 @@ on:
       - 'tests/test_p2_p3_live_gap_reference_queue.py'
       - 'collector/p3_eight_issuer_announcement_crosswalk.py'
       - 'tests/test_p3_eight_issuer_announcement_crosswalk.py'
+      - 'collector/p3_curated_pdf_byte_probe.py'
+      - 'tests/test_p3_curated_pdf_byte_probe.py'
       - 'evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json'
       - 'evidence/p3_issuer_halt_resume_three_research_refs.json'
       - 'evidence/p3_four_issuer_halt_st_research_refs.json'
@@ -22,6 +24,8 @@ on:
       - 'tests/test_p2_p3_live_gap_reference_queue.py'
       - 'collector/p3_eight_issuer_announcement_crosswalk.py'
       - 'tests/test_p3_eight_issuer_announcement_crosswalk.py'
+      - 'collector/p3_curated_pdf_byte_probe.py'
+      - 'tests/test_p3_curated_pdf_byte_probe.py'
       - 'evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json'
       - 'evidence/p3_issuer_halt_resume_three_research_refs.json'
       - 'evidence/p3_four_issuer_halt_st_research_refs.json'
@@ -176,6 +180,28 @@ jobs:
           assert r["historical_PIT_verified"] is False
           assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
           print("P3_EIGHT_DATED_DISCLOSURE_REFERENCES_15_OF_15_NO_PIT_PROMOTION")
+          PY
+      - name: Verify bounded nine-PDF byte hashing with never-authenticate-PIT tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p3_curated_pdf_byte_probe
+          python -m collector.p3_curated_pdf_byte_probe \
+            --manifest evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json \
+            --out reports/p2_live_source_replay/p3_nine_pdf_byte_sha256_network_probes.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_live_source_replay/p3_nine_pdf_byte_sha256_network_probes.json").read_text())
+          assert r["approved_pdf_url_count"]==9
+          assert (r["downloaded_pdf_with_sha_count"]+r["failed_or_unavailable_pdf_count"])==9
+          assert r["source_pdf_original_bytes_authenticity_certified"] is False
+          assert r["pdf_contents_issuer_code_announcement_matching_certified"] is False
+          assert r["full_historical_exchange_PIT_certified"] is False
+          assert r["original_p2_gap_issuers_remaining"]==16
+          assert r["source_feature_shards_promoted"]==0
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P3_NETWORK_PDF_SHA_READ_ONLY_NO_PIT_CERTIFICATION")
           PY
       - name: Preserve independent read-only source SHA report
         if: always()
