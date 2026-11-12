@@ -14,6 +14,9 @@ on:
       - 'collector/p3_four_issuer_st_crosswalk.py'
       - 'tests/test_p3_four_issuer_st_crosswalk.py'
       - 'evidence/p3_four_issuer_halt_st_research_refs.json'
+      - 'collector/p4_historical_st_research_veto.py'
+      - 'tests/test_p4_historical_st_research_veto.py'
+      - 'evidence/p4_st_historical_research_dates_600363.json'
   pull_request:
     paths:
       - '.github/workflows/p2-full-feature-coverage-replay.yml'
@@ -27,6 +30,9 @@ on:
       - 'collector/p3_four_issuer_st_crosswalk.py'
       - 'tests/test_p3_four_issuer_st_crosswalk.py'
       - 'evidence/p3_four_issuer_halt_st_research_refs.json'
+      - 'collector/p4_historical_st_research_veto.py'
+      - 'tests/test_p4_historical_st_research_veto.py'
+      - 'evidence/p4_st_historical_research_dates_600363.json'
 permissions:
   contents: read
 jobs:
@@ -230,6 +236,30 @@ jobs:
           assert r["issuer_source_pdf_bytes_sha_verified"] is False
           assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
           print("P3_FOUR_ISSUER_ST_RESEARCH_REFERENCES_PASS_WITHOUT_TRADING_PIT_PROMOTION")
+          PY
+      - name: Verify 600363 historical halt and ST exclusion in P4 research date replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p4_historical_st_research_veto
+          python -m collector.p4_historical_st_research_veto \
+            --crosswalk reports/p2_current_full_replay/four_issuer_st_research_refs.json \
+            --sample evidence/p4_st_historical_research_dates_600363.json \
+            --out reports/p2_current_full_replay/p4_historical_st_research_veto.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_current_full_replay/p4_historical_st_research_veto.json").read_text())
+          assert r["approved_entries"]==0
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          assert r["historical_PIT_verified"] is False
+          assert r["production_trade_gate_implementation_verified"] is False
+          found={x["signal_known_after_close_date"]:x["candidate_policy_research_state"]
+                 for x in r["research_decisions"] if x["issuer"]=="sh.600363"}
+          assert found["2026-09-29"]=="VETO_ISSUER_NOTICE_SUSPENDED_DAY"
+          assert found["2026-09-30"]=="VETO_ISSUER_NOTICE_ST_EFFECTIVE"
+          assert found["2026-10-20"]=="VETO_ISSUER_NOTICE_ST_EFFECTIVE"
+          print("P4_HISTORICAL_ST_RESEARCH_VETO_TEST_PASSED_NOT_PRODUCTION")
           PY
       - name: Preserve read-only full original replay verification
         uses: actions/upload-artifact@v4
