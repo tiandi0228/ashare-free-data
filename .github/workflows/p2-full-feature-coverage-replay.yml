@@ -1,0 +1,137 @@
+name: P2 full original CSV and feature receipt SHA replay (READ ONLY, NO TRADES)
+on:
+  push:
+    branches: ['ci/stockmate-p2-p4-frozen-baseline-20261112']
+    paths:
+      - '.github/workflows/p2-full-feature-coverage-replay.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/p2-full-feature-coverage-replay.yml'
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code and aligned frozen checkpoint from main
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Checkout the original CSV archive research branch
+        uses: actions/checkout@v4
+        with:
+          ref: research-csv-archive
+          path: archived-research
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Checkout the durable P2 feature receipts and summary branch
+        uses: actions/checkout@v4
+        with:
+          ref: p2-feature-coverage
+          path: durable-p2
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check exact epoch binding, immutable receipt membership and original CSV coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,subprocess
+          from pathlib import Path
+          from collector.p1_checkpoint import validate
+          sha='5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022'
+          epoch=sha[:16]
+          ck=Path('evidence/checkpoints')/(sha+'.json')
+          original=Path('archived-research')/epoch
+          summary=Path('durable-p2/summaries')/(epoch+'.json')
+          receipts=Path('durable-p2/reports')/epoch
+          if not all(p.exists() for p in (ck,original,summary,receipts)):
+              raise SystemExit('aligned original/checkpoint/summary/receipts missing')
+          ledger=json.loads(ck.read_text())
+          validate(ledger)
+          marker=json.loads((original/'archive_status.json').read_text())
+          previous=json.loads(summary.read_text())
+          assert ledger['source_sha256']==sha and ledger['completed_shards']==241
+          assert marker['source_sha256']==sha and marker['trade_gate']=='BLOCKED'
+          assert len(marker['archived_shards'])==241
+          assert previous['phase']=='P2_PERSISTENT_ARCHIVE_FEATURE_COVERAGE'
+          assert previous['source_epoch_sha256']==sha
+          assert previous['observed_archived_shards']==241
+          assert previous['feature_complete_shards']==226
+          assert previous['trade_gate']=='BLOCKED' and previous['historical_PIT_verified'] is False
+          assert previous['orders']==[] and previous['executable_candidates']==[]
+          runs=sorted(receipts.glob('*.json'))
+          assert 0<len(runs)<=1000, 'historical receipts missing/unbounded'
+          for p in runs:
+              json.loads(p.read_text())
+          print('P2_PINNED_BRANCH_INPUTS',json.dumps({
+              'epoch':sha,'checkpoint_completed_shards':241,'original_archived_shards':241,
+              'previous_summary_feature_complete':226,
+              'historical_receipts':len(runs),
+              'original_archive_git_commit':subprocess.check_output(
+                  ['git','-C','archived-research','rev-parse','HEAD'],text=True).strip(),
+              'durable_receipts_git_commit':subprocess.check_output(
+                  ['git','-C','durable-p2','rev-parse','HEAD'],text=True).strip(),
+              'trade_gate':'BLOCKED'},sort_keys=True))
+          PY
+      - name: Replay SHA-verified archived originals and each stored feature receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports/p2_current_full_replay
+          python -m collector.p2_feature_coverage_ledger \
+            --archive-epoch archived-research/5ba00fbd720fad90 \
+            --checkpoint evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json \
+            --receipts durable-p2/reports/5ba00fbd720fad90 \
+            --out reports/p2_current_full_replay/recomputed.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          expected=json.loads(Path('durable-p2/summaries/5ba00fbd720fad90.json').read_text())
+          actual=json.loads(Path('reports/p2_current_full_replay/recomputed.json').read_text())
+          keys=['phase','status','source_epoch_sha256','checkpoint_completed_shards',
+                'checkpoint_total_shards','archived_original_shards','observed_archived_shards',
+                'feature_complete_shards','observed_with_feature_gaps_shards',
+                'unobserved_archived_shards','feature_issuer_count','issuer_evidence_gap_count',
+                'observed_feature_or_gap_issuers','unobserved_issuer_count',
+                'full_archive_evidence_accounted','full_archive_feature_coverage']
+          diff={k:[expected.get(k),actual.get(k)] for k in keys
+                if expected.get(k)!=actual.get(k)}
+          if diff:raise SystemExit('REPLAY_MISMATCH '+json.dumps(diff,ensure_ascii=False))
+          assert actual['feature_complete_shards']==226
+          assert actual['observed_archived_shards']==241
+          assert actual['observed_with_feature_gaps_shards']==15
+          assert actual['unobserved_archived_shards']==0
+          assert actual['trade_gate']=='BLOCKED'
+          assert actual['orders']==[] and actual['executable_candidates']==[]
+          assert actual['historical_PIT_verified'] is False
+          report={
+              'phase':'P2_CURRENT_SAME_EPOCH_ORIGINAL_CSV_FULL_REPLAY',
+              'source_epoch_sha256':actual['source_epoch_sha256'],
+              'feature_complete_shards':226,
+              'observed_archived_shards':241,
+              'feature_coverage_pct':round(100*226/241,2),
+              'feature_gap_shards':15,'issuer_feature_gaps':actual['issuer_evidence_gap_count'],
+              'previous_summary_and_full_original_replay_match':True,
+              'original_CSVs_independently_replayed_in_this_run':True,
+              'historical_PIT_verified':False,
+              'official_market_state_certified':False,
+              'overall_P2_project_completion_pct':None,
+              'trade_gate':'BLOCKED','orders':[],'executable_candidates':[]}
+          Path('reports/p2_current_full_replay/verified.json').write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+'\n')
+          print('P2_FULL_ORIGINAL_REPLAY_SUCCESS',json.dumps(report,ensure_ascii=False))
+          PY
+      - name: Preserve read-only full original replay verification
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p2-full-feature-replay-${{ github.run_id }}
+          path: reports/p2_current_full_replay/
+          if-no-files-found: ignore
+          retention-days: 30
