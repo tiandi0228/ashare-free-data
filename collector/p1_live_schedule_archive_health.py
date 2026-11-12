@@ -13,6 +13,21 @@ from collector.p1_checkpoint import validate as validate_ledger
 PHASE="P1_LIVE_RUN_HEALTH_VS_PINNED_ACTIVE_ARCHIVE_COVERAGE"
 TARGET=".github/workflows/p1-fresh-vendor-roster.yml"
 WORKFLOW_NAME="P1 fresh Baostock mainboard roster observation (NO TRADES)"
+CRONS=frozenset({
+    "10 1 * * 1-5","10 3 * * 1-5","10 5 * * 1-5",
+    "10 9 * * 1-5","10 13 * * 1-5","10 15 * * 1-5",
+    "10 0 * * 1-5","10 7 * * 1-5","10 11 * * 1-5",
+    "10 17 * * 0-4","10 11 * * 6,0","10 1 * * 6,0",
+    "10 7 * * 6,0","10 15 * * 6,0",
+})
+def title_matches_event(run):
+    event=run.get("event")
+    title=run.get("name")
+    if title==WORKFLOW_NAME:
+        return True
+    if event=="schedule":
+        return isinstance(title,str) and any(title==f"P1 origin {cron} [NO TRADES]" for cron in CRONS)
+    return title==f"P1 origin {event} [NO TRADES]" if event in ("push","workflow_dispatch") else False
 EPOCH="5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022"
 FINAL={"success","failure","cancelled","timed_out","neutral","skipped","action_required","stale"}
 ACTIVE={"queued","in_progress","requested","waiting","pending"}
@@ -49,7 +64,7 @@ def audit(lock,checkpoint,archive,runs,now_utc):
         if type(run_id) is not int or run_id<=0 or run_id in seen:
             raise ValueError("duplicate/invalid run ID")
         seen.add(run_id)
-        if (x.get("path")!=TARGET or x.get("name")!=WORKFLOW_NAME
+        if (x.get("path")!=TARGET or not title_matches_event(x)
             or x.get("head_branch")!="main"
             or x.get("event") not in ("schedule","workflow_dispatch","push")):
             raise ValueError("wrong P1 workflow or execution context: "+json.dumps({"id":run_id,"name":x.get("name"),"path":x.get("path"),"branch":x.get("head_branch"),"event":x.get("event")},ensure_ascii=False))
