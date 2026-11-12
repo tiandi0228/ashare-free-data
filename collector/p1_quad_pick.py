@@ -23,6 +23,22 @@ def choose(plan,prior=None,start_index=0,limit=4):
     order=list(range(start_index,count))+list(range(start_index))
     return [i for i in order if i not in done][:limit]
 
+def choose_gap_window(plan, prior, window, limit=1):
+    """Opt-in deterministic missing-only backfill; default cron is untouched."""
+    verify_prior_for_selection(plan, prior)
+    if type(window) is not str or re.fullmatch(r"[0-9]{1,4}:[0-9]{1,4}", window) is None:
+        raise ValueError("invalid bounded gap window; expected start:end")
+    lo, hi = map(int, window.split(":"))
+    count = plan["shard_count"]
+    if not (0 <= lo <= hi < count) or type(limit) is not int or limit not in (1, 2):
+        raise ValueError("invalid gap bounds or shard limit")
+    done = {item["index"] for item in prior["completed"]} if prior is not None else set()
+    pending = [i for i in range(lo, hi + 1) if i not in done]
+    if not pending:
+        raise ValueError("requested gap window contains no missing shards")
+    return pending[:limit]
+
+
 def rotating_start(shard_count,run_number=None):
     if type(shard_count) is not int or shard_count<1:
         raise ValueError('invalid shard count')
@@ -100,6 +116,7 @@ def main():
     p=argparse.ArgumentParser()
     p.add_argument("--plan",required=True);p.add_argument("--prior")
     p.add_argument("--output-file",required=True)
+    p.add_argument("--gap-window",help="Opt-in inclusive pending-only start:end window; does not change cron defaults")
     p.add_argument("--per-run",type=int,default=1,choices=(1,2))
     a=p.parse_args()
     plan=json.loads(Path(a.plan).read_text())
@@ -110,7 +127,8 @@ def main():
     # Reliability pilot: one independently verifiable shard per workflow run.
     # A later failed shard must not prevent a successful first shard from
     # reaching the archive audit and durable checkpoint steps.
-    selected=choose(plan,prior,start_index=start)[:a.per_run]
+    selected=(choose_gap_window(plan,prior,a.gap_window,a.per_run) if a.gap_window is not None
+              else choose(plan,prior,start_index=start)[:a.per_run])
     if not selected:raise ValueError("all P1 shards completed: do not recapture")
     with Path(a.output_file).open("a") as out:
         for n,key in enumerate(("first","second","third","fourth")):
@@ -118,5 +136,6 @@ def main():
             print(f"has_{key}={str(present).lower()}",file=out)
             print(f"{key}={selected[n]:04d}" if present else f"{key}=NONE",file=out)
     print(json.dumps({"phase":"P1_FOUR_SHARD_PICK","selected":selected,
-                      "source_sha256":plan["source_sha256"],"trade_gate":"BLOCKED"}))
+                      "source_sha256":plan["source_sha256"],"gap_window_opt_in":a.gap_window,
+                      "source_archive_written":False,"trade_gate":"BLOCKED"}))
 if __name__=="__main__":main()
