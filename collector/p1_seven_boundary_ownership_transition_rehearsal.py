@@ -51,7 +51,7 @@ def run_for(item,digest,blob,*,event="schedule",created=RUN_CREATED,checked=RUN_
 def rehearse(source,*,transition_after=None,mode="FREEZE_ALL",attack=None):
     inventory=audit(source)
     ordered=list(REQUIRED)
-    if not isinstance(transition_after,(int,type(None))) or (
+    if type(transition_after) not in (int,type(None)) or (
         transition_after is not None and not 0<=transition_after<=len(ordered)
     ):
         raise ValueError("invalid transition boundary")
