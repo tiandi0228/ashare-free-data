@@ -3,6 +3,7 @@ import base64
 import copy
 import json
 import unittest
+from unittest.mock import patch
 
 from collector.p1_gap_remote_preflight import decode_contents, read_remote, verify
 from tests.test_p1_prewrite_gap_guard import fixtures
@@ -10,6 +11,9 @@ from tests.test_p1_prewrite_gap_guard import fixtures
 
 class RemoteGapPreflightTests(unittest.TestCase):
     def setUp(self):
+        self.unpack_mock = patch('collector.p1_gap_remote_preflight.unpack')
+        self.unpack_mock.start()
+        self.addCleanup(self.unpack_mock.stop)
         self.plan, self.prior, self.archive = fixtures()
         self.selection = {"phase": "P1_BOUNDED_PILOT_SELECTION",
                           "requested_shards": 2, "selected_shards": [5, 6],
@@ -18,6 +22,8 @@ class RemoteGapPreflightTests(unittest.TestCase):
     def mock_fetch(self, repo, path, ref):
         self.assertEqual(repo, "tiandi0228/ashare-free-data")
         if ref == "main":
+            if path == "evidence/p1_active_roster.json":
+                return {"source_sha256":"a"*64}
             self.assertEqual(path, "evidence/checkpoints/"+"a"*64+".json")
             return self.prior
         self.assertEqual(ref, "research-csv-archive")
@@ -27,6 +33,7 @@ class RemoteGapPreflightTests(unittest.TestCase):
     def test_two_remote_rechecks_success_but_no_write_permission(self):
         result = verify(self.plan,self.selection,self.prior,"tiandi0228/ashare-free-data",self.mock_fetch)
         self.assertEqual(result["selected_missing_shards"],[5,6])
+        self.assertTrue(result["remote_active_original_roster_checked_in_this_attempt"])
         self.assertTrue(result["remote_main_checkpoint_read_in_this_attempt"])
         self.assertTrue(result["remote_archive_status_read_in_this_attempt"])
         self.assertFalse(result["permission_to_write_or_trade"])
@@ -40,16 +47,30 @@ class RemoteGapPreflightTests(unittest.TestCase):
         newer["completed_shards"]=6;newer["completed_issuers"]=6
         newer["pending_shards"]=[6];newer["next_shard"]=6
         def fetch(repo,path,ref):
-            return newer if ref=="main" else self.archive
+            return newer if path.startswith('evidence/checkpoints/') else self.mock_fetch(repo,path,ref)
         with self.assertRaises(ValueError):
             verify(self.plan,self.selection,self.prior,"tiandi0228/ashare-free-data",fetch)
 
     def test_changed_archive_index_rejected(self):
         archived=copy.deepcopy(self.archive);archived["archived_shards"].append(5)
         def fetch(repo,path,ref):
-            return self.prior if ref=="main" else archived
+            return archived if ref=="research-csv-archive" else self.mock_fetch(repo,path,ref)
         with self.assertRaises(ValueError):
             verify(self.plan,self.selection,self.prior,"tiandi0228/ashare-free-data",fetch)
+
+    def test_active_roster_switched_epoch_denied(self):
+        def fetch(repo,path,ref):
+            if path == "evidence/p1_active_roster.json":
+                return {"source_sha256":"b"*64}
+            return self.mock_fetch(repo,path,ref)
+        with self.assertRaisesRegex(ValueError, "active roster epoch changed"):
+            verify(self.plan,self.selection,self.prior,"tiandi0228/ashare-free-data",fetch)
+
+    def test_malformed_active_original_denied(self):
+        # An invalid pin must not be promoted to a usable current roster.
+        with patch("collector.p1_gap_remote_preflight.unpack",side_effect=ValueError("bad original")):
+            with self.assertRaisesRegex(ValueError, "bad original"):
+                verify(self.plan,self.selection,self.prior,"tiandi0228/ashare-free-data",self.mock_fetch)
 
     def test_unapproved_selection_fails_before_network(self):
         self.selection["trade_gate"]="OPEN"
