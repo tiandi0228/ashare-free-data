@@ -1,0 +1,32 @@
+[
+  {
+    "issuer": "sh.600363",
+    "signal_known_after_close_date": "2026-09-28",
+    "research_only": true,
+    "buy_signal": false
+  },
+  {
+    "issuer": "sh.600363",
+    "signal_known_after_close_date": "2026-09-29",
+    "research_only": true,
+    "buy_signal": false
+  },
+  {
+    "issuer": "sh.600363",
+    "signal_known_after_close_date": "2026-09-30",
+    "research_only": true,
+    "buy_signal": false
+  },
+  {
+    "issuer": "sh.600363",
+    "signal_known_after_close_date": "2026-10-20",
+    "research_only": true,
+    "buy_signal": false
+  },
+  {
+    "issuer": "sh.600825",
+    "signal_known_after_close_date": "2026-09-30",
+    "research_only": true,
+    "buy_signal": false
+  }
+]
