@@ -23,7 +23,7 @@ jobs:
           node-version: '22'
       - name: Reject future-data and double dispatch via offline mocked GitHub API
         working-directory: external-p1-cron
-        run: node --test tests/worker.test.mjs
+        run: node --test tests/worker.test.mjs tests/shadow-audit.test.mjs tests/native-drain-audit.test.mjs
       - name: Reject credentials accidentally committed to external worker config
         run: |
           if grep -R -E '(github_pat_|ghp_|GITHUB_TOKEN *= *"[^" ]+)' external-p1-cron --include='*.mjs' --include='*.toml' ; then
