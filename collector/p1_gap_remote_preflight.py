@@ -12,6 +12,7 @@ import subprocess
 from pathlib import Path
 
 from collector.p1_checkpoint import epoch_path
+from collector.p1_roster_lock import unpack
 from collector.p1_prewrite_gap_guard import check
 
 REPO = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\Z")
@@ -57,6 +58,12 @@ def verify(plan, selected_receipt, prior_ledger, repo, fetch=read_remote):
         len(selected) > selected_receipt["requested_shards"]):
         raise ValueError("pilot selection count mismatch")
     source = plan.get("source_sha256")
+    # The active source can advance independently of an older epoch checkpoint.
+    # Verify the authentic original CSV lock again at each sensitive boundary.
+    active_roster = fetch(repo, "evidence/p1_active_roster.json", "main")
+    unpack(active_roster)
+    if active_roster["source_sha256"] != source:
+        raise ValueError("P1 active roster epoch changed since shard planning")
     current = fetch(repo, epoch_path(source), "main")
     archived = fetch(repo, f"{source[:16]}/archive_status.json", "research-csv-archive")
     result = check(plan, selected, prior_ledger, current, archived)
@@ -64,6 +71,7 @@ def verify(plan, selected_receipt, prior_ledger, repo, fetch=read_remote):
         raise ValueError("preflight unexpectedly authorized writes")
     return {
         **result,
+        "remote_active_original_roster_checked_in_this_attempt": True,
         "remote_main_checkpoint_read_in_this_attempt": True,
         "remote_archive_status_read_in_this_attempt": True,
         "authorized_action": "RESEARCH_READ_ONLY_PREFLIGHT",
