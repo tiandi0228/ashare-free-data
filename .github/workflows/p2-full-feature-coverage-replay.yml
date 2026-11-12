@@ -4,9 +4,13 @@ on:
     branches: ['ci/stockmate-p2-p4-frozen-baseline-20261112']
     paths:
       - '.github/workflows/p2-full-feature-coverage-replay.yml'
+      - 'collector/p2_original_gap_action_triage.py'
+      - 'tests/test_p2_original_gap_action_triage.py'
   pull_request:
     paths:
       - '.github/workflows/p2-full-feature-coverage-replay.yml'
+      - 'collector/p2_original_gap_action_triage.py'
+      - 'tests/test_p2_original_gap_action_triage.py'
 permissions:
   contents: read
 jobs:
@@ -126,6 +130,27 @@ jobs:
           Path('reports/p2_current_full_replay/verified.json').write_text(
               json.dumps(report,ensure_ascii=False,indent=2)+'\n')
           print('P2_FULL_ORIGINAL_REPLAY_SUCCESS',json.dumps(report,ensure_ascii=False))
+          PY
+      - name: Reclassify all 16 source-verified gaps without modifying original data
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p2_original_gap_action_triage
+          python -m collector.p2_original_gap_action_triage \
+            --replayed-summary reports/p2_current_full_replay/recomputed.json \
+            --out reports/p2_current_full_replay/gap_action_queue.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_current_full_replay/gap_action_queue.json").read_text())
+          assert r["reason_counts"]=={
+              "VENDOR_SUSPENDED_IN_LAST_21_ROWS":15,
+              "FEWER_THAN_21_VENDOR_ROWS_ASOF":1}
+          assert r["unresolved_shards"]==15 and r["unresolved_issuers"]==16
+          assert r["complete_feature_shards_promoted_by_triage"]==0
+          assert r["history_backfill_authorized"] is False
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P2_GAP_ORIGINAL_TRIAGE_REPLAY_PASSED_NO_REPAIR")
           PY
       - name: Preserve read-only full original replay verification
         uses: actions/upload-artifact@v4
