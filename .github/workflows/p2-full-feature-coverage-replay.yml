@@ -140,9 +140,19 @@ jobs:
           validate(ledger)
           marker=json.loads((original/'archive_status.json').read_text())
           previous=json.loads(summary.read_text())
-          assert ledger['source_sha256']==sha and ledger['completed_shards']==241
-          assert marker['source_sha256']==sha and marker['trade_gate']=='BLOCKED'
-          assert len(marker['archived_shards'])==241
+          if ledger['source_sha256']!=sha or ledger['completed_shards']!=241:
+              raise AssertionError('FROZEN_LEDGER_MISMATCH '+json.dumps({
+                  'actual_source_sha':ledger['source_sha256'],
+                  'actual_count':ledger['completed_shards'],
+                  'git_head':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              }))
+          if marker['source_sha256']!=sha or marker['trade_gate']!='BLOCKED' or len(marker['archived_shards'])!=241:
+              raise AssertionError('FROZEN_ARCHIVE_MISMATCH '+json.dumps({
+                  'actual_source_sha':marker['source_sha256'],
+                  'actual_count':len(marker['archived_shards']),
+                  'actual_trade_gate':marker['trade_gate'],
+                  'git_head':subprocess.check_output(['git','-C','archived-research','rev-parse','HEAD'],text=True).strip(),
+              }))
           assert previous['phase']=='P2_PERSISTENT_ARCHIVE_FEATURE_COVERAGE'
           assert previous['source_epoch_sha256']==sha
           assert previous['observed_archived_shards']==241
