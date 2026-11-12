@@ -14,6 +14,8 @@ on:
       - 'tests/test_p3_curated_pdf_byte_probe.py'
       - 'collector/p3_pdf_content_anchor_replay.py'
       - 'tests/test_p3_pdf_content_anchor_replay.py'
+      - 'collector/p3_historical_st_temporal_veto.py'
+      - 'tests/test_p3_historical_st_temporal_veto.py'
       - 'evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json'
       - 'evidence/p3_issuer_halt_resume_three_research_refs.json'
       - 'evidence/p3_four_issuer_halt_st_research_refs.json'
@@ -30,6 +32,8 @@ on:
       - 'tests/test_p3_curated_pdf_byte_probe.py'
       - 'collector/p3_pdf_content_anchor_replay.py'
       - 'tests/test_p3_pdf_content_anchor_replay.py'
+      - 'collector/p3_historical_st_temporal_veto.py'
+      - 'tests/test_p3_historical_st_temporal_veto.py'
       - 'evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json'
       - 'evidence/p3_issuer_halt_resume_three_research_refs.json'
       - 'evidence/p3_four_issuer_halt_st_research_refs.json'
@@ -234,6 +238,24 @@ jobs:
           assert len(r["rows"])==3
           print("P3_PDF_TEXT_SHA_SECOND_READ_RESEARCH_ONLY",
             r["same_bytes_twice_count"],r["issuer_notice_and_term_text_observed_count"])
+          PY
+      - name: Check historical ST removal as-of rule and disputed GAC halt days
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p3_historical_st_temporal_veto
+          python -m collector.p3_historical_st_temporal_veto \
+            --manifest evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json \
+            --out reports/p2_live_source_replay/p3_historical_ST_and_conflicting_halt_day_veto.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_live_source_replay/p3_historical_ST_and_conflicting_halt_day_veto.json").read_text())
+          assert len(r["historical_examples"])==6
+          assert all(x["decision"]=="BLOCK" for x in r["historical_examples"])
+          assert all(x["historical_PIT_verified"] is False for x in r["historical_examples"])
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P3_NO_HISTORICAL_ST_LOOKAHEAD_AND_NO_DISPUTED_DATE_PROMOTION")
           PY
       - name: Preserve independent read-only source SHA report
         if: always()
