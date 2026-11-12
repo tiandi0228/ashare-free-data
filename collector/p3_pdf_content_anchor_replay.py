@@ -99,6 +99,10 @@ def evaluate(manifest,first,opener,download=download_same_pdf,pdf_to_text=extrac
     for r in receipts:
         if not isinstance(r,dict) or r.get("url") in indexed:
             raise ValueError("duplicate or malformed first read")
+        safe_pdf_url(r.get("url"))
+        if (r.get("fetch_outcome")=="PDF_BYTES_HASHED_NOT_CONTENT_AUTHENTICATED"
+            and not re.fullmatch(r"[0-9a-f]{64}",r.get("sha256") or "")):
+            raise ValueError("first-read PDF bytes have no trusted sha256")
         indexed[r.get("url")]=r
     cases={c["issuer"]:c for c in manifest.get("cases",[])}
     if not set(PRIORITY).issubset(cases):
@@ -130,6 +134,9 @@ def evaluate(manifest,first,opener,download=download_same_pdf,pdf_to_text=extrac
             and isinstance(old.get("sha256"),str)):
             evidence=download(url,old["sha256"],opener,pdf_to_text)
             raw=evidence.pop("normalized_text",None)
+            if (evidence.get("same_bytes_as_first_read") is True and
+                evidence.get("second_read_sha256")!=old["sha256"]):
+                raise ValueError("second-read evidence claims equality with different SHA256")
             result.update(evidence)
             if evidence["same_bytes_as_first_read"] and evidence["text_extracted"] and raw:
                 code=issuer.split(".")[1]
