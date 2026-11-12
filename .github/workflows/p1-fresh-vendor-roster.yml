@@ -525,7 +525,13 @@ jobs:
           FOURTH=()
           if [[ "${{ steps.pick.outputs.has_third }}" == "true" ]]; then THIRD=(--third "${{ steps.pick.outputs.third }}"); fi
           if [[ "${{ steps.pick.outputs.has_fourth }}" == "true" ]]; then FOURTH=(--fourth "${{ steps.pick.outputs.fourth }}"); fi
-          python -m collector.p1_csv_archive --plan evidence/shards/plan.json --first "${{ steps.pick.outputs.first }}" "${SECOND[@]}" "${THIRD[@]}" "${FOURTH[@]}"
+          GAP_PREPUSH=()
+          if [[ -n "$P1_GAP_WINDOW" ]]; then
+            [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]] || { echo "manual gap pre-push requires dispatch" >&2; exit 1; }
+            test -s evidence/p1_gap_remote_before_archive.json
+            GAP_PREPUSH=(--manual-gap-prior evidence/prior_ledger.json --manual-gap-selection evidence/pilot_selection.json)
+          fi
+          python -m collector.p1_csv_archive --plan evidence/shards/plan.json --first "${{ steps.pick.outputs.first }}" "${SECOND[@]}" "${THIRD[@]}" "${FOURTH[@]}" "${GAP_PREPUSH[@]}"
       - name: Audit permanent research CSV archive against recovered ledger
         id: diag_6
         run: |
