@@ -110,10 +110,11 @@ jobs:
           path: archived-research
           persist-credentials: false
           fetch-depth: 1
-      - name: Checkout the durable P2 feature receipts and summary branch
+      - name: Checkout immutable 226-of-241 historical feature receipts for P2 baseline
         uses: actions/checkout@v4
         with:
-          ref: p2-feature-coverage
+          # Live P2 branch already advanced to 227/242; fixed evidence stays pinned.
+          ref: e395852a1355a253bdd5e741a6f1937d1c11eb11
           path: durable-p2
           persist-credentials: false
           fetch-depth: 1
