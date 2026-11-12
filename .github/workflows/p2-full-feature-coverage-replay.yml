@@ -26,6 +26,8 @@ on:
       - 'tests/test_p0_p1_active_epoch_progress_reconciliation.py'
       - 'collector/p1_live_schedule_archive_health.py'
       - 'tests/test_p1_live_schedule_archive_health.py'
+      - 'collector/p1_shared_scheduler_ownership_prewrite.py'
+      - 'tests/test_p1_shared_scheduler_ownership_prewrite.py'
       - 'collector/p1_schedule_latency_durable_yield.py'
       - 'tests/test_p1_schedule_latency_durable_yield.py'
       - 'external-p1-cron/src/index.mjs'
@@ -60,6 +62,8 @@ on:
       - 'tests/test_p0_p1_active_epoch_progress_reconciliation.py'
       - 'collector/p1_live_schedule_archive_health.py'
       - 'tests/test_p1_live_schedule_archive_health.py'
+      - 'collector/p1_shared_scheduler_ownership_prewrite.py'
+      - 'tests/test_p1_shared_scheduler_ownership_prewrite.py'
       - 'collector/p1_schedule_latency_durable_yield.py'
       - 'tests/test_p1_schedule_latency_durable_yield.py'
       - 'external-p1-cron/src/index.mjs'
@@ -587,6 +591,48 @@ jobs:
           assert r['old_source_run_drain_certified'] is False
           assert r['trade_gate']=='BLOCKED' and r['orders']==[]
           print('P1_NATIVE_SOURCE_DRAIN_HARD_BLOCK_VERIFIED')
+          PY
+      - name: Stage source-side scheduler ownership generation fence with no actual writer changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p1_shared_scheduler_ownership_prewrite
+          python - <<'PY'
+          import copy,json
+          from pathlib import Path
+          from collector.p1_shared_scheduler_ownership_prewrite import evaluate
+          from tests.test_p1_shared_scheduler_ownership_prewrite import CONTRACT,RUN,DIGEST,CONTRACT_SHA
+          text=Path("reports/p2_current_full_replay/p1_native_workflow_main.yml").read_text()
+          assert "\n  schedule:\n" in text
+          assert "p1-fresh-mainboard-roster-serial" in text
+          assert "cancel-in-progress: false" in text
+          results={}
+          for owner in ("NATIVE_ONLY","FREEZE_ALL","EXTERNAL_ONLY"):
+              c=copy.deepcopy(CONTRACT)
+              c["owner"]=owner
+              out=evaluate(c,copy.deepcopy(RUN),contract_blob_sha=CONTRACT_SHA,contract_bytes_sha256=DIGEST)
+              assert out["collector_write_authorized"] is False
+              assert out["external_dispatch_authorized"] is False
+              assert out["trade_gate"]=="BLOCKED"
+              assert out["orders"]==[] and out["executable_candidates"]==[]
+              results[owner]={"decision":out["decision"],"reason":out["reason"]}
+          assert results["FREEZE_ALL"]["reason"]=="CUTOVER_FREEZE_BLOCKS_ALL_P1_WRITES"
+          assert results["EXTERNAL_ONLY"]["reason"]=="EXTERNAL_OWNER_NATIVE_SOURCE_VETO"
+          out={
+              "phase":"P1_STAGED_SHARED_OWNERSHIP_WITH_ACTUAL_MAIN_NATIVE_SOURCE_CHECK",
+              "native_schedule_enabled_from_main_source":True,
+              "native_concurrency_serial":True,
+              "main_native_workflow_blob_sha":Path("reports/p2_current_full_replay/p1_native_workflow_main_blobsha.txt").read_text().strip(),
+              "synthetic_ownership_generation_cases":results,
+              "production_writer_fence_integrated":False,
+              "actual_ownership_contract_deployed":False,
+              "external_dispatch_authorized":False,
+              "collector_write_authorized":False,
+              "trade_gate":"BLOCKED","orders":[],"executable_candidates":[],
+          }
+          Path("reports/p2_current_full_replay/p1_prewrite_ownership_generation_staging.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n")
+          print("P1_PREWRITE_OWNERSHIP_STAGED_FREEZE_AND_EXTERNAL_VETO_PASSED")
           PY
       - name: Preserve read-only full original replay verification
         uses: actions/upload-artifact@v4
