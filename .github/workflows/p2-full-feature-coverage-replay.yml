@@ -404,6 +404,36 @@ jobs:
             --archive archived-research/5ba00fbd720fad90/archive_status.json \
             --runs reports/p2_current_full_replay/p1_live_schedule_runs_raw.json \
             --out reports/p2_current_full_replay/p1_real_schedule_health_summary.json
+          # Verify one *known, concluded* source run with its immutable run-specific
+          # receipt and the current same-epoch permanent checkpoint. This
+          # proves a +1 historical shard transition, not fresh future progress.
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from collector.p1_schedule_final_attestation import verify
+          root=Path("reports/p2_current_full_replay")
+          run_id=43119727655
+          api=json.loads((root/"p1_live_schedule_runs_raw.json").read_text())
+          selected=[r for r in api["workflow_runs"] if r.get("id")==run_id]
+          if len(selected)!=1:
+              raise SystemExit("historical run unavailable in bounded live Actions page")
+          source=json.loads(Path("evidence/schedule_runs/5ba00fbd720fad90/run_43119727655_attempt_1.json").read_text())
+          checkpoint=json.loads(Path("evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json").read_text())
+          result=verify(selected[0],source,checkpoint)
+          assert result["state"]=="SCHEDULE_SUCCESS_AND_DURABLE_SHARDS_CONFIRMED"
+          assert result["final_actions_success_authenticated"] is True
+          assert result["durable_same_epoch_shard_inclusion_verified"] is True
+          assert result["per_shard_manifest_and_receipt_sha_matched"] is True
+          assert result["source_checkpoint_before"]==240
+          assert result["source_checkpoint_after"]==241
+          assert result["accepted_source_shard_indices"]==[377]
+          assert result["durably_accepted_shards_in_source_run"]==1
+          assert result["durable_checkpoint_current"]==241
+          assert result["trade_gate"]=="BLOCKED" and result["orders"]==[]
+          (root/"p1_last_known_completed_run_shard_delta_attested.json").write_text(
+              json.dumps(result,ensure_ascii=False,indent=2)+"\n")
+          print("P1_LAST_KNOWN_RUN_FINAL_VERIFIED_240_TO_241_ONE_SHARD")
+          PY
           rm -f reports/p2_current_full_replay/p1_live_schedule_runs_raw.json
           python - <<'PY'
           import json
