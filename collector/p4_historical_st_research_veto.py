@@ -14,7 +14,7 @@ from pathlib import Path
 PHASE="P4_HISTORICAL_ST_HALT_RESEARCH_CANDIDATE_VETO"
 CROSSWALK="P2_P3_FOUR_ISSUER_HALT_ST_CROSSWALK_RESEARCH_ONLY"
 EPOCH="5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022"
-MAINBOARD=re.compile(r"(?:sh\\.60[0-5]|sz\\.00[0-3])[0-9]{3}\\Z")
+MAINBOARD=re.compile(r"(?:sh\.60[0-5]|sz\.00[0-3])[0-9]{3}\Z")
 
 def classify(crosswalk, observations):
     if (not isinstance(crosswalk,dict)
