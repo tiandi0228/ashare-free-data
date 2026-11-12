@@ -34,7 +34,7 @@ def _time(value):
     if parsed.strftime(ISO_TIME)!=value:raise ValueError("noncanonical timestamp")
     return parsed
 
-def evaluate(contract,run,*,contract_blob_sha,contract_bytes_sha256):
+def evaluate(contract,run,*,contract_blob_sha,contract_bytes_sha256,contract_raw_bytes):
     def block(reason):
         return {"phase":PHASE,"decision":"BLOCK","reason":reason,
             "source_epoch_sha256":EPOCH,
@@ -46,6 +46,19 @@ def evaluate(contract,run,*,contract_blob_sha,contract_bytes_sha256):
         or not isinstance(contract_bytes_sha256,str)
         or not SHA256.fullmatch(contract_bytes_sha256)):
         return block("CONTRACT_IMMUTABLE_BYTES_IDENTITY_MISSING")
+    if not isinstance(contract_raw_bytes,bytes):
+        return block("RAW_CONTRACT_BYTES_UNAVAILABLE")
+    try:
+        decoded=json.loads(contract_raw_bytes)
+    except (ValueError,UnicodeError):
+        return block("RAW_CONTRACT_BYTES_UNPARSABLE")
+    if decoded!=contract:
+        return block("RAW_CONTRACT_CONTENT_MISMATCH")
+    if hashlib.sha256(contract_raw_bytes).hexdigest()!=contract_bytes_sha256:
+        return block("RAW_CONTRACT_SHA256_MISMATCH")
+    git_blob=b"blob "+str(len(contract_raw_bytes)).encode()+b"\\x00"+contract_raw_bytes
+    if hashlib.sha1(git_blob).hexdigest()!=contract_blob_sha:
+        return block("RAW_CONTRACT_GIT_BLOB_SHA_MISMATCH")
     if not isinstance(contract,dict) or not isinstance(run,dict):
         return block("MALFORMED_CONTRACT_OR_RUN")
     if (contract.get("phase")!="P1_SHARED_SCHEDULER_OWNERSHIP_V1"
@@ -120,7 +133,8 @@ def main():
     result=evaluate(json.loads(a.contract.read_text()),
                     json.loads(a.run.read_text()),
                     contract_blob_sha=a.contract_blob_sha,
-                    contract_bytes_sha256=a.contract_bytes_sha256)
+                    contract_bytes_sha256=a.contract_bytes_sha256,
+                    contract_raw_bytes=a.contract.read_bytes())
     a.out.parent.mkdir(parents=True,exist_ok=True)
     a.out.write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
     print(json.dumps({"phase":result["phase"],"decision":result["decision"],
