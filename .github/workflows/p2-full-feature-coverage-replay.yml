@@ -28,6 +28,8 @@ on:
       - 'tests/test_p1_live_schedule_archive_health.py'
       - 'collector/p1_shared_scheduler_ownership_prewrite.py'
       - 'tests/test_p1_shared_scheduler_ownership_prewrite.py'
+      - 'collector/p1_native_remote_write_boundary_inventory.py'
+      - 'tests/test_p1_native_remote_write_boundary_inventory.py'
       - 'collector/p1_schedule_latency_durable_yield.py'
       - 'tests/test_p1_schedule_latency_durable_yield.py'
       - 'external-p1-cron/src/index.mjs'
@@ -64,6 +66,8 @@ on:
       - 'tests/test_p1_live_schedule_archive_health.py'
       - 'collector/p1_shared_scheduler_ownership_prewrite.py'
       - 'tests/test_p1_shared_scheduler_ownership_prewrite.py'
+      - 'collector/p1_native_remote_write_boundary_inventory.py'
+      - 'tests/test_p1_native_remote_write_boundary_inventory.py'
       - 'collector/p1_schedule_latency_durable_yield.py'
       - 'tests/test_p1_schedule_latency_durable_yield.py'
       - 'external-p1-cron/src/index.mjs'
@@ -640,6 +644,31 @@ jobs:
           Path("reports/p2_current_full_replay/p1_prewrite_ownership_generation_staging.json").write_text(
               json.dumps(out,ensure_ascii=False,indent=2)+"\n")
           print("P1_PREWRITE_OWNERSHIP_STAGED_FREEZE_AND_EXTERNAL_VETO_PASSED")
+          PY
+      - name: Audit all seven real P1 remote write boundaries and create nondeployable owner-fence preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p1_native_remote_write_boundary_inventory
+          python -m collector.p1_native_remote_write_boundary_inventory \
+            --source reports/p2_current_full_replay/p1_native_workflow_main.yml \
+            --out reports/p2_current_full_replay/p1_actual_main_remote_write_boundary_inventory.json \
+            --preview reports/p2_current_full_replay/p1_nonexecutable_ownership_fence_review_preview.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path("reports/p2_current_full_replay")
+          inventory=json.loads((root/"p1_actual_main_remote_write_boundary_inventory.json").read_text())
+          preview=json.loads((root/"p1_nonexecutable_ownership_fence_review_preview.json").read_text())
+          assert inventory["known_remote_writer_count"]==7
+          assert preview["reviewed_boundaries"]==7
+          assert preview["source_gate_installed"] is False
+          assert preview["staged_gate_is_deliberately_unconditional_block"] is True
+          assert preview["preview_text"].count("exit 77")==7
+          assert inventory["production_gate_deployed"] is False
+          assert inventory["production_cutover_authorized"] is False
+          assert inventory["trade_gate"]=="BLOCKED" and inventory["orders"]==[]
+          print("P1_SEVEN_REAL_REMOTE_WRITE_BOUNDARIES_SHADOW_FENCE_PASSED")
           PY
       - name: Preserve read-only full original replay verification
         uses: actions/upload-artifact@v4
