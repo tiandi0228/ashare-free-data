@@ -6,11 +6,19 @@ on:
       - '.github/workflows/p2-live-full-original-replay.yml'
       - 'collector/p2_live_full_source_feature_reconciliation.py'
       - 'tests/test_p2_live_full_source_feature_reconciliation.py'
+      - 'collector/p2_p3_live_gap_reference_queue.py'
+      - 'tests/test_p2_p3_live_gap_reference_queue.py'
+      - 'evidence/p3_issuer_halt_resume_three_research_refs.json'
+      - 'evidence/p3_four_issuer_halt_st_research_refs.json'
   pull_request:
     paths:
       - '.github/workflows/p2-live-full-original-replay.yml'
       - 'collector/p2_live_full_source_feature_reconciliation.py'
       - 'tests/test_p2_live_full_source_feature_reconciliation.py'
+      - 'collector/p2_p3_live_gap_reference_queue.py'
+      - 'tests/test_p2_p3_live_gap_reference_queue.py'
+      - 'evidence/p3_issuer_halt_resume_three_research_refs.json'
+      - 'evidence/p3_four_issuer_halt_st_research_refs.json'
 permissions:
   contents: read
 jobs:
@@ -106,6 +114,36 @@ jobs:
           assert r["trading_authorized"] is False
           assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
           print("P2_LIVE_SOURCE_COVERAGE_RECONCILED_READ_ONLY",r["P2_feature_complete_shards"],r["P2_observed_original_shards"])
+          PY
+      - name: Join SHA-replayed live 15 gap shards to seven curated P3 references; list eight still missing
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p2_p3_live_gap_reference_queue
+          python -m collector.p2_p3_live_gap_reference_queue \
+            --live live-receipts/summaries/5ba00fbd720fad90.json \
+            --replayed reports/p2_live_source_replay/live_recomputed.json \
+            --three evidence/p3_issuer_halt_resume_three_research_refs.json \
+            --four evidence/p3_four_issuer_halt_st_research_refs.json \
+            --out reports/p2_live_source_replay/live_p2_p3_gap_and_unlinked_issuer_queue.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("reports/p2_live_source_replay/live_p2_p3_gap_and_unlinked_issuer_queue.json")
+          r=json.loads(p.read_text())
+          assert r["current_same_epoch_original_shards"]>=242
+          assert r["current_replayed_feature_complete_shards"]>=227
+          assert r["unresolved_gap_issuers"]==16
+          assert r["vendor_suspension_issuer_count"]==15
+          assert r["curated_p3_reference_issuer_count"]==7
+          assert r["missing_p3_halt_source_reference_issuer_count"]==8
+          assert len(r["missing_official_halt_source_research_queue"])==8
+          assert len(r["short_ipo_history_research_queue"])==1
+          assert r["issuer_pdf_bytes_sha_verified"] is False
+          assert r["feature_shards_promoted"]==0
+          assert r["historical_PIT_verified"] is False
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P2_P3_LIVE_7_REFERENCED_8_MISSING_1_SHORT_IPO_GAPS_VERIFIED")
           PY
       - name: Preserve independent read-only source SHA report
         if: always()
