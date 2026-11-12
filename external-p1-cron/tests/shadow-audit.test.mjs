@@ -53,14 +53,6 @@ test("no preceding visible Actions run means shadow refuses proof",()=>{
  assert.equal(r.rows[0].retrospective_worker_decision,"UNTRUSTED_RUN_COVERAGE");
 });
 test("reject wrong epoch report, missing source, and contradictory timestamps",()=>{
- const [a,b]=fixture();
- for(const bad of [
-   ()=>{a.active_completed_shards=242;},
-   ()=>{a.trade_gate="OPEN";},
-   ()=>{a.runs[0].inferred_nominal_slot_utc="2026-11-11T17:11:00+00:00";},
- ]){
-   const [x,y]=fixture();bad.call(null,x,y);
- }
  const [c,d]=fixture();c.active_completed_shards=242;
  assert.throws(()=>shadow(c,d));
  const [e,f]=fixture();e.runs[0].created_at_utc="2026-11-11T23:25:38+00:00";
