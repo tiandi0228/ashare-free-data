@@ -21,7 +21,7 @@ class ActiveEpochReconciliationTests(unittest.TestCase):
     def setUpClass(cls):
         cls.base=fixture()
     def setUp(self):
-        self.args=copy.deepcopy(self.base)
+        self.args=list(copy.deepcopy(self.base))
     def must_reject(self,pass_offline=True):
         with self.assertRaises(ValueError):
             reconcile(*self.args,pass_offline)
