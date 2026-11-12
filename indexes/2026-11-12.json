@@ -169,9 +169,93 @@
           "status": "RESEARCH_ONLY"
         }
       }
+    },
+    {
+      "asof": "2026-11-12T21:57:16.386776+08:00",
+      "path": "snapshots/2026-11-12/run_43232201053_attempt_1.json",
+      "run_attempt": 1,
+      "run_id": 43232201053,
+      "sha256": "9c28bf834804eb25032ff4b9c5dc639a3f541901b5edaef3375228222cfd0d5a",
+      "symbols": {
+        "002249": {
+          "error_stage": null,
+          "error_type": null,
+          "executable_quote": false,
+          "minute_rows_today": 241,
+          "observed_price_cny": 7.66,
+          "quality_issues": [
+            "OUTSIDE_CONTINUOUS_TRADING",
+            "QUOTE_STALE_OR_FUTURE",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-12T16:14:54+08:00",
+          "reported_volume_ratio": 1.2,
+          "status": "RESEARCH_ONLY"
+        },
+        "002696": {
+          "error_stage": null,
+          "error_type": null,
+          "executable_quote": false,
+          "minute_rows_today": 241,
+          "observed_price_cny": 11.68,
+          "quality_issues": [
+            "OUTSIDE_CONTINUOUS_TRADING",
+            "QUOTE_STALE_OR_FUTURE",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-12T16:14:45+08:00",
+          "reported_volume_ratio": 1.32,
+          "status": "RESEARCH_ONLY"
+        },
+        "300015": {
+          "error_stage": null,
+          "error_type": null,
+          "executable_quote": false,
+          "minute_rows_today": 241,
+          "observed_price_cny": 8.65,
+          "quality_issues": [
+            "OUTSIDE_CONTINUOUS_TRADING",
+            "QUOTE_STALE_OR_FUTURE",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-12T16:14:15+08:00",
+          "reported_volume_ratio": 0.87,
+          "status": "RESEARCH_ONLY"
+        },
+        "300896": {
+          "error_stage": null,
+          "error_type": null,
+          "executable_quote": false,
+          "minute_rows_today": 241,
+          "observed_price_cny": 85.96,
+          "quality_issues": [
+            "OUTSIDE_CONTINUOUS_TRADING",
+            "QUOTE_STALE_OR_FUTURE",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-12T16:14:39+08:00",
+          "reported_volume_ratio": 0.96,
+          "status": "RESEARCH_ONLY"
+        },
+        "301015": {
+          "error_stage": null,
+          "error_type": null,
+          "executable_quote": false,
+          "minute_rows_today": 241,
+          "observed_price_cny": 27.0,
+          "quality_issues": [
+            "OUTSIDE_CONTINUOUS_TRADING",
+            "QUOTE_STALE_OR_FUTURE",
+            "MINUTE_COMPLETENESS_UNVERIFIED"
+          ],
+          "quote_time": "2026-11-12T16:14:21+08:00",
+          "reported_volume_ratio": 2.06,
+          "status": "RESEARCH_ONLY"
+        }
+      }
     }
   ],
-  "entries_count": 2,
+  "entries_count": 3,
   "executable_candidates": [],
   "historical_PIT_verified": false,
   "index_is_not_live_quote": true,
@@ -252,7 +336,7 @@
       "status": "RESEARCH_ONLY"
     }
   },
-  "latest_run": 43204513824,
+  "latest_run": 43232201053,
   "minute_data_complete_certified": false,
   "orders": [],
   "phase": "P1_READ_ONLY_DAILY_SNAPSHOT_INDEX",
@@ -269,13 +353,13 @@
       "observed_sample_success_ratio": 1.0,
       "provider_sla_certified": false,
       "quality_issue_samples": {
-        "MINUTE_COMPLETENESS_UNVERIFIED": 2,
-        "OUTSIDE_CONTINUOUS_TRADING": 2,
-        "QUOTE_STALE_OR_FUTURE": 2
+        "MINUTE_COMPLETENESS_UNVERIFIED": 3,
+        "OUTSIDE_CONTINUOUS_TRADING": 3,
+        "QUOTE_STALE_OR_FUTURE": 3
       },
       "recoveries_after_failed_sample": 0,
-      "research_snapshots": 2,
-      "samples": 2,
+      "research_snapshots": 3,
+      "samples": 3,
       "source_failures": 0,
       "trade_gate": "BLOCKED"
     },
@@ -290,13 +374,13 @@
       "observed_sample_success_ratio": 1.0,
       "provider_sla_certified": false,
       "quality_issue_samples": {
-        "MINUTE_COMPLETENESS_UNVERIFIED": 2,
-        "OUTSIDE_CONTINUOUS_TRADING": 2,
-        "QUOTE_STALE_OR_FUTURE": 2
+        "MINUTE_COMPLETENESS_UNVERIFIED": 3,
+        "OUTSIDE_CONTINUOUS_TRADING": 3,
+        "QUOTE_STALE_OR_FUTURE": 3
       },
       "recoveries_after_failed_sample": 0,
-      "research_snapshots": 2,
-      "samples": 2,
+      "research_snapshots": 3,
+      "samples": 3,
       "source_failures": 0,
       "trade_gate": "BLOCKED"
     },
@@ -311,13 +395,13 @@
       "observed_sample_success_ratio": 1.0,
       "provider_sla_certified": false,
       "quality_issue_samples": {
-        "MINUTE_COMPLETENESS_UNVERIFIED": 2,
-        "OUTSIDE_CONTINUOUS_TRADING": 2,
-        "QUOTE_STALE_OR_FUTURE": 2
+        "MINUTE_COMPLETENESS_UNVERIFIED": 3,
+        "OUTSIDE_CONTINUOUS_TRADING": 3,
+        "QUOTE_STALE_OR_FUTURE": 3
       },
       "recoveries_after_failed_sample": 0,
-      "research_snapshots": 2,
-      "samples": 2,
+      "research_snapshots": 3,
+      "samples": 3,
       "source_failures": 0,
       "trade_gate": "BLOCKED"
     },
@@ -332,13 +416,13 @@
       "observed_sample_success_ratio": 1.0,
       "provider_sla_certified": false,
       "quality_issue_samples": {
-        "MINUTE_COMPLETENESS_UNVERIFIED": 2,
-        "OUTSIDE_CONTINUOUS_TRADING": 2,
-        "QUOTE_STALE_OR_FUTURE": 2
+        "MINUTE_COMPLETENESS_UNVERIFIED": 3,
+        "OUTSIDE_CONTINUOUS_TRADING": 3,
+        "QUOTE_STALE_OR_FUTURE": 3
       },
       "recoveries_after_failed_sample": 0,
-      "research_snapshots": 2,
-      "samples": 2,
+      "research_snapshots": 3,
+      "samples": 3,
       "source_failures": 0,
       "trade_gate": "BLOCKED"
     },
@@ -353,13 +437,13 @@
       "observed_sample_success_ratio": 1.0,
       "provider_sla_certified": false,
       "quality_issue_samples": {
-        "MINUTE_COMPLETENESS_UNVERIFIED": 2,
-        "OUTSIDE_CONTINUOUS_TRADING": 2,
-        "QUOTE_STALE_OR_FUTURE": 2
+        "MINUTE_COMPLETENESS_UNVERIFIED": 3,
+        "OUTSIDE_CONTINUOUS_TRADING": 3,
+        "QUOTE_STALE_OR_FUTURE": 3
       },
       "recoveries_after_failed_sample": 0,
-      "research_snapshots": 2,
-      "samples": 2,
+      "research_snapshots": 3,
+      "samples": 3,
       "source_failures": 0,
       "trade_gate": "BLOCKED"
     }
