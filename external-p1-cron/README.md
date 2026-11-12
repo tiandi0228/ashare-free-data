@@ -3,6 +3,15 @@
 This independent Cloudflare Workers Cron Trigger is a free-tier-compatible
 **research-only** dispatch fallback for the existing GitHub P1 workflow.
 It does not collect data, place orders, certify PIT, or prove completion.
+
+**SAFE DEFAULT (2026-11-12): deployment alone does NOT dispatch.** The Worker
+now refuses even to query GitHub without the exact explicit environment
+variable `P1_EXTERNAL_DISPATCH_ENABLED=true` (string `"true"`). A token,
+Cron Trigger and successful deployment do not enable recovery. Do not set
+that flag as part of a routine install: it requires a separate reviewed
+authorization, a time-of-check race assessment and an approved rollback plan.
+The historical GitHub scheduled source can be created >3 hours late, so a
++75-minute recovery might race with a legitimate future source job.
 A GitHub API 204 only confirms **a request was accepted**.
 
 ## Why
@@ -56,7 +65,7 @@ Cloudflare's own scheduling/availability uncertainty.
 - Historical PIT certification remains false and `trade_gate=BLOCKED`.
 
 ## Tests
-Run `node --test tests/worker.test.mjs` from this directory.
+Run `node --test tests/worker.test.mjs tests/shadow-audit.test.mjs` from this directory. The shadow audit executes the real admission logic against reconstructed snapshots without fetching credentials or dispatching.
 Node's native test runner requires no paid dependencies.
 
 **Important:** This repository change only provides runnable source and a CI
