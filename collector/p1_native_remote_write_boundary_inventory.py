@@ -59,7 +59,7 @@ def audit(source,require_gate=False):
             x,y,category=REQUIRED[name]
             if (x not in body or y not in body
                 or (category=="gap_repair_csv_archive" and
-                    not re.search(r"(?<![A-Za-z0-9_])archive\\(plan,",body))):
+                    not re.search(r"(?<![A-Za-z0-9_])archive\(plan,",body))):
                 raise ValueError("known remote writer changed without renewed audit: "+name)
             # Pin is one special step; claim checkpoint is a conditional
             # writer inside an otherwise local orphan-recovery step.
