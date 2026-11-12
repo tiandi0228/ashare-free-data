@@ -8,6 +8,7 @@ A mismatch or missing pdftotext is UNKNOWN rather than source certification.
 """
 import argparse
 import hashlib
+import io
 import json
 import re
 import shutil
@@ -73,13 +74,22 @@ def download_same_pdf(url, expected_sha, opener, pdf_to_text):
         return out
 
 def extractor(raw):
-    if not shutil.which("pdftotext"):
+    if shutil.which("pdftotext"):
+        done=subprocess.run(
+            ["pdftotext","-layout","-enc","UTF-8","-","-"],
+            input=raw,capture_output=True,timeout=10,check=False)
+        if done.returncode==0 and done.stdout.strip():
+            return done.stdout.decode("utf-8","replace")[:200000]
+    # GitHub Ubuntu Actions images are not guaranteed to include poppler.
+    # Use a pinned, text-only Python PDF parser for a deterministic fallback.
+    try:
+        from pypdf import PdfReader
+        reader=PdfReader(io.BytesIO(raw),strict=False)
+        if not 1<=len(reader.pages)<=30:return ""
+        return "".join((page.extract_text() or "")[:20000]
+                       for page in reader.pages)[:200000]
+    except (ImportError,ValueError,RuntimeError,IndexError,TypeError,KeyError):
         return ""
-    done=subprocess.run(
-        ["pdftotext","-layout","-enc","UTF-8","-","-"],
-        input=raw,capture_output=True,timeout=10,check=False)
-    if done.returncode!=0:return ""
-    return done.stdout.decode("utf-8","replace")
 
 def evaluate(manifest,first,opener,download=download_same_pdf,pdf_to_text=extractor):
     if (manifest.get("phase")!="P3_EIGHT_PREVIOUSLY_UNLINKED_ISSUER_DATED_DISCLOSURE_RESEARCH_V1"
@@ -189,5 +199,13 @@ def main():
     print("P3_PDF_ANCHOR_SECOND_READ",json.dumps({
         "double_sha_matched":result["same_bytes_twice_count"],
         "priority_issuer_text_anchors":result["issuer_notice_and_term_text_observed_count"],
-        "PIT_certified":False,"trade_gate":"BLOCKED"}))
+        "PIT_certified":False,"trade_gate":"BLOCKED",
+        "per_issuer":[{"issuer":row["issuer"],"status":row.get("status"),
+            "text_extracted":row.get("text_extracted",False),
+            "issuer_code":row["document_code_anchor"],
+            "notice_number":row["announcement_number_anchor"],
+            "company_name":row["company_anchor"],
+            "risk_term":row["critical_term_anchor"]}
+            for row in result["rows"]]
+    },ensure_ascii=False))
 if __name__=="__main__":main()
