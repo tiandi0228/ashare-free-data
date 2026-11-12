@@ -1,0 +1,43 @@
+name: StockMate P1-P2 non-additive ledger audit (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/progress_nonadditive_audit.py'
+      - 'tests/test_progress_nonadditive_audit.py'
+      - 'evidence/progress_p2_historical_unreplayed_20261112.json'
+      - '.github/workflows/progress-nonadditive-audit.yml'
+  push:
+    branches:
+      - 'audit/progress-ledger-nonadditive-20261112'
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline regression
+        run: python -m unittest -v tests.test_progress_nonadditive_audit
+      - name: Read-only evidence audit
+        run: |
+          python -m collector.progress_nonadditive_audit \
+            --checkpoint evidence/p1_checkpoint.json \
+            --history evidence/progress_p2_historical_unreplayed_20261112.json \
+            --output /tmp/p1_p2_nonadditive.json
+          python - <<'PY'
+          import json
+          r=json.load(open('/tmp/p1_p2_nonadditive.json'))
+          assert r['P1']['research_roster_checkpoint'] == 44
+          assert r['P1']['denominator'] == 400
+          assert r['combined_shards'] is None
+          assert r['overall_completion_pct'] is None
+          assert r['trade_gate'] == 'BLOCKED'
+          assert r['orders'] == [] and r['executable_candidates'] == []
+          assert r['historical_PIT_verified'] is False
+          PY
