@@ -8,6 +8,9 @@ on:
       - 'tests/test_p2_original_gap_action_triage.py'
       - 'collector/p2_601091_sse_ipo_crosswalk.py'
       - 'tests/test_p2_601091_sse_ipo_crosswalk.py'
+      - 'collector/p3_three_issuer_halt_source_crosswalk.py'
+      - 'tests/test_p3_three_issuer_halt_source_crosswalk.py'
+      - 'evidence/p3_issuer_halt_resume_three_research_refs.json'
   pull_request:
     paths:
       - '.github/workflows/p2-full-feature-coverage-replay.yml'
@@ -15,6 +18,9 @@ on:
       - 'tests/test_p2_original_gap_action_triage.py'
       - 'collector/p2_601091_sse_ipo_crosswalk.py'
       - 'tests/test_p2_601091_sse_ipo_crosswalk.py'
+      - 'collector/p3_three_issuer_halt_source_crosswalk.py'
+      - 'tests/test_p3_three_issuer_halt_source_crosswalk.py'
+      - 'evidence/p3_issuer_halt_resume_three_research_refs.json'
 permissions:
   contents: read
 jobs:
@@ -176,6 +182,25 @@ jobs:
           assert r["feature_complete_shards_promoted"]==0
           assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
           print("P2_IPO_SOURCE_DATE_MATCHED_NO_PHANTOM_BARS")
+          PY
+      - name: Crosswalk three issuer-authored halt/resume dates against source SHA original P2 gaps
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p3_three_issuer_halt_source_crosswalk
+          python -m collector.p3_three_issuer_halt_source_crosswalk \
+            --triage reports/p2_current_full_replay/gap_action_queue.json \
+            --sources evidence/p3_issuer_halt_resume_three_research_refs.json \
+            --out reports/p2_current_full_replay/three_issuer_halt_sources.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('reports/p2_current_full_replay/three_issuer_halt_sources.json').read_text())
+          assert r['reviewed_issuer_count']==3 and r['remaining_all_gap_issuer_count']==16
+          assert r['feature_shards_promoted']==0 and r['research_feature_complete_shards']==226
+          assert r['source_pdf_originals_byte_sha_verified'] is False
+          assert r['trade_gate']=='BLOCKED' and r['orders']==[]
+          print('P3_THREE_ISSUER_ANNOUNCEMENT_DATE_CROSSWALK_PASSED_RESEARCH_ONLY')
           PY
       - name: Preserve read-only full original replay verification
         uses: actions/upload-artifact@v4
