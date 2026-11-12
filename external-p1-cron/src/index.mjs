@@ -105,6 +105,38 @@ function base64(str) {
   // GitHub Contents API requires base64. ASCII-only audit marker by design.
   return btoa(str);
 }
+// Mutually exclusive scheduler ownership: an enabled native P1 schedule
+// renders an independent dispatch unsafe even after manual Worker opt-in.
+// This verifies the *live main-branch source*, not a cached documentation
+// claim. Source read errors and unfamiliar workflow syntax fail closed.
+// A separate cutover grace and source-run drain would still be required
+// before any future deployment may be considered production-safe.
+export function nativeSchedulePresence(source) {
+  if(typeof source !== "string" || source.length > 200000 ||
+     !/^on:\\s*$/m.test(source) ||
+     !/^  workflow_dispatch:\\s*$/m.test(source)) return "UNVERIFIED";
+  // Match a complete top-level (two-space indent) YAML schedule key, not
+  // a comment, a run-name string or a shell code snippet.
+  if(/^  schedule:\\s*$/m.test(source))return "ENABLED";
+  // Refuse a different workflow event syntax rather than assume no cron.
+  if(/^  ['"]?schedule['"]?\\s*:/m.test(source))return "UNVERIFIED";
+  return "ABSENT_IN_READ_MAIN_WORKFLOW";
+}
+async function proveNativeScheduleAbsent(token) {
+  const resp=await api(token,
+    "contents/.github/workflows/" + TARGET + "?ref=main");
+  const document=await jsonResponse(resp);
+  if(document.path!==".github/workflows/"+TARGET ||
+     document.type!=="file" || typeof document.sha!=="string" ||
+     !/^[0-9a-f]{40}$/.test(document.sha) ||
+     document.encoding!=="base64" || typeof document.content!=="string")
+     throw new Error("NATIVE_SCHEDULE_SOURCE_NOT_ATTESTED");
+  let decoded;
+  try{decoded=atob(document.content.replace(/\\s/g,""));}
+  catch{throw new Error("NATIVE_SCHEDULE_SOURCE_NOT_DECODABLE");}
+  const state=nativeSchedulePresence(decoded);
+  return {state,sha:document.sha};
+}
 export async function run(cron, scheduledMs, nowMs, env) {
   // Deployment alone MUST NOT turn an optional scheduler into a writer.
   // Even a valid GitHub token and scheduled cron leave the Worker inert until
@@ -116,6 +148,18 @@ export async function run(cron, scheduledMs, nowMs, env) {
       trade_gate:"BLOCKED"};
   if (typeof env.GITHUB_TOKEN !== "string" || !env.GITHUB_TOKEN)
     throw new Error("MISSING_GITHUB_TOKEN");
+  const native=await proveNativeScheduleAbsent(env.GITHUB_TOKEN);
+  if(native.state!=="ABSENT_IN_READ_MAIN_WORKFLOW")
+    return {dispatch:false,reason:"NATIVE_SCHEDULE_ACTIVE_OR_UNVERIFIED",
+      nativeScheduleState:native.state,sourceWorkflowSha:native.sha,
+      noMarkerWritten:true,trade_gate:"BLOCKED"};
+  // Removing a native cron can leave previously queued scheduled jobs.
+  // The current external fallback still does NOT have an independently
+  // certified drain/wait period, so fail closed rather than risk a late
+  // original runner overlapping the recovery request.
+  return {dispatch:false,reason:"SOURCE_RUN_DRAIN_NOT_AUTHENTICATED",
+    nativeScheduleState:native.state,sourceWorkflowSha:native.sha,
+    noMarkerWritten:true,trade_gate:"BLOCKED"};
   // Fetch the exact P1 workflow runs, not the generic repository run stream.
   const runs = await jsonResponse(await api(env.GITHUB_TOKEN,
     "actions/workflows/" + TARGET + "/runs?per_page=100"));
