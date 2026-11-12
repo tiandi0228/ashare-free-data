@@ -6,11 +6,15 @@ on:
       - '.github/workflows/p2-full-feature-coverage-replay.yml'
       - 'collector/p2_original_gap_action_triage.py'
       - 'tests/test_p2_original_gap_action_triage.py'
+      - 'collector/p2_601091_sse_ipo_crosswalk.py'
+      - 'tests/test_p2_601091_sse_ipo_crosswalk.py'
   pull_request:
     paths:
       - '.github/workflows/p2-full-feature-coverage-replay.yml'
       - 'collector/p2_original_gap_action_triage.py'
       - 'tests/test_p2_original_gap_action_triage.py'
+      - 'collector/p2_601091_sse_ipo_crosswalk.py'
+      - 'tests/test_p2_601091_sse_ipo_crosswalk.py'
 permissions:
   contents: read
 jobs:
@@ -151,6 +155,27 @@ jobs:
           assert r["history_backfill_authorized"] is False
           assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
           print("P2_GAP_ORIGINAL_TRIAGE_REPLAY_PASSED_NO_REPAIR")
+          PY
+      - name: Cross-check short IPO observation window against SSE official listing notice
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p2_601091_sse_ipo_crosswalk
+          python -m collector.p2_601091_sse_ipo_crosswalk \
+            --gap-triage reports/p2_current_full_replay/gap_action_queue.json \
+            --out reports/p2_current_full_replay/601091_official_listing_crosswalk.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_current_full_replay/601091_official_listing_crosswalk.json").read_text())
+          assert r["issuer"]=="sh.601091"
+          assert r["source_reference"]["listed_first_day"]=="2026-09-17"
+          assert r["vendor_observed_rows"]==18
+          assert r["observed_vendor_row_shortfall"]==3
+          assert r["gap_resolved"] is False
+          assert r["feature_complete_shards_promoted"]==0
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P2_IPO_SOURCE_DATE_MATCHED_NO_PHANTOM_BARS")
           PY
       - name: Preserve read-only full original replay verification
         uses: actions/upload-artifact@v4
