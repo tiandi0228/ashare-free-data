@@ -133,7 +133,7 @@ def is_concurrent_push_rejection(result):
         "non-fast-forward", "(fetch first)", "stale info",
     ))
 
-def archive(plan, selected, repository):
+def archive(plan, selected, repository, pre_push_check=None):
     # The complete, unmodified local P1 original receipts are validated once.
     # A retry always stages these same bytes onto a freshly fetched archive.
     entries=collect(plan,selected)
@@ -183,6 +183,10 @@ def archive(plan, selected, repository):
                 print("Archive already up to date on latest remote version")
                 return
             git("commit","-m","data(p1): archive SHA-verified research CSV shards [NO TRADES]",cwd=work)
+            # Manual-only gaps recheck MAIN and archive index on EVERY retry.
+            # Failure aborts without remotely pushing stale selected shards.
+            if pre_push_check is not None:
+                pre_push_check()
             result=git("push","origin",f"HEAD:refs/heads/{BRANCH}",cwd=work,check=False)
             if result.returncode==0:
                 print("Archived",len(entries),"SHA-verified CSV files to",BRANCH,
@@ -227,6 +231,8 @@ def main():
     p.add_argument("--third",type=int)
     p.add_argument("--fourth",type=int)
     p.add_argument("--repo",default=os.environ.get("GITHUB_REPOSITORY"))
+    p.add_argument("--manual-gap-prior",type=Path)
+    p.add_argument("--manual-gap-selection",type=Path)
     a=p.parse_args()
     plan=json.loads(Path(a.plan).read_text())
     selected=[(a.first,Path("evidence/first_shard"))]
@@ -234,8 +240,27 @@ def main():
     if a.third is not None:selected.append((a.third,Path("evidence/third_shard")))
     if a.fourth is not None:selected.append((a.fourth,Path("evidence/fourth_shard")))
     if len(set(i for i,_ in selected))!=len(selected) or len(selected)>4:raise ValueError("invalid archive selection")
+    manual_gap = bool(os.environ.get("P1_GAP_WINDOW"))
+    if manual_gap:
+        if (os.environ.get("GITHUB_EVENT_NAME") != "workflow_dispatch" or
+            a.manual_gap_prior is None or a.manual_gap_selection is None):
+            raise ValueError("manual P1 gap requires explicit dispatch and both preflight inputs")
+        from collector.p1_gap_remote_preflight import verify
+        prior = json.loads(a.manual_gap_prior.read_text())
+        selection = json.loads(a.manual_gap_selection.read_text())
+        requested = selection.get("selected_shards", [])
+        if (not isinstance(requested,list) or
+            any(type(i) is not int for i in requested) or
+            any(i not in requested for i,_ in selected)):
+            raise ValueError("archive shards disagree with manual pilot selection")
+        def pre_push_check():
+            return verify(plan,selection,prior,a.repo)
+    else:
+        if a.manual_gap_prior is not None or a.manual_gap_selection is not None:
+            raise ValueError("manual gap evidence supplied outside manual gap mode")
+        pre_push_check = None
     try:
-        archive(plan,selected,a.repo)
+        archive(plan,selected,a.repo,pre_push_check=pre_push_check)
     except P1ArchivePushError as exc:
         # Never report source shards as durable from a failed git push.
         # The existing workflow always uploads evidence/ on failure.
