@@ -114,6 +114,25 @@ class P1ScheduleFinalTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "cron"):
                     verify(job, report, checkpoint())
 
+    def test_0910_classifies_full_partial_and_missing_receipt(self):
+        job = run(created="2026-11-16T01:35:00Z")
+        report = source_build(job, progress(), cron="10 1 * * 1-5",
+                              run_id=123456, attempt=1, sha=SHA,
+                              actual_requested_shards=2, ledger=checkpoint())
+        full = verify(job, report, checkpoint())
+        self.assertEqual(full["requested_shards_for_source_run"], 2)
+        self.assertEqual(full["scheduled_shard_acceptance"], "ALL_REQUESTED_SHARDS_VERIFIED")
+        report.update(new_original_shard_indices=[2], shards_durably_accepted_by_run=1,
+                      checkpoint_shards_after=1,
+                      new_archived_shard_evidence=report["new_archived_shard_evidence"][:1])
+        self.assertEqual(verify(job, report, checkpoint())["scheduled_shard_acceptance"],
+                         "PARTIAL_SHARDS_VERIFIED")
+        missing = verify(job)
+        self.assertEqual(missing["state"], "SCHEDULE_RECEIPT_MISSING_NOT_PROVEN")
+        self.assertEqual(missing["scheduled_shard_acceptance"], "NOT_VERIFIED")
+        self.assertEqual(verify(run(event="push"), report, checkpoint())["state"],
+                         "NOT_SCHEDULED_RUN")
+
     def test_fully_sha_pinned_receipt_independently_matches_checkpoint(self):
         result = verify(run(), source_sha_bound(), checkpoint())
         self.assertTrue(result["per_shard_manifest_and_receipt_sha_matched"])
