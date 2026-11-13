@@ -62,8 +62,17 @@ def diagnose_original_gap(folder, code, expected_sha256, reason):
         state="PRIOR_VOLUME_REQUIRES_SEPARATE_REPLAY"
     else:
         raise ValueError("unknown P2 research gap reason")
+    next_action = {
+        "FEWER_THAN_21_VENDOR_ROWS_ASOF": "VERIFY_LISTING_OR_VENDOR_HISTORY_DEPTH",
+        "VENDOR_SUSPENDED_IN_LAST_21_ROWS": "MATCH_OFFICIAL_HALT_RESUME_EVIDENCE",
+        "VENDOR_MARKED_NOT_TRADABLE_AT_ASOF": "MATCH_OFFICIAL_ASOF_TRADING_STATE",
+        "NO_EXACT_ASOF_VENDOR_ROW": "CHECK_SESSION_CALENDAR_AND_SOURCE_COVERAGE",
+        "REPORTED_GAP_ASOF_MISMATCH": "REPLAY_FEATURE_ASOF_AND_SOURCE_WINDOW",
+        "PRIOR_VOLUME_REQUIRES_SEPARATE_REPLAY": "REPLAY_PRIOR_VOLUME_FROM_ARCHIVE",
+    }[state]
     return {
         "category":state,
+        "next_research_action":next_action,
         "vendor_rows_at_or_before_asof":count,
         "last_21_vendor_rows_suspended":paused,
         "first_vendor_row_day":history[0]["date"] if history else None,
