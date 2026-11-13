@@ -1,0 +1,13 @@
+{
+  "as_of_day": "2026-11-13",
+  "buy_signals_authorized": 0,
+  "complete_mainboard_coverage": false,
+  "executable_candidates": [],
+  "historical_PIT_verified": false,
+  "new_rows_verified": 144,
+  "orders": [],
+  "phase": "P4_CURRENT_TAIL_INDEPENDENT_REPLAY",
+  "trade_gate": "BLOCKED",
+  "verified_issuers": 8,
+  "verified_non_executable_crossings": 8
+}
