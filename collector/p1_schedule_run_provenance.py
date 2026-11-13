@@ -20,7 +20,7 @@ UTC = dt.timezone.utc
 TZ_CST = dt.timezone(dt.timedelta(hours=8))
 PHASE = "P1_LITERAL_CRON_RUN_CREATION_PROVENANCE_PENDING_CONCLUSION"
 MAIN_PATH = ".github/workflows/p1-fresh-vendor-roster.yml"
-DUAL_HOURS = frozenset((3, 5, 7, 9, 11, 15))
+DUAL_HOURS = frozenset((1, 3, 5, 7, 9, 11, 15))
 WEEKDAY_HOURS = frozenset((0, 1, 3, 5, 7, 9, 11, 13, 15))
 WEEKEND_HOURS = frozenset((1, 7, 11, 15))
 # An additional early Monday-Friday Beijing 01:10 cron uses Sunday-Thursday

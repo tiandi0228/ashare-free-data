@@ -17,7 +17,7 @@ from collector.p1_checkpoint import epoch_path, gh
 PILOT_CRON = "10 15 * * 1-5"
 PILOT_CRONS = frozenset((PILOT_CRON, "10 9 * * 1-5"))
 # Expanded slots have receipts, but cannot self-certify the original pilot.
-APPROVED_EXTRA_CRONS = frozenset(("10 5 * * 1-5", "10 7 * * 1-5", "10 11 * * 1-5", "10 3 * * 1-5"))
+APPROVED_EXTRA_CRONS = frozenset(("10 5 * * 1-5", "10 7 * * 1-5", "10 11 * * 1-5", "10 3 * * 1-5", "10 1 * * 1-5"))
 ALLOWED_DUAL_CRONS = PILOT_CRONS | APPROVED_EXTRA_CRONS
 FILE_NAME = re.compile(r"run_([1-9][0-9]*)_attempt_([1-9][0-9]*)\.json\Z")
 MIN_RECORDED_SUCCESSES = 3
