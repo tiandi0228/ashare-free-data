@@ -52,6 +52,26 @@ def compare_rows(raw, issuer, start, resume, digest):
 
 BATCH_START = date(2026, 9, 14)
 RISK_WARNING_REVIEW = {"sh.600363", "sh.603517", "sh.603838"}
+RISK_WARNING_NOTICES = {
+    "sh.600363": ("2026-068", "2026-09-30", "OTHER_RISK_WARNING_IMPOSED", "ST 联光",
+                  "0e57d98df61f9060eb3e6f29eda39ef9ce0e079b9d0c1b32703249fa4f3d3228"),
+    "sh.603517": ("2026-080", "2026-10-20", "OTHER_RISK_WARNING_REMOVED", "绝味食品",
+                  "33531fddb6a838242c0f899ca394c470c2e910fa4dc266796cff8b71b4d7cec0"),
+    "sh.603838": ("2026-040", "2026-10-20", "DELISTING_RISK_WARNING_REMOVED", "四通股份",
+                  "1527d7b7339276698033b0e6ba5f40725faa8d9d71f449b7d4499ee84e316ac7"),
+}
+
+
+def risk_warning_notice(issuer, raw):
+    notice, effective, event, name, digest = RISK_WARNING_NOTICES[issuer]
+    if not raw.startswith(b"%PDF-") or hashlib.sha256(raw).hexdigest() != digest:
+        raise ValueError("risk warning original PDF SHA mismatch")
+    return {"issuer": issuer, "notice_number": notice, "event": event,
+            "effective_day_in_notice": effective, "name_after_event_in_notice": name,
+            "original_pdf_sha256": digest, "original_pdf_sha_verified": True,
+            "exact_first_publication_verified": False,
+            "historical_non_st_eligibility_verified": False,
+            "trade_gate": "BLOCKED"}
 # Source notices and their provenance limits are documented in
 # docs/p2-p3-remaining-14-gap-review.md. End dates are exclusive.
 BATCH_CASES = {
@@ -127,7 +147,9 @@ def read_original(root, issuer, shard, digest):
     return (folder / (issuer.replace(".", "_") + ".csv")).read_bytes()
 
 
-def replay(root, batch=False):
+def replay(root, batch=False, notice_root=None):
+    if notice_root is not None and not batch:
+        raise ValueError("risk warning PDF checks require the remaining-14 batch")
     out = []
     if batch:
         for issuer, (shard, windows, digest) in BATCH_CASES.items():
@@ -137,7 +159,11 @@ def replay(root, batch=False):
         for issuer, (shard, start, resume, digest) in CASES.items():
             out.append(compare_rows(read_original(root, issuer, shard, digest),
                                     issuer, start, resume, digest))
-    return {"cases": out, "asof": ASOF.isoformat(), "feature_gaps_closed": 0,
+    notices = ([risk_warning_notice(issuer, (Path(notice_root) /
+                (issuer.split(".")[1] + ".pdf")).read_bytes())
+                for issuer in sorted(RISK_WARNING_REVIEW)] if notice_root is not None else [])
+    return {"cases": out, "risk_warning_notice_checks": notices,
+            "asof": ASOF.isoformat(), "feature_gaps_closed": 0,
             "historical_PIT_verified": False, "trade_gate": "BLOCKED"}
 
 
@@ -145,5 +171,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--archive-root", type=Path, required=True)
     parser.add_argument("--remaining-14", action="store_true")
+    parser.add_argument("--risk-notice-root", type=Path)
     args = parser.parse_args()
-    print(json.dumps(replay(args.archive_root, batch=args.remaining_14), indent=2))
+    print(json.dumps(replay(args.archive_root, batch=args.remaining_14,
+                            notice_root=args.risk_notice_root), indent=2))
