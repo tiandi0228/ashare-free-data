@@ -12,7 +12,7 @@
   "checkpoint_completed_shards": 265,
   "checkpoint_total_shards": 400,
   "archived_original_shards": 265,
-  "coverage_report_count": 110,
+  "coverage_report_count": 111,
   "observed_archived_shards": 265,
   "feature_complete_shards": 248,
   "observed_with_feature_gaps_shards": 17,
@@ -342,6 +342,7 @@
           "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
           "original_gap_diagnostic": {
             "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "next_research_action": "MATCH_OFFICIAL_HALT_RESUME_EVIDENCE",
             "vendor_rows_at_or_before_asof": 485,
             "last_21_vendor_rows_suspended": 10,
             "first_vendor_row_day": "2024-10-21",
@@ -358,6 +359,7 @@
           "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
           "original_gap_diagnostic": {
             "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "next_research_action": "MATCH_OFFICIAL_HALT_RESUME_EVIDENCE",
             "vendor_rows_at_or_before_asof": 485,
             "last_21_vendor_rows_suspended": 5,
             "first_vendor_row_day": "2024-10-21",
@@ -380,6 +382,7 @@
           "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
           "original_gap_diagnostic": {
             "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "next_research_action": "MATCH_OFFICIAL_HALT_RESUME_EVIDENCE",
             "vendor_rows_at_or_before_asof": 485,
             "last_21_vendor_rows_suspended": 1,
             "first_vendor_row_day": "2024-10-21",
@@ -402,6 +405,7 @@
           "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
           "original_gap_diagnostic": {
             "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "next_research_action": "MATCH_OFFICIAL_HALT_RESUME_EVIDENCE",
             "vendor_rows_at_or_before_asof": 485,
             "last_21_vendor_rows_suspended": 8,
             "first_vendor_row_day": "2024-10-21",
@@ -424,6 +428,7 @@
           "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
           "original_gap_diagnostic": {
             "category": "FEWER_THAN_21_VENDOR_ROWS_ASOF",
+            "next_research_action": "VERIFY_LISTING_OR_VENDOR_HISTORY_DEPTH",
             "vendor_rows_at_or_before_asof": 18,
             "last_21_vendor_rows_suspended": 0,
             "first_vendor_row_day": "2026-09-17",
@@ -446,6 +451,7 @@
           "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
           "original_gap_diagnostic": {
             "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "next_research_action": "MATCH_OFFICIAL_HALT_RESUME_EVIDENCE",
             "vendor_rows_at_or_before_asof": 485,
             "last_21_vendor_rows_suspended": 10,
             "first_vendor_row_day": "2024-10-21",
@@ -468,6 +474,7 @@
           "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
           "original_gap_diagnostic": {
             "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "next_research_action": "MATCH_OFFICIAL_HALT_RESUME_EVIDENCE",
             "vendor_rows_at_or_before_asof": 485,
             "last_21_vendor_rows_suspended": 6,
             "first_vendor_row_day": "2024-10-21",
@@ -490,6 +497,7 @@
           "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
           "original_gap_diagnostic": {
             "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "next_research_action": "MATCH_OFFICIAL_HALT_RESUME_EVIDENCE",
             "vendor_rows_at_or_before_asof": 485,
             "last_21_vendor_rows_suspended": 3,
             "first_vendor_row_day": "2024-10-21",
@@ -512,6 +520,7 @@
           "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
           "original_gap_diagnostic": {
             "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "next_research_action": "MATCH_OFFICIAL_HALT_RESUME_EVIDENCE",
             "vendor_rows_at_or_before_asof": 485,
             "last_21_vendor_rows_suspended": 2,
             "first_vendor_row_day": "2024-10-21",
@@ -534,6 +543,7 @@
           "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
           "original_gap_diagnostic": {
             "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "next_research_action": "MATCH_OFFICIAL_HALT_RESUME_EVIDENCE",
             "vendor_rows_at_or_before_asof": 323,
             "last_21_vendor_rows_suspended": 10,
             "first_vendor_row_day": "2025-06-20",
@@ -556,6 +566,7 @@
           "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
           "original_gap_diagnostic": {
             "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "next_research_action": "MATCH_OFFICIAL_HALT_RESUME_EVIDENCE",
             "vendor_rows_at_or_before_asof": 485,
             "last_21_vendor_rows_suspended": 1,
             "first_vendor_row_day": "2024-10-21",
@@ -578,6 +589,7 @@
           "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
           "original_gap_diagnostic": {
             "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "next_research_action": "MATCH_OFFICIAL_HALT_RESUME_EVIDENCE",
             "vendor_rows_at_or_before_asof": 485,
             "last_21_vendor_rows_suspended": 1,
             "first_vendor_row_day": "2024-10-21",
@@ -600,6 +612,7 @@
           "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
           "original_gap_diagnostic": {
             "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "next_research_action": "MATCH_OFFICIAL_HALT_RESUME_EVIDENCE",
             "vendor_rows_at_or_before_asof": 485,
             "last_21_vendor_rows_suspended": 1,
             "first_vendor_row_day": "2024-10-21",
@@ -622,6 +635,7 @@
           "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
           "original_gap_diagnostic": {
             "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "next_research_action": "MATCH_OFFICIAL_HALT_RESUME_EVIDENCE",
             "vendor_rows_at_or_before_asof": 485,
             "last_21_vendor_rows_suspended": 10,
             "first_vendor_row_day": "2024-10-21",
@@ -644,6 +658,7 @@
           "reason": "VENDOR_NOT_TRADABLE_ASOF",
           "original_gap_diagnostic": {
             "category": "VENDOR_MARKED_NOT_TRADABLE_AT_ASOF",
+            "next_research_action": "MATCH_OFFICIAL_ASOF_TRADING_STATE",
             "vendor_rows_at_or_before_asof": 485,
             "last_21_vendor_rows_suspended": 6,
             "first_vendor_row_day": "2024-10-21",
@@ -666,6 +681,7 @@
           "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
           "original_gap_diagnostic": {
             "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "next_research_action": "MATCH_OFFICIAL_HALT_RESUME_EVIDENCE",
             "vendor_rows_at_or_before_asof": 485,
             "last_21_vendor_rows_suspended": 5,
             "first_vendor_row_day": "2024-10-21",
@@ -688,6 +704,7 @@
           "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
           "original_gap_diagnostic": {
             "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "next_research_action": "MATCH_OFFICIAL_HALT_RESUME_EVIDENCE",
             "vendor_rows_at_or_before_asof": 485,
             "last_21_vendor_rows_suspended": 10,
             "first_vendor_row_day": "2024-10-21",
@@ -710,6 +727,7 @@
           "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
           "original_gap_diagnostic": {
             "category": "VENDOR_SUSPENDED_IN_LAST_21_ROWS",
+            "next_research_action": "MATCH_OFFICIAL_HALT_RESUME_EVIDENCE",
             "vendor_rows_at_or_before_asof": 485,
             "last_21_vendor_rows_suspended": 1,
             "first_vendor_row_day": "2024-10-21",
