@@ -3,6 +3,10 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'collector/p4_limit_order_replay.py'
+      - 'collector/p4_cancel_replace_audit.py'
+      - 'tests/test_p4_limit_order_replay.py'
+      - 'tests/test_p4_cancel_replace_audit.py'
       - 'collector/p4_execution_arithmetic.py'
       - 'tests/test_p4_execution_arithmetic.py'
       - 'collector/p4_integrated_research_gate.py'
@@ -17,10 +21,6 @@ on:
   push:
     branches: [main]
     paths:
-      - 'collector/p4_execution_arithmetic.py'
-      - 'tests/test_p4_execution_arithmetic.py'
-      - 'collector/p4_exit_decision.py'
-      - 'tests/test_p4_exit_decision.py'
       - 'collector/p4_calendar_limit_gate.py'
       - 'tests/test_p4_calendar_limit_gate.py'
       - 'collector/p4_signal_fill_audit.py'
