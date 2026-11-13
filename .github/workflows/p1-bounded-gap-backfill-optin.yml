@@ -84,3 +84,113 @@ jobs:
           assert p['permission_to_write_or_trade'] is False
           print('LIVE_REMOTE_READ_ONLY_NO_DATA_WRITES_NO_TRADES')
           PY
+
+  vendor-gap-probe:
+    # Same-repository draft branch only. No fork code runs in this vendor job.
+    if: >-
+      github.repository == 'tiandi0228/ashare-free-data' &&
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.number == 331 &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'feature/p1-bounded-gap-backfill-opt-in-20261112'
+    needs: [offline-selection, live-readonly-rehearsal]
+    concurrency:
+      group: p1-readonly-gap-vendor-probe
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install existing production BaoStock dependency
+        run: python -m pip install 'baostock>=0.8,<1'
+      - name: Read 215 and 216 and replay original bars in temporary storage only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
+          from tempfile import TemporaryDirectory
+
+          from collector.p1_fresh_shard_plan import plan
+          from collector.p1_gap_remote_preflight import read_remote
+          from collector.p1_live_gap_rehearsal import rehearse
+          from collector.p1_quad_verify import verify
+          from collector.p1_roster_lock import unpack
+
+          repo = os.environ['GITHUB_REPOSITORY']
+          expected = [215, 216]
+          source = '5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022'
+
+          def preflight():
+              receipt = rehearse(repo)
+              if (receipt['source_sha256'] != source or
+                  receipt['proposed_manual_shards'] != expected or
+                  receipt['archive_index_parity_checked'] is not True or
+                  receipt['trade_gate'] != 'BLOCKED' or
+                  receipt['permission_to_write_or_trade'] is not False):
+                  raise SystemExit('P1_GAP_PROBE_STOPPED_SOURCE_OR_WINDOW_CHANGED')
+
+          with TemporaryDirectory(prefix='p1-vendor-gap-probe-') as tmp:
+              root = Path(tmp)
+              original, receipt = unpack(read_remote(repo, 'evidence/p1_active_roster.json', 'main'))
+              roster = root / 'mainboard.csv'
+              roster.write_bytes(original)
+              manifests = root / 'manifests'
+              frozen = plan(roster, manifests, receipt['requested_day'])
+              if frozen['source_sha256'] != source:
+                  raise SystemExit('P1_GAP_PROBE_STOPPED_PLAN_SOURCE_CHANGED')
+
+              # The vendor subprocess never receives a GitHub token.
+              provider_env = {k: v for k, v in os.environ.items()
+                              if k not in ('GH_TOKEN', 'GITHUB_TOKEN')}
+              items = []
+              for index in expected:
+                  preflight()
+                  output = root / str(index)
+                  manifest = manifests / frozen['shards'][index]['name']
+                  with (root / f'{index}.log').open('wb') as log:
+                      run = subprocess.run(
+                          ['timeout', '--signal=TERM', '--kill-after=5s', '150s',
+                           sys.executable, '-u', '-m', 'collector.baostock_batch',
+                           '--manifest', str(manifest), '--batch-index', '0',
+                           '--out', str(output)],
+                          env=provider_env, stdout=log, stderr=subprocess.STDOUT,
+                          check=False)
+                  if run.returncode:
+                      quality = output / 'quality.json'
+                      data = json.loads(quality.read_text()) if quality.is_file() else {}
+                      allowed = {'PROVIDER_LOGIN_REJECTED', 'PROVIDER_SESSION_FAILURE',
+                                 'PROVIDER_RESPONSE_INVALID', 'PROVIDER_SCHEMA_INVALID',
+                                 'PROVIDER_TRANSPORT_INTERRUPTED', 'PROVIDER_EMPTY_HISTORY',
+                                 'SOURCE_VALIDATION_FAILURE'}
+                      categories = {data.get('failure_category')} | {
+                          r.get('failure_category') for r in data.get('results', [])
+                      }
+                      print(json.dumps({'status': 'P1_GAP_PROBE_PROVIDER_FAILED',
+                                        'shard': index, 'exit_code': run.returncode,
+                                        'categories': sorted(c for c in categories if c in allowed),
+                                        'archive_writes': 0, 'trade_gate': 'BLOCKED'}), flush=True)
+                      raise SystemExit(1)
+                  items.append((index, output))
+                  # Fail before querying the second shard if the first cannot be replayed.
+                  verify(frozen, [(index, output)], manifests)
+              result = verify(frozen, items, manifests)
+              preflight()
+              print(json.dumps({
+                  'status': 'P1_GAP_PROBE_VENDOR_BYTES_REPLAYED',
+                  'shards': expected, 'verified_issuers': result['verified_issuers'],
+                  'active_rows': result['independently_checked_active_rows'],
+                  'suspended_rows': result['independently_checked_suspended_rows'],
+                  'archive_writes': 0, 'checkpoint_writes': 0,
+                  'historical_PIT_verified': False, 'trade_gate': 'BLOCKED',
+              }))
+          PY
