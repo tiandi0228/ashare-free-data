@@ -1,7 +1,7 @@
 name: P3 scoped calendar source replay (NO TRADES)
 on:
   pull_request:
-    branches: [main]
+    branches: [main, p34-notice-bound-replay]
     paths:
       - 'collector/p3_calendar_source_replay.py'
       - 'collector/p34_notice_bound_replay.py'
