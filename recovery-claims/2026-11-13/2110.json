@@ -1,0 +1,12 @@
+{
+  "auto_dispatched": false,
+  "executable_candidates": [],
+  "historical_collection_executed": false,
+  "mode": "DRY_RUN_NO_DISPATCH",
+  "orders": [],
+  "origin_check_run_id": 43443036394,
+  "phase": "P1_MISSED_SLOT_RECOVERY_DRY_RUN_CLAIM",
+  "single_shard_upper_bound": 1,
+  "slot": "2026-11-13T21:10:00+08:00",
+  "trade_gate": "BLOCKED"
+}
