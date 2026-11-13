@@ -287,6 +287,29 @@ class PinnedGapReplayTests(unittest.TestCase):
                 self.assertFalse(result["historical_non_st_eligibility_verified"])
                 self.assertEqual(result["trade_gate"], "BLOCKED")
 
+    def test_risk_warning_index_never_treats_timestamp_as_publication(self):
+        import copy
+        from collector.p3_risk_warning_index_dates import verify_index
+        path=Path(__file__).resolve().parents[1]/"evidence/p3_risk_warning_index_dates.json"
+        records=json.loads(path.read_text())
+        report=verify_index(records)
+        self.assertEqual(report["precision_for_acceptance"],"INDEX_DATE_ONLY")
+        self.assertEqual(report["trade_gate"],"BLOCKED")
+        self.assertTrue(all(r["index_time_is_midnight"] for r in report["cases"]))
+        changed=copy.deepcopy(records)
+        changed[0]["announcementTime"]+=12*3600*1000
+        result=verify_index(changed)
+        self.assertFalse(result["cases"][0]["index_time_is_midnight"])
+        self.assertFalse(result["cases"][0]["first_publication_time_verified"])
+        for field,value in (("announcementId","wrong"),("adjunctUrl","wrong"),
+                            ("announcementTime",True),("announcementTime",0)):
+            wrong=copy.deepcopy(records)
+            wrong[0][field]=value
+            with self.assertRaises(ValueError):
+                verify_index(wrong)
+        with self.assertRaises(ValueError):
+            verify_index([records[0],records[0],records[2]])
+
     def test_tampered_original_rejected_before_comparison(self):
         from collector.p2_p3_pinned_gap_replay import compare_rows
         with self.assertRaisesRegex(ValueError,"SHA mismatch"):
