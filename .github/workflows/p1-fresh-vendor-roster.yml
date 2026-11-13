@@ -545,6 +545,15 @@ jobs:
           assert q['trade_gate']=='BLOCKED' and q['historical_PIT_verified'] is False
           assert q['archive_csv_replay_enabled'] is True
           assert q['archived_issuers']<=q['ledger_issuers']
+          # A gap run must not credit any of its selected shards that the
+          # archive replay marked missing or lacking an original receipt.
+          import os
+          if os.environ.get('P1_GAP_WINDOW'):
+              selection=json.loads(Path('evidence/pilot_selection.json').read_text())
+              ledger=json.loads(Path('evidence/ledger.json').read_text())
+              new={item['index'] for item in ledger['completed']} & set(selection['selected_shards'])
+              if not new or new.intersection(q['archive_repair_queue']):
+                  raise ValueError('manual P1 gap missing replayed archive evidence')
           print('ARCHIVE AUDIT: permanently verified',q['archived_issuers'],'of',q['ledger_issuers'])
           PY
       - name: Persist durable no-trade checkpoint in repository
@@ -552,6 +561,30 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python -m collector.p1_checkpoint --mode write --source-sha "$(python -c "import json;print(json.load(open('evidence/ledger.json'))['source_sha256'])")" --in-file evidence/ledger.json
+      - name: Verify remote checkpoint preserved the audited gap evidence
+        if: github.event_name == 'workflow_dispatch' && env.P1_GAP_WINDOW != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          from collector.p1_checkpoint import epoch_path,remote_read,validate
+
+          read=lambda name: json.loads(Path('evidence',name).read_text())
+          proposed=read('ledger.json')
+          remote,blob=remote_read(os.environ['GITHUB_REPOSITORY'],
+                                  epoch_path(proposed['source_sha256']))
+          if remote is None or not blob:
+              raise ValueError('manual P1 gap checkpoint not found after write')
+          validate(remote)
+          if (remote['source_sha256'],remote['shard_count']) != (proposed['source_sha256'],proposed['shard_count']):
+              raise ValueError('manual P1 gap checkpoint epoch mismatch after write')
+          observed={item['index']:item for item in remote['completed']}
+          if any(observed.get(item['index']) != item for item in proposed['completed']):
+              raise ValueError('manual P1 gap checkpoint evidence mismatch after write')
+          print('P1 manual gap verified remote checkpoint evidence, trade_gate BLOCKED')
+          PY
       - name: Preserve pre-repair archive audit
         run: cp evidence/archive_audit.json evidence/archive_audit_before_repair.json
       - name: Pick one bounded previous archive gap
