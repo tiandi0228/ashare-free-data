@@ -271,6 +271,22 @@ class PinnedGapReplayTests(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         check(bad)
 
+    def test_risk_warning_notice_never_proves_point_in_time_eligibility(self):
+        from collector.p2_p3_pinned_gap_replay import RISK_WARNING_NOTICES, risk_warning_notice
+        from unittest.mock import patch
+        raw=b"%PDF-test-fixture"
+        for issuer, expected in RISK_WARNING_NOTICES.items():
+            with self.subTest(issuer=issuer):
+                with self.assertRaisesRegex(ValueError,"PDF SHA mismatch"):
+                    risk_warning_notice(issuer, raw)
+                fixture=(*expected[:-1], hashlib.sha256(raw).hexdigest())
+                with patch.dict(RISK_WARNING_NOTICES, {issuer:fixture}):
+                    result=risk_warning_notice(issuer, raw)
+                self.assertTrue(result["original_pdf_sha_verified"])
+                self.assertFalse(result["exact_first_publication_verified"])
+                self.assertFalse(result["historical_non_st_eligibility_verified"])
+                self.assertEqual(result["trade_gate"], "BLOCKED")
+
     def test_tampered_original_rejected_before_comparison(self):
         from collector.p2_p3_pinned_gap_replay import compare_rows
         with self.assertRaisesRegex(ValueError,"SHA mismatch"):
