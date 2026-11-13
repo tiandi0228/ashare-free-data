@@ -1,11 +1,18 @@
 """Evidence-bound V2.2 limit-order partial fill and cancellation arithmetic; NO ORDERS."""
 from decimal import Decimal,InvalidOperation
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+
+EXCHANGE_TZ = timezone(timedelta(hours=8))
 
 def parse_time(t):
     d=datetime.fromisoformat(t.replace("Z","+00:00"))
     if d.tzinfo is None or d.utcoffset() is None:raise ValueError("timezone required")
     return d
+def exchange_day(timestamp):
+    """Return the mainland exchange's civil date, not the sender's date."""
+    return parse_time(timestamp).astimezone(EXCHANGE_TZ).date()
+
+
 def replay(*,side,order_shares,limit_price,placed_at,expires_at,events):
     if side not in ("BUY","SELL"):raise ValueError("invalid side")
     if type(order_shares) is not int or order_shares<=0 or (side=="BUY" and order_shares%100):
