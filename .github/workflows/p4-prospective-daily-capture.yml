@@ -1,0 +1,83 @@
+name: P4 prospective daily research capture (NO TRADES)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'collector/p4_prospective_daily_capture.py'
+      - 'tests/test_p4_prospective_daily_capture.py'
+      - 'collector/p2_independent_bars.py'
+      - '.github/workflows/p4-prospective-daily-capture.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: p4-prospective-daily-capture-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest tests.test_p4_prospective_daily_capture -v
+  capture:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check Beijing capture window before provider access
+        id: window
+        run: |
+          python - <<'PY'
+          import os
+          from datetime import datetime, timezone
+          from collector.p4_prospective_daily_capture import eligible_day
+
+          day = eligible_day(datetime.now(timezone.utc))
+          print(day or "OUTSIDE_CAPTURE_WINDOW")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              print(f"day={day or ''}", file=out)
+          PY
+      - name: Verify timestamp evidence and capture bounded vendor rows
+        if: steps.window.outputs.day != ''
+        env:
+          EXPECTED_DAY: ${{ steps.window.outputs.day }}
+          EVIDENCE_COMMIT: c1c459475230056a7d9b71d3828f47fb4cd4bbbc
+        run: |
+          git fetch --depth=1 origin "$EVIDENCE_COMMIT"
+          git worktree add --detach "$RUNNER_TEMP/p4-pinned-evidence" "$EVIDENCE_COMMIT"
+          (
+            cd "$RUNNER_TEMP/p4-pinned-evidence"
+            python -m collector.p4_prewindow_evidence --out "$RUNNER_TEMP/p4-prewindow-evidence.json"
+          )
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from collector.p4_prospective_daily_capture import END, REGISTRATION, START
+
+          evidence = json.loads((Path(os.environ["RUNNER_TEMP"]) / "p4-prewindow-evidence.json").read_bytes())
+          assert evidence["registration_sha256"] == REGISTRATION
+          assert evidence["window_starts_beijing"] == START.isoformat() + "T00:00:00+08:00"
+          assert evidence["window_ends_beijing_inclusive"] == END.isoformat()
+          assert evidence["trade_gate"] == "BLOCKED" and evidence["orders"] == []
+          PY
+          python -m pip install 'baostock>=0.8,<1'
+          timeout 240s python -m collector.p4_prospective_daily_capture --out p4-prospective-capture
+          test -f "p4-prospective-capture/$EXPECTED_DAY/receipt.json"
+      - uses: actions/upload-artifact@v4
+        if: steps.window.outputs.day != ''
+        with:
+          name: p4-prospective-${{ steps.window.outputs.day }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            p4-prospective-capture/
+            ${{ runner.temp }}/p4-prewindow-evidence.json
+          if-no-files-found: error
+          retention-days: 90
