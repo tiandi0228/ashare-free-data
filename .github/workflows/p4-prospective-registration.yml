@@ -1,0 +1,50 @@
+name: P4 prospective registration verification (NO TRADES)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'collector/p4_prospective_registration.py'
+      - 'collector/p4_prospective_protocol_freeze.py'
+      - 'manifests/p4_prospective_20261201.json'
+      - 'tests/test_p4_prospective_registration.py'
+      - '.github/workflows/p4-prospective-registration.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p4_prospective_registration.py'
+      - 'collector/p4_prospective_protocol_freeze.py'
+      - 'manifests/p4_prospective_20261201.json'
+      - 'tests/test_p4_prospective_registration.py'
+      - '.github/workflows/p4-prospective-registration.yml'
+permissions:
+  contents: read
+jobs:
+  verify-registration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate frozen rules and time boundaries
+        run: python -m unittest tests.test_p4_prospective_protocol_freeze tests.test_p4_prospective_registration -v
+      - name: Independently reproduce registered baseline bytes
+        env:
+          REPLAY_COMMIT: 4ba13f00974e26b9d438488c8c57f134141034b1
+          ARCHIVE_COMMIT: 7028eb4c9cc7f23add64958bc6f2611565476538
+        run: |
+          git fetch --depth=1 origin "$REPLAY_COMMIT" "$ARCHIVE_COMMIT"
+          git worktree add --detach "$RUNNER_TEMP/p4-replay" "$REPLAY_COMMIT"
+          git worktree add --detach "$RUNNER_TEMP/p4-archive" "$ARCHIVE_COMMIT"
+          (
+            cd "$RUNNER_TEMP/p4-replay"
+            python -m collector.p4_asof_chronological_replay \
+              --root "$RUNNER_TEMP/p4-archive" --archive-commit "$ARCHIVE_COMMIT" \
+              --epoch 5ba00fbd720fad90 --train-end 2026-06-30 \
+              --validation-start 2026-07-08 --validation-end 2026-10-20 \
+              --out "$RUNNER_TEMP/p4-baseline.json"
+          )
+          python -m collector.p4_prospective_registration \
+            --registration manifests/p4_prospective_20261201.json \
+            --baseline "$RUNNER_TEMP/p4-baseline.json"

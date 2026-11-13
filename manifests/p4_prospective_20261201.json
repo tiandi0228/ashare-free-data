@@ -1,0 +1,51 @@
+{
+  "registration": {
+    "baseline_archive_commit": "7028eb4c9cc7f23add64958bc6f2611565476538",
+    "baseline_archive_epoch": "5ba00fbd720fad90",
+    "protocol": {
+      "claimed_created_at_utc": "2026-11-13T09:50:11Z",
+      "fee_model_assumptions_not_observed": {
+        "capital_cny": "8000",
+        "commission_min_cny": "5",
+        "commission_rate": "0.0002854",
+        "maximum_net_loss_fraction": "0.03",
+        "minimum_net_reward_risk": "2",
+        "sell_stamp_rate": "0.0005",
+        "slippage_bps_each_side": "10"
+      },
+      "frozen_strategy_rules": {
+        "entry_rule": "NEXT_VENDOR_OPEN_PROXY_NOT_FILL",
+        "friday_exit_rule": "FRIDAY_FORCE_EXIT_RESEARCH_ONLY",
+        "max_holding_sessions": 5,
+        "min_holding_sessions": 3,
+        "same_day_sale_allowed": false,
+        "signal_rule": "COMPLETED_CLOSE_CROSSES_ABOVE_MA20",
+        "stop_fraction": "0.02",
+        "target_fraction": "0.05"
+      },
+      "minimum_lot_shares": 100,
+      "negative_baseline_artifact_sha256": "8f470f85eca784ae69b1f3bf8e9636eed0ba7fa303b646d78853908a126d446f",
+      "schema_version": 2,
+      "signal_use": "RESEARCH_ONLY",
+      "source_commit": "4ba13f00974e26b9d438488c8c57f134141034b1",
+      "strategy_id": "MA20_COMPLETED_SIGNAL_V1",
+      "trade_gate": "BLOCKED",
+      "window_end": "2027-01-31",
+      "window_start": "2026-12-01"
+    },
+    "protocol_sha256": "2bb0bbe6fd3939ca858ab844eb06cda5ec396f4949a7eb0cc5b307612b8dc15e",
+    "research_policy": {
+      "cost_status": "ASSUMPTIONS_NOT_BROKER_RECEIPTS",
+      "exit_ambiguity": "NO_FILL_ASSUMPTION_IF_BARRIERS_SHARE_BAR_OR_QUEUE_UNKNOWN",
+      "minimum_history": "20_TRADABLE_CLOSES_AND_PREVIOUS_OBSERVATION_MA20_STATE",
+      "missing_observations": "PRESERVE_SUSPENSIONS_GAPS_AND_RIGHT_CENSORING",
+      "output": "RESEARCH_EVIDENCE_ONLY_NO_EXECUTION_OR_RETURN_CERTIFICATION",
+      "review": "NO_RULE_TUNING_ON_OBSERVATION_WINDOW",
+      "signal_input": "COMPLETED_UNADJUSTED_VENDOR_DAILY_CLOSE_PREFIX",
+      "universe": "FIXED_ARCHIVE_EPOCH_COHORT_NOT_PIT_MAINBOARD",
+      "window_days": "BEIJING_DATES_INCLUSIVE"
+    },
+    "schema_version": 1
+  },
+  "registration_sha256": "913889c977ede0d50bb5ecc5f78e0a3516b7d07d53ec4774065a0044dd6cbe0d"
+}
