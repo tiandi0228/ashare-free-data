@@ -1,0 +1,100 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 1,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 1,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1224562140",
+      "archival_pdf_path": "pdf/sh_603161/1224562140/04fdf7f3f0e636cbfbe4fa58876663ea9243beeda956dcae451d0d337c4b8ce4.pdf",
+      "bytes": 68015,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.603161",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2025-08-23/1224562140.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "04fdf7f3f0e636cbfbe4fa58876663ea9243beeda956dcae451d0d337c4b8ce4",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "公司股票将于2025年8月25日（星期一）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "04fdf7f3f0e636cbfbe4fa58876663ea9243beeda956dcae451d0d337c4b8ce4",
+          "pdf_date_phrase": "2025年8月25日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-11-13T20:29:00.586537+00:00",
+      "source_halt_original_sha256": "4f1be9bcf257408ffc92a1badd38b0406d99fdfca15daaf9286f752b0746abff",
+      "source_halt_text_day": "2025-08-18",
+      "title_unverified": "科华控股股份有限公司关于控股股东筹划重大事项进展暨复牌的公告"
+    }
+  ],
+  "run_id": 43501828641,
+  "source_halt_issuers_attempted": 3,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603160",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-02-17",
+      "search_window_start": "2025-11-20",
+      "source_halt_announcement_id": "1221815660",
+      "source_halt_certified": false,
+      "source_halt_date": "2024-11-25",
+      "source_halt_original_sha256": "8d53da7ddee6ca8b1839fa262fa0d209e135a88455118f571941ed611d62453c",
+      "window_segment_count": 8,
+      "window_segment_index": 4
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603161",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-11-15",
+      "search_window_start": "2025-08-17",
+      "source_halt_announcement_id": "1224498713",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-08-18",
+      "source_halt_original_sha256": "4f1be9bcf257408ffc92a1badd38b0406d99fdfca15daaf9286f752b0746abff",
+      "window_segment_count": 6,
+      "window_segment_index": 0
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603182",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-06-29",
+      "search_window_start": "2026-03-31",
+      "source_halt_announcement_id": "1225067147",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-04-01",
+      "source_halt_original_sha256": "405e64077a64e326fa3a5869bb6b8facd4e537ffb47777d1b3630c7a598c0a3f",
+      "window_segment_count": 3,
+      "window_segment_index": 0
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.603160",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    },
+    {
+      "issuer": "sh.603161",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    },
+    {
+      "issuer": "sh.603182",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
