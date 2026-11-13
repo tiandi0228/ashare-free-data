@@ -167,11 +167,63 @@ def replay(root, batch=False, notice_root=None):
             "historical_PIT_verified": False, "trade_gate": "BLOCKED"}
 
 
+def replay_002717(root):
+    """Replay the fixed as-of gap through the real P2 and P3 guards."""
+    from collector.p2_real_archive_features import observe
+    from collector.p3_positive_effective_text_candidates import check_text
+
+    issuer = "sz.002717"
+    digest = "ae1b73a1389f0629f64e130af4f2c1778f52ca837985e4b5f95ef14f048b81ac"
+    raw = read_original(root, issuer, 362, digest)
+    if hashlib.sha256(raw).hexdigest() != digest:
+        raise ValueError("original CSV SHA mismatch")
+    rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8-sig"))))
+    tail = [r for r in rows if r["date"] >= "2026-10-12"]
+    expected = ["2026-10-" + str(d) for d in (12, 13, 14, 15, 16, 19, 20)]
+    if ([r["date"] for r in tail] != expected or tail[0]["tradestatus"] != "1"
+            or any(r["tradestatus"] != "0" or r["volume"] or r["amount"]
+                   or r["close"] != tail[0]["close"] for r in tail[1:])):
+        raise ValueError("unexpected suspension placeholder sequence")
+
+    # Stage only the already-validated issuer and its original receipt entry.
+    # Never modify the durable archive or run across other epochs.
+    from tempfile import TemporaryDirectory
+    with TemporaryDirectory() as tmp:
+        folder = Path(tmp) / EPOCH / "shard_0362"
+        folder.mkdir(parents=True)
+        original = Path(root) / EPOCH / "shard_0362" / "quality.json"
+        receipt = json.loads(original.read_text())
+        receipt["results"] = [x for x in receipt["results"] if x["code"] == issuer]
+        receipt["issuer_count"] = 1
+        (folder / "quality.json").write_text(json.dumps(receipt))
+        (folder / "sz_002717.csv").write_bytes(raw)
+        report = observe(tmp, ASOF.isoformat(), max_issuers=1)
+    expected_gap = [{"issuer": issuer, "reason": "VENDOR_NOT_TRADABLE_ASOF"}]
+    if (report.get("status") != "REAL_ARCHIVED_BAR_FEATURES_RESEARCH_ONLY"
+            or report["features"] != [] or report["evidence_gaps"] != expected_gap):
+        raise ValueError("P2 failed to reject suspended as-of feature input")
+
+    verdict = check_text("DELIST_RISK_ISSUER_FORECAST", "2026年10月16日",
+                         "收到终止上市事先告知书，拟终止上市")
+    if verdict != {"candidate": None, "reason": "FORECAST_IS_NOT_EXCHANGE_EFFECTIVE_DELIST"}:
+        raise ValueError("P3 promoted an issuer forecast to an effective event")
+    return {"issuer": issuer, "asof": ASOF.isoformat(),
+            "suspension_placeholders": len(tail) - 1,
+            "feature_gap": expected_gap[0]["reason"], "feature_rows": 0,
+            "preliminary_delisting_classification": verdict["reason"],
+            "effective_delisting_date_verified": False,
+            "historical_PIT_verified": False, "trade_gate": "BLOCKED"}
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--archive-root", type=Path, required=True)
     parser.add_argument("--remaining-14", action="store_true")
     parser.add_argument("--risk-notice-root", type=Path)
+    parser.add_argument("--002717", dest="case_002717", action="store_true")
     args = parser.parse_args()
-    print(json.dumps(replay(args.archive_root, batch=args.remaining_14,
-                            notice_root=args.risk_notice_root), indent=2))
+    if args.case_002717 and (args.remaining_14 or args.risk_notice_root is not None):
+        parser.error("--002717 cannot be combined with batch options")
+    result = (replay_002717(args.archive_root) if args.case_002717 else
+              replay(args.archive_root, batch=args.remaining_14, notice_root=args.risk_notice_root))
+    print(json.dumps(result, indent=2))
