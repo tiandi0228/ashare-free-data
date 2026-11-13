@@ -24,3 +24,7 @@ Compared every status in the last 21 vendor rows (2026-09-14 through 2026-10-20)
 For 600825 the September notice sequence also describes suspension on September 7, before the first interval shown as September 8 in the formal notice table. Both precede the replay window, so this review does not adjudicate that boundary. 603183 and 603759 are reproduced issuer notices rather than verified original bytes, and 601995 and 002870 have one reproduced notice each. A resumption notice may recap the original halt; this is not separate byte proof of the initiating notice.
 
 Exclude weekends, September 25 and October 1–7 using the [SSE closure schedule](https://www.sse.com.cn/disclosure/dealinstruc/closed/) and the [SZSE closure notice](https://www.szse.cn/www/disclosure/notice/general/t20260917_622911.html). All 294 issuer-session statuses matched in-window, including 69 halt statuses. No official first-publication timestamp was authenticated. No historical PIT cells certified and no P2 feature gaps closed. Do not treat the daily status field as proof of intraday tradability or ST eligibility. The notices for 600363, 603517 and 603838 additionally warrant separate risk-warning-effective-date review. `trade_gate=BLOCKED`.
+
+## Repeat the comparison
+
+Run `python -m collector.p2_p3_pinned_gap_replay --archive-root /path/to/research-archive --remaining-14`. The command checks each receipt and original CSV, rejects mismatched daily status sequences, and flags the three risk-warning cases separately. It does not fetch announcements or close gaps.
