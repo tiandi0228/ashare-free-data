@@ -92,6 +92,8 @@ class CoverageTests(unittest.TestCase):
             diag=issuer["original_gap_diagnostic"]
             self.assertEqual(diag["category"],"FEWER_THAN_21_VENDOR_ROWS_ASOF")
             self.assertEqual(diag["vendor_rows_at_or_before_asof"],1)
+            self.assertEqual(diag["next_research_action"],
+                             "VERIFY_LISTING_OR_VENDOR_HISTORY_DEPTH")
             self.assertFalse(diag["repair_approved"])
             self.assertFalse(diag["historical_PIT_verified"])
             self.assertTrue(x["gap_repair_queue_is_research_only"])
