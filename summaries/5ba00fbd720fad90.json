@@ -9,13 +9,13 @@
   "historical_PIT_verified": false,
   "coverage_certified_for_trading": false,
   "source_epoch_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
-  "checkpoint_completed_shards": 265,
+  "checkpoint_completed_shards": 267,
   "checkpoint_total_shards": 400,
-  "archived_original_shards": 265,
-  "coverage_report_count": 111,
-  "observed_archived_shards": 265,
-  "feature_complete_shards": 248,
-  "observed_with_feature_gaps_shards": 17,
+  "archived_original_shards": 267,
+  "coverage_report_count": 112,
+  "observed_archived_shards": 267,
+  "feature_complete_shards": 249,
+  "observed_with_feature_gaps_shards": 18,
   "unobserved_archived_shards": 0,
   "observed_shard_ids": [
     "shard_0000",
@@ -245,10 +245,12 @@
     "shard_0224",
     "shard_0225",
     "shard_0226",
+    "shard_0359",
     "shard_0360",
     "shard_0361",
     "shard_0362",
     "shard_0363",
+    "shard_0364",
     "shard_0366",
     "shard_0367",
     "shard_0368",
@@ -300,17 +302,18 @@
     "shard_0186",
     "shard_0208",
     "shard_0362",
+    "shard_0364",
     "shard_0372",
     "shard_0378",
     "shard_0379"
   ],
-  "feature_issuer_count": 2096,
-  "issuer_evidence_gap_count": 18,
-  "observed_feature_or_gap_issuers": 2114,
+  "feature_issuer_count": 2111,
+  "issuer_evidence_gap_count": 19,
+  "observed_feature_or_gap_issuers": 2130,
   "unobserved_issuer_count": 0,
   "gap_reason_counts": {
     "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS": 17,
-    "VENDOR_NOT_TRADABLE_ASOF": 1
+    "VENDOR_NOT_TRADABLE_ASOF": 2
   },
   "gap_issuer_codes": [
     "sh.600293",
@@ -328,6 +331,7 @@
     "sh.603838",
     "sh.605303",
     "sz.002717",
+    "sz.002731",
     "sz.002813",
     "sz.002860",
     "sz.002870"
@@ -665,6 +669,29 @@
             "last_vendor_row_day": "2026-10-20",
             "exact_asof_vendor_row_present": true,
             "original_csv_sha256": "ae1b73a1389f0629f64e130af4f2c1778f52ca837985e4b5f95ef14f048b81ac",
+            "vendor_calendar_independently_verified": false,
+            "historical_PIT_verified": false,
+            "repair_approved": false
+          }
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0364",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sz.002731",
+          "reason": "VENDOR_NOT_TRADABLE_ASOF",
+          "original_gap_diagnostic": {
+            "category": "VENDOR_MARKED_NOT_TRADABLE_AT_ASOF",
+            "next_research_action": "MATCH_OFFICIAL_ASOF_TRADING_STATE",
+            "vendor_rows_at_or_before_asof": 485,
+            "last_21_vendor_rows_suspended": 21,
+            "first_vendor_row_day": "2024-10-21",
+            "last_vendor_row_day": "2026-10-20",
+            "exact_asof_vendor_row_present": true,
+            "original_csv_sha256": "0486cfcd1af2ffd60a48911a3f94178e9bbe56daeca2c6232d83876688234510",
             "vendor_calendar_independently_verified": false,
             "historical_PIT_verified": false,
             "repair_approved": false
