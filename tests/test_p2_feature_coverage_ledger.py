@@ -212,6 +212,47 @@ class CoverageTests(unittest.TestCase):
             self.assertEqual(x["feature_complete_shards"],0)
             self.assertFalse(x["full_archive_feature_coverage"])
 
+class PinnedGapReplayTests(unittest.TestCase):
+    def test_halt_and_resume_regression(self):
+        from collector.p2_p3_pinned_gap_replay import compare_rows
+
+        def check(rows):
+            raw=("date,code,tradestatus\n"+"".join(
+                f"{day},sh.600293,{status}\n" for day,status in rows)).encode()
+            return compare_rows(raw,"sh.600293","2026-10-08","2026-10-12",
+                                hashlib.sha256(raw).hexdigest())
+
+        rows=[("2026-10-08","0"),("2026-10-09","0"),("2026-10-12","1")]
+        self.assertEqual(check(rows)["halt_rows_matched"],2)
+        for bad in (rows[1:], [*rows[:2],("2026-10-12","0")],
+                    [*rows[:2],("2026-10-10","0"),rows[2]],
+                    [*rows,("2026-10-21","1")], [rows[0],*rows]):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                check(bad)
+
+    def test_listing_and_holiday_calendar_regression(self):
+        from collector.p2_p3_pinned_gap_replay import compare_rows
+
+        days=("09-17 09-18 09-21 09-22 09-23 09-24 09-28 09-29 09-30 "
+              "10-08 10-09 10-12 10-13 10-14 10-15 10-16 10-19 10-20").split()
+
+        def check(values):
+            raw=("date,code,tradestatus\n"+"".join(
+                f"2026-{day},sh.601091,1\n" for day in sorted(values))).encode()
+            return compare_rows(raw,"sh.601091","2026-09-17",None,
+                                hashlib.sha256(raw).hexdigest())
+
+        self.assertEqual(check(days)["rows_matched"],18)
+        for bad in (days[1:], days+["09-25"], days+["10-01"], days+["09-16"]):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                check(bad)
+
+    def test_tampered_original_rejected_before_comparison(self):
+        from collector.p2_p3_pinned_gap_replay import compare_rows
+        with self.assertRaisesRegex(ValueError,"SHA mismatch"):
+            compare_rows(b"tampered","sh.601091","2026-09-17",None,"a"*64)
+
+
 def fixture_in_newdir(root):
     return fixture(Path(root)/"recreated")
 
