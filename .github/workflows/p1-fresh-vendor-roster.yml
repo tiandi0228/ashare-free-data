@@ -51,6 +51,11 @@ on:
         required: true
         default: "1"
         options: ["1", "2"]
+      gap_window:
+        description: "Manual-only inclusive missing-shard window start:end, e.g. 215:220; empty preserves rotation"
+        type: string
+        required: false
+        default: ""
       recovery_token:
         description: "Optional non-secret per-slot recovery correlation token (research only)"
         type: string
@@ -67,6 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       P1_RECOVERY_TOKEN: ${{ github.event_name == 'workflow_dispatch' && inputs.recovery_token || '' }}
+      P1_GAP_WINDOW: ${{ github.event_name == 'workflow_dispatch' && inputs.gap_window || '' }}
       P1_REQUESTED_SHARDS: ${{ github.event_name == 'workflow_dispatch' && inputs.shards_per_run || (github.event_name == 'schedule' && (github.event.schedule == '10 15 * * 1-5' || github.event.schedule == '10 9 * * 1-5' || github.event.schedule == '10 5 * * 1-5' || github.event.schedule == '10 7 * * 1-5' || github.event.schedule == '10 11 * * 1-5' || github.event.schedule == '10 3 * * 1-5') && '2' || '1') }}
     timeout-minutes: 20
     steps:
@@ -342,7 +348,12 @@ jobs:
         run: |
           PRIOR_ARGS=()
           if [[ -s evidence/prior_ledger.json ]]; then PRIOR_ARGS=(--prior evidence/prior_ledger.json); fi
-          python -m collector.p1_quad_pick --plan evidence/shards/plan.json "${PRIOR_ARGS[@]}" --per-run "$P1_REQUESTED_SHARDS" --output-file "$GITHUB_OUTPUT"
+          GAP_ARGS=()
+          if [[ -n "$P1_GAP_WINDOW" ]]; then
+            [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]] || { echo "manual-only gap override" >&2; exit 1; }
+            GAP_ARGS=(--gap-window "$P1_GAP_WINDOW")
+          fi
+          python -m collector.p1_quad_pick --plan evidence/shards/plan.json "${PRIOR_ARGS[@]}" "${GAP_ARGS[@]}" --per-run "$P1_REQUESTED_SHARDS" --output-file "$GITHUB_OUTPUT"
       - name: Record bounded pilot selection for audit
         run: |
           python - <<'PY'
@@ -361,6 +372,18 @@ jobs:
           Path('evidence/pilot_selection.json').write_text(json.dumps(receipt,indent=2)+'\n')
           print('P1 PILOT SELECTION:',receipt)
           PY
+      - name: Recheck live checkpoint and archive before manual gap vendor requests (NO WRITES)
+        if: github.event_name == 'workflow_dispatch' && env.P1_GAP_WINDOW != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test -s evidence/prior_ledger.json
+          python -m collector.p1_gap_remote_preflight \
+            --plan evidence/shards/plan.json \
+            --selection evidence/pilot_selection.json \
+            --prior evidence/prior_ledger.json \
+            --out evidence/p1_gap_remote_before_vendor.json
       - name: Fetch first real roster shard historical bars (bounded 8 only)
         run: |
           python - <<'PY'
@@ -476,6 +499,18 @@ jobs:
           assert x['completed_issuers']<=json.loads(Path('evidence/shards/plan.json').read_text())['issuer_count']
           print('AUDIT: source-bound completed issuers',x['completed_issuers'])
           PY
+      - name: Recheck remote checkpoint and archive just before manual gap archival (NO WRITES)
+        if: github.event_name == 'workflow_dispatch' && env.P1_GAP_WINDOW != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test -s evidence/p1_gap_remote_before_vendor.json
+          python -m collector.p1_gap_remote_preflight \
+            --plan evidence/shards/plan.json \
+            --selection evidence/pilot_selection.json \
+            --prior evidence/prior_ledger.json \
+            --out evidence/p1_gap_remote_before_archive.json
       - name: Archive raw CSV to durable free Git research branch
         id: diag_5
         env:
@@ -490,7 +525,13 @@ jobs:
           FOURTH=()
           if [[ "${{ steps.pick.outputs.has_third }}" == "true" ]]; then THIRD=(--third "${{ steps.pick.outputs.third }}"); fi
           if [[ "${{ steps.pick.outputs.has_fourth }}" == "true" ]]; then FOURTH=(--fourth "${{ steps.pick.outputs.fourth }}"); fi
-          python -m collector.p1_csv_archive --plan evidence/shards/plan.json --first "${{ steps.pick.outputs.first }}" "${SECOND[@]}" "${THIRD[@]}" "${FOURTH[@]}"
+          GAP_PREPUSH=()
+          if [[ -n "$P1_GAP_WINDOW" ]]; then
+            [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]] || { echo "manual gap pre-push requires dispatch" >&2; exit 1; }
+            test -s evidence/p1_gap_remote_before_archive.json
+            GAP_PREPUSH=(--manual-gap-prior evidence/prior_ledger.json --manual-gap-selection evidence/pilot_selection.json)
+          fi
+          python -m collector.p1_csv_archive --plan evidence/shards/plan.json --first "${{ steps.pick.outputs.first }}" "${SECOND[@]}" "${THIRD[@]}" "${FOURTH[@]}" "${GAP_PREPUSH[@]}"
       - name: Audit permanent research CSV archive against recovered ledger
         id: diag_6
         run: |
@@ -504,6 +545,15 @@ jobs:
           assert q['trade_gate']=='BLOCKED' and q['historical_PIT_verified'] is False
           assert q['archive_csv_replay_enabled'] is True
           assert q['archived_issuers']<=q['ledger_issuers']
+          # A gap run must not credit any of its selected shards that the
+          # archive replay marked missing or lacking an original receipt.
+          import os
+          if os.environ.get('P1_GAP_WINDOW'):
+              selection=json.loads(Path('evidence/pilot_selection.json').read_text())
+              ledger=json.loads(Path('evidence/ledger.json').read_text())
+              new={item['index'] for item in ledger['completed']} & set(selection['selected_shards'])
+              if not new or new.intersection(q['archive_repair_queue']):
+                  raise ValueError('manual P1 gap missing replayed archive evidence')
           print('ARCHIVE AUDIT: permanently verified',q['archived_issuers'],'of',q['ledger_issuers'])
           PY
       - name: Persist durable no-trade checkpoint in repository
@@ -511,6 +561,58 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python -m collector.p1_checkpoint --mode write --source-sha "$(python -c "import json;print(json.load(open('evidence/ledger.json'))['source_sha256'])")" --in-file evidence/ledger.json
+      - name: Verify remote checkpoint preserved the audited gap evidence
+        if: github.event_name == 'workflow_dispatch' && env.P1_GAP_WINDOW != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json,os,subprocess
+          from pathlib import Path
+          from collector.p1_checkpoint import epoch_path,remote_read,validate
+
+          read=lambda name: json.loads(Path('evidence',name).read_text())
+          proposed=read('ledger.json')
+          remote,blob=remote_read(os.environ['GITHUB_REPOSITORY'],
+                                  epoch_path(proposed['source_sha256']))
+          if remote is None or not blob:
+              raise ValueError('manual P1 gap checkpoint not found after write')
+          validate(remote)
+          if (remote['source_sha256'],remote['shard_count']) != (proposed['source_sha256'],proposed['shard_count']):
+              raise ValueError('manual P1 gap checkpoint epoch mismatch after write')
+          observed={item['index']:item for item in remote['completed']}
+          if any(observed.get(item['index']) != item for item in proposed['completed']):
+              raise ValueError('manual P1 gap checkpoint evidence mismatch after write')
+          prior={item['index'] for item in read('prior_ledger.json')['completed']}
+          selected=read('pilot_selection.json')['selected_shards']
+          proposed_by_index={item['index']:item for item in proposed['completed']}
+          accepted=[proposed_by_index[i] for i in selected if i in proposed_by_index and i not in prior]
+          if not accepted:
+              raise ValueError('manual P1 gap did not add any audited shard')
+          archive_commit=subprocess.check_output(
+              ['git','-C','archived-research','rev-parse','HEAD'],text=True).strip()
+          result={
+              'status':'MANUAL_GAP_ARCHIVE_AND_CHECKPOINT_VERIFIED',
+              'source_sha256':proposed['source_sha256'],
+              'run_id':os.environ['GITHUB_RUN_ID'],
+              'run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],
+              'workflow_sha':os.environ['GITHUB_SHA'],
+              'archive_audit_commit':archive_commit,
+              'checkpoint_blob_sha':blob,
+              'remote_readback_verified':True,
+              'selected_shards':selected,
+              'accepted_shards':accepted,
+              'new_shards_durably_accepted':len(accepted),
+              'completed_shards':remote['completed_shards'],
+              'historical_PIT_verified':False,
+              'trade_gate':'BLOCKED',
+              'orders':[],
+              'executable_candidates':[],
+          }
+          Path('evidence/p1_manual_gap_acceptance.json').write_text(
+              json.dumps(result,indent=2)+'\n')
+          print('P1 manual gap verified remote checkpoint evidence, trade_gate BLOCKED')
+          PY
       - name: Preserve pre-repair archive audit
         run: cp evidence/archive_audit.json evidence/archive_audit_before_repair.json
       - name: Pick one bounded previous archive gap
@@ -741,7 +843,7 @@ jobs:
           lines.append('- Archive raw CSV to durable free Git research branch: **${{ steps.diag_5.outcome }}**')
           lines.append('- Audit permanent research CSV archive against recovered ledger: **${{ steps.diag_6.outcome }}**')
           lines.append('- Persist durable no-trade checkpoint in repository: **${{ steps.diag_7.outcome }}**')
-          for name in ('p1_roster_lock.json','pilot_selection.json','optional_second.json','p1_run_progress.json','dual_pilot_receipt.json','dual_pilot_scale_review.json','dual_pilot_blocker_diagnostic.json','schedule_run_provenance.json','orphan_recovery.json','recovery_remote_ack.json','source_diagnostics.json','live_roster_attempt.json','quality.json','shards/plan.json','prior_ledger.json','ledger.json','archive_audit.json','epoch_comparison.json','research_readiness.json'):
+          for name in ('p1_roster_lock.json','pilot_selection.json','optional_second.json','p1_run_progress.json','dual_pilot_receipt.json','dual_pilot_scale_review.json','dual_pilot_blocker_diagnostic.json','schedule_run_provenance.json','orphan_recovery.json','recovery_remote_ack.json','p1_manual_gap_acceptance.json','source_diagnostics.json','live_roster_attempt.json','quality.json','shards/plan.json','prior_ledger.json','ledger.json','archive_audit.json','epoch_comparison.json','research_readiness.json'):
               file=root/name
               if not file.is_file():
                   lines.append(f'- `{name}`: unavailable (step did not produce it)')
