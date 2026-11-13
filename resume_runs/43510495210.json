@@ -1,0 +1,100 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 1,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 1,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1223750252",
+      "archival_pdf_path": "pdf/sh_603226/1223750252/edecac0c82383e22d8a3ae8998c8eb408d0564c1ed7e87a01ae61c0365956ba1.pdf",
+      "bytes": 117586,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.603226",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2025-06-04/1223750252.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "edecac0c82383e22d8a3ae8998c8eb408d0564c1ed7e87a01ae61c0365956ba1",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "证券简称：菲林格尔）将于2025年6月4日（星期三）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "edecac0c82383e22d8a3ae8998c8eb408d0564c1ed7e87a01ae61c0365956ba1",
+          "pdf_date_phrase": "2025年6月4日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-11-13T21:26:01.685317+00:00",
+      "source_halt_original_sha256": "f77315e335eb097bb0814dbb072efeadd4dedd376f119c3d09374adb48cb28c4",
+      "source_halt_text_day": "2025-05-31",
+      "title_unverified": "关于筹划控制权变更事项复牌的公告"
+    }
+  ],
+  "run_id": 43510495210,
+  "source_halt_issuers_attempted": 3,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603196",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-01-15",
+      "search_window_start": "2024-10-17",
+      "source_halt_announcement_id": "1221505516",
+      "source_halt_certified": false,
+      "source_halt_date": "2024-10-18",
+      "source_halt_original_sha256": "217e669d65a70ee44e0a2ae237c0c6d127c6a1ad95908b1e38894666985a89a9",
+      "window_segment_count": 9,
+      "window_segment_index": 0
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603213",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-11-17",
+      "search_window_start": "2025-08-19",
+      "source_halt_announcement_id": "1224519849",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-08-20",
+      "source_halt_original_sha256": "1bba0c7d71c36d974aaf73beb318e210a9f78304f182a7b37b1f7a39eeee504e",
+      "window_segment_count": 6,
+      "window_segment_index": 0
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603226",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-08-28",
+      "search_window_start": "2025-05-30",
+      "source_halt_announcement_id": "1223826303",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-05-31",
+      "source_halt_original_sha256": "f77315e335eb097bb0814dbb072efeadd4dedd376f119c3d09374adb48cb28c4",
+      "window_segment_count": 6,
+      "window_segment_index": 0
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.603196",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    },
+    {
+      "issuer": "sh.603213",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    },
+    {
+      "issuer": "sh.603226",
+      "matching_titles": 2,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
