@@ -79,10 +79,19 @@ class ManualOnlyGapIntegrationTests(unittest.TestCase):
         from collector.p1_checkpoint import epoch_path
         source='a'*64
         proposed={'source_sha256':source,'shard_count':400,
-                  'completed':[{'index':220,'receipt_sha256':'b'*64}]}
+                  'completed':[{'index':220,'receipt_sha256':'b'*64}],
+                  'completed_shards':1}
         extra={'index':225,'receipt_sha256':'c'*64}
-        with patch.object(Path,'read_text',return_value=json.dumps(proposed)), \
-             patch.dict(os.environ,{'GITHUB_REPOSITORY':'owner/repo'}), \
+        files={'ledger.json':proposed,'prior_ledger.json':{'completed':[]},
+               'pilot_selection.json':{'selected_shards':[220,225]}}
+        env={'GITHUB_REPOSITORY':'owner/repo','GITHUB_RUN_ID':'12',
+             'GITHUB_RUN_ATTEMPT':'2','GITHUB_SHA':'d'*40}
+        def read(path):
+            return json.dumps(files[path.name])
+        with patch.object(Path,'read_text',read), \
+             patch.object(Path,'write_text') as write, \
+             patch('subprocess.check_output',return_value='a'*40+'\n'), \
+             patch.dict(os.environ,env), \
              patch('collector.p1_checkpoint.validate'), \
              patch('collector.p1_checkpoint.remote_read') as remote:
             remote.return_value=(None,None)
@@ -98,6 +107,17 @@ class ManualOnlyGapIntegrationTests(unittest.TestCase):
             remote.return_value=({**proposed,'completed':proposed['completed']+[extra]},'blob')
             exec(script,{})
             remote.assert_called_with('owner/repo',epoch_path(source))
+            write.assert_called_once()
+            result=json.loads(write.call_args.args[0])
+            self.assertEqual(result['accepted_shards'],proposed['completed'])
+            self.assertEqual(result['selected_shards'],[220,225])
+            self.assertEqual(result['archive_audit_commit'],'a'*40)
+            self.assertEqual(result['checkpoint_blob_sha'],'blob')
+            self.assertEqual(result['trade_gate'],'BLOCKED')
+            files['prior_ledger.json']['completed']=proposed['completed']
+            with self.assertRaisesRegex(ValueError,'did not add'):
+                exec(script,{})
+            write.assert_called_once()
 
 
 if __name__=="__main__":
