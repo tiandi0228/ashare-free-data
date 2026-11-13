@@ -1,0 +1,119 @@
+{
+  "audited_issuer_count": 2170,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 2,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603183"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603271"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603273"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 43451525756,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 19212,
+  "research_date_action_links": [
+    {
+      "announcement_id": "1225588724",
+      "claimed_index_publication_utc_unverified": "2026-09-29T16:00:00+00:00",
+      "decision_day": "2026-09-30",
+      "decision_time_available_certified": false,
+      "effective_date_authenticated": false,
+      "event_kind": "halt",
+      "first_publication_authenticated": false,
+      "index_time_screen": "INDEX_TIME_NOT_AFTER_DECISION_CLOSE_UNVERIFIED",
+      "issuer": "sh.603183",
+      "local_textual_direction_candidate": "HALT_START",
+      "original_pdf_sha256": "b90d048268cd0b29f5d6b5e7edb15fbc36a88bcbcdde381fcb9a27b0cd2d83e1",
+      "source_clause_excerpt": "本公司股票将于2026年9月30日（星期三）开市起停牌",
+      "source_date_text": "2026年9月30日",
+      "source_shard": 140,
+      "vendor_csv_sha256": "3f53cf0bd447c2d757488614b4236632069885e793ee04959ae0c888c614168c",
+      "vendor_tradestatus_observed": "0"
+    },
+    {
+      "announcement_id": "1225588724",
+      "claimed_index_publication_utc_unverified": "2026-09-29T16:00:00+00:00",
+      "decision_day": "2026-10-08",
+      "decision_time_available_certified": false,
+      "effective_date_authenticated": false,
+      "event_kind": "halt",
+      "first_publication_authenticated": false,
+      "index_time_screen": "INDEX_TIME_NOT_AFTER_DECISION_CLOSE_UNVERIFIED",
+      "issuer": "sh.603183",
+      "local_textual_direction_candidate": "HALT_START",
+      "original_pdf_sha256": "b90d048268cd0b29f5d6b5e7edb15fbc36a88bcbcdde381fcb9a27b0cd2d83e1",
+      "source_clause_excerpt": "本公司股票将于2026年9月30日（星期三）开市起停牌",
+      "source_date_text": "2026年9月30日",
+      "source_shard": 140,
+      "vendor_csv_sha256": "3f53cf0bd447c2d757488614b4236632069885e793ee04959ae0c888c614168c",
+      "vendor_tradestatus_observed": "0"
+    }
+  ],
+  "run_id": 43451905529,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225588724",
+      "archive_path": "pdf/sh_603183/1225588724/b90d048268cd0b29f5d6b5e7edb15fbc36a88bcbcdde381fcb9a27b0cd2d83e1.pdf",
+      "bytes": 75741,
+      "captured_at_utc": "2026-11-13T15:22:53.583984+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1790697600000,
+      "issuer": "sh.603183",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-30/1225588724.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "b90d048268cd0b29f5d6b5e7edb15fbc36a88bcbcdde381fcb9a27b0cd2d83e1",
+      "title_from_index_unverified": "关于筹划重大事项的停牌公告"
+    },
+    {
+      "announcement_id": "1225604930",
+      "archive_path": "pdf/sh_603271/1225604930/a7d5da24263275eb2ec7261d2dc8e2c04f4a2a711a46437b06ad8d9f98ab643f.pdf",
+      "bytes": 146996,
+      "captured_at_utc": "2026-11-13T15:22:54.024428+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1791993600000,
+      "issuer": "sh.603271",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-15/1225604930.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "a7d5da24263275eb2ec7261d2dc8e2c04f4a2a711a46437b06ad8d9f98ab643f",
+      "title_from_index_unverified": "2026年半年度权益分派实施公告"
+    },
+    {
+      "announcement_id": "1225610728",
+      "archive_path": "pdf/sh_603273/1225610728/7628e2dbbb286b5816fa9bc73de2c6f8119e9335257e933b9dfcde0bfdee6f62.pdf",
+      "bytes": 277604,
+      "captured_at_utc": "2026-11-13T15:22:54.679245+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1792425600000,
+      "issuer": "sh.603273",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-20/1225610728.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "7628e2dbbb286b5816fa9bc73de2c6f8119e9335257e933b9dfcde0bfdee6f62",
+      "title_from_index_unverified": "东海证券股份有限公司关于天元智能装备股份有限公司首次公开发行部分限售股上市流通的核查意见"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
