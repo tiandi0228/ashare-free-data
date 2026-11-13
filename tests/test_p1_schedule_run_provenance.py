@@ -120,10 +120,11 @@ class P1ExactScheduledProvenanceTests(unittest.TestCase):
         self.assertFalse(r["per_shard_digests_from_locally_validated_ledger"])
         self.assertIsNone(r["new_archived_shard_evidence"])
 
-    def test_six_dual_plus_eight_single_crons_exact(self):
+    def test_seven_dual_plus_seven_single_crons_exact(self):
         self.assertEqual(len(ALLOWED_CRONS), 14)
-        self.assertEqual(len(DUAL_CRONS), 6)
+        self.assertEqual(len(DUAL_CRONS), 7)
         self.assertIn("10 3 * * 1-5", DUAL_CRONS)
+        self.assertIn("10 1 * * 1-5", DUAL_CRONS)
         self.assertNotIn("10 3 * * 6,0", ALLOWED_CRONS)
 
     def test_1110_china_is_0310_utc_and_not_same_day_unobserved(self):
@@ -162,7 +163,7 @@ class P1ExactScheduledProvenanceTests(unittest.TestCase):
                          "2026-11-05T09:10:00+08:00")
         self.assertEqual(r["github_queue_creation_delay_minutes"], 180)
         self.assertTrue(r["delay_exceeds_45_minutes"])
-        self.assertEqual(r["requested_shards"], 1)
+        self.assertEqual(r["requested_shards"], 2)
 
     def test_weekend_single_and_prior_utc_day_0110_beijing(self):
         weekend = check("10 1 * * 6,0", "2026-11-07T01:55:00Z",
@@ -230,7 +231,7 @@ class P1ExactScheduledProvenanceTests(unittest.TestCase):
                       actual_requested_shards=bad)
 
     def test_weekday_single_records_only_verified_own_shard(self):
-        r=check("10 1 * * 1-5", "2026-11-05T01:15:00Z",
+        r=check("10 0 * * 1-5", "2026-11-05T00:15:00Z",
                 valid_progress(selected=(60,)))
         self.assertEqual(r["new_original_shard_indices"], [60])
         self.assertEqual(r["checkpoint_shards_before"], 125)
