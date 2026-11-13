@@ -247,6 +247,30 @@ class PinnedGapReplayTests(unittest.TestCase):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 check(bad)
 
+    def test_remaining_notice_windows_keep_separate_halts_and_risk_warning(self):
+        from collector.p2_p3_pinned_gap_replay import BATCH_CASES, compare_notice_window
+        self.assertEqual(len(BATCH_CASES), 14)
+        days=("09-14 09-15 09-16 09-17 09-18 09-21 09-22 09-23 09-24 09-28 "
+              "09-29 09-30 10-08 10-09 10-12 10-13 10-14 10-15 10-16 10-19 10-20").split()
+        cases=[("sh.600825", set(days[:5]+days[15:18]), False),
+               ("sh.603517", {"10-19"}, True)]
+        for issuer, halted, risk in cases:
+            windows=BATCH_CASES[issuer][1]
+            rows=[(day,"0" if day in halted else "1") for day in days]
+            def check(values):
+                raw=("date,code,tradestatus\n"+"".join(
+                    f"2026-{day},{issuer},{status}\n" for day,status in values)).encode()
+                return compare_notice_window(raw,issuer,windows,hashlib.sha256(raw).hexdigest())
+            with self.subTest(issuer=issuer):
+                result=check(rows)
+                self.assertEqual(result["halt_rows_matched"],len(halted))
+                self.assertIs(result["risk_warning_review_required"],risk)
+                for bad in (rows[:-1], [*rows[:-1],("10-20","0")],
+                            [*rows,("10-21","1")],
+                            sorted([*rows,("10-01","0")])):
+                    with self.assertRaises(ValueError):
+                        check(bad)
+
     def test_tampered_original_rejected_before_comparison(self):
         from collector.p2_p3_pinned_gap_replay import compare_rows
         with self.assertRaisesRegex(ValueError,"SHA mismatch"):
