@@ -310,6 +310,20 @@ class PinnedGapReplayTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             verify_index([records[0],records[0],records[2]])
 
+    def test_media_label_is_minute_precision_and_never_certifies_eligibility(self):
+        from datetime import datetime
+        from collector.p3_risk_warning_index_dates import media_research_check
+        for instant, expected in (("2026-10-16T17:01:00+08:00", False),
+                                  ("2026-10-16T09:01:59+00:00", False),
+                                  ("2026-10-16T09:02:00+00:00", True)):
+            result=media_research_check("603838", datetime.fromisoformat(instant))
+            self.assertIs(result["decision_at_or_after_media_label_minute_end"],expected)
+            self.assertFalse(result["first_publication_time_verified"])
+            self.assertFalse(result["historical_non_st_eligibility_verified"])
+            self.assertEqual(result["trade_gate"],"BLOCKED")
+        with self.assertRaises(ValueError):
+            media_research_check("603838", datetime(2026,10,16,17,2))
+
     def test_tampered_original_rejected_before_comparison(self):
         from collector.p2_p3_pinned_gap_replay import compare_rows
         with self.assertRaisesRegex(ValueError,"SHA mismatch"):
