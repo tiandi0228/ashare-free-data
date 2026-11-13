@@ -1,0 +1,100 @@
+{
+  "continuous_halt_resume_intervals_certified": 0,
+  "downloaded_resume_original_count": 1,
+  "executable_candidates": [],
+  "explicit_original_resume_text_candidates": 1,
+  "historical_PIT_verified": false,
+  "official_resume_effective_dates_certified": 0,
+  "orders": [],
+  "phase": "P3_RESUME_SOURCE_SHA_APPEND_ONLY_RESEARCH",
+  "publisher_first_publication_authenticated": false,
+  "resume_notice_source_receipts": [
+    {
+      "actual_resumption_authenticated": false,
+      "announcement_id": "1225000410",
+      "archival_pdf_path": "pdf/sh_603121/1225000410/0b708cb562f0d2331e84d9ee905c1d11b8dc6bff9ff30bf28494ec6ef8332614.pdf",
+      "bytes": 124247,
+      "complete_halt_interval_certified": false,
+      "historical_first_publication_authenticated": false,
+      "issuer": "sh.603121",
+      "issuer_code_in_pdf_text_observed": true,
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-03-07/1225000410.PDF",
+      "original_pdf_retrieved": true,
+      "pdf_sha256": "0b708cb562f0d2331e84d9ee905c1d11b8dc6bff9ff30bf28494ec6ef8332614",
+      "resume_same_clause_text_candidates": [
+        {
+          "date_clause_unverified": "公司股票自2026年3月9日（星期一）开市起复牌",
+          "first_publication_authenticated": false,
+          "original_sha256": "0b708cb562f0d2331e84d9ee905c1d11b8dc6bff9ff30bf28494ec6ef8332614",
+          "pdf_date_phrase": "2026年3月9日",
+          "resumption_date_authenticated": false
+        }
+      ],
+      "retrieved_at_utc": "2026-11-13T18:31:38.727356+00:00",
+      "source_halt_original_sha256": "28aa96e8eab2c0e1bee55582113567173cd95a47a001c9befcc37d2fc925c282",
+      "source_halt_text_day": "2026-02-13",
+      "title_unverified": "华培动力：关于终止筹划发行可转换公司债券及支付现金购买资产并募集配套资金暨关联交易事项并复牌的公告"
+    }
+  ],
+  "run_id": 43483346409,
+  "source_halt_issuers_attempted": 3,
+  "source_halt_records": [
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600381",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2025-10-25",
+      "search_window_start": "2025-07-28",
+      "source_halt_announcement_id": "1223383609",
+      "source_halt_certified": false,
+      "source_halt_date": "2025-04-29",
+      "source_halt_original_sha256": "a314dc86d4bd3ba663326a795e33d9dae71aecf7b48e60d9df46b40e3b2843f4",
+      "window_segment_count": 7,
+      "window_segment_index": 1
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.600439",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-10-28",
+      "search_window_start": "2026-07-30",
+      "source_halt_announcement_id": "1225449756",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-07-31",
+      "source_halt_original_sha256": "e7e2a3f9ff8d021735e94b5efb4a1b1cbf56dbd383ff322e5311699d0c679ebb",
+      "window_segment_count": 2,
+      "window_segment_index": 0
+    },
+    {
+      "historical_resume_authenticated": false,
+      "issuer": "sh.603121",
+      "research_window_is_exhaustive": false,
+      "search_window_end": "2026-05-13",
+      "search_window_start": "2026-02-12",
+      "source_halt_announcement_id": "1224979742",
+      "source_halt_certified": false,
+      "source_halt_date": "2026-02-13",
+      "source_halt_original_sha256": "28aa96e8eab2c0e1bee55582113567173cd95a47a001c9befcc37d2fc925c282",
+      "window_segment_count": 4,
+      "window_segment_index": 0
+    }
+  ],
+  "source_index_states": [
+    {
+      "issuer": "sh.600381",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    },
+    {
+      "issuer": "sh.600439",
+      "matching_titles": 0,
+      "status": "NO_RESUME_TITLE_IN_BOUNDED_INDEX_NOT_NEGATIVE_PROOF"
+    },
+    {
+      "issuer": "sh.603121",
+      "matching_titles": 1,
+      "status": "RESUMPTION_TITLE_RESEARCH_CANDIDATES_UNVERIFIED"
+    }
+  ],
+  "trade_gate": "BLOCKED"
+}
