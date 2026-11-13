@@ -567,7 +567,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           python - <<'PY'
-          import json,os
+          import json,os,subprocess
           from pathlib import Path
           from collector.p1_checkpoint import epoch_path,remote_read,validate
 
@@ -583,6 +583,34 @@ jobs:
           observed={item['index']:item for item in remote['completed']}
           if any(observed.get(item['index']) != item for item in proposed['completed']):
               raise ValueError('manual P1 gap checkpoint evidence mismatch after write')
+          prior={item['index'] for item in read('prior_ledger.json')['completed']}
+          selected=read('pilot_selection.json')['selected_shards']
+          proposed_by_index={item['index']:item for item in proposed['completed']}
+          accepted=[proposed_by_index[i] for i in selected if i in proposed_by_index and i not in prior]
+          if not accepted:
+              raise ValueError('manual P1 gap did not add any audited shard')
+          archive_commit=subprocess.check_output(
+              ['git','-C','archived-research','rev-parse','HEAD'],text=True).strip()
+          result={
+              'status':'MANUAL_GAP_ARCHIVE_AND_CHECKPOINT_VERIFIED',
+              'source_sha256':proposed['source_sha256'],
+              'run_id':os.environ['GITHUB_RUN_ID'],
+              'run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],
+              'workflow_sha':os.environ['GITHUB_SHA'],
+              'archive_audit_commit':archive_commit,
+              'checkpoint_blob_sha':blob,
+              'remote_readback_verified':True,
+              'selected_shards':selected,
+              'accepted_shards':accepted,
+              'new_shards_durably_accepted':len(accepted),
+              'completed_shards':remote['completed_shards'],
+              'historical_PIT_verified':False,
+              'trade_gate':'BLOCKED',
+              'orders':[],
+              'executable_candidates':[],
+          }
+          Path('evidence/p1_manual_gap_acceptance.json').write_text(
+              json.dumps(result,indent=2)+'\n')
           print('P1 manual gap verified remote checkpoint evidence, trade_gate BLOCKED')
           PY
       - name: Preserve pre-repair archive audit
@@ -815,7 +843,7 @@ jobs:
           lines.append('- Archive raw CSV to durable free Git research branch: **${{ steps.diag_5.outcome }}**')
           lines.append('- Audit permanent research CSV archive against recovered ledger: **${{ steps.diag_6.outcome }}**')
           lines.append('- Persist durable no-trade checkpoint in repository: **${{ steps.diag_7.outcome }}**')
-          for name in ('p1_roster_lock.json','pilot_selection.json','optional_second.json','p1_run_progress.json','dual_pilot_receipt.json','dual_pilot_scale_review.json','dual_pilot_blocker_diagnostic.json','schedule_run_provenance.json','orphan_recovery.json','recovery_remote_ack.json','source_diagnostics.json','live_roster_attempt.json','quality.json','shards/plan.json','prior_ledger.json','ledger.json','archive_audit.json','epoch_comparison.json','research_readiness.json'):
+          for name in ('p1_roster_lock.json','pilot_selection.json','optional_second.json','p1_run_progress.json','dual_pilot_receipt.json','dual_pilot_scale_review.json','dual_pilot_blocker_diagnostic.json','schedule_run_provenance.json','orphan_recovery.json','recovery_remote_ack.json','p1_manual_gap_acceptance.json','source_diagnostics.json','live_roster_attempt.json','quality.json','shards/plan.json','prior_ledger.json','ledger.json','archive_audit.json','epoch_comparison.json','research_readiness.json'):
               file=root/name
               if not file.is_file():
                   lines.append(f'- `{name}`: unavailable (step did not produce it)')
