@@ -8,7 +8,7 @@ def order(side,day,n=100,fills=100):
             "expires_at":day+"T14:55:00+08:00",
             "events":([{"kind":"FILL_RECEIPT","shares":fills,"price":"6.40",
                         "observed_at":day+"T10:00:00+08:00",
-                        "source_sha256":"a"*64}] if fills else [])}
+                        "source_sha256":("a" if side=="BUY" else "b")*64}] if fills else [])}
 MARKET={"issuer_status":"TRADING",
         "official_status_authenticated":True,
         "official_calendar_authenticated":True,
@@ -31,6 +31,24 @@ class CycleTests(unittest.TestCase):
         self.assertFalse(x["modeled_net_pnl_finalized"])
         self.assertFalse(x["fill_certified"])
         self.assertEqual(x["orders"],[])
+    def test_cycle_uses_exchange_day_for_all_receipts(self):
+        buy=order("BUY",DAYS[0])
+        buy["events"][0]["observed_at"]="2026-10-18T22:00:00-04:00"
+        sell=order("SELL",DAYS[3])
+        sell["placed_at"]="2026-10-22T01:30:00Z"
+        sell["events"][0]["observed_at"]="2026-10-21T22:00:00-04:00"
+        x=audit(**args(buy_order=buy,sell_order=sell))
+        self.assertEqual(x["entry_day"],DAYS[0])
+        self.assertEqual(x["remaining_shares"],0)
+        self.assertFalse(x["fill_certified"])
+
+    def test_cycle_rejects_reused_entry_receipt_on_later_exit(self):
+        buy=order("BUY",DAYS[0])
+        sell=order("SELL",DAYS[3])
+        sell["events"][0]["source_sha256"]=buy["events"][0]["source_sha256"]
+        with self.assertRaisesRegex(ValueError,"receipt reused across buy and sell"):
+            audit(**args(buy_order=buy,sell_order=sell))
+
     def test_missing_exit_d6_remains_unresolved(self):
         x=audit(**args(sell_order=None,asof_day=DAYS[6]))
         self.assertEqual(x["position_state"],"FRIDAY_EXIT_OVERDUE_UNRESOLVED")

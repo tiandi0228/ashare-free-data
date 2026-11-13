@@ -10,6 +10,11 @@ def new(quantity=100):
  placed_at="2026-10-26T09:33:00+08:00",expires_at="2026-10-26T14:55:00+08:00",
  events=[dict(kind="FILL_RECEIPT",observed_at="2026-10-26T09:34:00+08:00",shares=100,price="6.38",source_sha256="c"*64)])
 class Tests(unittest.TestCase):
+ def test_same_receipt_cannot_be_counted_in_replacement(self):
+  first,replacement=base(),new()
+  replacement["events"][0]["source_sha256"]=first["events"][0]["source_sha256"]
+  with self.assertRaisesRegex(ValueError,"receipt reused"):
+   review(original=first,replacement=replacement)
  def test_valid_replacement(self):
   x=review(original=base(),replacement=new())
   self.assertEqual(x["aggregate_receipt_fill_shares"],200)

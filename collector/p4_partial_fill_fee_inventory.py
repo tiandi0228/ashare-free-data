@@ -1,7 +1,6 @@
 """Research-only aggregation of receipt-observed partial fills and T+1 inventory."""
 from decimal import Decimal,ROUND_HALF_UP
-from datetime import date
-from collector.p4_limit_order_replay import replay as order_replay
+from collector.p4_limit_order_replay import exchange_day, replay as order_replay
 D=Decimal
 def cents(x):return x.quantize(D("0.01"),rounding=ROUND_HALF_UP)
 def summarize(*,buy_order,sell_order=None,commission_rate="0.0002854",commission_min="5",stamp_tax_rate="0.0005",transfer_rate="0.00001"):
@@ -24,12 +23,17 @@ def summarize(*,buy_order,sell_order=None,commission_rate="0.0002854",commission
     if sell_order is not None:
         s=order_replay(**sell_order)
         if s["side"]!="SELL":raise ValueError("sell leg required")
-        buy_days=[date.fromisoformat(e["observed_at"][:10]) for e in buy_order["events"] if e["kind"]=="FILL_RECEIPT"]
+        buy_receipts={x["source_sha256"] for x in b["evidence_records"]}
+        sell_receipts={x["source_sha256"] for x in s["evidence_records"]}
+        if buy_receipts & sell_receipts:
+            raise ValueError("receipt reused across buy and sell orders")
+        already_sold=0
         for e in sell_order["events"]:
             if e["kind"]=="FILL_RECEIPT":
-                sold_on=date.fromisoformat(e["observed_at"][:10])
-                available=sum(x["shares"] for x in buy_order["events"] if x["kind"]=="FILL_RECEIPT" and date.fromisoformat(x["observed_at"][:10])<sold_on)
-                already_sold=sum(x["shares"] for x in sell_order["events"] if x["kind"]=="FILL_RECEIPT" and x["observed_at"]<=e["observed_at"])
+                sold_on=exchange_day(e["observed_at"])
+                available=sum(x["shares"] for x in buy_order["events"] if x["kind"]=="FILL_RECEIPT" and exchange_day(x["observed_at"])<sold_on)
+                # Order replay already verified chronological order by instant.
+                already_sold+=e["shares"]
                 if already_sold>available:raise ValueError("T+1 available inventory exceeded")
         if s["receipt_fill_shares"]>b["receipt_fill_shares"]:raise ValueError("oversold")
         gross_sell=D(s["notional_observed"])

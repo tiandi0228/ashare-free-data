@@ -6,7 +6,7 @@ verified PnL or executable candidates.
 """
 from datetime import date
 from decimal import Decimal
-from collector.p4_limit_order_replay import replay as replay_order
+from collector.p4_limit_order_replay import exchange_day, replay as replay_order
 from collector.p4_partial_fill_fee_inventory import summarize
 from collector.p4_unified_execution_preflight import assess as preflight_check
 from collector.p4_time_exit_unresolved import assess as time_exit_check
@@ -14,7 +14,7 @@ from collector.p4_execution_arithmetic import replay as scenario_replay
 
 
 def _fill_days(order):
-    return {date.fromisoformat(e["observed_at"][:10])
+    return {exchange_day(e["observed_at"])
             for e in order["events"] if e["kind"] == "FILL_RECEIPT"}
 
 
@@ -26,12 +26,12 @@ def audit(*, issuer, buy_order, sell_order, asof_day, calendar_sessions,
     sessions = [date.fromisoformat(x) for x in calendar_sessions]
     if sessions != sorted(sessions) or today not in sessions:
         raise ValueError("observation day not in ordered calendar")
-    if date.fromisoformat(buy_order["placed_at"][:10]) > today:
+    if exchange_day(buy_order["placed_at"]) > today:
         raise ValueError("future buy order timestamp")
     buy = replay_order(**buy_order)
     if buy["side"] != "BUY":
         raise ValueError("buy leg required")
-    if any(date.fromisoformat(e["observed_at"][:10]) > today for e in buy_order["events"]):
+    if any(exchange_day(e["observed_at"]) > today for e in buy_order["events"]):
         raise ValueError("future buy evidence")
     buy_days = _fill_days(buy_order)
     if len(buy_days) > 1:
@@ -58,11 +58,11 @@ def audit(*, issuer, buy_order, sell_order, asof_day, calendar_sessions,
             raise ValueError("exit market input conflicts with entry, date or side")
     preflight = preflight_check(**{**exit_market_inputs, **fixed})
     if sell_order is not None:
-        if date.fromisoformat(sell_order["placed_at"][:10]) > today:
+        if exchange_day(sell_order["placed_at"]) > today:
             raise ValueError("future sell order timestamp")
         if Decimal(str(exit_market_inputs.get("order_limit_price"))) != Decimal(str(sell_order["limit_price"])):
             raise ValueError("sell receipt order limit differs from preflight quote")
-        if any(date.fromisoformat(e["observed_at"][:10]) > today for e in sell_order["events"]):
+        if any(exchange_day(e["observed_at"]) > today for e in sell_order["events"]):
             raise ValueError("future sell evidence")
         if _fill_days(sell_order) - {today}:
             raise ValueError("multi-date exit needs per-session market evidence")
