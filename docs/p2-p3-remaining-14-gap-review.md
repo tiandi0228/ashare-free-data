@@ -1,0 +1,30 @@
+# P2/P3 remaining 14 gap reviews
+
+Research cutoff 2026-10-20. Epoch `5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022`.
+
+Compared every status in the last 21 vendor rows (2026-09-14 through 2026-10-20) against the notice text and the scheduled open sessions. Verified each CSV's SHA-256 against the durable P2 feature coverage ledger. The notice text was reviewed online, not archived or byte-hashed by this check. Reproductions are identified separately below.
+
+| Issuer | Shard | Notice halt start → resumption (2026, end exclusive) | Halt rows in 21-session window | Notice text | CSV SHA-256 |
+|---|---|---|---:|---|---|
+| sh.600363 | shard_0033 | 09-29 → 09-30 | 1 | [1](https://static.cninfo.com.cn/finalpage/2026-09-29/1225584110.PDF) | `e4c01fa609951f30d25ec28ff729fa862c4815eca4ae279c9d7aeb1940f0fee2` |
+| sh.600825 | shard_0078 | 09-08 → 09-21; 10-13 → 10-16 | 8 | [1](https://static.cninfo.com.cn/finalpage/2026-09-08/1225552231.PDF) [2](https://static.cninfo.com.cn/finalpage/2026-09-19/1225571469.PDF) [3](https://static.cninfo.com.cn/finalpage/2026-10-13/1225602155.PDF) [4](https://static.cninfo.com.cn/finalpage/2026-10-16/1225607741.PDF) | `63ae1dd1502c2340aea79be6144a58d2256ed7edeb8c72b3bc69f289eb673e8a` |
+| sh.601238 | shard_0104 | 09-14 → 09-29 | 10 | [1](https://static.cninfo.com.cn/finalpage/2026-09-29/1225586271.PDF) | `a2f6d4f36ec5487329a8e66a56bdf872c4dfc1e9a1cb2eb565994628800b7e65` |
+| sh.601995 | shard_0120 | 09-15 → 09-23 | 6 | [1](https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?id=12588539&stockid=601995) [2](https://static.cninfo.com.cn/finalpage/2026-09-23/1225577325.PDF) | `c62152568423890c5bfc384fa4e0ec34e9ef71b9a092011b75b83a9e282d6609` |
+| sh.603159 | shard_0137 | 09-10 → 09-17 | 3 | [1](https://static.cninfo.com.cn/finalpage/2026-09-17/1225568804.PDF) | `c36cfc0437a88c63a3f63385a147c8f203cb0fc29ea5086dd71f32607bc24eb2` |
+| sh.603183 | shard_0140 | 09-30 → 10-09 | 2 | [1](https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?id=12627725&stockid=603183) [2](https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?id=12633365&stockid=603183) | `3f53cf0bd447c2d757488614b4236632069885e793ee04959ae0c888c614168c` |
+| sh.603400 | shard_0161 | 09-15 → 09-30 | 10 | [1](https://static.cninfo.com.cn/finalpage/2026-09-30/1225588894.PDF) | `d7d67226a1430bc3c0a56a4e48f08871f1a6dfb996043cc8f6d5c1523a6d60f5` |
+| sh.603517 | shard_0166 | 10-19 → 10-20 | 1 | [1](https://static.cninfo.com.cn/finalpage/2026-10-19/1225609996.PDF) | `f6e5848ea8ff0e682608d96342adf68594140f9e7eac3aaad75afbfb2dc2394a` |
+| sh.603759 | shard_0182 | 10-19 → 10-20 | 1 | [1](https://epaper.cs.com.cn/zgzqb/html/2026-10/20/nw.D110000zgzqb_20261020_5-B056.htm) [2](https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?id=12649283&stockid=603759) | `b5d17da3ca737e21479b5e4b5a1ad41c7f13f777f42b8eaf419f30c35dcce4dc` |
+| sh.603838 | shard_0186 | 10-19 → 10-20 | 1 | [1](https://static.cninfo.com.cn/finalpage/2026-10-17/1225608268.PDF) | `98441e8dcbfae442ec14a7004a95ce5abff8d876b8cd69e1e754a77b16436e86` |
+| sh.605303 | shard_0208 | 09-14 → 09-29 | 10 | [1](https://static.cninfo.com.cn/finalpage/2026-09-12/1225560951.PDF) [2](https://static.cninfo.com.cn/finalpage/2026-09-29/1225585581.PDF) | `6c96135604c6cacdccc054c0babd022c3ac21488ab1c3597c7628f763b653688` |
+| sz.002813 | shard_0372 | 09-30 → 10-14 | 5 | [1](https://disc.static.szse.cn/download/disc/disk03/finalpage/2026-10-14/6b255775-6b1f-4f4a-aa78-37830de08dc2.PDF) | `cb54189b8e76230ba70324a16fb53c6b316c0ce4c64dd3e2ff066177e82cf08f` |
+| sz.002860 | shard_0378 | 09-22 → 10-14 | 10 | [1](https://static.cninfo.com.cn/finalpage/2026-09-22/1225575586.PDF) [2](https://static.cninfo.com.cn/finalpage/2026-10-14/1225604019.PDF) | `c1e9e5844abed70f2471cb337bf917f584f0029109aac7c0bfb80ae85ad1d188` |
+| sz.002870 | shard_0379 | 09-01 → 09-15 | 1 | [1](https://static.cninfo.com.cn/finalpage/2026-09-01/1225538772.PDF) [2](https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?id=12601960&stockid=002870) | `9f69a30a532df4e4178109d0c886f30c82e1f8fd1cf9e0fb3693f13582d3935a` |
+
+For 600825 the September notice sequence also describes suspension on September 7, before the first interval shown as September 8 in the formal notice table. Both precede the replay window, so this review does not adjudicate that boundary. 603183 and 603759 are reproduced issuer notices rather than verified original bytes, and 601995 and 002870 have one reproduced notice each. A resumption notice may recap the original halt; this is not separate byte proof of the initiating notice.
+
+Exclude weekends, September 25 and October 1–7 using the [SSE closure schedule](https://www.sse.com.cn/disclosure/dealinstruc/closed/) and the [SZSE closure notice](https://www.szse.cn/www/disclosure/notice/general/t20260917_622911.html). All 294 issuer-session statuses matched in-window, including 69 halt statuses. No official first-publication timestamp was authenticated. No historical PIT cells certified and no P2 feature gaps closed. Do not treat the daily status field as proof of intraday tradability or ST eligibility. The notices for 600363, 603517 and 603838 additionally warrant separate risk-warning-effective-date review. `trade_gate=BLOCKED`.
+
+## Repeat the comparison
+
+Run `python -m collector.p2_p3_pinned_gap_replay --archive-root /path/to/research-archive --remaining-14`. The command checks each receipt and original CSV, rejects mismatched daily status sequences, and flags the three risk-warning cases separately. It does not fetch announcements or close gaps.

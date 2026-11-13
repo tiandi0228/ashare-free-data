@@ -92,6 +92,8 @@ class CoverageTests(unittest.TestCase):
             diag=issuer["original_gap_diagnostic"]
             self.assertEqual(diag["category"],"FEWER_THAN_21_VENDOR_ROWS_ASOF")
             self.assertEqual(diag["vendor_rows_at_or_before_asof"],1)
+            self.assertEqual(diag["next_research_action"],
+                             "VERIFY_LISTING_OR_VENDOR_HISTORY_DEPTH")
             self.assertFalse(diag["repair_approved"])
             self.assertFalse(diag["historical_PIT_verified"])
             self.assertTrue(x["gap_repair_queue_is_research_only"])
@@ -209,6 +211,151 @@ class CoverageTests(unittest.TestCase):
             self.assertEqual(x["unobserved_archived_shards"],2)
             self.assertEqual(x["feature_complete_shards"],0)
             self.assertFalse(x["full_archive_feature_coverage"])
+
+class PinnedGapReplayTests(unittest.TestCase):
+    def test_halt_and_resume_regression(self):
+        from collector.p2_p3_pinned_gap_replay import compare_rows
+
+        def check(rows):
+            raw=("date,code,tradestatus\n"+"".join(
+                f"{day},sh.600293,{status}\n" for day,status in rows)).encode()
+            return compare_rows(raw,"sh.600293","2026-10-08","2026-10-12",
+                                hashlib.sha256(raw).hexdigest())
+
+        rows=[("2026-10-08","0"),("2026-10-09","0"),("2026-10-12","1")]
+        self.assertEqual(check(rows)["halt_rows_matched"],2)
+        for bad in (rows[1:], [*rows[:2],("2026-10-12","0")],
+                    [*rows[:2],("2026-10-10","0"),rows[2]],
+                    [*rows,("2026-10-21","1")], [rows[0],*rows]):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                check(bad)
+
+    def test_listing_and_holiday_calendar_regression(self):
+        from collector.p2_p3_pinned_gap_replay import compare_rows
+
+        days=("09-17 09-18 09-21 09-22 09-23 09-24 09-28 09-29 09-30 "
+              "10-08 10-09 10-12 10-13 10-14 10-15 10-16 10-19 10-20").split()
+
+        def check(values):
+            raw=("date,code,tradestatus\n"+"".join(
+                f"2026-{day},sh.601091,1\n" for day in sorted(values))).encode()
+            return compare_rows(raw,"sh.601091","2026-09-17",None,
+                                hashlib.sha256(raw).hexdigest())
+
+        self.assertEqual(check(days)["rows_matched"],18)
+        for bad in (days[1:], days+["09-25"], days+["10-01"], days+["09-16"]):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                check(bad)
+
+    def test_remaining_notice_windows_keep_separate_halts_and_risk_warning(self):
+        from collector.p2_p3_pinned_gap_replay import BATCH_CASES, compare_notice_window
+        self.assertEqual(len(BATCH_CASES), 14)
+        days=("09-14 09-15 09-16 09-17 09-18 09-21 09-22 09-23 09-24 09-28 "
+              "09-29 09-30 10-08 10-09 10-12 10-13 10-14 10-15 10-16 10-19 10-20").split()
+        cases=[("sh.600825", set(days[:5]+days[15:18]), False),
+               ("sh.603517", {"10-19"}, True)]
+        for issuer, halted, risk in cases:
+            windows=BATCH_CASES[issuer][1]
+            rows=[(day,"0" if day in halted else "1") for day in days]
+            def check(values):
+                raw=("date,code,tradestatus\n"+"".join(
+                    f"2026-{day},{issuer},{status}\n" for day,status in values)).encode()
+                return compare_notice_window(raw,issuer,windows,hashlib.sha256(raw).hexdigest())
+            with self.subTest(issuer=issuer):
+                result=check(rows)
+                self.assertEqual(result["halt_rows_matched"],len(halted))
+                self.assertIs(result["risk_warning_review_required"],risk)
+                for bad in (rows[:-1], [*rows[:-1],("10-20","0")],
+                            [*rows,("10-21","1")],
+                            sorted([*rows,("10-01","0")])):
+                    with self.assertRaises(ValueError):
+                        check(bad)
+
+    def test_risk_warning_notice_never_proves_point_in_time_eligibility(self):
+        from collector.p2_p3_pinned_gap_replay import RISK_WARNING_NOTICES, risk_warning_notice
+        from unittest.mock import patch
+        raw=b"%PDF-test-fixture"
+        for issuer, expected in RISK_WARNING_NOTICES.items():
+            with self.subTest(issuer=issuer):
+                with self.assertRaisesRegex(ValueError,"PDF SHA mismatch"):
+                    risk_warning_notice(issuer, raw)
+                fixture=(*expected[:-1], hashlib.sha256(raw).hexdigest())
+                with patch.dict(RISK_WARNING_NOTICES, {issuer:fixture}):
+                    result=risk_warning_notice(issuer, raw)
+                self.assertTrue(result["original_pdf_sha_verified"])
+                self.assertFalse(result["exact_first_publication_verified"])
+                self.assertFalse(result["historical_non_st_eligibility_verified"])
+                self.assertEqual(result["trade_gate"], "BLOCKED")
+
+    def test_risk_warning_index_never_treats_timestamp_as_publication(self):
+        import copy
+        from collector.p3_risk_warning_index_dates import verify_index
+        path=Path(__file__).resolve().parents[1]/"evidence/p3_risk_warning_index_dates.json"
+        records=json.loads(path.read_text())
+        report=verify_index(records)
+        self.assertEqual(report["precision_for_acceptance"],"INDEX_DATE_ONLY")
+        self.assertEqual(report["trade_gate"],"BLOCKED")
+        self.assertTrue(all(r["index_time_is_midnight"] for r in report["cases"]))
+        changed=copy.deepcopy(records)
+        changed[0]["announcementTime"]+=12*3600*1000
+        result=verify_index(changed)
+        self.assertFalse(result["cases"][0]["index_time_is_midnight"])
+        self.assertFalse(result["cases"][0]["first_publication_time_verified"])
+        for field,value in (("announcementId","wrong"),("adjunctUrl","wrong"),
+                            ("announcementTime",True),("announcementTime",0)):
+            wrong=copy.deepcopy(records)
+            wrong[0][field]=value
+            with self.assertRaises(ValueError):
+                verify_index(wrong)
+        with self.assertRaises(ValueError):
+            verify_index([records[0],records[0],records[2]])
+
+    def test_media_label_is_minute_precision_and_never_certifies_eligibility(self):
+        from datetime import datetime
+        from collector.p3_risk_warning_index_dates import media_research_check
+        for instant, expected in (("2026-10-16T17:01:00+08:00", False),
+                                  ("2026-10-16T09:01:59+00:00", False),
+                                  ("2026-10-16T09:02:00+00:00", True)):
+            result=media_research_check("603838", datetime.fromisoformat(instant))
+            self.assertIs(result["decision_at_or_after_media_label_minute_end"],expected)
+            self.assertFalse(result["first_publication_time_verified"])
+            self.assertFalse(result["historical_non_st_eligibility_verified"])
+            self.assertEqual(result["trade_gate"],"BLOCKED")
+        with self.assertRaises(ValueError):
+            media_research_check("603838", datetime(2026,10,16,17,2))
+
+    def test_002717_placeholder_and_preliminary_notice_do_not_promote_state(self):
+        from collector.p2_real_archive_features import observe
+        from collector.p3_positive_effective_text_candidates import check_text
+        with tempfile.TemporaryDirectory() as d:
+            folder=Path(d)/"5ba00fbd720fad90"/"shard_0362"
+            folder.mkdir(parents=True)
+            code="sz.002717"
+            raw=("date,code,open,high,low,close,volume,amount,adjustflag,tradestatus\n"
+                 "2026-10-12,sz.002717,0.45,0.45,0.45,0.45,10,4.50,3,1\n"
+                 "2026-10-20,sz.002717,0.45,0.45,0.45,0.45,,,3,0\n").encode()
+            (folder/"sz_002717.csv").write_bytes(raw)
+            receipt={"status":"OBSERVED_SUBSET_UNVERIFIED","trade_gate":"BLOCKED",
+                     "orders":[],"historical_point_in_time_universe_verified":False,
+                     "issuer_count":1,"results":[{"code":code,"status":"OBSERVED_UNVERIFIED",
+                     "sha256":hashlib.sha256(raw).hexdigest(),"rows":2,
+                     "tradable_rows":1,"suspended_status_rows":1}]}
+            (folder/"quality.json").write_text(json.dumps(receipt))
+            report=observe(d,"2026-10-20")
+            self.assertEqual(report["features"],[])
+            self.assertEqual(report["evidence_gaps"],
+                             [{"issuer":code,"reason":"VENDOR_NOT_TRADABLE_ASOF"}])
+            self.assertEqual(report["trade_gate"],"BLOCKED")
+        for text in ("收到终止上市事先告知书，拟终止上市",
+                     "预计2026年10月16日为最后交易日"):
+            self.assertEqual(check_text("DELIST_RISK_ISSUER_FORECAST","2026年10月16日",text),
+                             {"candidate":None,"reason":"FORECAST_IS_NOT_EXCHANGE_EFFECTIVE_DELIST"})
+
+    def test_tampered_original_rejected_before_comparison(self):
+        from collector.p2_p3_pinned_gap_replay import compare_rows
+        with self.assertRaisesRegex(ValueError,"SHA mismatch"):
+            compare_rows(b"tampered","sh.601091","2026-09-17",None,"a"*64)
+
 
 def fixture_in_newdir(root):
     return fixture(Path(root)/"recreated")

@@ -1,0 +1,25 @@
+# 002717: as-of suspension, not a certified delisting date
+
+P2 coverage reported `VENDOR_MARKED_NOT_TRADABLE_AT_ASOF` for this newly observed gap in shard_0362. The 2026-10-20 cutoff is unchanged.
+
+| Evidence | Verified finding |
+|---|---|
+| [Issuer notice 2026-119](https://static.cninfo.com.cn/finalpage/2026-10-13/1225602315.PDF) | Suspension from market open on 2026-10-13. PDF SHA-256 `32a79fe046d35bcab49e962608d53500ad2da2067f70222346641e9cf5b2ba59`. |
+| [Issuer notice 2026-122](https://static.cninfo.com.cn/finalpage/2026-10-17/1225609701.PDF) | Describes receipt of a preliminary SZSE delisting notice on 2026-10-16. Not an effective delisting decision. PDF SHA-256 `9c2f3777bf177f750d12ad4151884e8eaed4c87a26111ff93ea1fbc22c1b4376`. |
+| Archived BaoStock original | `research-csv-archive:5ba00fbd720fad90/shard_0362/sz_002717.csv`. SHA-256 `ae1b73a1389f0629f64e130af4f2c1778f52ca837985e4b5f95ef14f048b81ac` matched shard quality.json. Oct 12 status 1. Oct 13–16, 19 and 20 status 0, with blank volume and amount. |
+
+Keep the P2 gap. Do not use the carried close on a suspension row as an executable bar. No exact first-publication time, final delisting effective date or historical PIT state is certified by this check.
+
+## Unresolved timing evidence for the previous three SSE cases
+
+The public SSE company notice pages reviewed for 603517 and 603838 expose day-level dates, not a first-publication clock. SSE's [2026-09-29 financing-eligibility adjustment](https://www.sse.com.cn/disclosure/magin/announcement/ssereport/c/c_20260929_10833673.shtml) independently corroborates the 600363 risk-warning effective day of 2026-09-30. It is not the issuer's notice or proof of its publication time. Retain all three exact timestamps as unverified. `trade_gate=BLOCKED`.
+
+## Regression replay
+
+Run `python -m collector.p2_p3_pinned_gap_replay --archive-root /path/to/research-archive --002717`. It pins the source CSV and runs the production research feature guard against the archived placeholder sequence. It separately exercises the P3 forecast semantics with a representative preliminary-notice phrase, not an independent PDF text extraction or final delisting decision.
+
+## Final-decision follow-up on 2026-11-13
+
+The [2026-11-12 bond trustee report reproduced here](https://bond.stockstar.com/SN2026111200001156.shtml) still refers to preliminary letter No. 290 and describes the exchange's final decision conditionally. A bounded follow-up search did not locate a final SZSE decision or an independently verified effective delisting date. This is a search outcome, not proof that no decision exists.
+
+Separate the source types: the October 13 suspension, the preliminary letter received October 16, and any eventual final exchange decision and effective date. The November report is follow-up evidence only, not an input to the October 20 replay. If a final decision is found, verify the exact security, exchange document identifier, publication evidence, and effective date separately. A later notice cannot change what was known at the earlier research cutoff. Until independently verified, retain `VENDOR_NOT_TRADABLE_ASOF` and do not emit a delisting-effective event.
