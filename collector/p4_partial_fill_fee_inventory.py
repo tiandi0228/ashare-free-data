@@ -23,6 +23,10 @@ def summarize(*,buy_order,sell_order=None,commission_rate="0.0002854",commission
     if sell_order is not None:
         s=order_replay(**sell_order)
         if s["side"]!="SELL":raise ValueError("sell leg required")
+        buy_receipts={x["source_sha256"] for x in b["evidence_records"]}
+        sell_receipts={x["source_sha256"] for x in s["evidence_records"]}
+        if buy_receipts & sell_receipts:
+            raise ValueError("receipt reused across buy and sell orders")
         already_sold=0
         for e in sell_order["events"]:
             if e["kind"]=="FILL_RECEIPT":
