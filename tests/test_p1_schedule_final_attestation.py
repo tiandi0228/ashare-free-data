@@ -97,6 +97,23 @@ class P1ScheduleFinalTests(unittest.TestCase):
         self.assertEqual(result["orders"], [])
         self.assertTrue(json.dumps(result))
 
+    def test_0910_old_single_receipt_remains_valid_but_new_single_is_rejected(self):
+        cron = "10 1 * * 1-5"
+        for created, legacy in [("2026-11-13T01:35:00Z", True),
+                                ("2026-11-16T01:35:00Z", False)]:
+            job = run(created=created)
+            report = source_build(job, progress(), cron=cron, run_id=123456,
+                                  attempt=1, sha=SHA, actual_requested_shards=2)
+            self.assertEqual(verify(job, report, checkpoint())["state"],
+                             "SCHEDULE_SUCCESS_AND_DURABLE_SHARDS_CONFIRMED")
+            report.update(requested_shards=1, new_original_shard_indices=[2],
+                          shards_durably_accepted_by_run=1, checkpoint_shards_after=1)
+            if legacy:
+                self.assertEqual(verify(job, report, checkpoint())["accepted_source_shard_indices"], [2])
+            else:
+                with self.assertRaisesRegex(ValueError, "cron"):
+                    verify(job, report, checkpoint())
+
     def test_fully_sha_pinned_receipt_independently_matches_checkpoint(self):
         result = verify(run(), source_sha_bound(), checkpoint())
         self.assertTrue(result["per_shard_manifest_and_receipt_sha_matched"])
