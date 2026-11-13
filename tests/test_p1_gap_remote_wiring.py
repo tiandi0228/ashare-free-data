@@ -22,8 +22,13 @@ class GapRemoteWiringTests(unittest.TestCase):
         self.assertEqual(s.count("python -m collector.p1_gap_remote_preflight"),2)
 
     def test_only_manual_explicit_gap_uses_readback(self):
-        self.assertEqual(self.text.count(
-            "if: github.event_name == 'workflow_dispatch' && env.P1_GAP_WINDOW != ''"),2)
+        condition="if: github.event_name == 'workflow_dispatch' && env.P1_GAP_WINDOW != ''"
+        steps=[section for section in self.text.split("      - name: ") if condition in section]
+        self.assertEqual([section.splitlines()[0] for section in steps],[
+            "Recheck live checkpoint and archive before manual gap vendor requests (NO WRITES)",
+            "Recheck remote checkpoint and archive just before manual gap archival (NO WRITES)",
+            "Verify remote checkpoint preserved the audited gap evidence",
+        ])
         self.assertIn("test -s evidence/prior_ledger.json",self.text)
         self.assertIn("test -s evidence/p1_gap_remote_before_vendor.json",self.text)
         self.assertIn("evidence/p1_gap_remote_before_archive.json",self.text)
