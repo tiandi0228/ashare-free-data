@@ -1,10 +1,11 @@
 name: P3 scoped calendar source replay (NO TRADES)
 on:
   pull_request:
-    branches: [main]
+    branches: [main, p34-notice-bound-replay]
     paths:
       - 'collector/p3_calendar_source_replay.py'
       - 'collector/p34_notice_bound_replay.py'
+      - 'collector/p3_603183_gap_replay.py'
       - 'tests/test_p34_notice_bound_replay.py'
       - 'tests/test_p3_calendar_source_replay.py'
       - 'evidence/p3_calendar_sources/**'
@@ -24,8 +25,23 @@ jobs:
           python-version: '3.11'
       - run: python -m unittest tests.test_p3_calendar_source_replay tests.test_p34_notice_bound_replay -v
       - run: python -m collector.p3_calendar_source_replay --as-of 2026-09-24 > calendar-replay.json
+      - name: Replay pinned real 603183 archive
+        run: |
+          git fetch --depth=1 origin 7028eb4c9cc7f23add64958bc6f2611565476538
+          git worktree add --detach "$RUNNER_TEMP/p3-archive" FETCH_HEAD
+          python -m collector.p3_603183_gap_replay --archive "$RUNNER_TEMP/p3-archive" > issuer-gap-replay.json
+          python - <<'PYCODE'
+          import json
+          from pathlib import Path
+          r = json.loads(Path("issuer-gap-replay.json").read_bytes())
+          assert r["outcome_counts"] == {"MATCH": 3, "SCHEDULED_CLOSURE": 7}
+          assert not r["issuer_halt_notice_authenticated"] and not r["p2_gap_closed"]
+          assert r["trade_gate"] == "BLOCKED" and r["orders"] == []
+          PYCODE
       - uses: actions/upload-artifact@v4
         with:
           name: p3-scoped-calendar-replay
-          path: calendar-replay.json
+          path: |
+            calendar-replay.json
+            issuer-gap-replay.json
           if-no-files-found: error
