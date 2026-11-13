@@ -31,6 +31,7 @@ def base(state, run_id, reason=None):
     return {
         "phase": PHASE, "state": state, "run_id": run_id,
         "reason": reason, "trade_gate": "BLOCKED",
+        "scheduled_shard_acceptance": "NOT_VERIFIED",
         "historical_PIT_verified": False,
         "orders": [], "executable_candidates": [],
         "buy_recommendations_authorized": False,
@@ -155,7 +156,14 @@ def verify(run, receipt=None, checkpoint=None):
              if confirmed and accepted > 0
              else "SCHEDULE_SUCCESS_NO_NEW_ARCHIVED_SHARDS"
              if confirmed else "SCHEDULE_FINAL_FAILURE_OR_OTHER_CONCLUSION")
+    acceptance = ("FINAL_RUN_NOT_SUCCESSFUL" if not confirmed
+                  else "NO_SHARDS_ARCHIVED" if not accepted
+                  else "PER_SHARD_SHA_NOT_VERIFIED" if not sha_match
+                  else "ALL_REQUESTED_SHARDS_VERIFIED" if accepted == requested
+                  else "PARTIAL_SHARDS_VERIFIED")
     return dict(base(state, run_id),
+                scheduled_shard_acceptance=acceptance,
+                requested_shards_for_source_run=requested,
                 literal_cron_utc=cron,
                 inferred_nominal_slot_beijing=planned.astimezone(TZ_CST).isoformat(),
                 github_created_at_utc=created.isoformat(),
