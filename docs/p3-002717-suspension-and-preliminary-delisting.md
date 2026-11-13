@@ -13,3 +13,7 @@ Keep the P2 gap. Do not use the carried close on a suspension row as an executab
 ## Unresolved timing evidence for the previous three SSE cases
 
 The public SSE company notice pages reviewed for 603517 and 603838 expose day-level dates, not a first-publication clock. SSE's [2026-09-29 financing-eligibility adjustment](https://www.sse.com.cn/disclosure/magin/announcement/ssereport/c/c_20260929_10833673.shtml) independently corroborates the 600363 risk-warning effective day of 2026-09-30. It is not the issuer's notice or proof of its publication time. Retain all three exact timestamps as unverified. `trade_gate=BLOCKED`.
+
+## Regression replay
+
+Run `python -m collector.p2_p3_pinned_gap_replay --archive-root /path/to/research-archive --002717`. It pins the source CSV and runs the production research feature guard against the archived placeholder sequence. It separately exercises the P3 forecast semantics with a representative preliminary-notice phrase, not an independent PDF text extraction or final delisting decision.
