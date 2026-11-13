@@ -1,0 +1,82 @@
+{
+  "audited_issuer_count": 2074,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 0,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sz.002860"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603236"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603237"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 43378956797,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 18332,
+  "research_date_action_links": [],
+  "run_id": 43379070337,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225610754",
+      "archive_path": "pdf/sh_603236/1225610754/06986d182e763b8499b60455ef375e465e01b22f6df53f6bc49521ff2057221d.pdf",
+      "bytes": 93955,
+      "captured_at_utc": "2026-11-13T06:30:09.089628+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1792425600000,
+      "issuer": "sh.603236",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-20/1225610754.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "06986d182e763b8499b60455ef375e465e01b22f6df53f6bc49521ff2057221d",
+      "title_from_index_unverified": "第四届董事会第十八次会议决议公告"
+    },
+    {
+      "announcement_id": "1225580870",
+      "archive_path": "pdf/sh_603237/1225580870/f17d3f52f1282eb305d1a8b5ba33808614f2135e73e97395023637cc98bd8e19.pdf",
+      "bytes": 107012,
+      "captured_at_utc": "2026-11-13T06:30:09.459978+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1790265600000,
+      "issuer": "sh.603237",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-25/1225580870.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "f17d3f52f1282eb305d1a8b5ba33808614f2135e73e97395023637cc98bd8e19",
+      "title_from_index_unverified": "浙江五芳斋实业股份有限公司第十届董事会第十次会议决议公告"
+    },
+    {
+      "announcement_id": "1225483393",
+      "archive_path": "pdf/sz_002860/1225483393/fcb25e18f7e8e62696f47d2353056cd7c2ac7500ab2e7cde08f4e90832982011.pdf",
+      "bytes": 57252,
+      "captured_at_utc": "2026-11-13T06:30:08.709076+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1787155200000,
+      "issuer": "sz.002860",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-08-20/1225483393.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "fcb25e18f7e8e62696f47d2353056cd7c2ac7500ab2e7cde08f4e90832982011",
+      "title_from_index_unverified": "关于会计政策变更的公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
