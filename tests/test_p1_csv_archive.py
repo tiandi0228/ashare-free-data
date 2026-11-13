@@ -466,7 +466,7 @@ class ClassifiedPushFailureTests(unittest.TestCase):
         from unittest.mock import patch
         from collector.p1_csv_archive import main,P1ArchivePushError
         with tempfile.TemporaryDirectory() as d:
-            from os import chdir,getcwd
+            from os import chdir,getcwd,environ
             old=getcwd()
             try:
                 chdir(d)
@@ -477,7 +477,9 @@ class ClassifiedPushFailureTests(unittest.TestCase):
                     "immutable P1 archive push rejected; not retryable as concurrent update",
                     "REMOTE_SIZE_QUOTA_OR_FILE_LIMIT",1)
                 with patch("collector.p1_csv_archive.archive",side_effect=e):
-                    with patch("sys.argv",argv):
+                    # This case exercises the ordinary archive path even when
+                    # the surrounding Actions job is an explicit gap dispatch.
+                    with patch("sys.argv",argv), patch.dict(environ,{"P1_GAP_WINDOW":""}):
                         with self.assertRaises(P1ArchivePushError):
                             main()
                 r=json.loads(Path("evidence/p1_archive_push_failure.json").read_text())
