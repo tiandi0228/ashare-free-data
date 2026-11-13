@@ -11,6 +11,29 @@ CASES = {
     "603838": ("1225608268", "2026-10-17", "2026-10-20"),
 }
 
+# First-party media page labels are minute precision, not exchange timestamps.
+# Use the next minute boundary as a conservative research-only comparison.
+MEDIA_LABELS = {
+    "600363": ("2026-09-28T17:22", "https://egs.stcn.com/news/detail/2345769.html"),
+    "603517": ("2026-10-18T16:28", "https://www.stcn.com/article/detail/4224165.html"),
+    "603838": ("2026-10-16T17:01", "https://www.stcn.com/article/detail/4222829.html"),
+}
+
+
+def media_research_check(issuer, decision_time):
+    if not isinstance(decision_time, datetime) or decision_time.utcoffset() is None:
+        raise ValueError("timezone-aware decision time required")
+    label, url = MEDIA_LABELS[issuer]
+    boundary = datetime.fromisoformat(label).replace(tzinfo=CHINA) + timedelta(minutes=1)
+    return {
+        "media_page": url, "media_minute_label_china": label,
+        "media_label_minute_end_china": boundary.isoformat(),
+        "decision_at_or_after_media_label_minute_end": decision_time >= boundary,
+        "first_publication_time_verified": False,
+        "historical_non_st_eligibility_verified": False,
+        "historical_PIT_verified": False, "trade_gate": "BLOCKED",
+    }
+
 
 def verify_index(records):
     if not isinstance(records, list) or len(records) != len(CASES):
