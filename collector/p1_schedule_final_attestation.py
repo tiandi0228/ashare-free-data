@@ -89,6 +89,11 @@ def verify(run, receipt=None, checkpoint=None):
     created = parse_utc(run.get("created_at"))
     planned, delay = nominal(cron, created)
     requested = 2 if cron in DUAL_CRONS else 1
+    # Preserve already-published one-shard receipts from before the 09:10 expansion.
+    if (cron == "10 1 * * 1-5" and planned.date().isoformat() < "2026-11-16"
+            and type(receipt.get("requested_shards")) is int
+            and receipt["requested_shards"] == 1):
+        requested = 1
     if (receipt.get("requested_shards") != requested
             or receipt.get("github_run_created_at_utc") != created.isoformat()
             or receipt.get("nominal_slot_utc") != planned.isoformat()
