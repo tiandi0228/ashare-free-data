@@ -1,0 +1,82 @@
+{
+  "audited_issuer_count": 2098,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 0,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.600301"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603256"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603257"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 43381142817,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 18548,
+  "research_date_action_links": [],
+  "run_id": 43381300970,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225537332",
+      "archive_path": "pdf/sh_600301/1225537332/fab2460dbe38c4c58ec8fd49475f965574e2ef2fcb19a8b95e46b5c2da49793e.pdf",
+      "bytes": 220257,
+      "captured_at_utc": "2026-11-13T06:49:20.641030+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1788192000000,
+      "issuer": "sh.600301",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-01/1225537332.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "fab2460dbe38c4c58ec8fd49475f965574e2ef2fcb19a8b95e46b5c2da49793e",
+      "title_from_index_unverified": "广西华锡有色金属股份有限公司关于托管企业五吉箭猪坡公司箭猪坡矿区锑多金属矿资源储量核实报告通过评审备案的公告"
+    },
+    {
+      "announcement_id": "1225576865",
+      "archive_path": "pdf/sh_603256/1225576865/503431addfb5dd1bf14ce5b02b7fb2ddfe67f5a2e6fa3e336a37747e1bbbbf2f.pdf",
+      "bytes": 97109,
+      "captured_at_utc": "2026-11-13T06:49:21.299924+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1790092800000,
+      "issuer": "sh.603256",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-23/1225576865.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "503431addfb5dd1bf14ce5b02b7fb2ddfe67f5a2e6fa3e336a37747e1bbbbf2f",
+      "title_from_index_unverified": "宏和科技股东减持股份结果公告"
+    },
+    {
+      "announcement_id": "1225598372",
+      "archive_path": "pdf/sh_603257/1225598372/79ce44bd964f42abd7b60e7190100e63713dc566d3271dc8d67dc83aab5434ce.pdf",
+      "bytes": 108287,
+      "captured_at_utc": "2026-11-13T06:49:21.898933+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1791561600000,
+      "issuer": "sh.603257",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-10/1225598372.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "79ce44bd964f42abd7b60e7190100e63713dc566d3271dc8d67dc83aab5434ce",
+      "title_from_index_unverified": "关于签订日常经营重大框架协议合同的进展公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
