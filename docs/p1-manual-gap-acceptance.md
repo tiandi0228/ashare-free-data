@@ -2,6 +2,12 @@
 
 This runbook is for research data only. It does not authorize trading or change the archive destination. The existing writer uses the `research-csv-archive` branch of the execution repository and the same-epoch checkpoint on `main`. Do not use this runbook to switch the writer to the private repository.
 
+## Merge-triggered run
+
+Merging PR #331 into `main` matches the existing path-filtered `push` trigger for the production collector. If that run starts, it uses the normal one-shard rotation with an empty `gap_window` and can write the existing research archive and checkpoint. It is not the targeted manual pilot and does not produce the manual acceptance receipt.
+
+After an authorized merge, locate the push-triggered run by the merge commit SHA and let it finish before dispatching the pilot. Re-read the active roster, checkpoint and archive index after that run. If it already collected the intended shard, pick the first remaining gap from the fresh state. Also check for queued scheduled collection before dispatching the pilot.
+
 ## Before dispatch
 
 1. Verify that the reviewed workflow is on the authorized execution ref, that the branch SHA matches the reviewed commit, and that CI passed. Do not launch the production writer from a draft branch.
