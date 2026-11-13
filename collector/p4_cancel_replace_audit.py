@@ -4,6 +4,10 @@ from collector.p4_limit_order_replay import replay,parse_time
 def review(*,original,replacement):
     first=replay(**original)
     second=replay(**replacement)
+    original_receipts={x["source_sha256"] for x in first["evidence_records"]}
+    replacement_receipts={x["source_sha256"] for x in second["evidence_records"]}
+    if original_receipts & replacement_receipts:
+        raise ValueError("receipt reused across original and replacement")
     if original["side"]!=replacement["side"]:raise ValueError("replacement side mismatch")
     if not first["cancel_receipt_present"]:raise ValueError("cancel acknowledgement missing")
     cancels=[e for e in original["events"] if e["kind"]=="CANCEL_RECEIPT"]
