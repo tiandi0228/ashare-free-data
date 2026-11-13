@@ -324,6 +324,33 @@ class PinnedGapReplayTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             media_research_check("603838", datetime(2026,10,16,17,2))
 
+    def test_002717_placeholder_and_preliminary_notice_do_not_promote_state(self):
+        from collector.p2_real_archive_features import observe
+        from collector.p3_positive_effective_text_candidates import check_text
+        with tempfile.TemporaryDirectory() as d:
+            folder=Path(d)/"5ba00fbd720fad90"/"shard_0362"
+            folder.mkdir(parents=True)
+            code="sz.002717"
+            raw=("date,code,open,high,low,close,volume,amount,adjustflag,tradestatus\n"
+                 "2026-10-12,sz.002717,0.45,0.45,0.45,0.45,10,4.50,3,1\n"
+                 "2026-10-20,sz.002717,0.45,0.45,0.45,0.45,,,3,0\n").encode()
+            (folder/"sz_002717.csv").write_bytes(raw)
+            receipt={"status":"OBSERVED_SUBSET_UNVERIFIED","trade_gate":"BLOCKED",
+                     "orders":[],"historical_point_in_time_universe_verified":False,
+                     "issuer_count":1,"results":[{"code":code,"status":"OBSERVED_UNVERIFIED",
+                     "sha256":hashlib.sha256(raw).hexdigest(),"rows":2,
+                     "tradable_rows":1,"suspended_status_rows":1}]}
+            (folder/"quality.json").write_text(json.dumps(receipt))
+            report=observe(d,"2026-10-20")
+            self.assertEqual(report["features"],[])
+            self.assertEqual(report["evidence_gaps"],
+                             [{"issuer":code,"reason":"VENDOR_NOT_TRADABLE_ASOF"}])
+            self.assertEqual(report["trade_gate"],"BLOCKED")
+        for text in ("收到终止上市事先告知书，拟终止上市",
+                     "预计2026年10月16日为最后交易日"):
+            self.assertEqual(check_text("DELIST_RISK_ISSUER_FORECAST","2026年10月16日",text),
+                             {"candidate":None,"reason":"FORECAST_IS_NOT_EXCHANGE_EFFECTIVE_DELIST"})
+
     def test_tampered_original_rejected_before_comparison(self):
         from collector.p2_p3_pinned_gap_replay import compare_rows
         with self.assertRaisesRegex(ValueError,"SHA mismatch"):
