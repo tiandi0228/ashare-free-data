@@ -17,3 +17,9 @@ The public SSE company notice pages reviewed for 603517 and 603838 expose day-le
 ## Regression replay
 
 Run `python -m collector.p2_p3_pinned_gap_replay --archive-root /path/to/research-archive --002717`. It pins the source CSV and runs the production research feature guard against the archived placeholder sequence. It separately exercises the P3 forecast semantics with a representative preliminary-notice phrase, not an independent PDF text extraction or final delisting decision.
+
+## Final-decision follow-up on 2026-11-13
+
+The [2026-11-12 bond trustee report reproduced here](https://bond.stockstar.com/SN2026111200001156.shtml) still refers to preliminary letter No. 290 and describes the exchange's final decision conditionally. A bounded follow-up search did not locate a final SZSE decision or an independently verified effective delisting date. This is a search outcome, not proof that no decision exists.
+
+Separate the source types: the October 13 suspension, the preliminary letter received October 16, and any eventual final exchange decision and effective date. The November report is follow-up evidence only, not an input to the October 20 replay. If a final decision is found, verify the exact security, exchange document identifier, publication evidence, and effective date separately. A later notice cannot change what was known at the earlier research cutoff. Until independently verified, retain `VENDOR_NOT_TRADABLE_ASOF` and do not emit a delisting-effective event.
