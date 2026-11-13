@@ -108,7 +108,7 @@ jobs:
           python-version: '3.11'
       - name: Install existing production BaoStock dependency
         run: python -m pip install 'baostock>=0.8,<1'
-      - name: Read 215 and 216 and replay original bars in temporary storage only
+      - name: Probe up to two current gaps and replay original bars in temporary storage only
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -127,17 +127,18 @@ jobs:
           from collector.p1_roster_lock import unpack
 
           repo = os.environ['GITHUB_REPOSITORY']
-          expected = [215, 216]
           source = '5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022'
 
-          def preflight():
+          def preflight(expected=None):
               receipt = rehearse(repo)
               if (receipt['source_sha256'] != source or
-                  receipt['proposed_manual_shards'] != expected or
+                  not 1 <= len(receipt['proposed_manual_shards']) <= 2 or
+                  (expected is not None and receipt['proposed_manual_shards'] != expected) or
                   receipt['archive_index_parity_checked'] is not True or
                   receipt['trade_gate'] != 'BLOCKED' or
                   receipt['permission_to_write_or_trade'] is not False):
                   raise SystemExit('P1_GAP_PROBE_STOPPED_SOURCE_OR_WINDOW_CHANGED')
+              return receipt['proposed_manual_shards']
 
           with TemporaryDirectory(prefix='p1-vendor-gap-probe-') as tmp:
               root = Path(tmp)
@@ -152,6 +153,9 @@ jobs:
               # The vendor subprocess never receives a GitHub token.
               provider_env = {k: v for k, v in os.environ.items()
                               if k not in ('GH_TOKEN', 'GITHUB_TOKEN')}
+              expected = preflight()
+              print(json.dumps({'status': 'P1_GAP_PROBE_STARTED', 'shards': expected,
+                                'trade_gate': 'BLOCKED'}), flush=True)
               items = []
               for index in expected:
                   preflight()
