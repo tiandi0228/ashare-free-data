@@ -16,6 +16,20 @@ class InventoryTests(unittest.TestCase):
   q=summarize(buy_order=order("BUY","2026-10-26",fills=100),sell_order=order("SELL","2026-10-27",qty=100,fills=100))
   self.assertEqual(q["inventory_shares"],0)
   self.assertEqual(q["sell_fees_model"],"5.33")
+ def test_same_beijing_day_rejected_with_mixed_offset_labels(self):
+  b=order("BUY","2026-10-26")
+  b["events"][0]["observed_at"]="2026-10-25T22:00:00-04:00"
+  s=order("SELL","2026-10-26",qty=100)
+  with self.assertRaisesRegex(ValueError,"T\\+1 available"):
+   summarize(buy_order=b,sell_order=s)
+ def test_mixed_offset_partial_sells_use_chronological_inventory(self):
+  b=order("BUY","2026-10-26",qty=200,fills=200)
+  s=order("SELL","2026-10-27")
+  s["events"][0]["observed_at"]="2026-10-27T02:00:00Z"
+  s["events"].append(dict(s["events"][0],observed_at="2026-10-27T10:01:00+08:00",source_sha256="b"*64))
+  q=summarize(buy_order=b,sell_order=s)
+  self.assertEqual((q["observed_sell_shares"],q["inventory_shares"]),(200,0))
+  self.assertFalse(q["receipt_fill_certified"])
  def test_unfilled_cannot_be_sold(self):
   b=order("BUY","2026-10-26");b["events"]=[]
   with self.assertRaises(ValueError):summarize(buy_order=b,sell_order=order("SELL","2026-10-27",qty=100,fills=100))
