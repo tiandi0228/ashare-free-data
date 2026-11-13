@@ -1,4 +1,4 @@
-"""Read-only rollup of two pinned P3 source replays, not a coverage ledger."""
+"""Read-only rollup of pinned P3 source replays, not a coverage ledger."""
 import argparse
 import json
 from pathlib import Path
@@ -6,14 +6,16 @@ from pathlib import Path
 EXPECTED = (
     ("sh.600825", 4, 15, "rows", "matched_vendor_days", 349),
     ("sz.002860", 3, 11, "notices", "matched_rows", 350),
+    ("sz.002813", 3, 6, "notices", "matched_rows", 353),
 )
 
 
-def inventory(*reports):
-    if len(reports) != len(EXPECTED):
+def inventory(*reports, include_002813=False):
+    expected = EXPECTED if include_002813 else EXPECTED[:2]
+    if len(reports) != len(expected):
         raise ValueError("wrong report count")
     issuers, hashes = [], set()
-    for report, (issuer, count, days, field, day_field, pr) in zip(reports, EXPECTED):
+    for report, (issuer, count, days, field, day_field, pr) in zip(reports, expected):
         if (report["issuer"] != issuer or report["trade_gate"] != "BLOCKED"
             or report["historical_PIT_verified"] is not False
             or report["entire_issuer_gap_closed"] is not False
@@ -45,9 +47,10 @@ def inventory(*reports):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("reports", nargs=2, type=Path)
+    parser.add_argument("reports", nargs="+", type=Path)
+    parser.add_argument("--include-002813", action="store_true")
     args = parser.parse_args()
-    print(json.dumps(inventory(*(json.loads(p.read_bytes()) for p in args.reports)), indent=2))
+    print(json.dumps(inventory(*(json.loads(p.read_bytes()) for p in args.reports), include_002813=args.include_002813), indent=2))
 
 
 if __name__ == "__main__":

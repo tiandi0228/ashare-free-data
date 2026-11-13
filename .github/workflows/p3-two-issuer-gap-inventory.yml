@@ -1,4 +1,4 @@
-name: P3 two issuer read-only gap inventory (NO TRADES)
+name: P3 multi-issuer read-only gap inventory (NO TRADES)
 on:
   pull_request:
     branches: [main]
@@ -15,6 +15,7 @@ jobs:
     env:
       ARCHIVE: 7028eb4c9cc7f23add64958bc6f2611565476538
       CASE_600825: c1b454e19117c59ed956d609e6a26a7ed5f95120
+      CASE_002813: 88a68ce257dd7a232be8dde663c67a900b10a765
       CASE_002860: 69b856e2939c05cf849748b28ce912c8dd5b3a65
     steps:
       - uses: actions/checkout@v4
@@ -27,7 +28,7 @@ jobs:
       - run: command -v pdftotext || (sudo apt-get update && sudo apt-get install -y poppler-utils)
       - name: Regenerate pinned source replays and inventory
         run: |
-          git fetch --depth=1 origin "$ARCHIVE" "$CASE_600825" "$CASE_002860"
+          git fetch --depth=1 origin "$ARCHIVE" "$CASE_600825" "$CASE_002860" "$CASE_002813"
           git worktree add --detach "$RUNNER_TEMP/p3-archive" "$ARCHIVE"
           git worktree add --detach "$RUNNER_TEMP/p3-600825" "$CASE_600825"
           git worktree add --detach "$RUNNER_TEMP/p3-002860" "$CASE_002860"
@@ -40,10 +41,15 @@ jobs:
             cd "$RUNNER_TEMP/p3-002860"
             python -m collector.p3_002860_original_replay "$RUNNER_TEMP/p3-archive" > "$RUNNER_TEMP/002860.json"
           )
-          python -m collector.p3_two_issuer_gap_inventory "$RUNNER_TEMP/600825.json" "$RUNNER_TEMP/002860.json" > gap-inventory.json
+          git worktree add --detach "$RUNNER_TEMP/p3-002813" "$CASE_002813"
+          (
+            cd "$RUNNER_TEMP/p3-002813"
+            python -m collector.p3_002813_original_replay "$RUNNER_TEMP/p3-archive" > "$RUNNER_TEMP/002813.json"
+          )
+          python -m collector.p3_two_issuer_gap_inventory "$RUNNER_TEMP/600825.json" "$RUNNER_TEMP/002860.json" "$RUNNER_TEMP/002813.json" --include-002813 > gap-inventory.json
           cat gap-inventory.json
       - uses: actions/upload-artifact@v4
         with:
-          name: p3-two-issuer-gap-inventory
+          name: p3-three-issuer-gap-inventory
           path: gap-inventory.json
           if-no-files-found: error

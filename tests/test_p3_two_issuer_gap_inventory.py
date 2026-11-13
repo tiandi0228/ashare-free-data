@@ -36,3 +36,12 @@ class InventoryTests(unittest.TestCase):
         self.b["entire_issuer_gap_closed"] = True
         with self.assertRaisesRegex(ValueError, "unsafe"):
             inventory(self.a, self.b)
+
+    def test_three_issuer_rollup_and_required_third_report(self):
+        c = report("sz.002813", 3, 6, 8, "notices", "matched_rows")
+        result = inventory(self.a, self.b, c, include_002813=True)
+        self.assertEqual(result["matched_vendor_issuer_days"], 32)
+        self.assertEqual(result["verified_notice_originals"], 10)
+        self.assertEqual(result["issuer_gaps_closed"], 0)
+        with self.assertRaisesRegex(ValueError, "report count"):
+            inventory(self.a, self.b, include_002813=True)
