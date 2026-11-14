@@ -45,3 +45,15 @@ class InventoryTests(unittest.TestCase):
         self.assertEqual(result["issuer_gaps_closed"], 0)
         with self.assertRaisesRegex(ValueError, "report count"):
             inventory(self.a, self.b, include_002813=True)
+
+    def test_four_issuer_rollup_and_no_time_promotion(self):
+        c = report("sz.002813", 3, 6, 8, "notices", "matched_rows")
+        d = report("sh.605303", 3, 11, 11, "notices", "matched_rows")
+        result = inventory(self.a, self.b, c, d, include_605303=True)
+        self.assertEqual(result["matched_vendor_issuer_days"], 43)
+        self.assertEqual(result["verified_notice_originals"], 13)
+        self.assertEqual(result["official_first_release_verified"], 0)
+        self.assertEqual(result["issuer_gaps_closed"], 0)
+        d["notices"][0]["official_first_release"] = "2026-09-12T00:00:00+08:00"
+        with self.assertRaisesRegex(ValueError, "first-release"):
+            inventory(self.a, self.b, c, d, include_605303=True)
