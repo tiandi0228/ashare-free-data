@@ -1,5 +1,5 @@
 """Research-only real vendor-bar exit-date availability, never fill inference."""
-import argparse,csv,json
+import argparse,csv,hashlib,json
 from collections import Counter
 from pathlib import Path
 from collector.p2_independent_bars import assess
@@ -14,7 +14,9 @@ def audit(root,cutoff="2025-12-31"):
         for item in validated["details"]:
             counts["verified_issuers"]+=1
             p=receipt.parent/(item["code"].replace(".","_")+".csv")
-            rows=list(csv.DictReader(p.read_text(encoding="utf-8-sig").splitlines()))
+            original_bytes=p.read_bytes()
+            original_sha256=hashlib.sha256(original_bytes).hexdigest()
+            rows=list(csv.DictReader(original_bytes.decode("utf-8-sig").splitlines()))
             dates={x["date"]:x for x in rows}
             last_vendor_date=rows[-1]["date"]
             for row in rows:
@@ -39,7 +41,7 @@ def audit(root,cutoff="2025-12-31"):
                     if len(examples)<20:examples.append({"code":item["code"],"entry":day,"target":target,"reason":kind})
                 elif next_row["tradestatus"]=="0":
                     counts["target_vendor_suspended"]+=1
-                    vendor_halts.append({"code":item["code"],"entry_date":day,"target_exit_date":target,"vendor_status":"0","official_halt_verified":False})
+                    vendor_halts.append({"code":item["code"],"entry_date":day,"target_exit_date":target,"vendor_status":"0","original_csv_sha256":original_sha256,"official_halt_verified":False})
                     if len(examples)<20:examples.append({"code":item["code"],"entry":day,"target":target,"reason":"VENDOR_SUSPENDED"})
                 elif next_row["tradestatus"]=="1":
                     counts["target_vendor_active"]+=1

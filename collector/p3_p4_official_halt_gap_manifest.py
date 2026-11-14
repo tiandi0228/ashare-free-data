@@ -3,7 +3,7 @@
 Vendor 'tradestatus=0' is a claim to investigate, not proof of an
 official halt. Duplicated issuer/day observations are consolidated.
 """
-import argparse,json
+import argparse,json,re
 from pathlib import Path
 from collector.p4_real_exit_availability import audit
 
@@ -11,8 +11,16 @@ def build(root):
     source=audit(root)
     by_target={}
     for item in source["vendor_halt_crosscheck_queue"]:
+        digest=item.get("original_csv_sha256")
+        if (not isinstance(digest,str) or not re.fullmatch(r"[0-9a-f]{64}",digest)
+            or item.get("vendor_status")!="0" or item.get("official_halt_verified") is not False):
+            raise ValueError("unanchored vendor halt source")
         key=(item["code"],item["target_exit_date"])
+        prior=by_target.get(key)
+        if prior is not None and prior["original_csv_sha256"]!=digest:
+            raise ValueError("conflicting original CSV receipts for same issuer target date")
         record=by_target.setdefault(key,{"code":key[0],"target_date":key[1],
+            "original_csv_sha256":digest,
             "affected_entry_dates":[],"vendor_status":"0",
             "official_source_url":None,"official_source_sha256":None,
             "official_effective_date_authenticated":False,
