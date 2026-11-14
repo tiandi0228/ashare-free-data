@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "phase": "P3_600150_TEMPORARY_RESEARCH_ARTIFACT_RETENTION",
+  "issuer": "sh.600150",
+  "repository": "tiandi0228/ashare-free-data",
+  "artifacts": [
+    {
+      "artifact_id": 13905959428,
+      "source_run_id": 43134271671,
+      "artifact_zip_sha256": "fc1906b93b05f794db37f1084a49d256e2ac8219500995b923a8e9aa099285a1",
+      "expires_at": "2026-12-12T01:24:22Z",
+      "pdf_originals": [
+        {
+          "announcement_id": "1224387134",
+          "sha256": "498e48ccc9651e9be9e32dd17eaf60e2e9b9ed43fc8be41b26c995308561a66e",
+          "bytes": 92093
+        },
+        {
+          "announcement_id": "1224504273",
+          "sha256": "a529af260766407070b8d800cb890b26d06bee07adca3192244fe225546a1dbe",
+          "bytes": 89199
+        }
+      ]
+    },
+    {
+      "artifact_id": 13908412596,
+      "source_run_id": 43139104789,
+      "artifact_zip_sha256": "313430fe462d98307a7474f17b28bdff7cef8bced313077c31be97b772c55b07",
+      "expires_at": "2026-12-12T02:06:54Z",
+      "pdf_originals": [
+        {
+          "announcement_id": "SSE_DAILY_MIRROR_20250818",
+          "sha256": "9051ffc0413331c7864c78e6066e57ad2d18c026c48a4c5fed4aae828c758d16",
+          "bytes": 34854
+        }
+      ]
+    }
+  ],
+  "historical_first_publication_authenticated": false,
+  "official_issuer_state_certified": false,
+  "original_pdf_bytes_in_permanent_archive": false,
+  "trade_gate": "BLOCKED",
+  "orders": [],
+  "executable_candidates": []
+}
