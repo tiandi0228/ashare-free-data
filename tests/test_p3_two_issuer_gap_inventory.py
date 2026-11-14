@@ -85,3 +85,20 @@ class InventoryTests(unittest.TestCase):
         f["notices"][0]["official_first_release"] = "2026-09-15T00:00:00+08:00"
         with self.assertRaisesRegex(ValueError, "first-release"):
             inventory(self.a, self.b, c, d, e, f, include_603400=True)
+
+    def test_seven_issuer_rollup_keeps_gac_source_and_gate(self):
+        c = report("sz.002813", 3, 6, 8, "notices", "matched_rows")
+        d = report("sh.605303", 3, 11, 11, "notices", "matched_rows")
+        e = report("sz.002870", 3, 11, 14, "notices", "matched_rows")
+        f = report("sh.603400", 3, 11, 17, "notices", "matched_rows")
+        g = report("sh.601238", 3, 11, 20, "notices", "matched_rows")
+        result = inventory(self.a, self.b, c, d, e, f, g, include_601238=True)
+        self.assertEqual(result["issuers"][-1]["source_pr"], 357)
+        self.assertEqual(result["matched_vendor_issuer_days"], 76)
+        self.assertEqual(result["verified_notice_originals"], 22)
+        self.assertEqual(result["official_first_release_verified"], 0)
+        self.assertEqual(result["issuer_gaps_closed"], 0)
+        self.assertEqual(result["trade_gate"], "BLOCKED")
+        g["notices"][0]["official_first_release"] = "2026-09-15T00:00:00+08:00"
+        with self.assertRaisesRegex(ValueError, "first-release"):
+            inventory(self.a, self.b, c, d, e, f, g, include_601238=True)
