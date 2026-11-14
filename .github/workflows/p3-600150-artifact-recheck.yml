@@ -1,0 +1,77 @@
+name: P3 600150 independent artifact verifier regressions (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p3_600150_artifact_recheck.py'
+      - 'tests/test_p3_600150_artifact_recheck.py'
+      - '.github/workflows/p3-600150-artifact-recheck.yml'
+  push:
+    branches: ['fix/p3-600150-independent-artifact-recheck-20261112']
+    paths:
+      - 'collector/p3_600150_artifact_recheck.py'
+      - 'tests/test_p3_600150_artifact_recheck.py'
+      - '.github/workflows/p3-600150-artifact-recheck.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test fail-closed integrity recheck without trading or source writes
+        run: python -m unittest -v tests.test_p3_600150_artifact_recheck
+      - name: Retrieve pinned original PDF artifact, validate ZIP and independently replay every byte
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --max-time 60 \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/tiandi0228/ashare-free-data/actions/artifacts/13905959428/zip" \
+            --output /tmp/p3-600150-source-artifact.zip
+          python - <<'PY'
+          import hashlib,zipfile
+          from pathlib import Path
+          from collector.p3_600150_artifact_recheck import recheck
+          source=Path('/tmp/p3-600150-source-artifact.zip')
+          expected='fc1906b93b05f794db37f1084a49d256e2ac8219500995b923a8e9aa099285a1'
+          if source.stat().st_size>2_000_000 or hashlib.sha256(source.read_bytes()).hexdigest()!=expected:
+              raise SystemExit('artifact ZIP SHA256 / byte limit mismatch')
+          root=Path('/tmp/p3-600150-verified-artifact')
+          root.mkdir(exist_ok=False)
+          with zipfile.ZipFile(source) as z:
+              members=z.infolist()
+              if len(members)!=3:
+                  raise SystemExit('unexpected ZIP entry count')
+              seen=set()
+              for member in members:
+                  name=member.filename
+                  path=Path(name)
+                  if (member.is_dir() or path.is_absolute() or
+                      '..' in path.parts or len(path.parts)>2 or
+                      name in seen or member.file_size>4_000_000 or
+                      ((member.external_attr>>16)&0o170000)==0o120000):
+                      raise SystemExit('unsafe ZIP member')
+                  seen.add(name)
+                  if name!='receipt.json' and not (len(path.parts)==2 and path.parts[0]=='originals' and path.suffix=='.pdf'):
+                      raise SystemExit('unexpected ZIP artifact path')
+                  target=root/path
+                  target.parent.mkdir(exist_ok=True)
+                  with z.open(member) as src, target.open('xb') as dst:
+                      raw=src.read(4_000_001)
+                      if len(raw)!=member.file_size:
+                          raise SystemExit('ZIP member size mismatch')
+                      dst.write(raw)
+          result=recheck(root)
+          print('INDEPENDENT_ORIGINAL_ARTIFACT_RECHECK:',result)
+          assert result['verified_originals']==2
+          assert result['trade_gate']=='BLOCKED' and result['orders']==[]
+          PY
