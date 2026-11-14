@@ -5,6 +5,8 @@ on:
     paths:
       - 'collector/p4_prospective_daily_capture.py'
       - 'tests/test_p4_prospective_daily_capture.py'
+      - 'collector/p4_prospective_package_audit.py'
+      - 'tests/test_p4_prospective_package_audit.py'
       - 'collector/p2_independent_bars.py'
       - '.github/workflows/p4-prospective-daily-capture.yml'
   workflow_dispatch:
@@ -22,7 +24,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest tests.test_p4_prospective_daily_capture -v
+      - run: python -m unittest tests.test_p4_prospective_daily_capture tests.test_p4_prospective_package_audit -v
   capture:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     needs: offline
@@ -72,12 +74,15 @@ jobs:
           python -m pip install 'baostock>=0.8,<1'
           timeout 240s python -m collector.p4_prospective_daily_capture --out p4-prospective-capture
           test -f "p4-prospective-capture/$EXPECTED_DAY/receipt.json"
+          mkdir p4-evidence-package
+          mv p4-prospective-capture p4-evidence-package/
+          cp "$RUNNER_TEMP/p4-prewindow-evidence.json" p4-evidence-package/
+          python -m zipfile -c "$RUNNER_TEMP/p4-package-smoke.zip" p4-evidence-package/*
+          python -m collector.p4_prospective_package_audit "$RUNNER_TEMP/p4-package-smoke.zip" --day "$EXPECTED_DAY"
       - uses: actions/upload-artifact@v4
         if: steps.window.outputs.day != ''
         with:
           name: p4-prospective-${{ steps.window.outputs.day }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            p4-prospective-capture/
-            ${{ runner.temp }}/p4-prewindow-evidence.json
+          path: p4-evidence-package/
           if-no-files-found: error
           retention-days: 90
