@@ -1,0 +1,134 @@
+name: P2-P4 five-PR isolated integration premerge (NO TRADES)
+on:
+  push:
+    branches: ['ci/p234-five-pr-isolated-integration-20261112']
+    paths:
+      - '.github/workflows/p234-five-pr-isolated-integration.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/p234-five-pr-isolated-integration.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Independently merge immutable PR review heads into local disposable branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "P234 Offline Integration"
+          git config user.email "p234-offline@users.noreply.github.com"
+          git switch -c p234-temporary-merge
+          for item in \
+            "316:5df41fd60361fb531ee239312ab644896822c0eb" \
+            "317:1ac5f42458031369438683293d4c031ec76e29b3" \
+            "318:5db36e05ac985a2e3368d10729d8bed8d58c4a2b" \
+            "319:f322e3757969adf6a0f171d40a07784f2d4c8fdb" \
+            "320:a7b7a1ba08008164893c5509f830c5962d568b46"; do
+            number="${item%%:*}"
+            expected="${item#*:}"
+            git fetch --no-tags origin "refs/pull/${number}/head"
+            actual="$(git rev-parse FETCH_HEAD)"
+            if [ "$actual" != "$expected" ]; then
+              echo "PR #${number} moved from frozen SHA; refuse integration"
+              exit 20
+            fi
+            git merge --no-ff --no-edit FETCH_HEAD
+            echo "ISOLATED_LOCAL_MERGE_OK PR #${number} ${actual}"
+          done
+      - name: Execute shared P2/P3/P4 security and feature regressions
+        run: |
+          set -euo pipefail
+          python -m unittest -v \
+            tests.test_p2_independent_bars \
+            tests.test_p2_suspended_bar_integrity \
+            tests.test_p2_real_archive_features \
+            tests.test_p4_real_exit_availability \
+            tests.test_p3_p4_halt_original_sha_bridge \
+            tests.test_p4_issuer_session_gate \
+            tests.test_p4_calendar_limit_gate \
+            tests.test_p4_unified_execution_preflight \
+            tests.test_p4_strict_issuer_session_inputs \
+            tests.test_p4_finite_limit_auth
+      - name: Check authentic archived CSVs through combined P2 to P4 to P3 path
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin 5be9d6ad76d8635defe02f8d90bc50ad4c03c086
+          git worktree add --detach frozen-originals FETCH_HEAD
+          mkdir -p bounded-originals/epoch
+          for n in 0012 0013 0014 0015; do
+            cp -a "frozen-originals/3529685a3d2d6402/shard_${n}" "bounded-originals/epoch/"
+          done
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          from collector.p2_independent_bars import assess
+          from collector.p4_real_exit_availability import audit
+          from collector.p3_p4_official_halt_gap_manifest import build
+          root=Path("bounded-originals")
+          digests={}
+          active=suspended=0
+          for shard in sorted((root/"epoch").glob("shard_*")):
+              r=assess(shard)
+              assert r["trade_gate"]=="BLOCKED" and r["historical_PIT_verified"] is False
+              active+=r["total_active_rows"]
+              suspended+=r["vendor_suspended_rows"]
+              for x in r["details"]:
+                  p=shard/(x["code"].replace(".","_")+".csv")
+                  digests[x["code"]]=hashlib.sha256(p.read_bytes()).hexdigest()
+          assert (len(digests),active,suspended)==(32,15488,32)
+          p4=audit(root)
+          p3=build(root)
+          assert p4["target_vendor_suspended"]==1
+          assert p3["vendor_suspended_exit_observations"]==1
+          assert p3["distinct_issuer_halt_dates"]==1
+          for item in p3["pending_official_evidence"]:
+              assert item["original_csv_sha256"]==digests[item["code"]]
+              assert item["official_effective_date_authenticated"] is False
+          assert p4["fills_verified"]==0 and p4["orders"]==[]
+          assert p3["trade_gate"]=="BLOCKED" and p3["orders"]==[] and p3["executable_candidates"]==[]
+          assert p3["officially_certified_halt_dates"]==0 and p3["historical_PIT_trade_eligible"] is False
+          result={
+              "phase":"P234_FIVE_PR_ISOLATED_PREMERGE_COMPATIBILITY",
+              "status":"FIVE_PR_LOCAL_MERGE_AND_FROZEN_CSV_REPLAY_PASSED",
+              "pr_heads":{
+                  "316":"5df41fd60361fb531ee239312ab644896822c0eb",
+                  "317":"1ac5f42458031369438683293d4c031ec76e29b3",
+                  "318":"5db36e05ac985a2e3368d10729d8bed8d58c4a2b",
+                  "319":"f322e3757969adf6a0f171d40a07784f2d4c8fdb",
+                  "320":"a7b7a1ba08008164893c5509f830c5962d568b46"
+              },
+              "frozen_source_commit":"5be9d6ad76d8635defe02f8d90bc50ad4c03c086",
+              "original_issuers":len(digests),
+              "vendor_active_rows":active,
+              "vendor_suspended_rows":suspended,
+              "vendor_halt_exit_target_observations":p4["target_vendor_suspended"],
+              "official_halts_authenticated":0,
+              "historical_PIT_verified":False,
+              "fills_verified":0,
+              "trade_gate":"BLOCKED",
+              "orders":[],
+              "executable_candidates":[],
+              "no_remote_merge_or_writer_cutover":True
+          }
+          Path("p234_five_pr_integration_report.json").write_text(json.dumps(result,indent=2)+"\n")
+          print(json.dumps(result))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p234-five-pr-isolated-compatibility-${{ github.run_id }}
+          path: p234_five_pr_integration_report.json
+          if-no-files-found: ignore
+          retention-days: 30
