@@ -1,0 +1,72 @@
+name: P3 600150 publication proof-gap regressions (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p3_600150_official_publication_gap_queue.py'
+      - 'tests/test_p3_600150_official_publication_gap_queue.py'
+      - '.github/workflows/p3-600150-publication-gap-queue.yml'
+  push:
+    branches: ['feat/p3-600150-publication-gap-queue-20261112']
+    paths:
+      - 'collector/p3_600150_official_publication_gap_queue.py'
+      - 'tests/test_p3_600150_official_publication_gap_queue.py'
+      - '.github/workflows/p3-600150-publication-gap-queue.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify publication evidence cannot be promoted by download timestamp
+        run: python -m unittest -v tests.test_p3_600150_official_publication_gap_queue
+      - name: Build blocked proof queue from pinned REAL source artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --max-time 60 \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/tiandi0228/ashare-free-data/actions/artifacts/13905959428/zip" \
+            --output /tmp/p3-600150-source.zip
+          python - <<'PY'
+          import hashlib,json,zipfile
+          from pathlib import Path
+          from collector.p3_600150_official_publication_gap_queue import queue,PDFS
+          path=Path('/tmp/p3-600150-source.zip')
+          expected='fc1906b93b05f794db37f1084a49d256e2ac8219500995b923a8e9aa099285a1'
+          if path.stat().st_size>2_000_000 or hashlib.sha256(path.read_bytes()).hexdigest()!=expected:
+              raise SystemExit('pinned original artifact ZIP checksum mismatch')
+          with zipfile.ZipFile(path) as archive:
+              members=archive.namelist()
+              if len(members)!=3 or len(set(members))!=3 or 'receipt.json' not in members:
+                  raise SystemExit('unexpected original artifact entries')
+              receipt=json.loads(archive.read('receipt.json'))
+              result=queue(receipt)
+              for ident, spec in PDFS.items():
+                  name=f"originals/sh_600150_{ident}_{spec['sha256']}.pdf"
+                  if name not in members:
+                      raise SystemExit('original PDF missing')
+                  raw=archive.read(name)
+                  if (len(raw)!=spec['bytes'] or not raw.startswith(b'%PDF-')
+                      or b'%%EOF' not in raw[-2048:]
+                      or hashlib.sha256(raw).hexdigest()!=spec['sha256']):
+                      raise SystemExit('original PDF content mismatch')
+              if set(members)!={'receipt.json'}|{
+                  f"originals/sh_600150_{ident}_{spec['sha256']}.pdf" for ident,spec in PDFS.items()
+              }:
+                  raise SystemExit('extra original artifact member')
+          assert result['research_original_count']==2
+          assert result['official_publication_instants_authenticated']==0
+          assert result['official_state_intervals_certified']==0
+          assert result['trade_gate']=='BLOCKED' and result['orders']==[]
+          print('REAL_P3_PUBLICATION_GAP_QUEUE:',json.dumps(result,sort_keys=True))
+          PY
