@@ -1,0 +1,29 @@
+name: P4 strict issuer/calendar evidence input regression (NO TRADES)
+on:
+  push:
+    branches: ['fix/p4-strict-issuer-calendar-evidence-types-20261112']
+    paths:
+      - 'collector/p4_issuer_session_gate.py'
+      - 'tests/test_p4_strict_issuer_session_inputs.py'
+      - '.github/workflows/p4-strict-issuer-session-inputs.yml'
+  pull_request:
+    paths:
+      - 'collector/p4_issuer_session_gate.py'
+      - 'tests/test_p4_strict_issuer_session_inputs.py'
+      - '.github/workflows/p4-strict-issuer-session-inputs.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Reject malformed issuer, session, fake booleans while preserving no-trade gates
+        run: python -m unittest -v tests.test_p4_issuer_session_gate tests.test_p4_unified_execution_preflight tests.test_p4_strict_issuer_session_inputs
