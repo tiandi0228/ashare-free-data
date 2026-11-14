@@ -1,0 +1,32 @@
+name: P4 pre-window evidence (NO TRADES)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'collector/p4_prewindow_evidence.py'
+      - 'tests/test_p4_prewindow_evidence.py'
+      - '.github/workflows/p4-prewindow-evidence.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  corroborate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Corroborate frozen registration against GitHub timestamps
+        run: python -m collector.p4_prewindow_evidence --out p4-prewindow-evidence.json
+      - name: Verify rejection paths offline
+        run: python -m unittest tests.test_p4_prewindow_evidence -v
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p4-prewindow-evidence
+          path: p4-prewindow-evidence.json
+          if-no-files-found: error
+          retention-days: 90
