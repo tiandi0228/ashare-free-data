@@ -1,0 +1,794 @@
+name: P2 full original CSV and feature receipt SHA replay (READ ONLY, NO TRADES)
+on:
+  push:
+    branches: ['ci/stockmate-p2-p4-frozen-baseline-20261112']
+    paths:
+      - '.github/workflows/p2-full-feature-coverage-replay.yml'
+      - 'collector/p2_original_gap_action_triage.py'
+      - 'tests/test_p2_original_gap_action_triage.py'
+      - 'collector/p2_601091_sse_ipo_crosswalk.py'
+      - 'tests/test_p2_601091_sse_ipo_crosswalk.py'
+      - 'collector/p3_three_issuer_halt_source_crosswalk.py'
+      - 'tests/test_p3_three_issuer_halt_source_crosswalk.py'
+      - 'evidence/p3_issuer_halt_resume_three_research_refs.json'
+      - 'collector/p3_four_issuer_st_crosswalk.py'
+      - 'tests/test_p3_four_issuer_st_crosswalk.py'
+      - 'evidence/p3_four_issuer_halt_st_research_refs.json'
+      - 'collector/p4_historical_st_research_veto.py'
+      - 'tests/test_p4_historical_st_research_veto.py'
+      - 'evidence/p4_st_historical_research_dates_600363.json'
+      - 'collector/p4_historical_st_dual_horizon_integration.py'
+      - 'tests/test_p4_historical_st_dual_horizon_integration.py'
+      - 'evidence/p4_synthetic_dual_horizon_st_adversarial.json'
+      - 'collector/p4_real_archived_ranking_st_join.py'
+      - 'tests/test_p4_real_archived_ranking_st_join.py'
+      - 'collector/p0_p1_active_epoch_progress_reconciliation.py'
+      - 'tests/test_p0_p1_active_epoch_progress_reconciliation.py'
+      - 'collector/p1_live_schedule_archive_health.py'
+      - 'tests/test_p1_live_schedule_archive_health.py'
+      - 'collector/p1_shared_scheduler_ownership_prewrite.py'
+      - 'tests/test_p1_shared_scheduler_ownership_prewrite.py'
+      - 'collector/p1_native_remote_write_boundary_inventory.py'
+      - 'tests/test_p1_native_remote_write_boundary_inventory.py'
+      - 'collector/p1_seven_boundary_ownership_transition_rehearsal.py'
+      - 'tests/test_p1_seven_boundary_ownership_transition_rehearsal.py'
+      - 'collector/p1_live_dynamic_archive_delta_attestation.py'
+      - 'tests/test_p1_live_dynamic_archive_delta_attestation.py'
+      - 'collector/p1_schedule_latency_durable_yield.py'
+      - 'tests/test_p1_schedule_latency_durable_yield.py'
+      - 'external-p1-cron/src/index.mjs'
+      - 'external-p1-cron/src/shadow-audit.mjs'
+      - 'external-p1-cron/tests/worker.test.mjs'
+      - 'external-p1-cron/tests/shadow-audit.test.mjs'
+      - 'external-p1-cron/README.md'
+      - 'external-p1-cron/src/native-drain-audit.mjs'
+      - 'external-p1-cron/tests/native-drain-audit.test.mjs'
+  pull_request:
+    paths:
+      - '.github/workflows/p2-full-feature-coverage-replay.yml'
+      - 'collector/p2_original_gap_action_triage.py'
+      - 'tests/test_p2_original_gap_action_triage.py'
+      - 'collector/p2_601091_sse_ipo_crosswalk.py'
+      - 'tests/test_p2_601091_sse_ipo_crosswalk.py'
+      - 'collector/p3_three_issuer_halt_source_crosswalk.py'
+      - 'tests/test_p3_three_issuer_halt_source_crosswalk.py'
+      - 'evidence/p3_issuer_halt_resume_three_research_refs.json'
+      - 'collector/p3_four_issuer_st_crosswalk.py'
+      - 'tests/test_p3_four_issuer_st_crosswalk.py'
+      - 'evidence/p3_four_issuer_halt_st_research_refs.json'
+      - 'collector/p4_historical_st_research_veto.py'
+      - 'tests/test_p4_historical_st_research_veto.py'
+      - 'evidence/p4_st_historical_research_dates_600363.json'
+      - 'collector/p4_historical_st_dual_horizon_integration.py'
+      - 'tests/test_p4_historical_st_dual_horizon_integration.py'
+      - 'evidence/p4_synthetic_dual_horizon_st_adversarial.json'
+      - 'collector/p4_real_archived_ranking_st_join.py'
+      - 'tests/test_p4_real_archived_ranking_st_join.py'
+      - 'collector/p0_p1_active_epoch_progress_reconciliation.py'
+      - 'tests/test_p0_p1_active_epoch_progress_reconciliation.py'
+      - 'collector/p1_live_schedule_archive_health.py'
+      - 'tests/test_p1_live_schedule_archive_health.py'
+      - 'collector/p1_shared_scheduler_ownership_prewrite.py'
+      - 'tests/test_p1_shared_scheduler_ownership_prewrite.py'
+      - 'collector/p1_native_remote_write_boundary_inventory.py'
+      - 'tests/test_p1_native_remote_write_boundary_inventory.py'
+      - 'collector/p1_seven_boundary_ownership_transition_rehearsal.py'
+      - 'tests/test_p1_seven_boundary_ownership_transition_rehearsal.py'
+      - 'collector/p1_live_dynamic_archive_delta_attestation.py'
+      - 'tests/test_p1_live_dynamic_archive_delta_attestation.py'
+      - 'collector/p1_schedule_latency_durable_yield.py'
+      - 'tests/test_p1_schedule_latency_durable_yield.py'
+      - 'external-p1-cron/src/index.mjs'
+      - 'external-p1-cron/src/shadow-audit.mjs'
+      - 'external-p1-cron/tests/worker.test.mjs'
+      - 'external-p1-cron/tests/shadow-audit.test.mjs'
+      - 'external-p1-cron/README.md'
+      - 'external-p1-cron/src/native-drain-audit.mjs'
+      - 'external-p1-cron/tests/native-drain-audit.test.mjs'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout original PR head or push commit, never GitHub merge-preview checkpoint
+        uses: actions/checkout@v4
+        with:
+          # PR merge refs silently include live main's 242+ checkpoint, which
+          # MUST NOT replace this original 241-shard P2 frozen replay input.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Checkout frozen 241-shard original CSV snapshot for reproducible P2 replay
+        uses: actions/checkout@v4
+        with:
+          # Source branch is actively growing (242+ shards); P2 published
+          # 226/241 receipt baseline MUST replay against its fixed Git commit.
+          ref: d92d86386c29b566562b0f9ac89920f3e3b7985f
+          path: archived-research
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Checkout immutable 226-of-241 historical feature receipts for P2 baseline
+        uses: actions/checkout@v4
+        with:
+          # Live P2 branch already advanced to 227/242; fixed evidence stays pinned.
+          ref: e395852a1355a253bdd5e741a6f1937d1c11eb11
+          path: durable-p2
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check exact epoch binding, immutable receipt membership and original CSV coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,subprocess
+          from pathlib import Path
+          from collector.p1_checkpoint import validate
+          sha='5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022'
+          epoch=sha[:16]
+          ck=Path('evidence/checkpoints')/(sha+'.json')
+          original=Path('archived-research')/epoch
+          summary=Path('durable-p2/summaries')/(epoch+'.json')
+          receipts=Path('durable-p2/reports')/epoch
+          if not all(p.exists() for p in (ck,original,summary,receipts)):
+              raise SystemExit('aligned original/checkpoint/summary/receipts missing')
+          ledger=json.loads(ck.read_text())
+          validate(ledger)
+          marker=json.loads((original/'archive_status.json').read_text())
+          previous=json.loads(summary.read_text())
+          if ledger['source_sha256']!=sha or ledger['completed_shards']!=241:
+              raise AssertionError('FROZEN_LEDGER_MISMATCH '+json.dumps({
+                  'actual_source_sha':ledger['source_sha256'],
+                  'actual_count':ledger['completed_shards'],
+                  'git_head':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              }))
+          if marker['source_sha256']!=sha or marker['trade_gate']!='BLOCKED' or len(marker['archived_shards'])!=241:
+              raise AssertionError('FROZEN_ARCHIVE_MISMATCH '+json.dumps({
+                  'actual_source_sha':marker['source_sha256'],
+                  'actual_count':len(marker['archived_shards']),
+                  'actual_trade_gate':marker['trade_gate'],
+                  'git_head':subprocess.check_output(['git','-C','archived-research','rev-parse','HEAD'],text=True).strip(),
+              }))
+          assert previous['phase']=='P2_PERSISTENT_ARCHIVE_FEATURE_COVERAGE'
+          assert previous['source_epoch_sha256']==sha
+          assert previous['observed_archived_shards']==241
+          assert previous['feature_complete_shards']==226
+          assert previous['trade_gate']=='BLOCKED' and previous['historical_PIT_verified'] is False
+          assert previous['orders']==[] and previous['executable_candidates']==[]
+          runs=sorted(receipts.glob('*.json'))
+          assert 0<len(runs)<=1000, 'historical receipts missing/unbounded'
+          for p in runs:
+              json.loads(p.read_text())
+          print('P2_PINNED_BRANCH_INPUTS',json.dumps({
+              'epoch':sha,'checkpoint_completed_shards':241,'original_archived_shards':241,
+              'previous_summary_feature_complete':226,
+              'historical_receipts':len(runs),
+              'original_archive_git_commit':subprocess.check_output(
+                  ['git','-C','archived-research','rev-parse','HEAD'],text=True).strip(),
+              'durable_receipts_git_commit':subprocess.check_output(
+                  ['git','-C','durable-p2','rev-parse','HEAD'],text=True).strip(),
+              'trade_gate':'BLOCKED'},sort_keys=True))
+          PY
+      - name: Replay SHA-verified archived originals and each stored feature receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports/p2_current_full_replay
+          python -m collector.p2_feature_coverage_ledger \
+            --archive-epoch archived-research/5ba00fbd720fad90 \
+            --checkpoint evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json \
+            --receipts durable-p2/reports/5ba00fbd720fad90 \
+            --out reports/p2_current_full_replay/recomputed.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          expected=json.loads(Path('durable-p2/summaries/5ba00fbd720fad90.json').read_text())
+          actual=json.loads(Path('reports/p2_current_full_replay/recomputed.json').read_text())
+          keys=['phase','status','source_epoch_sha256','checkpoint_completed_shards',
+                'checkpoint_total_shards','archived_original_shards','observed_archived_shards',
+                'feature_complete_shards','observed_with_feature_gaps_shards',
+                'unobserved_archived_shards','feature_issuer_count','issuer_evidence_gap_count',
+                'observed_feature_or_gap_issuers','unobserved_issuer_count',
+                'full_archive_evidence_accounted','full_archive_feature_coverage']
+          diff={k:[expected.get(k),actual.get(k)] for k in keys
+                if expected.get(k)!=actual.get(k)}
+          if diff:raise SystemExit('REPLAY_MISMATCH '+json.dumps(diff,ensure_ascii=False))
+          assert actual['feature_complete_shards']==226
+          assert actual['observed_archived_shards']==241
+          assert actual['observed_with_feature_gaps_shards']==15
+          assert actual['unobserved_archived_shards']==0
+          assert actual['trade_gate']=='BLOCKED'
+          assert actual['orders']==[] and actual['executable_candidates']==[]
+          assert actual['historical_PIT_verified'] is False
+          report={
+              'phase':'P2_CURRENT_SAME_EPOCH_ORIGINAL_CSV_FULL_REPLAY',
+              'source_epoch_sha256':actual['source_epoch_sha256'],
+              'feature_complete_shards':226,
+              'observed_archived_shards':241,
+              'feature_coverage_pct':round(100*226/241,2),
+              'feature_gap_shards':15,'issuer_feature_gaps':actual['issuer_evidence_gap_count'],
+              'previous_summary_and_full_original_replay_match':True,
+              'original_CSVs_independently_replayed_in_this_run':True,
+              'historical_PIT_verified':False,
+              'official_market_state_certified':False,
+              'overall_P2_project_completion_pct':None,
+              'trade_gate':'BLOCKED','orders':[],'executable_candidates':[]}
+          Path('reports/p2_current_full_replay/verified.json').write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+'\n')
+          print('P2_FULL_ORIGINAL_REPLAY_SUCCESS',json.dumps(report,ensure_ascii=False))
+          PY
+      - name: Reclassify all 16 source-verified gaps without modifying original data
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p2_original_gap_action_triage
+          python -m collector.p2_original_gap_action_triage \
+            --replayed-summary reports/p2_current_full_replay/recomputed.json \
+            --out reports/p2_current_full_replay/gap_action_queue.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_current_full_replay/gap_action_queue.json").read_text())
+          assert r["reason_counts"]=={
+              "VENDOR_SUSPENDED_IN_LAST_21_ROWS":15,
+              "FEWER_THAN_21_VENDOR_ROWS_ASOF":1}
+          assert r["unresolved_shards"]==15 and r["unresolved_issuers"]==16
+          assert r["complete_feature_shards_promoted_by_triage"]==0
+          assert r["history_backfill_authorized"] is False
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P2_GAP_ORIGINAL_TRIAGE_REPLAY_PASSED_NO_REPAIR")
+          PY
+      - name: Cross-check short IPO observation window against SSE official listing notice
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p2_601091_sse_ipo_crosswalk
+          python -m collector.p2_601091_sse_ipo_crosswalk \
+            --gap-triage reports/p2_current_full_replay/gap_action_queue.json \
+            --out reports/p2_current_full_replay/601091_official_listing_crosswalk.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_current_full_replay/601091_official_listing_crosswalk.json").read_text())
+          assert r["issuer"]=="sh.601091"
+          assert r["source_reference"]["listed_first_day"]=="2026-09-17"
+          assert r["vendor_observed_rows"]==18
+          assert r["observed_vendor_row_shortfall"]==3
+          assert r["gap_resolved"] is False
+          assert r["feature_complete_shards_promoted"]==0
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P2_IPO_SOURCE_DATE_MATCHED_NO_PHANTOM_BARS")
+          PY
+      - name: Crosswalk three issuer-authored halt/resume dates against source SHA original P2 gaps
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p3_three_issuer_halt_source_crosswalk
+          python -m collector.p3_three_issuer_halt_source_crosswalk \
+            --triage reports/p2_current_full_replay/gap_action_queue.json \
+            --sources evidence/p3_issuer_halt_resume_three_research_refs.json \
+            --out reports/p2_current_full_replay/three_issuer_halt_sources.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('reports/p2_current_full_replay/three_issuer_halt_sources.json').read_text())
+          assert r['reviewed_issuer_count']==3 and r['remaining_all_gap_issuer_count']==16
+          assert r['feature_shards_promoted']==0 and r['research_feature_complete_shards']==226
+          assert r['source_pdf_originals_byte_sha_verified'] is False
+          assert r['trade_gate']=='BLOCKED' and r['orders']==[]
+          print('P3_THREE_ISSUER_ANNOUNCEMENT_DATE_CROSSWALK_PASSED_RESEARCH_ONLY')
+          PY
+      - name: Validate four more issuer notices and ST effective-date exclusion
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p3_four_issuer_st_crosswalk
+          python -m collector.p3_four_issuer_st_crosswalk \
+            --triage reports/p2_current_full_replay/gap_action_queue.json \
+            --sources evidence/p3_four_issuer_halt_st_research_refs.json \
+            --out reports/p2_current_full_replay/four_issuer_st_research_refs.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_current_full_replay/four_issuer_st_research_refs.json").read_text())
+          assert r["new_issuer_sources_linked"]==4
+          assert r["total_vendor_suspension_issuer_sources_linked"]==7
+          assert r["remaining_vendor_suspension_issuers_without_source_links"]==8
+          assert r["st_risk_exclusion"]["effective_from"]=="2026-09-30"
+          assert r["st_risk_exclusion"]["non_st_mainboard_screen_allowed_from_effective_day"] is False
+          assert r["feature_shards_promoted"]==0
+          assert r["issuer_source_pdf_bytes_sha_verified"] is False
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P3_FOUR_ISSUER_ST_RESEARCH_REFERENCES_PASS_WITHOUT_TRADING_PIT_PROMOTION")
+          PY
+      - name: Verify 600363 historical halt and ST exclusion in P4 research date replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p4_historical_st_research_veto
+          python -m collector.p4_historical_st_research_veto \
+            --crosswalk reports/p2_current_full_replay/four_issuer_st_research_refs.json \
+            --sample evidence/p4_st_historical_research_dates_600363.json \
+            --out reports/p2_current_full_replay/p4_historical_st_research_veto.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_current_full_replay/p4_historical_st_research_veto.json").read_text())
+          assert r["approved_entries"]==0
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          assert r["historical_PIT_verified"] is False
+          assert r["production_trade_gate_implementation_verified"] is False
+          found={x["signal_known_after_close_date"]:x["candidate_policy_research_state"]
+                 for x in r["research_decisions"] if x["issuer"]=="sh.600363"}
+          assert found["2026-09-29"]=="VETO_ISSUER_NOTICE_SUSPENDED_DAY"
+          assert found["2026-09-30"]=="VETO_ISSUER_NOTICE_ST_EFFECTIVE"
+          assert found["2026-10-20"]=="VETO_ISSUER_NOTICE_ST_EFFECTIVE"
+          print("P4_HISTORICAL_ST_RESEARCH_VETO_TEST_PASSED_NOT_PRODUCTION")
+          PY
+      - name: Integrate dual-horizon candidate research with dated ST risk veto (synthetic adversarial)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p4_historical_st_dual_horizon_integration
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("evidence/p4_synthetic_dual_horizon_st_adversarial.json")
+          a=json.loads(p.read_text())
+          assert a["fixture_kind"]=="SYNTHETIC_ADVERSARIAL_UPSTREAM_OPTIMISM_NOT_REAL_PIT"
+          samples=[
+            {"issuer":row["issuer"],"signal_known_after_close_date":a["asof"],
+             "research_only":True,"buy_signal":False}
+            for row in a["symbols"]]
+          assert len(samples)==2
+          root=Path("reports/p2_current_full_replay")
+          (root/"p4_dual_horizon_st_joined_inputs.json").write_text(json.dumps(samples,ensure_ascii=False,indent=2)+"\n")
+          PY
+          python -m collector.p4_historical_st_dual_horizon_integration \
+            --crosswalk reports/p2_current_full_replay/four_issuer_st_research_refs.json \
+            --research evidence/p4_synthetic_dual_horizon_st_adversarial.json \
+            --risk-samples reports/p2_current_full_replay/p4_dual_horizon_st_joined_inputs.json \
+            --out reports/p2_current_full_replay/p4_dual_horizon_st_integration.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_current_full_replay/p4_dual_horizon_st_integration.json").read_text())
+          assert r["assessed_issuers"]==2
+          assert r["dated_issuer_notice_veto_count"]==1
+          assert r["research_labels_safety_blocked"]==2
+          assert r["orders"]==[] and r["executable_candidates"]==[]
+          assert r["production_candidate_pipeline_integrated"] is False
+          assert r["historical_PIT_verified"] is False and r["trade_gate"]=="BLOCKED"
+          print("P4_HISTORICAL_ST_DUAL_HORIZON_END_TO_END_RESEARCH_BLOCKED")
+          PY
+      - name: Replay real archived P2 candidate ranking page and join official-notice ST research veto
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p4_real_archived_ranking_st_join
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from collector.p2_paged_real_archive import run, PAGE_SHARDS
+          epoch=Path("archived-research/5ba00fbd720fad90")
+          quality=sorted(epoch.glob("shard_*/quality.json"))
+          indices=[int(p.parent.name[6:]) for p in quality]
+          assert len(indices)==241 and 33 in indices
+          selected_page=indices.index(33)//PAGE_SHARDS
+          output=Path("reports/p2_current_full_replay/p2_real_paged_shard_0033.json")
+          r=run("archived-research","evidence/checkpoints",output,
+                page=selected_page,run_number=1)
+          assert r["status"]=="PAGED_REAL_ARCHIVE_RESEARCH_ONLY"
+          assert "shard_0033" in r["selected_shards"]
+          assert r["source_epoch_sha256"]=="5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022"
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P2_REAL_ORIGINAL_RANKING_PAGE",selected_page,
+                r["scoped_verified_issuers"],r["computed_feature_issuers"],
+                r["missing_feature_evidence_issuers"])
+          PY
+          python -m collector.p4_real_archived_ranking_st_join \
+            --page reports/p2_current_full_replay/p2_real_paged_shard_0033.json \
+            --crosswalk reports/p2_current_full_replay/four_issuer_st_research_refs.json \
+            --triage reports/p2_current_full_replay/gap_action_queue.json \
+            --out reports/p2_current_full_replay/p4_real_original_ranked_st_join.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_current_full_replay/p4_real_original_ranked_st_join.json").read_text())
+          assert r["st_600363_source_gap_held_out_of_ranking"] is True
+          assert r["st_600363_dated_veto_verified_in_research"] is True
+          assert r["candidate_approvals"]==0 and r["trade_gate"]=="BLOCKED"
+          assert r["orders"]==[] and r["executable_candidates"]==[]
+          assert r["production_candidate_pipeline_integrated"] is False
+          assert r["descriptive_ranked_original_issuers"]==len(r["real_original_candidate_rows"])
+          print("P4_REAL_SOURCE_RANKING_NONEXECUTABLE_ST_JOIN_PASSED")
+          PY
+      - name: Verify P0 historical development versus production and P1 live pinned 241/400 epoch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p0_tencent_quote_probe tests.test_p0_p4_progress_snapshot
+          python -m unittest -v tests.test_p0_p1_active_epoch_progress_reconciliation
+          python -m collector.p0_p1_active_epoch_progress_reconciliation \
+            --lock evidence/p1_active_roster.json \
+            --active evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json \
+            --legacy evidence/p1_checkpoint.json \
+            --archive-status archived-research/5ba00fbd720fad90/archive_status.json \
+            --p2-replay reports/p2_current_full_replay/verified.json \
+            --p0-offline-ok \
+            --out reports/p2_current_full_replay/p0_p1_source_epoch_corrected_progress.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_current_full_replay/p0_p1_source_epoch_corrected_progress.json").read_text())
+          assert r["P0"]["historical_development_pct_reported"]==100
+          assert r["P0"]["current_full_production_acceptance_pct"] is None
+          assert r["P0"]["production_approved"] is False
+          assert r["P1"]["active_completed_shards"]==241
+          assert r["P1"]["active_total_shards"]==400
+          assert r["P1"]["active_coverage_pct"]==60.25
+          assert r["P1"]["legacy_alias_completed_shards"]==44
+          assert r["P1"]["legacy_alias_is_active_source"] is False
+          assert r["P1"]["original_CSV_replay_verified_in_this_run"] is True
+          assert r["P1"]["production_writer_cutover_authorized"] is False
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P0_P1_ACTIVE_EPOCH_RECONCILED_241_OF_400_NOT_LEGACY_44")
+          PY
+      - name: Inspect recent real P1 schedule Actions runs separately from accepted shard deltas
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p reports/p2_current_full_replay
+          python -m unittest -v tests.test_p1_live_schedule_archive_health
+          gh api -X GET repos/tiandi0228/ashare-free-data/actions/workflows/p1-fresh-vendor-roster.yml/runs -f per_page=50 > reports/p2_current_full_replay/p1_live_schedule_runs_raw.json
+          python -m collector.p1_live_schedule_archive_health \
+            --lock evidence/p1_active_roster.json \
+            --checkpoint evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json \
+            --archive archived-research/5ba00fbd720fad90/archive_status.json \
+            --runs reports/p2_current_full_replay/p1_live_schedule_runs_raw.json \
+            --out reports/p2_current_full_replay/p1_real_schedule_health_summary.json
+          # Verify one *known, concluded* source run with its immutable run-specific
+          # receipt and the current same-epoch permanent checkpoint. This
+          # proves a +1 historical shard transition, not fresh future progress.
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from collector.p1_schedule_final_attestation import verify
+          root=Path("reports/p2_current_full_replay")
+          run_id=43119727655
+          api=json.loads((root/"p1_live_schedule_runs_raw.json").read_text())
+          selected=[r for r in api["workflow_runs"] if r.get("id")==run_id]
+          if len(selected)!=1:
+              raise SystemExit("historical run unavailable in bounded live Actions page")
+          source=json.loads(Path("evidence/schedule_runs/5ba00fbd720fad90/run_43119727655_attempt_1.json").read_text())
+          checkpoint=json.loads(Path("evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json").read_text())
+          result=verify(selected[0],source,checkpoint)
+          assert result["state"]=="SCHEDULE_SUCCESS_AND_DURABLE_SHARDS_CONFIRMED"
+          assert result["final_actions_success_authenticated"] is True
+          assert result["durable_same_epoch_shard_inclusion_verified"] is True
+          assert result["per_shard_manifest_and_receipt_sha_matched"] is True
+          assert result["source_checkpoint_before"]==240
+          assert result["source_checkpoint_after"]==241
+          assert result["accepted_source_shard_indices"]==[377]
+          assert result["durably_accepted_shards_in_source_run"]==1
+          assert result["durable_checkpoint_current"]==241
+          assert result["trade_gate"]=="BLOCKED" and result["orders"]==[]
+          (root/"p1_last_known_completed_run_shard_delta_attested.json").write_text(
+              json.dumps(result,ensure_ascii=False,indent=2)+"\n")
+          print("P1_LAST_KNOWN_RUN_FINAL_VERIFIED_240_TO_241_ONE_SHARD")
+          PY
+          rm -f reports/p2_current_full_replay/p1_live_schedule_runs_raw.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_current_full_replay/p1_real_schedule_health_summary.json").read_text())
+          assert r["active_completed_shards"]==241
+          assert r["active_total_shards"]==400
+          assert r["remaining_shards"]==159
+          assert r["active_original_archive_membership_confirmed"] is True
+          assert r["new_shards_from_run_history"] is None
+          assert r["recovery_dispatch_authorized"] is False
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P1_RUN_HEALTH_READ_ONLY_SUCCESS_NO_UNVERIFIED_DELTA")
+          PY
+      - name: Reconcile 24h scheduled creation lag with concluded SHA-accepted original shards
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p1_schedule_latency_durable_yield
+          mkdir -p reports/p2_current_full_replay
+          gh api -X GET repos/tiandi0228/ashare-free-data/contents/evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json -f ref=main > reports/p2_current_full_replay/p1_latest_checkpoint_envelope.json
+          python - <<'PY'
+          import base64,json
+          from pathlib import Path
+          root=Path("reports/p2_current_full_replay")
+          e=json.loads((root/"p1_latest_checkpoint_envelope.json").read_text())
+          assert e["type"]=="file" and e["encoding"]=="base64"
+          assert e["path"]=="evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json"
+          obj=json.loads(base64.b64decode("".join(e["content"].split()),validate=True))
+          assert obj["source_sha256"]=="5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022"
+          assert obj["completed_shards"]>=241 and obj["trade_gate"]=="BLOCKED"
+          (root/"p1_latest_checkpoint_current.json").write_text(json.dumps(obj,ensure_ascii=False)+"\n")
+          print("P1_LIVE_RECEIPT_AUDIT_LEDGER",obj["completed_shards"])
+          PY
+          rm -f reports/p2_current_full_replay/p1_latest_checkpoint_envelope.json
+          gh api -X GET repos/tiandi0228/ashare-free-data/actions/workflows/p1-fresh-vendor-roster.yml/runs -f per_page=50 > reports/p2_current_full_replay/p1_latency_runs_raw.json
+          python - <<'PY'
+          import base64,json,subprocess
+          from datetime import datetime,timezone,timedelta
+          from pathlib import Path
+          root=Path("reports/p2_current_full_replay")
+          data=json.loads((root/"p1_latency_runs_raw.json").read_text())
+          now=datetime.now(timezone.utc)
+          selected=[]
+          for run in data["workflow_runs"]:
+              t=datetime.fromisoformat(run["created_at"].replace("Z","+00:00"))
+              if t>=now-timedelta(hours=24) and run.get("event")=="schedule":
+                  selected.append(run)
+          if len(selected)>20:raise SystemExit("too many scheduled runs for bounded audit")
+          receipts={}
+          for run in selected:
+              rid=run["id"]
+              attempt=run.get("run_attempt")
+              if type(attempt) is not int or attempt<1:
+                  continue
+              path=f"evidence/schedule_runs/5ba00fbd720fad90/run_{rid}_attempt_{attempt}.json"
+              fetch=subprocess.run([
+                  "gh","api","-X","GET",
+                  "repos/tiandi0228/ashare-free-data/contents/"+path,
+                  "-f","ref=main"],capture_output=True,text=True,timeout=35)
+              if fetch.returncode!=0:
+                  if "404" in fetch.stderr and "Not Found" in fetch.stderr:continue
+                  raise SystemExit("P1 receipt fetch failed for run "+str(rid))
+              envelope=json.loads(fetch.stdout)
+              if envelope.get("path")!=path or envelope.get("type")!="file":
+                  raise SystemExit("wrong P1 receipt path")
+              contents=base64.b64decode("".join(envelope["content"].split()),validate=True)
+              receipts[str(rid)]=json.loads(contents)
+          (root/"p1_latency_receipts_raw.json").write_text(
+              json.dumps(receipts,ensure_ascii=False)+"\n")
+          print("P1_BOUND_RECEIPTS_FOUND",len(receipts),"SCHEDULES",len(selected))
+          PY
+          python -m collector.p1_schedule_latency_durable_yield \
+            --runs reports/p2_current_full_replay/p1_latency_runs_raw.json \
+            --receipts reports/p2_current_full_replay/p1_latency_receipts_raw.json \
+            --checkpoint reports/p2_current_full_replay/p1_latest_checkpoint_current.json \
+            --out reports/p2_current_full_replay/p1_24h_scheduled_lag_and_sha_yield.json
+          rm -f reports/p2_current_full_replay/p1_latency_receipts_raw.json reports/p2_current_full_replay/p1_latest_checkpoint_current.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_current_full_replay/p1_24h_scheduled_lag_and_sha_yield.json").read_text())
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          assert r["automatic_recovery_dispatch_authorized"] is False
+          assert r["active_completed_shards"]>=241
+          assert r["not_derived_as_new_since_current_checkpoint"] is True
+          print("P1_LATENCY_FINAL_RECEIPT_AUDIT_READ_ONLY_PASSED")
+          PY
+      - name: Run external cron default-disabled tests and retrospectively shadow delayed P1 slots
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test external-p1-cron/tests/worker.test.mjs external-p1-cron/tests/shadow-audit.test.mjs
+          node external-p1-cron/src/shadow-audit.mjs \
+            reports/p2_current_full_replay/p1_24h_scheduled_lag_and_sha_yield.json \
+            reports/p2_current_full_replay/p1_latency_runs_raw.json \
+            reports/p2_current_full_replay/p1_external_worker_shadow_overlap.json
+          rm -f reports/p2_current_full_replay/p1_latency_runs_raw.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_current_full_replay/p1_external_worker_shadow_overlap.json").read_text())
+          assert r["active_source_shards"]>=241
+          assert r["external_dispatch_enabled"] is False
+          assert r["extra_collection_started"] is False
+          assert r["actual_external_worker_trigger_proven"] is False
+          assert r["deploy_authorized"] is False
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          assert 1<=r["evaluated_scheduled_runs"]<=20
+          print("P1_EXTERNAL_CRON_SHADOW_NO_DISPATCH_VERIFIED")
+          PY
+      - name: Verify native P1 schedule and require authenticated old-run drain before external dispatch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node --test external-p1-cron/tests/native-drain-audit.test.mjs
+          gh api -X GET repos/tiandi0228/ashare-free-data/contents/.github/workflows/p1-fresh-vendor-roster.yml -f ref=main > reports/p2_current_full_replay/p1_native_workflow_source_envelope.json
+          gh api -X GET repos/tiandi0228/ashare-free-data/actions/workflows/p1-fresh-vendor-roster.yml/runs -f per_page=100 > reports/p2_current_full_replay/p1_native_workflow_runs.json
+          python - <<'PY'
+          import json,base64
+          from pathlib import Path
+          p=Path('reports/p2_current_full_replay')
+          doc=json.loads((p/'p1_native_workflow_source_envelope.json').read_text())
+          assert doc["path"]==".github/workflows/p1-fresh-vendor-roster.yml"
+          assert doc["type"]=="file" and doc["encoding"]=="base64"
+          assert len(doc["sha"])==40
+          data=base64.b64decode(''.join(doc['content'].split()),validate=True)
+          (p/'p1_native_workflow_main.yml').write_bytes(data)
+          (p/'p1_native_workflow_main_blobsha.txt').write_text(doc['sha']+'\n')
+          PY
+          node external-p1-cron/src/native-drain-audit.mjs \
+            reports/p2_current_full_replay/p1_native_workflow_main.yml \
+            "$(cat reports/p2_current_full_replay/p1_native_workflow_main_blobsha.txt)" \
+            reports/p2_current_full_replay/p1_native_workflow_runs.json \
+            reports/p2_current_full_replay/p1_native_run_drain_audit.json
+          rm -f reports/p2_current_full_replay/p1_native_workflow_source_envelope.json reports/p2_current_full_replay/p1_native_workflow_runs.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('reports/p2_current_full_replay/p1_native_run_drain_audit.json').read_text())
+          assert r['state']=='BLOCKED'
+          assert r['reason']=='NATIVE_CRON_STILL_ENABLED'
+          assert r['external_dispatch_authorized'] is False
+          assert r['old_source_run_drain_certified'] is False
+          assert r['trade_gate']=='BLOCKED' and r['orders']==[]
+          print('P1_NATIVE_SOURCE_DRAIN_HARD_BLOCK_VERIFIED')
+          PY
+      - name: Stage source-side scheduler ownership generation fence with no actual writer changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p1_shared_scheduler_ownership_prewrite
+          python - <<'PY'
+          import copy,json
+          from pathlib import Path
+          from collector.p1_shared_scheduler_ownership_prewrite import evaluate
+          from tests.test_p1_shared_scheduler_ownership_prewrite import CONTRACT,RUN,DIGEST,CONTRACT_SHA,RAW_CONTRACT
+          text=Path("reports/p2_current_full_replay/p1_native_workflow_main.yml").read_text()
+          assert "\n  schedule:\n" in text
+          assert "p1-fresh-mainboard-roster-serial" in text
+          assert "cancel-in-progress: false" in text
+          results={}
+          for owner in ("NATIVE_ONLY","FREEZE_ALL","EXTERNAL_ONLY"):
+              import hashlib
+              c=copy.deepcopy(CONTRACT)
+              c["owner"]=owner
+              raw=(json.dumps(c,sort_keys=True)+chr(10)).encode()
+              digest=hashlib.sha256(raw).hexdigest()
+              blob=hashlib.sha1(b"blob "+str(len(raw)).encode()+bytes([0])+raw).hexdigest()
+              run=copy.deepcopy(RUN)
+              run["observed_contract_blob_sha"]=blob
+              run["observed_contract_bytes_sha256"]=digest
+              out=evaluate(c,run,contract_blob_sha=blob,contract_bytes_sha256=digest,contract_raw_bytes=raw)
+              assert out["collector_write_authorized"] is False
+              assert out["external_dispatch_authorized"] is False
+              assert out["trade_gate"]=="BLOCKED"
+              assert out["orders"]==[] and out["executable_candidates"]==[]
+              results[owner]={"decision":out["decision"],"reason":out["reason"]}
+          assert results["FREEZE_ALL"]["reason"]=="CUTOVER_FREEZE_BLOCKS_ALL_P1_WRITES"
+          assert results["EXTERNAL_ONLY"]["reason"]=="EXTERNAL_OWNER_NATIVE_SOURCE_VETO"
+          out={
+              "phase":"P1_STAGED_SHARED_OWNERSHIP_WITH_ACTUAL_MAIN_NATIVE_SOURCE_CHECK",
+              "native_schedule_enabled_from_main_source":True,
+              "native_concurrency_serial":True,
+              "main_native_workflow_blob_sha":Path("reports/p2_current_full_replay/p1_native_workflow_main_blobsha.txt").read_text().strip(),
+              "synthetic_ownership_generation_cases":results,
+              "production_writer_fence_integrated":False,
+              "actual_ownership_contract_deployed":False,
+              "external_dispatch_authorized":False,
+              "collector_write_authorized":False,
+              "trade_gate":"BLOCKED","orders":[],"executable_candidates":[],
+          }
+          Path("reports/p2_current_full_replay/p1_prewrite_ownership_generation_staging.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n")
+          print("P1_PREWRITE_OWNERSHIP_STAGED_FREEZE_AND_EXTERNAL_VETO_PASSED")
+          PY
+      - name: Audit all seven real P1 remote write boundaries and create nondeployable owner-fence preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p1_native_remote_write_boundary_inventory
+          python -m collector.p1_native_remote_write_boundary_inventory \
+            --source reports/p2_current_full_replay/p1_native_workflow_main.yml \
+            --out reports/p2_current_full_replay/p1_actual_main_remote_write_boundary_inventory.json \
+            --preview reports/p2_current_full_replay/p1_nonexecutable_ownership_fence_review_preview.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path("reports/p2_current_full_replay")
+          inventory=json.loads((root/"p1_actual_main_remote_write_boundary_inventory.json").read_text())
+          preview=json.loads((root/"p1_nonexecutable_ownership_fence_review_preview.json").read_text())
+          assert inventory["known_remote_writer_count"]==7
+          assert preview["reviewed_boundaries"]==7
+          assert preview["source_gate_installed"] is False
+          assert preview["staged_gate_is_deliberately_unconditional_block"] is True
+          assert preview["preview_text"].count("exit 77")==7
+          assert inventory["production_gate_deployed"] is False
+          assert inventory["production_cutover_authorized"] is False
+          assert inventory["trade_gate"]=="BLOCKED" and inventory["orders"]==[]
+          print("P1_SEVEN_REAL_REMOTE_WRITE_BOUNDARIES_SHADOW_FENCE_PASSED")
+          PY
+      - name: Replay all seven P1 remote write sites against mid-job freeze and late-native cutover
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p1_seven_boundary_ownership_transition_rehearsal
+          python -m collector.p1_seven_boundary_ownership_transition_rehearsal \
+            --workflow reports/p2_current_full_replay/p1_native_workflow_main.yml \
+            --out reports/p2_current_full_replay/p1_seven_writer_transition_matrix.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('reports/p2_current_full_replay/p1_seven_writer_transition_matrix.json')
+          r=json.loads(p.read_text())
+          assert r["tested_source_remote_write_boundaries"]==7
+          assert r["transition_scenarios"]==45
+          assert r["total_replayed_write_boundary_preflights"]==315
+          assert r["all_after_transition_native_attempts_blocked"] is True
+          assert r["all_actual_remote_writes_zero"] is True
+          assert r["production_write_path_integrated"] is False
+          assert r["candidate_cutover_ready"] is False
+          assert r["trade_gate"]=="BLOCKED"
+          assert r["orders"]==[] and r["executable_candidates"]==[]
+          print("P1_SEVEN_WRITERS_45_SCENARIOS_315_CHECKS_ZERO_WRITES_PASSED")
+          PY
+      - name: Validate latest live P1 accepted 241 to 242 growth against final Actions SHA and archive status
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p1_live_dynamic_archive_delta_attestation
+          mkdir -p reports/p2_current_full_replay/live_p1_source
+          gh api -X GET repos/tiandi0228/ashare-free-data/actions/runs/43172085079 > reports/p2_current_full_replay/live_p1_source/final_actions_run.json
+          gh api -X GET repos/tiandi0228/ashare-free-data/contents/evidence/schedule_runs/5ba00fbd720fad90/run_43172085079_attempt_1.json -f ref=main > reports/p2_current_full_replay/live_p1_source/source_receipt_envelope.json
+          gh api -X GET repos/tiandi0228/ashare-free-data/contents/evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json -f ref=main > reports/p2_current_full_replay/live_p1_source/checkpoint_envelope.json
+          gh api -X GET repos/tiandi0228/ashare-free-data/contents/5ba00fbd720fad90/archive_status.json -f ref=research-csv-archive > reports/p2_current_full_replay/live_p1_source/archive_envelope.json
+          python - <<'PY'
+          import base64,json
+          from pathlib import Path
+          root=Path("reports/p2_current_full_replay/live_p1_source")
+          for name,path in (
+              ("source_receipt","evidence/schedule_runs/5ba00fbd720fad90/run_43172085079_attempt_1.json"),
+              ("checkpoint","evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json"),
+              ("archive","5ba00fbd720fad90/archive_status.json"),
+          ):
+              envelope=json.loads((root/(name+"_envelope.json")).read_text())
+              assert envelope.get("path")==path and envelope.get("type")=="file"
+              assert envelope.get("encoding")=="base64" and len(envelope["sha"])==40
+              raw=base64.b64decode("".join(envelope["content"].split()),validate=True)
+              data=json.loads(raw)
+              (root/(name+".json")).write_text(json.dumps(data,ensure_ascii=False)+"\n")
+              (root/(name+"_blob_sha.txt")).write_text(envelope["sha"]+"\n")
+          PY
+          python -m collector.p1_live_dynamic_archive_delta_attestation \
+            --run reports/p2_current_full_replay/live_p1_source/final_actions_run.json \
+            --receipt reports/p2_current_full_replay/live_p1_source/source_receipt.json \
+            --checkpoint reports/p2_current_full_replay/live_p1_source/checkpoint.json \
+            --archive reports/p2_current_full_replay/live_p1_source/archive.json \
+            --out reports/p2_current_full_replay/p1_live_actual_growth_dynamic_verified.json
+          rm -rf reports/p2_current_full_replay/live_p1_source
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_current_full_replay/p1_live_actual_growth_dynamic_verified.json").read_text())
+          assert r["live_completed_shards"]>=242
+          assert r["source_run_id"]==43172085079
+          assert r["source_run_before"]==241 and r["source_run_after"]==242
+          assert r["source_run_shard_indices"]==[376]
+          assert r["source_final_success_authenticated"] is True
+          assert r["source_run_sha_receipts_verified"] is True
+          assert r["source_run_increment_already_in_checkpoint"] is True
+          assert r["trade_gate"]=="BLOCKED"
+          assert r["orders"]==[] and r["executable_candidates"]==[]
+          print("P1_LIVE_242_ACTUAL_SOURCE_SHA_AND_FINAL_ACTIONS_ACCEPTED")
+          PY
+      - name: Preserve read-only full original replay verification
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p2-full-feature-replay-${{ github.run_id }}
+          path: reports/p2_current_full_replay/
+          if-no-files-found: ignore
+          retention-days: 30

@@ -1,0 +1,182 @@
+name: StockMate P2-P4 offline acceptance baseline (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/stockmate-offline-progress-baseline.yml'
+      - 'collector/p2_separated_progress_report.py'
+      - 'tests/test_p2_separated_progress_report.py'
+      - 'evidence/p2_prior_reported_feature_shard_history.json'
+  push:
+    branches:
+      - 'ci/stockmate-p2-p4-frozen-baseline-20261112'
+    paths:
+      - '.github/workflows/stockmate-offline-progress-baseline.yml'
+      - 'collector/p2_separated_progress_report.py'
+      - 'tests/test_p2_separated_progress_report.py'
+      - 'evidence/p2_prior_reported_feature_shard_history.json'
+permissions:
+  contents: read
+jobs:
+  frozen-offline-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run frozen 10-criterion software-only acceptance (no external data or trades)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m collector.progress_baseline \
+            --root . --manifest progress_manifest.json \
+            --commit "${GITHUB_SHA}" --run-tests \
+            --out /tmp/stockmate-offline-baseline.json
+          python - <<'PY'
+          import json,pathlib
+          p=pathlib.Path("/tmp/stockmate-offline-baseline.json")
+          r=json.loads(p.read_text())
+          assert r["phase"]=="STOCKMATE_P2_P4_ENGINEERING_BASELINE"
+          assert r["status"]=="OFFLINE_ACCEPTANCE_ONLY" and r["tests_executed"] is True
+          assert set(r["stages"])=={"P2","P3","P4"}
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[] and r["executable_candidates"]==[]
+          assert r["historical_PIT_verified"] is False
+          summary={"phase":"STOCKMATE_FROZEN_OFFLINE_PROGRESS_REPORT","stages":{},
+                   "P0_overall_completion_pct":None,"P1_overall_completion_pct":None,
+                   "P2_P3_P4_overall_completion_pct":None,
+                   "trade_gate":"BLOCKED","historical_PIT_verified":False,
+                   "orders":[],"executable_candidates":[],
+                   "disclaimer":"OFFLINE_CONTRACT_TEST_PERCENTAGES_ARE_NOT_PROJECT_COMPLETION"}
+          for name,stage in r["stages"].items():
+              criteria=stage["criteria"]
+              assert len(criteria)==10 and stage["total_weight"]==100
+              assert sum(x["weight"] for x in criteria)==100
+              assert all(type(x["passed"]) is bool for x in criteria)
+              count=sum(x["passed"] for x in criteria)
+              assert count*10==stage["engineering_acceptance_baseline_pct"]
+              assert stage["data_certification_pct"] is None
+              assert stage["formal_trading_ready"] is False
+              summary["stages"][name]={
+                  "offline_engineering_tests_admitted":count,
+                  "offline_engineering_tests_denominator":10,
+                  "offline_engineering_baseline_pct":count*10,
+                  "overall_project_completion_pct":None,
+                  "missing_criteria":[x["id"] for x in criteria if not x["passed"]],
+              }
+          out=pathlib.Path("reports/stockmate_offline_progress")
+          out.mkdir(parents=True,exist_ok=True)
+          (out/"full_audit.json").write_text(json.dumps(r,ensure_ascii=False,indent=2)+"\n")
+          (out/"summary.json").write_text(json.dumps(summary,ensure_ascii=False,indent=2)+"\n")
+          print(json.dumps(summary,ensure_ascii=False,sort_keys=True))
+          PY
+      - name: Read-only P0 quote and P1 frozen-roster evidence checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,pathlib,subprocess,sys
+          from collector.p1_checkpoint import validate
+          root=pathlib.Path(".")
+          groups={
+              "P0": [
+                  "tests.test_p0_tencent_quote_probe",
+                  "tests.test_intraday_minute_coverage",
+                  "tests.test_intraday_cross_source_audit",
+                  "tests.test_intraday_snapshot_archive",
+              ],
+              "P1": [
+                  "tests.test_p1_checkpoint",
+                  "tests.test_p1_run_progress",
+                  "tests.test_p1_all_epoch_archive_audit",
+                  "tests.test_p1_archive_migration_readiness",
+              ],
+          }
+          result={"phase":"STOCKMATE_P0_P1_READ_ONLY_EVIDENCE_INVENTORY",
+                  "current_source_commit":None,
+                  "P0_overall_completion_pct":None,"P1_overall_completion_pct":None,
+                  "trade_gate":"BLOCKED","orders":[],"executable_candidates":[],
+                  "historical_PIT_verified":False,"P0_real_quote_freshness_verified":False,
+                  "P0_multiday_live_continuity_verified":False,
+                  "P1_full_archive_copy_verified":False,
+                  "P1_writer_cutover_authorized":False,
+                  "groups":{}}
+          for phase,modules in groups.items():
+              checks=[]
+              for name in modules:
+                  attempt=subprocess.run(
+                      [sys.executable,"-m","unittest","-q",name],
+                      capture_output=True,text=True,timeout=90)
+                  ok=(attempt.returncode==0 and "Ran " in attempt.stderr
+                      and "OK" in attempt.stderr)
+                  checks.append({"test_module":name,"offline_contract_passed":ok,
+                                 "result":"OFFLINE_CONTRACT_PASS" if ok else "OFFLINE_CONTRACT_FAIL",
+                                 "diagnostic_tail":"" if ok else attempt.stderr[-800:]})
+              result["groups"][phase]={
+                  "offline_modules_passed":sum(x["offline_contract_passed"] for x in checks),
+                  "offline_modules_executed":len(checks),
+                  "results":checks,
+                  "overall_phase_completion_pct":None,
+                  "interpretation":"selected_offline_code_tests_only_not_whole_phase"}
+          checkpoint=json.loads((root/"evidence/p1_checkpoint.json").read_text())
+          validate(checkpoint)
+          completed=checkpoint["completed_shards"]
+          total=checkpoint["shard_count"]
+          result["P1_roster_checkpoint"]={
+              "completed_shards":completed,
+              "total_shards":total,
+              "research_roster_coverage_pct":round(100*completed/total,4),
+              "source_sha256":checkpoint["source_sha256"],
+              "status":"LEDGER_COUNTS_ONLY_NOT_FULL_ARCHIVE_OR_PIT"}
+          if (result["groups"]["P0"]["offline_modules_passed"]!=4 or
+              result["groups"]["P1"]["offline_modules_passed"]!=4):
+              result["gate"]="OFFLINE_CONTRACT_REGRESSION"
+          else: result["gate"]="OFFLINE_CONTRACT_TESTS_PASSED_NOT_PRODUCTION_READY"
+          dest=root/"reports/stockmate_offline_progress"
+          dest.mkdir(parents=True,exist_ok=True)
+          (dest/"p0_p1_evidence_inventory.json").write_text(
+              json.dumps(result,ensure_ascii=False,indent=2)+"\n")
+          print(json.dumps({
+              "P0_offline_contract_modules_passed":result["groups"]["P0"]["offline_modules_passed"],
+              "P1_offline_contract_modules_passed":result["groups"]["P1"]["offline_modules_passed"],
+              "P1_checkpoint_completed_shards":completed,
+              "P1_checkpoint_total_shards":total,
+              "P1_research_roster_coverage_pct":round(100*completed/total,4),
+              "P0_overall_completion_pct":None,"P1_overall_completion_pct":None,
+              "trade_gate":"BLOCKED",
+              "gate":result["gate"]},sort_keys=True))
+          if result["gate"]!="OFFLINE_CONTRACT_TESTS_PASSED_NOT_PRODUCTION_READY":
+              raise SystemExit("P0/P1 selected offline regression failed")
+          PY
+      - name: Preserve previously reported P2 200+ feature shards without conflating 30 percent engineering tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p2_separated_progress_report
+          python -m collector.p2_separated_progress_report \
+            --engineering /tmp/stockmate-offline-baseline.json \
+            --historical evidence/p2_prior_reported_feature_shard_history.json \
+            --out reports/stockmate_offline_progress/p2_feature_vs_engineering.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/stockmate_offline_progress/p2_feature_vs_engineering.json").read_text())
+          assert r["P2_offline_engineering_pct"]==30
+          assert r["P2_latest_historical_report"]["feature_complete_shards"]==215
+          assert r["P2_latest_historical_report"]["observed_shards"]==227
+          assert r["P2_latest_historical_report"]["evidence_status"]=="HISTORICAL_REPORTED_UNREPLAYED"
+          assert r["P2_current_feature_coverage"] is None
+          assert r["P2_overall_project_completion_pct"] is None
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P2_HISTORICAL_215_OF_227_RETAINED_NOT_CURRENTLY_CERTIFIED")
+          PY
+      - name: Upload read-only engineering acceptance report (not PIT certification)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stockmate-offline-baseline-${{ github.run_id }}
+          path: reports/stockmate_offline_progress/
+          if-no-files-found: warn
+          retention-days: 30

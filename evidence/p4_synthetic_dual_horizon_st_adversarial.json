@@ -1,0 +1,96 @@
+{
+  "asof": "2026-09-30",
+  "fixture_kind": "SYNTHETIC_ADVERSARIAL_UPSTREAM_OPTIMISM_NOT_REAL_PIT",
+  "symbols": [
+    {
+      "issuer": "sh.600363",
+      "universe_guard": {
+        "official_pit_mainboard_non_st_confirmed": true,
+        "no_suspension_confirmed": true,
+        "source": "SYNTHETIC_OPTIMISTIC_FOR_NEGATIVE_TEST_ONLY",
+        "published_on": "2026-09-29"
+      },
+      "short": {
+        "source": "SYNTHETIC_ADVERSARIAL_GUARD_NOT_ACTUAL_PIT_EVIDENCE",
+        "published_on": "2026-09-29",
+        "price_structure_confirmed": true,
+        "relative_strength_confirmed": true,
+        "sector_leadership_confirmed": true,
+        "volume_expansion_confirmed": true,
+        "fresh_material_catalyst_verified": true,
+        "net_risk_reward_ratio": "3.0",
+        "planned_net_portfolio_loss_fraction": "0.01",
+        "fresh_executable_quotes": false,
+        "historical_point_in_time_certified": false,
+        "official_disclosure_and_st_verified": false,
+        "exchange_calendar_verified": false,
+        "fee_risk_and_t_plus_one_verified": false,
+        "fills_verified": false
+      },
+      "medium": {
+        "source": "SYNTHETIC_ADVERSARIAL_FUNDAMENTALS_NOT_ACTUAL_CERTIFICATION",
+        "published_on": "2026-09-29",
+        "fundamental_improvement_confirmed": true,
+        "valuation_margin_confirmed": true,
+        "medium_catalyst_confirmed": true,
+        "financial_health_reviewed": true,
+        "sector_cycle_confirmed": true,
+        "stress_drawdown_fraction": "0.2",
+        "debt_and_liquidity_risk_reviewed": true,
+        "earnings_event_risk_reviewed": true,
+        "fundamental_invalidation_defined": true,
+        "fresh_executable_quotes": false,
+        "historical_point_in_time_certified": false,
+        "official_disclosure_and_st_verified": false,
+        "exchange_calendar_verified": false,
+        "fee_risk_and_t_plus_one_verified": false,
+        "fills_verified": false
+      }
+    },
+    {
+      "issuer": "sh.600825",
+      "universe_guard": {
+        "official_pit_mainboard_non_st_confirmed": true,
+        "no_suspension_confirmed": true,
+        "source": "SYNTHETIC_OPTIMISTIC_FOR_NEGATIVE_TEST_ONLY",
+        "published_on": "2026-09-29"
+      },
+      "short": {
+        "source": "SYNTHETIC_ADVERSARIAL_GUARD_NOT_ACTUAL_PIT_EVIDENCE",
+        "published_on": "2026-09-29",
+        "price_structure_confirmed": true,
+        "relative_strength_confirmed": true,
+        "sector_leadership_confirmed": true,
+        "volume_expansion_confirmed": true,
+        "fresh_material_catalyst_verified": true,
+        "net_risk_reward_ratio": "3.0",
+        "planned_net_portfolio_loss_fraction": "0.01",
+        "fresh_executable_quotes": false,
+        "historical_point_in_time_certified": false,
+        "official_disclosure_and_st_verified": false,
+        "exchange_calendar_verified": false,
+        "fee_risk_and_t_plus_one_verified": false,
+        "fills_verified": false
+      },
+      "medium": {
+        "source": "SYNTHETIC_ADVERSARIAL_FUNDAMENTALS_NOT_ACTUAL_CERTIFICATION",
+        "published_on": "2026-09-29",
+        "fundamental_improvement_confirmed": true,
+        "valuation_margin_confirmed": true,
+        "medium_catalyst_confirmed": true,
+        "financial_health_reviewed": true,
+        "sector_cycle_confirmed": true,
+        "stress_drawdown_fraction": "0.2",
+        "debt_and_liquidity_risk_reviewed": true,
+        "earnings_event_risk_reviewed": true,
+        "fundamental_invalidation_defined": true,
+        "fresh_executable_quotes": false,
+        "historical_point_in_time_certified": false,
+        "official_disclosure_and_st_verified": false,
+        "exchange_calendar_verified": false,
+        "fee_risk_and_t_plus_one_verified": false,
+        "fills_verified": false
+      }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {decide,run} from "../src/index.mjs";
+import {decide,run,nativeSchedulePresence} from "../src/index.mjs";
 
 const cron="25 1,2,4,6,8,10,12,14,16 * * 1-5";
 const t=Date.parse("2026-11-05T02:25:00Z"); // Thursday 10:25 Beijing
@@ -13,6 +13,24 @@ const history=(rows)=>({total_count:rows.length,workflow_runs:rows});
 const previous=mk(101,"2026-11-05T00:20:00Z");
 const approved=()=>decide({cron,scheduledMs:t,nowMs:now,
   data:history([previous])});
+
+test("default is shadow-only, even when secret is connected; no network or dispatch",async()=>{
+  const oldFetch=globalThis.fetch;
+  let calls=0;
+  try{
+    globalThis.fetch=async()=>{calls++;throw Error("should never be reached");};
+    for(const enabled of [undefined,"false","TRUE","1",true]){
+      const r=await run(cron,t,t,{GITHUB_TOKEN:"connected-secret",
+         P1_EXTERNAL_DISPATCH_ENABLED:enabled});
+      assert.equal(r.dispatch,false);
+      assert.equal(r.reason,"SHADOW_ONLY_DISPATCH_DISABLED");
+      assert.equal(r.networkRequests,0);
+      assert.equal(r.trade_gate,"BLOCKED");
+    }
+    assert.equal((await run(cron,t,t,{})).dispatch,false);
+    assert.equal(calls,0);
+  }finally{globalThis.fetch=oldFetch;}
+});
 
 test("bounded one-shard recovery admits only historical run gaps",()=>{
   const r=approved();
@@ -52,74 +70,73 @@ test("reject delayed cron and malformed timings",()=>{
   assert.equal(w.dispatch,true);
   assert.equal(w.sourceSlot,"2026-11-07T09:10:00+08:00");
 });
-test("404 create-only claim, readback, dispatch 204: accepted not completed",async()=>{
-  const receipt=[];
-  const calls=[];
-  const oldFetch=globalThis.fetch;
-  try{
-    globalThis.fetch=async (url,opts)=>{
-      calls.push({url,opts});
-      if(url.includes("/actions/workflows/")&&url.includes("/runs?"))
-        return {ok:true,status:200,json:async()=>history([previous])};
-      if(url.includes("/contents/")&&(!opts.method||opts.method==="GET")){
-        if(!receipt.length) return {ok:false,status:404};
-        return {ok:true,status:200,json:async()=>({
-          path:"recovery-dispatch-attempts/2026-11-05/0910.json",
-          content:Buffer.from(receipt[0],"utf8").toString("base64")
-        })};
-      }
-      if(opts.method==="PUT"){const b=JSON.parse(opts.body);
-        assert.equal(b.branch,"research-intraday-snapshots");
-        assert.equal(b.sha,undefined);
-        receipt.push(Buffer.from(b.content,"base64").toString("utf8"));
-        return {ok:true,status:201};}
-      if(url.endsWith("/dispatches")){
-        assert.deepEqual(JSON.parse(opts.body),{
-          ref:"main",inputs:{shards_per_run:"1",recovery_token:""}
-        });
-        return {ok:true,status:204};
-      }
-      throw Error("unexpected "+url);
-    };
-    const r=await run(cron,t,t,{GITHUB_TOKEN:"test-token"});
-    assert.equal(r.reason,"REQUEST_ACCEPTED_NOT_COLLECTION_VERIFIED");
-    assert.equal(calls.filter(x=>x.url.endsWith("/dispatches")).length,1);
-    assert.ok(receipt[0].includes('"trade_gate":"BLOCKED"'));
-  } finally {globalThis.fetch=oldFetch;}
+test("real current main P1 schedule declaration detected",()=>{
+ const yaml=[
+   "name: P1 fresh Baostock mainboard roster observation (NO TRADES)",
+   "on:",
+   "  push:",
+   "    branches: [main]",
+   "  schedule:",
+   "    - cron: '10 1 * * 1-5'",
+   "  workflow_dispatch:",
+   "    inputs: {}"
+ ].join("\n")+"\n";
+ assert.equal(nativeSchedulePresence(yaml),"ENABLED");
+ assert.equal(nativeSchedulePresence(yaml.replace("  schedule:\n    - cron: '10 1 * * 1-5'\n","")),"ABSENT_IN_READ_MAIN_WORKFLOW");
+ assert.equal(nativeSchedulePresence("on: [push, schedule]"),"UNVERIFIED");
+ assert.equal(nativeSchedulePresence("random YAML"),"UNVERIFIED");
 });
-test("existing reserved slot forbids dispatch",async()=>{
-  const oldFetch=globalThis.fetch;
-  let posts=0;
-  try{
-    globalThis.fetch=async (url)=>{
-      if(url.includes("/runs?")) return {ok:true,json:async()=>history([previous])};
-      if(url.includes("/contents/")) return {status:200};
-      posts++;throw Error("should not be reached");
-    };
-    const result=await run(cron,t,t,{GITHUB_TOKEN:"test-token"});
-    assert.equal(result.reason,"SLOT_ALREADY_RESERVED");
-    assert.equal(posts,0);
-  }finally{globalThis.fetch=oldFetch;}
+test("explicitly enabled Worker STILL refuses native schedule with no PUT or POST",async()=>{
+ const prior=globalThis.fetch;
+ const paths=[];
+ try{
+   globalThis.fetch=async(url)=>{
+     paths.push(url);
+     assert.ok(url.includes("/contents/.github/workflows/p1-fresh-vendor-roster.yml?ref=main"));
+     const yaml="on:\n  schedule:\n    - cron: '10 1 * * 1-5'\n  workflow_dispatch:\n";
+     return {ok:true,status:200,json:async()=>({
+       path:".github/workflows/p1-fresh-vendor-roster.yml",
+       type:"file",sha:"a".repeat(40),encoding:"base64",
+       content:Buffer.from(yaml).toString("base64")
+     })};
+   };
+   const out=await run(cron,t,t,{GITHUB_TOKEN:"test-token",P1_EXTERNAL_DISPATCH_ENABLED:"true"});
+   assert.equal(out.dispatch,false);
+   assert.equal(out.nativeScheduleState,"ENABLED");
+   assert.equal(out.reason,"NATIVE_SCHEDULE_ACTIVE_OR_UNVERIFIED");
+   assert.equal(paths.length,1);
+ }finally{globalThis.fetch=prior;}
 });
-test("create race and unreadable marker both fail closed",async()=>{
-  const oldFetch=globalThis.fetch;
-  for(const code of [409,422,500]){
-    let requests=0;
-    try{
-      globalThis.fetch=async (url,opts)=>{
-        if(url.includes("/runs?")) return {ok:true,json:async()=>history([previous])};
-        if(url.includes("/contents/")&&(!opts.method||opts.method==="GET"))
-          return {status:404};
-        if(opts.method==="PUT") return {status:code};
-        requests++;throw Error("unexpected dispatch");
-      };
-      if(code===500) await assert.rejects(run(cron,t,t,{GITHUB_TOKEN:"t"}));
-      else assert.equal((await run(cron,t,t,{GITHUB_TOKEN:"t"})).dispatch,false);
-      assert.equal(requests,0);
-    }finally{globalThis.fetch=oldFetch;}
-  }
+test("even absence of native schedule is not a certified drain",async()=>{
+ const prior=globalThis.fetch;let calls=0;
+ try{
+   globalThis.fetch=async()=>{
+     calls++;
+     const yaml="on:\n  workflow_dispatch:\n";
+     return {ok:true,json:async()=>({
+       path:".github/workflows/p1-fresh-vendor-roster.yml",
+       type:"file",sha:"b".repeat(40),encoding:"base64",
+       content:Buffer.from(yaml).toString("base64")
+     })};
+   };
+   const out=await run(cron,t,t,{GITHUB_TOKEN:"x",P1_EXTERNAL_DISPATCH_ENABLED:"true"});
+   assert.equal(out.dispatch,false);
+   assert.equal(out.reason,"SOURCE_RUN_DRAIN_NOT_AUTHENTICATED");
+   assert.equal(calls,1);
+ }finally{globalThis.fetch=prior;}
 });
-
+test("untrusted native schedule workflow bytes fail closed",async()=>{
+ const prior=globalThis.fetch;
+ try{
+   globalThis.fetch=async()=>({ok:true,json:async()=>({
+     path:".github/workflows/OTHER.yml",
+     type:"file",sha:"c".repeat(40),encoding:"base64",content:""
+   })});
+   await assert.rejects(
+     run(cron,t,t,{GITHUB_TOKEN:"x",P1_EXTERNAL_DISPATCH_ENABLED:"true"}),
+     /NATIVE_SCHEDULE_SOURCE_NOT_ATTESTED/);
+ }finally{globalThis.fetch=prior;}
+});
 
 test("three UTC rules uniquely cover all 58 weekly source slots including local midnight",()=>{
   const rules=[
