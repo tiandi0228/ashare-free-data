@@ -7,6 +7,8 @@ def assess(*,issuer,entry_day,exit_day,calendar_sessions,issuer_status,
            security_limit_authenticated=False,security_limit_up=None,security_limit_down=None,
            observed_low=None,observed_high=None,side=None,order_limit_price=None,
            orderbook_fill_evidence=False):
+    if type(security_limit_authenticated) is not bool:
+        raise ValueError("invalid security limit authentication flag")
     session=check_session(issuer=issuer,session_day=exit_day,
         official_calendar_sessions=calendar_sessions,issuer_status=issuer_status,
         official_status_authenticated=official_status_authenticated,
