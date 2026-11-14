@@ -1,0 +1,82 @@
+{
+  "audited_issuer_count": 2242,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 0,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.600363"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603291"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603293"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 43602901633,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 19832,
+  "research_date_action_links": [],
+  "run_id": 43603024985,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225532120",
+      "archive_path": "pdf/sh_600363/1225532120/ebcef1fec51fdc45a66a26f01c2f29df9504b89a7fbf87b2a4dc74faecfb4d59.pdf",
+      "bytes": 165258,
+      "captured_at_utc": "2026-11-14T14:05:53.352406+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1787932800000,
+      "issuer": "sh.600363",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-08-29/1225532120.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "ebcef1fec51fdc45a66a26f01c2f29df9504b89a7fbf87b2a4dc74faecfb4d59",
+      "title_from_index_unverified": "关于公司股票可能被实施其他风险警示的提示性公告"
+    },
+    {
+      "announcement_id": "1225601182",
+      "archive_path": "pdf/sh_603291/1225601182/e77a74d0737eaaf9977579b68e53ca1035bb4ccdfaed20a5d467a2f237255b5f.pdf",
+      "bytes": 131005,
+      "captured_at_utc": "2026-11-14T14:05:53.700876+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1791820800000,
+      "issuer": "sh.603291",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-13/1225601182.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "e77a74d0737eaaf9977579b68e53ca1035bb4ccdfaed20a5d467a2f237255b5f",
+      "title_from_index_unverified": "关于召开2026年半年度业绩说明会的公告"
+    },
+    {
+      "announcement_id": "1225103561",
+      "archive_path": "pdf/sh_603293/1225103561/44a51b5ee3ee07b135b547005ff1a44180abe0d85ef28866c2f6b14d1d5d4b27.pdf",
+      "bytes": 376725,
+      "captured_at_utc": "2026-11-14T14:05:54.525259+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1776182400000,
+      "issuer": "sh.603293",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-04-15/1225103561.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "44a51b5ee3ee07b135b547005ff1a44180abe0d85ef28866c2f6b14d1d5d4b27",
+      "title_from_index_unverified": "埃泰克首次公开发行股票主板上市公告书提示性公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
