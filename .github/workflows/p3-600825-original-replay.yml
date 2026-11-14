@@ -1,0 +1,57 @@
+name: P3 original 600825 halt resume replay (NO TRADES)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'collector/p3_600825_original_replay.py'
+      - 'collector/p3_600825_index_clock.py'
+      - 'collector/p3_600825_evidence_join.py'
+      - 'tests/test_p3_600825_index_clock.py'
+      - 'evidence/p3_600825_index/**'
+      - 'evidence/p3_600825_notices/**'
+      - '.github/workflows/p3-600825-original-replay.yml'
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: command -v pdftotext || (sudo apt-get update && sudo apt-get install -y poppler-utils)
+      - run: |
+          git fetch --depth=1 origin 7028eb4c9cc7f23add64958bc6f2611565476538
+          git worktree add --detach "$RUNNER_TEMP/p3-archive" FETCH_HEAD
+          python -m collector.p3_600825_original_replay --archive "$RUNNER_TEMP/p3-archive" > 600825-replay.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path("600825-replay.json").read_bytes())
+          assert r["matched_days"] == 15 and len(r["notices"]) == 4 and not r["pre_open_availability_verified"]
+          assert not r["entire_issuer_gap_closed"] and r["trade_gate"] == "BLOCKED" and r["orders"] == []
+          PY
+      - run: python -m unittest tests.test_p3_600825_index_clock -v
+      - run: |
+          python -m collector.p3_600825_evidence_join 600825-replay.json --markdown 600825-clock-table.md > 600825-joined.json
+          python - <<'PYCODE'
+          import json
+          from pathlib import Path
+          r = json.loads(Path("600825-joined.json").read_bytes())
+          assert len(r["rows"]) == 4 and r["matched_vendor_days"] == 15
+          assert all(row["classification"] == "MIDNIGHT_DATE_LABEL_ONLY" for row in r["rows"])
+          assert r["official_first_release_count"] == 0 and not r["entire_issuer_gap_closed"]
+          assert r["trade_gate"] == "BLOCKED" and r["orders"] == []
+          PYCODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p3-600825-original-replay
+          path: |
+            600825-replay.json
+            600825-joined.json
+            600825-clock-table.md
+          if-no-files-found: error
