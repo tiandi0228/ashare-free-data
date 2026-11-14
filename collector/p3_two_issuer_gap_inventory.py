@@ -9,11 +9,12 @@ EXPECTED = (
     ("sz.002813", 3, 6, "notices", "matched_rows", 353),
     ("sh.605303", 3, 11, "notices", "matched_rows", 354),
     ("sz.002870", 3, 11, "notices", "matched_rows", 355),
+    ("sh.603400", 3, 11, "notices", "matched_rows", 356),
 )
 
 
-def inventory(*reports, include_002813=False, include_605303=False, include_002870=False):
-    size = 5 if include_002870 else 4 if include_605303 else 3 if include_002813 else 2
+def inventory(*reports, include_002813=False, include_605303=False, include_002870=False, include_603400=False):
+    size = 6 if include_603400 else 5 if include_002870 else 4 if include_605303 else 3 if include_002813 else 2
     expected = EXPECTED[:size]
     if len(reports) != len(expected):
         raise ValueError("wrong report count")
@@ -54,8 +55,9 @@ def main():
     parser.add_argument("--include-002813", action="store_true")
     parser.add_argument("--include-605303", action="store_true")
     parser.add_argument("--include-002870", action="store_true")
+    parser.add_argument("--include-603400", action="store_true")
     args = parser.parse_args()
-    print(json.dumps(inventory(*(json.loads(p.read_bytes()) for p in args.reports), include_002813=args.include_002813, include_605303=args.include_605303, include_002870=args.include_002870), indent=2))
+    print(json.dumps(inventory(*(json.loads(p.read_bytes()) for p in args.reports), include_002813=args.include_002813, include_605303=args.include_605303, include_002870=args.include_002870, include_603400=args.include_603400), indent=2))
 
 
 if __name__ == "__main__":
