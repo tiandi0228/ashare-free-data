@@ -1,0 +1,82 @@
+{
+  "audited_issuer_count": 2258,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 0,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603759"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603300"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603301"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 43634492769,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 19968,
+  "research_date_action_links": [],
+  "run_id": 43634623230,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225546347",
+      "archive_path": "pdf/sh_603300/1225546347/faa3170de6219e29f209514b6c438d2b3ad9e383cd65dcf16ef8cc57c8b8724a.pdf",
+      "bytes": 107287,
+      "captured_at_utc": "2026-11-14T19:55:06.644892+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1788451200000,
+      "issuer": "sh.603300",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-04/1225546347.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "faa3170de6219e29f209514b6c438d2b3ad9e383cd65dcf16ef8cc57c8b8724a",
+      "title_from_index_unverified": "浙江海控南科华铁数智科技股份有限公司关于累计诉讼、仲裁情况的公告"
+    },
+    {
+      "announcement_id": "1225518144",
+      "archive_path": "pdf/sh_603301/1225518144/d47e0e0415d3d562a0d98cb7bbc1cabde749ad8f5f2e3c4381d3c28b167857dd.pdf",
+      "bytes": 75930,
+      "captured_at_utc": "2026-11-14T19:55:07.113145+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1787846400000,
+      "issuer": "sh.603301",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-08-28/1225518144.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "d47e0e0415d3d562a0d98cb7bbc1cabde749ad8f5f2e3c4381d3c28b167857dd",
+      "title_from_index_unverified": "振德医疗关于召开2026年半年度业绩说明会的公告"
+    },
+    {
+      "announcement_id": "1225602844",
+      "archive_path": "pdf/sh_603759/1225602844/395604493e9e1088b759fc45c75474d79db275112a1d13f3ba0ebabd4697cda8.pdf",
+      "bytes": 63642,
+      "captured_at_utc": "2026-11-14T19:55:06.136468+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1791907200000,
+      "issuer": "sh.603759",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-14/1225602844.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "395604493e9e1088b759fc45c75474d79db275112a1d13f3ba0ebabd4697cda8",
+      "title_from_index_unverified": "关于证券事务代表辞职的公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
