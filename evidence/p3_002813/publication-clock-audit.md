@@ -1,0 +1,11 @@
+# 002813 pre-auction visibility audit (NO TRADES)
+
+Scope: public visibility of the halt, extension and resumption facts already reconciled with the six archived A-share daily states in #353. An independently timestamped public media item supplies a latest-known observation of the fact, not the exact time the issuer's PDF first became public on SZSE or CNINFO. All times are Beijing time (UTC+08:00). Compare to 09:15, the start of the SZSE opening call auction under rule 2.4.2.
+
+| Event / pinned original | Supporting contemporaneous report | Event-day auction cutoff | Margin to cutoff |
+| --- | --- | --- | --- |
+| 2026-022, initial halt from September 30 opening ([CNINFO original](https://static.cninfo.com.cn/finalpage/2026-09-30/1225589222.PDF)) | [CLS, September 29 20:37:46](https://api3.cls.cn/share/article/2495526?app=&os=ios&sv=882), summarizes the issuer's companion abnormal-movement announcement and its plan to halt from September 30. [NBD](https://www.nbd.com.cn/articles/2026-09-29/4595116.html) also reports the September 29 evening announcement and the same effective date. | 2026-09-30 09:15 | 12h 37m 14s |
+| 2026-023, extension from October 9 opening ([CNINFO original](https://static.cninfo.com.cn/finalpage/2026-10-09/1225597548.PDF)) | [NBD, October 8 18:45:15](https://www.nbd.com.cn/articles/2026-10-08/4598862.html), reports continued suspension from October 9 opening for no more than three trading days. | 2026-10-09 09:15 | 14h 29m 45s |
+| 2026-025, resumption from October 14 opening ([SZSE original](https://disc.static.szse.cn/download/disc/disk03/finalpage/2026-10-14/6b255775-6b1f-4f4a-aa78-37830de08dc2.PDF)) | [NBD, October 13 21:45:49](https://www.nbd.com.cn/articles/2026-10-13/4603546.html), reports the October 14 resumption date. The exchange PDF specifies opening as the effective time. | 2026-10-14 09:15 | 11h 29m 11s |
+
+The [SZSE trading rules](https://docs.static.szse.cn/www/lawrules/rule/trade/current/W020260424690713155663.pdf) define the auction cutoff. The CNINFO index labels, announcement effective dates and media page timestamps remain separate fields. This audit adds three secondary-source bounds, zero verified official first-release clocks and zero closed issuer gaps. The replay schema and coverage ledger are unmodified. Trade gate remains BLOCKED.
