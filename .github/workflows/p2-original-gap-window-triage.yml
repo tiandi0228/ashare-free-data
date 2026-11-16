@@ -5,6 +5,7 @@ on:
       - 'collector/p2_original_gap_window_triage.py'
       - 'collector/p2_gap_disposition.py'
       - 'manifests/p2_gap_explanations_20261020.json'
+      - 'manifests/p2_gap_replay_fixture_20261020.json'
       - 'tests/test_p2_gap_disposition.py'
       - 'collector/p1_active_migration_checkpoint.py'
       - 'tests/test_p2_gap_workflow_epoch_binding.py'
@@ -21,6 +22,7 @@ on:
       - 'collector/p2_original_gap_window_triage.py'
       - 'collector/p2_gap_disposition.py'
       - 'manifests/p2_gap_explanations_20261020.json'
+      - 'manifests/p2_gap_replay_fixture_20261020.json'
       - 'tests/test_p2_gap_disposition.py'
       - 'collector/p1_active_migration_checkpoint.py'
       - 'tests/test_p2_gap_workflow_epoch_binding.py'
@@ -41,6 +43,38 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m unittest -v tests.test_p2_gap_disposition tests.test_p2_original_gap_window_triage tests.test_p2_real_archive_features tests.test_p2_p3_current_source_guard tests.test_p2_gap_workflow_epoch_binding tests.test_p1_active_migration_checkpoint
+  pinned_archive_regression:
+    if: github.event_name == 'pull_request'
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      ARCHIVE_COMMIT: 968b47863467ebfd00154e38cdf50851f3c3285b
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Replay all 20 gaps against pinned original CSVs
+        run: |
+          git fetch --depth=1 origin "$ARCHIVE_COMMIT"
+          git worktree add --detach "$RUNNER_TEMP/p2-pinned" "$ARCHIVE_COMMIT"
+          python -m collector.p2_original_gap_window_triage --coverage manifests/p2_gap_replay_fixture_20261020.json --archive-epoch "$RUNNER_TEMP/p2-pinned/5ba00fbd720fad90" --out evidence/p2-pinned-replay.json
+          python -m collector.p2_gap_disposition --replay evidence/p2-pinned-replay.json --pinned manifests/p2_gap_explanations_20261020.json --out evidence/p2-pinned-disposition.json
+          python - <<'PY'
+          import json
+          from collections import Counter
+          from pathlib import Path
+          r = json.loads(Path("evidence/p2-pinned-disposition.json").read_text())
+          assert (r["explained_feature_unavailable"], r["review_required"], r["feature_gaps_resolved"]) == (20, 0, 0)
+          assert Counter(x["reason"] for x in r["rows"]) == {
+              "HALT_INTERRUPTS_FEATURE_WINDOW": 17, "HALTED_AT_CUTOFF": 2, "IPO_WINDOW_TOO_SHORT": 1,
+          }
+          assert r["trade_gate"] == "BLOCKED" and r["historical_PIT_verified"] is False
+          print("Pinned archive: 20 explained, 0 pending, 0 feature promotions")
+          PY
   replay_once:
     if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     needs: offline
