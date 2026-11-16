@@ -6,6 +6,8 @@ on:
       - '.github/workflows/p1-gap-batch-queue.yml'
       - 'collector/p1_gap_batch_queue.py'
       - 'collector/p1_gap_probe_fingerprint.py'
+      - 'collector/p1_single_gap_acceptance.py'
+      - 'tests/test_p1_single_gap_acceptance.py'
       - 'tests/test_p1_gap_probe_fingerprint.py'
       - 'tests/fixtures/p1/probe_run_43820286717.json'
       - 'collector/p1_archive_audit.py'
@@ -25,7 +27,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest tests.test_p1_gap_probe_fingerprint tests.test_p1_gap_batch_readback tests.test_p1_gap_batch_queue tests.test_p1_live_gap_rehearsal tests.test_p1_prewrite_gap_guard -v
+      - run: python -m unittest tests.test_p1_single_gap_acceptance tests.test_p1_gap_probe_fingerprint tests.test_p1_gap_batch_readback tests.test_p1_gap_batch_queue tests.test_p1_live_gap_rehearsal tests.test_p1_prewrite_gap_guard -v
       - name: Replay pinned roster, checkpoint and actual archive directories
         run: |
           main=e401c89bc7d89413a436870babeb8004a7e9cb32
