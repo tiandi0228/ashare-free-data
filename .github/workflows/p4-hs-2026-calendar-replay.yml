@@ -26,7 +26,7 @@ jobs:
           git worktree add --detach "$RUNNER_TEMP/calendar-archive" "$archive"
           python -m collector.p4_hs_2026_calendar_replay \
             --epoch "$RUNNER_TEMP/calendar-archive/5ba00fbd720fad90" > calendar-replay.json
-          python -c 'import json; r=json.load(open("calendar-replay.json")); assert r["published_holiday_ranges_agree"] and all(x["expected"]==190 and not x["unexpected"] and not x["missing"] for x in r["venues"].values())'
+          python -c 'import json; r=json.load(open("calendar-replay.json")); assert r["published_holiday_ranges_agree"] and all(x["expected"]==190 and not x["unexpected"] and not x["missing"] for x in r["venues"].values()); assert all(x["reopen_dates_observed"] == ["2026-09-28", "2026-10-08"] and not x["reopen_dates_missing"] and not x["closed_dates_in_vendor_rows"] for x in r["mid_autumn_national_day_followup"]["venues"].values())'
       - uses: actions/upload-artifact@v4
         with:
           name: p4-hs-calendar-replay
