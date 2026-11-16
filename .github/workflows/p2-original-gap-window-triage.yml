@@ -3,6 +3,9 @@ on:
   pull_request:
     paths:
       - 'collector/p2_original_gap_window_triage.py'
+      - 'collector/p2_gap_disposition.py'
+      - 'manifests/p2_gap_explanations_20261020.json'
+      - 'tests/test_p2_gap_disposition.py'
       - 'collector/p1_active_migration_checkpoint.py'
       - 'tests/test_p2_gap_workflow_epoch_binding.py'
       - 'collector/p2_p3_current_source_guard.py'
@@ -16,6 +19,9 @@ on:
     branches: [main]
     paths:
       - 'collector/p2_original_gap_window_triage.py'
+      - 'collector/p2_gap_disposition.py'
+      - 'manifests/p2_gap_explanations_20261020.json'
+      - 'tests/test_p2_gap_disposition.py'
       - 'collector/p1_active_migration_checkpoint.py'
       - 'tests/test_p2_gap_workflow_epoch_binding.py'
       - 'collector/p2_p3_current_source_guard.py'
@@ -34,7 +40,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest -v tests.test_p2_original_gap_window_triage tests.test_p2_real_archive_features tests.test_p2_p3_current_source_guard tests.test_p2_gap_workflow_epoch_binding tests.test_p1_active_migration_checkpoint
+      - run: python -m unittest -v tests.test_p2_gap_disposition tests.test_p2_original_gap_window_triage tests.test_p2_real_archive_features tests.test_p2_p3_current_source_guard tests.test_p2_gap_workflow_epoch_binding tests.test_p1_active_migration_checkpoint
   replay_once:
     if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     needs: offline
@@ -87,11 +93,17 @@ jobs:
               'checkpoint_completed_issuers':witness['checkpoint_completed_issuers'],
               'diagnosis_counts':result['diagnosis_counts']},ensure_ascii=False))
           PY
+      - name: Separate frozen explained gaps from gaps requiring review
+        run: |
+          python -m collector.p2_gap_disposition --replay evidence/p2-original-gap-triage.json \
+            --pinned manifests/p2_gap_explanations_20261020.json --out evidence/p2-gap-disposition.json
       - name: Archive read-only gap triage, not signals or official status
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: p2-original-gap-triage-${{ github.run_id }}
-          path: evidence/p2-original-gap-triage.json
+          path: |
+            evidence/p2-original-gap-triage.json
+            evidence/p2-gap-disposition.json
           retention-days: 14
           if-no-files-found: warn
