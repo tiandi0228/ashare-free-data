@@ -76,8 +76,37 @@ jobs:
               "HALT_INTERRUPTS_FEATURE_WINDOW": 17, "HALTED_AT_CUTOFF": 2, "IPO_WINDOW_TOO_SHORT": 1,
           }
           assert r["trade_gate"] == "BLOCKED" and r["historical_PIT_verified"] is False
+          import hashlib, os
+          out = Path("evidence")
+          names = ("p2-pinned-replay.json", "p2-pinned-disposition.json")
+          receipt = {
+              "kind": "PINNED_ARCHIVE_REGRESSION_NOT_LIVE_COVERAGE",
+              "archive_commit": os.environ["ARCHIVE_COMMIT"],
+              "tested_commit": os.environ["GITHUB_SHA"],
+              "github_run_id": os.environ["GITHUB_RUN_ID"],
+              "github_run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "asof": r["asof"],
+              "source_epoch_sha256": r["source_epoch_sha256"],
+              "explained_feature_unavailable": r["explained_feature_unavailable"],
+              "review_required": r["review_required"],
+              "feature_gaps_resolved": r["feature_gaps_resolved"],
+              "historical_PIT_verified": False,
+              "trade_gate": "BLOCKED",
+              "report_sha256": {name: hashlib.sha256((out / name).read_bytes()).hexdigest() for name in names},
+          }
+          (out / "p2-pinned-run-receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
           print("Pinned archive: 20 explained, 0 pending, 0 feature promotions")
           PY
+      - name: Preserve verified regression reports and provenance
+        uses: actions/upload-artifact@v4
+        with:
+          name: p2-pinned-regression-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            evidence/p2-pinned-replay.json
+            evidence/p2-pinned-disposition.json
+            evidence/p2-pinned-run-receipt.json
+          if-no-files-found: error
+          retention-days: 30
   replay_once:
     if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     needs: offline
