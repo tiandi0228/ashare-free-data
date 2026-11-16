@@ -6,7 +6,8 @@ from datetime import datetime
 from collector.p3_publication_asof_gate import assess as event_asof
 
 def join(bars_csv,events,decision_time):
-    rows=list(csv.DictReader(Path(bars_csv).open(newline="")))
+    with Path(bars_csv).open(newline="") as source:
+        rows=list(csv.DictReader(source))
     if not rows or "date" not in rows[0] or "code" not in rows[0]:
         raise ValueError("historical CSV needs date and code")
     by_code=defaultdict(list)

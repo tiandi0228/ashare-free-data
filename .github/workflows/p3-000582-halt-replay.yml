@@ -6,6 +6,11 @@ on:
       - 'collector/p3_000582_halt_replay.py'
       - 'tests/test_p3_000582_halt_replay.py'
       - 'collector/p3_000582_publication_clock.py'
+      - 'collector/p3_000582_asof_replay.py'
+      - 'collector/p3_publication_asof_gate.py'
+      - 'collector/p3_publication_bar_gap.py'
+      - 'collector/p3_publication_proof_task_queue.py'
+      - 'tests/test_p3_000582_asof_replay.py'
       - 'tests/test_p3_000582_publication_clock.py'
       - 'tests/fixtures/p3/000582-cninfo-index.json'
 permissions:
@@ -22,7 +27,7 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m pip install 'pypdf>=5,<7'
-      - run: python -m unittest -v tests.test_p3_000582_halt_replay tests.test_p3_000582_publication_clock
+      - run: python -m unittest -v tests.test_p3_000582_halt_replay tests.test_p3_000582_publication_clock tests.test_p3_000582_asof_replay
       - name: Replay issuer PDF pair and pinned BaoStock CSV
         run: |
           sha=9928ba76ceaeac72506a3e6d4af63bac8d98c279
@@ -39,11 +44,14 @@ jobs:
           import json
           from pathlib import Path
           from collector.p3_000582_publication_clock import inspect
+          from collector.p3_000582_asof_replay import replay_clock
           root = Path("p3-000582")
           rows = json.loads(Path("tests/fixtures/p3/000582-cninfo-index.json").read_bytes())
           report = inspect(rows, {"halt": (root / "cninfo-halt.pdf").read_bytes(),
                                   "resume": (root / "resume.pdf").read_bytes()})
           (root / "publication-clock.json").write_text(json.dumps(report, indent=2) + "\n")
+          audit = replay_clock(report, root / "source.csv")
+          (root / "historical-decision-replay.json").write_text(json.dumps(audit, indent=2) + "\n")
           PYCODE
       - uses: actions/upload-artifact@v4
         with:
