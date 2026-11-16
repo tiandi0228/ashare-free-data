@@ -10,6 +10,8 @@ on:
       - 'collector/p4_session_reconcile.py'
       - 'tests/test_p4_session_reconcile.py'
       - 'tests/test_p4_receipt_integration.py'
+      - 'collector/p4_disclosure_run_clock.py'
+      - 'tests/test_p4_disclosure_run_clock.py'
       - 'collector/p4_prospective_handoff.py'
       - '.github/workflows/p4-prewindow-evidence.yml'
   workflow_dispatch:
@@ -35,7 +37,7 @@ jobs:
       - name: Corroborate frozen registration against GitHub timestamps
         run: python -m collector.p4_prewindow_evidence --out p4-prewindow-evidence.json
       - name: Verify rejection paths offline
-        run: python -m unittest tests.test_p4_prewindow_evidence tests.test_p4_daily_evidence tests.test_p4_session_reconcile tests.test_p4_receipt_integration -v
+        run: python -m unittest tests.test_p4_prewindow_evidence tests.test_p4_daily_evidence tests.test_p4_session_reconcile tests.test_p4_receipt_integration tests.test_p4_disclosure_run_clock -v
       - name: Build P4 session coverage report
         env:
           GH_TOKEN: ${{ github.token }}
@@ -48,6 +50,7 @@ jobs:
           from datetime import datetime, timezone
           from pathlib import Path
           from collector.p4_session_reconcile import reconcile
+          from collector.p4_disclosure_run_clock import verify as verify_run_clock
 
           repo = os.environ["GITHUB_REPOSITORY"]
           ids = [value.strip() for value in os.environ.get("SOURCE_RUNS", "").split(",")]
@@ -62,6 +65,7 @@ jobs:
           from collector.p4_prewindow_evidence import HEAD, MANIFEST, get
           manifest = get(f"https://raw.githubusercontent.com/{repo}/{HEAD}/{MANIFEST}")
           submissions = []
+          run_clock_checks = []
           with tempfile.TemporaryDirectory() as tmp:
               for run_id in ids:
                   meta = read(f"runs/{run_id}")
@@ -71,13 +75,22 @@ jobs:
                       raise ValueError(f"not a successful main-branch disclosure run: {run_id}")
                   directory = Path(tmp) / run_id
                   name = f'p4-registered-disclosure-{run_id}-{meta["run_attempt"]}'
+                  attempt = meta["run_attempt"]
+                  attempt_meta = read(f"runs/{run_id}/attempts/{attempt}")
+                  matches = read(f"runs/{run_id}/artifacts?name={name}")["artifacts"]
+                  if len(matches) != 1:
+                      raise ValueError(f"expected one named disclosure artifact: {run_id}")
                   subprocess.run(["gh", "run", "download", run_id, "--repo", repo, "--name", name,
                                   "--dir", str(directory)], check=True, timeout=20)
                   record = json.loads((directory / "p4_registered_daily_receipt.json").read_bytes())
                   source = (directory / "p3_to_p4_readiness.json").read_bytes()
+                  run_clock_checks.append(verify_run_clock(
+                      attempt_meta, matches[0], record, repo=repo, run_id=int(run_id),
+                      attempt=attempt, head_sha=meta["head_sha"]))
                   submissions.append((record, source))
           result = reconcile(run, job, manifest, submissions, datetime.now(timezone.utc))
           result["source_run_ids"] = ids
+          result["source_run_clock_checks"] = run_clock_checks
           result["coverage_scope"] = "SUBMITTED_RUNS_ONLY" if ids else "CALENDAR_ONLY"
           for row in result["rows"]:
               if row["status"] == "MISSING":
