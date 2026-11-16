@@ -5,6 +5,9 @@ on:
       - '.github/workflows/p3-000582-halt-replay.yml'
       - 'collector/p3_000582_halt_replay.py'
       - 'tests/test_p3_000582_halt_replay.py'
+      - 'collector/p3_000582_publication_clock.py'
+      - 'tests/test_p3_000582_publication_clock.py'
+      - 'tests/fixtures/p3/000582-cninfo-index.json'
 permissions:
   contents: read
 jobs:
@@ -19,7 +22,7 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m pip install 'pypdf>=5,<7'
-      - run: python -m unittest -v tests.test_p3_000582_halt_replay
+      - run: python -m unittest -v tests.test_p3_000582_halt_replay tests.test_p3_000582_publication_clock
       - name: Replay issuer PDF pair and pinned BaoStock CSV
         run: |
           sha=9928ba76ceaeac72506a3e6d4af63bac8d98c279
@@ -29,6 +32,19 @@ jobs:
           curl -fsS --max-time 30 'https://disc.static.szse.cn/download/disc/disk03/finalpage/2026-10-08/4bff47b8-2edf-4822-96ce-ee71323e794c.PDF' -o p3-000582/halt.pdf
           curl -fsS --max-time 30 'https://static.cninfo.com.cn/finalpage/2026-10-12/1225599813.PDF' -o p3-000582/resume.pdf
           python -m collector.p3_000582_halt_replay --halt p3-000582/halt.pdf --resume p3-000582/resume.pdf --vendor p3-000582/source.csv --out p3-000582/report.json
+      - name: Replay CNINFO clock and verify halt mirror matches exchange original
+        run: |
+          curl -fsS --max-time 30 'https://static.cninfo.com.cn/finalpage/2026-10-08/1225591603.PDF' -o p3-000582/cninfo-halt.pdf
+          python - <<'PYCODE'
+          import json
+          from pathlib import Path
+          from collector.p3_000582_publication_clock import inspect
+          root = Path("p3-000582")
+          rows = json.loads(Path("tests/fixtures/p3/000582-cninfo-index.json").read_bytes())
+          report = inspect(rows, {"halt": (root / "cninfo-halt.pdf").read_bytes(),
+                                  "resume": (root / "resume.pdf").read_bytes()})
+          (root / "publication-clock.json").write_text(json.dumps(report, indent=2) + "\n")
+          PYCODE
       - uses: actions/upload-artifact@v4
         with:
           name: p3-000582-halt-resume-replay
