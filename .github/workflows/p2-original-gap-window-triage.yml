@@ -7,6 +7,8 @@ on:
       - 'manifests/p2_gap_explanations_20261020.json'
       - 'manifests/p2_gap_replay_fixture_20261020.json'
       - 'tests/test_p2_gap_disposition.py'
+      - 'collector/p2_regression_artifact.py'
+      - 'tests/test_p2_regression_artifact.py'
       - 'tests/test_p2_gap_disposition_archive_integration.py'
       - 'collector/p1_active_migration_checkpoint.py'
       - 'tests/test_p2_gap_workflow_epoch_binding.py'
@@ -25,6 +27,8 @@ on:
       - 'manifests/p2_gap_explanations_20261020.json'
       - 'manifests/p2_gap_replay_fixture_20261020.json'
       - 'tests/test_p2_gap_disposition.py'
+      - 'collector/p2_regression_artifact.py'
+      - 'tests/test_p2_regression_artifact.py'
       - 'tests/test_p2_gap_disposition_archive_integration.py'
       - 'collector/p1_active_migration_checkpoint.py'
       - 'tests/test_p2_gap_workflow_epoch_binding.py'
@@ -44,7 +48,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest -v tests.test_p2_gap_disposition tests.test_p2_gap_disposition_archive_integration tests.test_p2_original_gap_window_triage tests.test_p2_real_archive_features tests.test_p2_p3_current_source_guard tests.test_p2_gap_workflow_epoch_binding tests.test_p1_active_migration_checkpoint
+      - run: python -m unittest -v tests.test_p2_gap_disposition tests.test_p2_regression_artifact tests.test_p2_gap_disposition_archive_integration tests.test_p2_original_gap_window_triage tests.test_p2_real_archive_features tests.test_p2_p3_current_source_guard tests.test_p2_gap_workflow_epoch_binding tests.test_p1_active_migration_checkpoint
   pinned_archive_regression:
     if: github.event_name == 'pull_request'
     needs: offline
