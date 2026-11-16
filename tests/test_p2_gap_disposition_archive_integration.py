@@ -5,9 +5,10 @@ import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 
 from collector.p2_gap_disposition import compare
-from collector.p2_original_gap_window_triage import diagnose
+from collector.p2_original_gap_window_triage import assess, diagnose
 
 
 class EmptyQueueTests(unittest.TestCase):
@@ -31,7 +32,13 @@ class EmptyQueueTests(unittest.TestCase):
 class ArchiveQueueTests(unittest.TestCase):
     def test_real_archive_replay_with_simulated_pin_drift(self):
         fixture = json.loads(Path("manifests/p2_gap_replay_fixture_20261020.json").read_bytes())
-        replay = diagnose(fixture, Path(os.environ["P2_ARCHIVE_EPOCH"]))
+        with patch("collector.p2_original_gap_window_triage.assess", wraps=assess) as audit:
+            replay = diagnose(fixture, Path(os.environ["P2_ARCHIVE_EPOCH"]))
+        called = [args.args[0].name for args in audit.call_args_list]
+        expected = {row["shard_id"] for row in fixture["gap_repair_queue"]}
+        self.assertEqual(set(called), expected)
+        self.assertEqual(len(called), len(expected))
+        self.assertEqual(len(replay["results"]), 20)
         pin = json.loads(Path("manifests/p2_gap_explanations_20261020.json").read_bytes())
         baseline = compare(replay, pin)
         self.assertEqual((baseline["explained_feature_unavailable"], baseline["review_required"]), (20, 0))
