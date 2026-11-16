@@ -51,3 +51,27 @@ The offline preflight accepts a normalized excerpt for structural screening
 only. It is not a binary decoder, a provenance authenticator, or a claim that
 any subscription or archive contains the record. No real excerpt is supplied
 to CI. A missing row is not evidence of no halt or no disclosure.
+
+### Historical export format confirmed
+
+The [historical data interface 1.1.4](https://www.sseinfo.com/services/assortment/market/hqywwd/wdzsjk/c/10800481/files/43b75567ae224148bd576acf11d30bd3.pdf)
+documents three export formats separately from the live Binary feed.
+
+| Export | Explicit halt field | Time used to screen |
+| --- | --- | --- |
+| Level-1 Snapshot.csv, table 3-2 | PhaseCode starts with P | SendingTime (seconds), not DateTime |
+| Level-2 Snapshot.csv, table 3-6 | TradingPhaseCode starts with P | SendingTime (seconds), not DateTime |
+| Level-2 StockTick.csv, table 3-12 | Type S and TickBSFlag SUSP | SendingTime (seconds), not TickTime |
+
+Request the September 7 StockTick product-state rows first, with the matching
+snapshot as a cross-check. A schema listing does not establish that 600825 or
+the pre-09:15 window exists in the actual export. No sample was acquired.
+The CSV preflight is offline and does not authenticate extracted rows or
+promote tested fixtures into evidence.
+
+[IS124 v3.60](https://www.sse.com.cn/services/tradingtech/data/c/10831312/files/822eabc535c248c48f24d6f5e8143f27.pdf)
+sections 2.8 and 2.9 document the two pre-market cpxx batches. They include
+suspended products, so row presence does not distinguish halt status.
+In the CPXX product-state flag, position four P is the main-board delisting
+arrangement category, not a halt. The record update time is not a delivery
+timestamp. Do not use CPXX as a shortcut for the historical status evidence.
