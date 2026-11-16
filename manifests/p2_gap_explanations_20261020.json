@@ -1,0 +1,223 @@
+{
+  "asof": "2026-10-20",
+  "source_epoch_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "entries": {
+    "sh.600293": {
+      "source_shard": "shard_0027",
+      "original_csv_sha256": "f18062e301843b403e52aa4ca7dbac511579a6f9683da74b414451a8ab38d56c",
+      "diagnosis": "VENDOR_SUSPENDED_ROW_WITHIN_LAST_21",
+      "available_vendor_rows_through_asof": 485,
+      "trailing_vendor_suspended_rows": 10,
+      "source_urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-10-20/1225611307.PDF"
+      ]
+    },
+    "sh.600301": {
+      "source_shard": "shard_0027",
+      "original_csv_sha256": "2f163fecfb61ea758ecdbd98edb1d7a4b05c32172a78df31801ec3b9f3d5a5f4",
+      "diagnosis": "VENDOR_SUSPENDED_ROW_WITHIN_LAST_21",
+      "available_vendor_rows_through_asof": 485,
+      "trailing_vendor_suspended_rows": 5,
+      "source_urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-09-19/1225571318.PDF"
+      ]
+    },
+    "sh.600363": {
+      "source_shard": "shard_0033",
+      "original_csv_sha256": "e4c01fa609951f30d25ec28ff729fa862c4815eca4ae279c9d7aeb1940f0fee2",
+      "diagnosis": "VENDOR_SUSPENDED_ROW_WITHIN_LAST_21",
+      "available_vendor_rows_through_asof": 485,
+      "trailing_vendor_suspended_rows": 1,
+      "source_urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-09-29/1225584110.PDF"
+      ]
+    },
+    "sh.600825": {
+      "source_shard": "shard_0078",
+      "original_csv_sha256": "63ae1dd1502c2340aea79be6144a58d2256ed7edeb8c72b3bc69f289eb673e8a",
+      "diagnosis": "VENDOR_SUSPENDED_ROW_WITHIN_LAST_21",
+      "available_vendor_rows_through_asof": 485,
+      "trailing_vendor_suspended_rows": 8,
+      "source_urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-09-08/1225552231.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-09-19/1225571469.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-10-13/1225602155.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-10-16/1225607741.PDF"
+      ]
+    },
+    "sh.601091": {
+      "source_shard": "shard_0097",
+      "original_csv_sha256": "a99a8383f8a3a41682a7264cac5a1a3097831bb2e456c2c36d09c188b8fcdf3d",
+      "diagnosis": "FEWER_THAN_21_VENDOR_ROWS_ASOF",
+      "available_vendor_rows_through_asof": 18,
+      "trailing_vendor_suspended_rows": 0,
+      "source_urls": [
+        "https://www.sse.com.cn/disclosure/announcement/listing/ipo/c/c_20260916_10832340.shtml"
+      ]
+    },
+    "sh.601238": {
+      "source_shard": "shard_0104",
+      "original_csv_sha256": "a2f6d4f36ec5487329a8e66a56bdf872c4dfc1e9a1cb2eb565994628800b7e65",
+      "diagnosis": "VENDOR_SUSPENDED_ROW_WITHIN_LAST_21",
+      "available_vendor_rows_through_asof": 485,
+      "trailing_vendor_suspended_rows": 10,
+      "source_urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-09-15/1225564444.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-09-19/1225572692.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-09-29/1225586271.PDF"
+      ]
+    },
+    "sh.601995": {
+      "source_shard": "shard_0120",
+      "original_csv_sha256": "c62152568423890c5bfc384fa4e0ec34e9ef71b9a092011b75b83a9e282d6609",
+      "diagnosis": "VENDOR_SUSPENDED_ROW_WITHIN_LAST_21",
+      "available_vendor_rows_through_asof": 485,
+      "trailing_vendor_suspended_rows": 6,
+      "source_urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-09-23/1225577325.PDF",
+        "https://paper.cnstock.com/html/2026-09/08/content_2265977.htm"
+      ]
+    },
+    "sh.603159": {
+      "source_shard": "shard_0137",
+      "original_csv_sha256": "c36cfc0437a88c63a3f63385a147c8f203cb0fc29ea5086dd71f32607bc24eb2",
+      "diagnosis": "VENDOR_SUSPENDED_ROW_WITHIN_LAST_21",
+      "available_vendor_rows_through_asof": 485,
+      "trailing_vendor_suspended_rows": 3,
+      "source_urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-09-17/1225568804.PDF"
+      ]
+    },
+    "sh.603183": {
+      "source_shard": "shard_0140",
+      "original_csv_sha256": "3f53cf0bd447c2d757488614b4236632069885e793ee04959ae0c888c614168c",
+      "diagnosis": "VENDOR_SUSPENDED_ROW_WITHIN_LAST_21",
+      "available_vendor_rows_through_asof": 485,
+      "trailing_vendor_suspended_rows": 2,
+      "source_urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-10-09/1225597696.PDF"
+      ]
+    },
+    "sh.603400": {
+      "source_shard": "shard_0161",
+      "original_csv_sha256": "d7d67226a1430bc3c0a56a4e48f08871f1a6dfb996043cc8f6d5c1523a6d60f5",
+      "diagnosis": "VENDOR_SUSPENDED_ROW_WITHIN_LAST_21",
+      "available_vendor_rows_through_asof": 323,
+      "trailing_vendor_suspended_rows": 10,
+      "source_urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-09-15/1225564363.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-09-22/1225573898.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-09-30/1225588894.PDF"
+      ]
+    },
+    "sh.603517": {
+      "source_shard": "shard_0166",
+      "original_csv_sha256": "f6e5848ea8ff0e682608d96342adf68594140f9e7eac3aaad75afbfb2dc2394a",
+      "diagnosis": "VENDOR_SUSPENDED_ROW_WITHIN_LAST_21",
+      "available_vendor_rows_through_asof": 485,
+      "trailing_vendor_suspended_rows": 1,
+      "source_urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-10-19/1225609996.PDF"
+      ]
+    },
+    "sh.603759": {
+      "source_shard": "shard_0182",
+      "original_csv_sha256": "b5d17da3ca737e21479b5e4b5a1ad41c7f13f777f42b8eaf419f30c35dcce4dc",
+      "diagnosis": "VENDOR_SUSPENDED_ROW_WITHIN_LAST_21",
+      "available_vendor_rows_through_asof": 485,
+      "trailing_vendor_suspended_rows": 1,
+      "source_urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-10-20/1225611487.PDF"
+      ]
+    },
+    "sh.603838": {
+      "source_shard": "shard_0186",
+      "original_csv_sha256": "98441e8dcbfae442ec14a7004a95ce5abff8d876b8cd69e1e754a77b16436e86",
+      "diagnosis": "VENDOR_SUSPENDED_ROW_WITHIN_LAST_21",
+      "available_vendor_rows_through_asof": 485,
+      "trailing_vendor_suspended_rows": 1,
+      "source_urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-10-17/1225608268.PDF"
+      ]
+    },
+    "sh.605303": {
+      "source_shard": "shard_0208",
+      "original_csv_sha256": "6c96135604c6cacdccc054c0babd022c3ac21488ab1c3597c7628f763b653688",
+      "diagnosis": "VENDOR_SUSPENDED_ROW_WITHIN_LAST_21",
+      "available_vendor_rows_through_asof": 485,
+      "trailing_vendor_suspended_rows": 10,
+      "source_urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-09-12/1225560951.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-09-19/1225571995.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-09-29/1225585581.PDF"
+      ]
+    },
+    "sz.002667": {
+      "source_shard": "shard_0356",
+      "original_csv_sha256": "2e0b4c8f12e053d6978d118875303321a82a69739b7b30d96216859257e7e9ca",
+      "diagnosis": "VENDOR_SUSPENDED_ROW_WITHIN_LAST_21",
+      "available_vendor_rows_through_asof": 485,
+      "trailing_vendor_suspended_rows": 3,
+      "source_urls": [
+        "https://disc.static.szse.cn/download/disc/disk03/finalpage/2026-10-12/ffbc649f-ba2a-4559-a871-cf8b53ee3d02.PDF",
+        "https://epaper.cs.com.cn/zgzqb/html/2026-09/30/nw.D110000zgzqb_20260930_4-B006.htm"
+      ]
+    },
+    "sz.002717": {
+      "source_shard": "shard_0362",
+      "original_csv_sha256": "ae1b73a1389f0629f64e130af4f2c1778f52ca837985e4b5f95ef14f048b81ac",
+      "diagnosis": "VENDOR_MARKED_NOT_TRADABLE_AT_ASOF",
+      "available_vendor_rows_through_asof": 485,
+      "trailing_vendor_suspended_rows": 6,
+      "source_urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-10-17/1225609701.PDF"
+      ]
+    },
+    "sz.002731": {
+      "source_shard": "shard_0364",
+      "original_csv_sha256": "0486cfcd1af2ffd60a48911a3f94178e9bbe56daeca2c6232d83876688234510",
+      "diagnosis": "VENDOR_MARKED_NOT_TRADABLE_AT_ASOF",
+      "available_vendor_rows_through_asof": 485,
+      "trailing_vendor_suspended_rows": 21,
+      "source_urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-10-16/1225607489.PDF"
+      ]
+    },
+    "sz.002813": {
+      "source_shard": "shard_0372",
+      "original_csv_sha256": "cb54189b8e76230ba70324a16fb53c6b316c0ce4c64dd3e2ff066177e82cf08f",
+      "diagnosis": "VENDOR_SUSPENDED_ROW_WITHIN_LAST_21",
+      "available_vendor_rows_through_asof": 485,
+      "trailing_vendor_suspended_rows": 5,
+      "source_urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-09-30/1225589222.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-10-09/1225597548.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-10-14/1225604178.PDF"
+      ]
+    },
+    "sz.002860": {
+      "source_shard": "shard_0378",
+      "original_csv_sha256": "c1e9e5844abed70f2471cb337bf917f584f0029109aac7c0bfb80ae85ad1d188",
+      "diagnosis": "VENDOR_SUSPENDED_ROW_WITHIN_LAST_21",
+      "available_vendor_rows_through_asof": 485,
+      "trailing_vendor_suspended_rows": 10,
+      "source_urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-09-22/1225575586.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-09-30/1225586506.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-10-14/1225604019.PDF"
+      ]
+    },
+    "sz.002870": {
+      "source_shard": "shard_0379",
+      "original_csv_sha256": "9f69a30a532df4e4178109d0c886f30c82e1f8fd1cf9e0fb3693f13582d3935a",
+      "diagnosis": "VENDOR_SUSPENDED_ROW_WITHIN_LAST_21",
+      "available_vendor_rows_through_asof": 485,
+      "trailing_vendor_suspended_rows": 1,
+      "source_urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-09-01/1225538772.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-09-08/1225550443.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-09-15/1225563563.PDF"
+      ]
+    }
+  }
+}
