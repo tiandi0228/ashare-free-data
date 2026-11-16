@@ -1,0 +1,37 @@
+name: P3 000582 halt and resume original replay (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/p3-000582-halt-replay.yml'
+      - 'collector/p3_000582_halt_replay.py'
+      - 'tests/test_p3_000582_halt_replay.py'
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'pypdf>=5,<7'
+      - run: python -m unittest -v tests.test_p3_000582_halt_replay
+      - name: Replay issuer PDF pair and pinned BaoStock CSV
+        run: |
+          sha=9928ba76ceaeac72506a3e6d4af63bac8d98c279
+          git fetch --depth=1 origin "$sha"
+          mkdir -p p3-000582
+          git show "$sha:5ba00fbd720fad90/shard_0231/sz_000582.csv" > p3-000582/source.csv
+          curl -fsS --max-time 30 'https://disc.static.szse.cn/download/disc/disk03/finalpage/2026-10-08/4bff47b8-2edf-4822-96ce-ee71323e794c.PDF' -o p3-000582/halt.pdf
+          curl -fsS --max-time 30 'https://static.cninfo.com.cn/finalpage/2026-10-12/1225599813.PDF' -o p3-000582/resume.pdf
+          python -m collector.p3_000582_halt_replay --halt p3-000582/halt.pdf --resume p3-000582/resume.pdf --vendor p3-000582/source.csv --out p3-000582/report.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p3-000582-halt-resume-replay
+          path: p3-000582/
+          retention-days: 90
+          if-no-files-found: error
