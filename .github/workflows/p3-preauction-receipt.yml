@@ -4,6 +4,8 @@ on:
     paths:
       - 'collector/p3_preauction_receipt.py'
       - 'tests/test_p3_preauction_receipt.py'
+      - 'collector/p3_sina_preauction_probe.py'
+      - 'tests/test_p3_sina_preauction_probe.py'
       - '.github/workflows/p3-preauction-receipt.yml'
 permissions:
   contents: read
@@ -18,3 +20,4 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m unittest discover -s tests -p test_p3_preauction_receipt.py -v
+      - run: python -m unittest discover -s tests -p test_p3_sina_preauction_probe.py -v
