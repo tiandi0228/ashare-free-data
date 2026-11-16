@@ -4,6 +4,7 @@ on:
     paths:
       - '.github/workflows/p2-durable-catchup-readback.yml'
       - 'collector/p2_durable_catchup_readback.py'
+      - 'tests/test_p2_durable_catchup_readback.py'
 permissions:
   contents: read
 jobs:
@@ -17,6 +18,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - run: python -m unittest tests.test_p2_durable_catchup_readback tests.test_p2_feature_coverage_ledger tests.test_p2_priority_archive_pages -v
       - name: Reproduce shard 342 and the 128-receipt ledger
         run: |
           source=f435cd6ea65fd0f9fad3a30780b52914d8b670cf
