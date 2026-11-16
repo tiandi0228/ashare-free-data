@@ -111,6 +111,80 @@ jobs:
             evidence/p2-pinned-run-receipt.json
           if-no-files-found: error
           retention-days: 30
+  pinned_durable_snapshot:
+    if: github.event_name == 'pull_request'
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Pin actual checkpoint, original archive and durable coverage
+        run: |
+          checkpoint=f435cd6ea65fd0f9fad3a30780b52914d8b670cf
+          archive=b588615aa0db3c72649e1adfaf227518cb5ce395
+          coverage=815701a2faa460aa3e4899a6de2d48a7a70b967a
+          git fetch --depth=1 origin "$checkpoint" "$archive" "$coverage"
+          git worktree add --detach "$RUNNER_TEMP/p2-current-checkpoint" "$checkpoint"
+          git worktree add --detach archived-research "$archive"
+          git worktree add --detach durable-p2-coverage "$coverage"
+          git log -1 --format=%H "$checkpoint"
+      - name: Compare durable archive against current and prior coverage
+        run: |
+          python - <<'PYCODE'
+          import json, subprocess
+          from collections import Counter
+          from pathlib import Path
+          import os
+          from collector.p1_active_migration_checkpoint import resolve
+          from collector.p2_original_gap_window_triage import check_current_checkpoint, diagnose
+          from collector.p2_gap_disposition import compare
+
+          load = lambda p: json.loads(Path(p).read_bytes())
+          lock = resolve(Path(os.environ["RUNNER_TEMP"]) / "p2-current-checkpoint")
+          epoch = lock["source_sha256"][:16]
+          checkpoint = load(Path(os.environ["RUNNER_TEMP"]) / "p2-current-checkpoint" / lock["checkpoint_path"])
+          archive = Path("archived-research") / epoch
+          summary_path = f"summaries/{epoch}.json"
+          current = load(Path("durable-p2-coverage") / summary_path)
+          status = load(archive / "archive_status.json")
+          witness = check_current_checkpoint(current, checkpoint, status)
+          assert witness["checkpoint_completed_shards"] == 289
+          assert witness["gap_issuer_count"] == 20
+          previous = "78b06f88b9fb8beb93adf283d57571d3798c78ce"
+          subprocess.run(["git", "fetch", "--depth=1", "origin", previous], check=True)
+          stale = json.loads(subprocess.check_output(["git", "show", f"{previous}:{summary_path}"]))
+          try:
+              check_current_checkpoint(stale, checkpoint, status)
+          except ValueError as exc:
+              assert "stale or unsafe P2 coverage" in str(exc)
+          else:
+              raise AssertionError("old 288-shard summary must not pass as 289 shards")
+          replay = diagnose(current, archive)
+          result = compare(replay, load("manifests/p2_gap_explanations_20261020.json"))
+          assert Counter(row["reason"] for row in result["rows"]) == {
+              "HALT_INTERRUPTS_FEATURE_WINDOW": 17, "HALTED_AT_CUTOFF": 2, "IPO_WINDOW_TOO_SHORT": 1,
+          }
+          assert (result["review_required"], result["feature_gaps_resolved"]) == (0, 0)
+          assert result["trade_gate"] == "BLOCKED" and result["historical_PIT_verified"] is False
+          Path("p2-durable-gap-replay.json").write_text(json.dumps({
+              "kind": "PINNED_DURABLE_SNAPSHOT_REGRESSION_NOT_LIVE_STATUS",
+              "checkpoint_commit": "f435cd6ea65fd0f9fad3a30780b52914d8b670cf",
+              "archive_commit": "b588615aa0db3c72649e1adfaf227518cb5ce395",
+              "coverage_commit": "815701a2faa460aa3e4899a6de2d48a7a70b967a",
+              "stale_coverage_commit_rejected": previous,
+              "witness": witness, "disposition": result,
+          }, indent=2) + "\n")
+          PYCODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p2-durable-gap-snapshot
+          path: p2-durable-gap-replay.json
+          if-no-files-found: error
   replay_once:
     if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     needs: offline
