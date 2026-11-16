@@ -408,6 +408,40 @@ jobs:
           PY
       - name: Synthesize fail-closed P3 to P4 prospective research handoff
         run: python -m collector.p4_prospective_handoff --audit-dir audit
+      - name: Seal registered P4 disclosure receipt
+        run: |
+          python - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+          from collector.p4_prewindow_evidence import API, HEAD, JOB, MANIFEST, REPO, RUN, get
+          from collector.p4_session_reconcile import BEIJING, calendar, seal
+          now = datetime.now(timezone.utc)
+          day = now.astimezone(BEIJING).date()
+          if calendar(day) != "EXPECTED_SSE_SESSION":
+              print("P4 receipt skipped: outside notice-covered dates")
+              raise SystemExit(0)
+          raw = Path("audit/p3_to_p4_readiness.json").read_bytes()
+          if json.loads(raw).get("capture_checks_all_passed") is not True:
+              print("P4 receipt skipped: P3 handoff failed quality checks")
+              raise SystemExit(0)
+          manifest = get(f"https://raw.githubusercontent.com/{REPO}/{HEAD}/{MANIFEST}")
+          run = json.loads(get(f"{API}/actions/runs/{RUN}"))
+          job = json.loads(get(f"{API}/actions/jobs/{JOB}"))
+          result = seal(run, job, manifest, raw, now)
+          with Path("audit/p4_registered_daily_receipt.json").open("x") as out:
+              json.dump(result, out, indent=2)
+          PY
+      - name: Preserve P4 receipt and exact source handoff through window review
+        if: hashFiles('audit/p4_registered_daily_receipt.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: p4-registered-disclosure-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            audit/p4_registered_daily_receipt.json
+            audit/p3_to_p4_readiness.json
+          retention-days: 90
+          if-no-files-found: error
       - name: Preserve timestamped metadata without republishing originals
         if: always()
         uses: actions/upload-artifact@v4
