@@ -152,6 +152,17 @@
         "https://static.cninfo.com.cn/finalpage/2026-09-29/1225585581.PDF"
       ]
     },
+    "sz.000582": {
+      "source_shard": "shard_0231",
+      "original_csv_sha256": "e80eff9f115192df540005f6ca7f519dd3cb8c3728551dbff48679145b03a893",
+      "diagnosis": "VENDOR_SUSPENDED_ROW_WITHIN_LAST_21",
+      "available_vendor_rows_through_asof": 485,
+      "trailing_vendor_suspended_rows": 2,
+      "source_urls": [
+        "https://disc.static.szse.cn/download/disc/disk03/finalpage/2026-10-08/4bff47b8-2edf-4822-96ce-ee71323e794c.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-10-12/1225599813.PDF"
+      ]
+    },
     "sz.002667": {
       "source_shard": "shard_0356",
       "original_csv_sha256": "2e0b4c8f12e053d6978d118875303321a82a69739b7b30d96216859257e7e9ca",

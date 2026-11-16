@@ -25,7 +25,7 @@ class EmptyQueueTests(unittest.TestCase):
             report = compare(diagnose(fixture, epoch), pin)
         self.assertEqual(report["review_queue"], [])
         self.assertEqual(report["feature_gaps_resolved"], 0)
-        self.assertEqual(len(report["pinned_issuers_absent_from_current_gap_list"]), 20)
+        self.assertEqual(len(report["pinned_issuers_absent_from_current_gap_list"]), 21)
 
 
 @unittest.skipUnless(os.environ.get("P2_ARCHIVE_EPOCH"), "requires pinned CSV checkout")
@@ -44,7 +44,7 @@ class ArchiveQueueTests(unittest.TestCase):
         self.assertEqual((baseline["explained_feature_unavailable"], baseline["review_required"]), (20, 0))
 
         # Simulate a baseline that never saw one gap and retained an older fingerprint for another.
-        keys = sorted(pin["entries"])
+        keys = sorted(r["issuer"] for r in replay["results"])
         simulate = copy.deepcopy(pin)
         del simulate["entries"][keys[0]]
         simulate["entries"][keys[1]]["original_csv_sha256"] = "0" * 64
