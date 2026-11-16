@@ -114,7 +114,7 @@ def diagnose(coverage,archive_epoch):
     codes=coverage.get("gap_issuer_codes")
     counts=coverage.get("gap_reason_counts")
     from collections import Counter
-    if (not isinstance(codes,list) or not codes or
+    if (not isinstance(codes,list) or
             any(not isinstance(c,str) for c in codes) or
             codes!=sorted(set(codes)) or
             not isinstance(counts,dict) or any(k not in (GAP_REASON,ASOF_GAP) or type(n) is not int or n<1 for k,n in counts.items()) or sum(counts.values())!=len(codes) or
@@ -138,8 +138,10 @@ def diagnose(coverage,archive_epoch):
     if (not isinstance(epoch,str) or len(epoch)!=64 or
             root.name!=epoch[:16]):
         raise ValueError("wrong source epoch archive")
+    if not root.is_dir():
+        raise ValueError("missing source epoch archive")
     index={}
-    for p in sorted(root.glob("shard_*/quality.json")):
+    for p in sorted(root.glob("shard_*/quality.json")) if codes else ():
         receipt=json.loads(p.read_text())
         if (receipt.get("status")!="OBSERVED_SUBSET_UNVERIFIED" or
                 receipt.get("trade_gate")!="BLOCKED" or
