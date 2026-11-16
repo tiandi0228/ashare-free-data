@@ -415,10 +415,10 @@ jobs:
           from datetime import datetime, timezone
           from pathlib import Path
           from collector.p4_prewindow_evidence import API, HEAD, JOB, MANIFEST, REPO, RUN, get
-          from collector.p4_session_reconcile import BEIJING, calendar, seal
+          from collector.p4_session_reconcile import BEIJING, EXPECTED_SESSION, calendar, seal
           now = datetime.now(timezone.utc)
           day = now.astimezone(BEIJING).date()
-          if calendar(day) != "EXPECTED_SSE_SESSION":
+          if calendar(day) != EXPECTED_SESSION:
               print("P4 receipt skipped: outside notice-covered dates")
               raise SystemExit(0)
           raw = Path("audit/p3_to_p4_readiness.json").read_bytes()
