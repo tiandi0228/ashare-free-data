@@ -1,0 +1,34 @@
+name: P3 P4 dual exchange calendar replay (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/p4-hs-2026-calendar-replay.yml'
+      - 'collector/p4_hs_2026_calendar_replay.py'
+      - 'tests/test_p4_hs_2026_calendar_replay.py'
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest tests.test_p4_hs_2026_calendar_replay tests.test_p4_sse_holiday_crosscheck -v
+      - name: Replay archive against both annual notices
+        run: |
+          archive=b588615aa0db3c72649e1adfaf227518cb5ce395
+          git fetch --depth=1 origin "$archive"
+          git worktree add --detach "$RUNNER_TEMP/calendar-archive" "$archive"
+          python -m collector.p4_hs_2026_calendar_replay \
+            --epoch "$RUNNER_TEMP/calendar-archive/5ba00fbd720fad90" > calendar-replay.json
+          python -c 'import json; r=json.load(open("calendar-replay.json")); assert r["published_holiday_ranges_agree"] and all(x["expected"]==190 and not x["unexpected"] and not x["missing"] for x in r["venues"].values())'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p4-hs-calendar-replay
+          path: calendar-replay.json
+          if-no-files-found: error
