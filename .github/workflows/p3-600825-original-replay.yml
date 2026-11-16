@@ -7,6 +7,8 @@ on:
       - 'collector/p3_600825_index_clock.py'
       - 'collector/p3_600825_evidence_join.py'
       - 'collector/p3_600825_september_clock.py'
+      - 'collector/p3_600825_sse_snapshot_preflight.py'
+      - 'tests/test_p3_600825_sse_snapshot_preflight.py'
       - 'tests/test_p3_600825_september_clock.py'
       - 'evidence/p3_600825/**'
       - 'tests/test_p3_600825_index_clock.py'
@@ -38,7 +40,8 @@ jobs:
           assert r["matched_days"] == 15 and len(r["notices"]) == 4 and not r["pre_open_availability_verified"]
           assert not r["entire_issuer_gap_closed"] and r["trade_gate"] == "BLOCKED" and r["orders"] == []
           PY
-      - run: python -m unittest tests.test_p3_600825_index_clock tests.test_p3_600825_september_clock -v
+      - run: python -m unittest tests.test_p3_600825_index_clock tests.test_p3_600825_september_clock tests.test_p3_600825_sse_snapshot_preflight -v
+      - run: python -m collector.p3_600825_sse_snapshot_preflight > 600825-sse-snapshot-preflight.json
       - run: |
           python -m collector.p3_600825_evidence_join 600825-replay.json --markdown 600825-clock-table.md > 600825-joined.json
           python - <<'PYCODE'
@@ -61,4 +64,5 @@ jobs:
             600825-replay.json
             600825-joined.json
             600825-clock-table.md
+            600825-sse-snapshot-preflight.json
           if-no-files-found: error

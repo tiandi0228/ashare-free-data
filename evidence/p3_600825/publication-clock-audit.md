@@ -24,3 +24,30 @@ Four notice slots now have at least one scoped observation. The September 7 init
 | Official public dissemination record for 2026-014 / 1225552231 | Notice identifier or exact PDF URL, venue, actual public release timestamp and time zone, provenance linking timestamp to event and document | Official publication timing. Submission, approval or operation confirmation without public release is not equivalent. |
 
 [Shanghai Stock Exchange Information Network historical data](https://www.sseinfo.com/services/assortment/historical/) lists snapshots and auction data as potential sources. The public product description does not establish that this stock's pre-09:15 halt-status record is included. Confirm field semantics, coverage and access before depending on it. No source request, purchase, ledger update, certification or gate change was made.
+
+### Exchange snapshot field preflight
+
+The [production technical index](https://www.sse.com.cn/services/tradingtech/data/)
+lists [IS120 Binary v0.62, July 3](https://www.sse.com.cn/services/tradingtech/data/c/10824278/files/0bd5b8920cef4b238b7bd398e734ce18.pdf)
+before the event. The next production index entry for this protocol is dated
+September 18. This is a dated reference for a proposed intake, not proof of the
+schema of any vendor export. Sections 2.2.2, 2.5.1 and 2.5.3 describe an M102
+stock snapshot (MD002) with product code, trading date, exchange SendingTime,
+LastUpdateTime and eight-character TradingPhaseCode. Its first position P is an
+explicit stock halt. Startup S, the nontradable flag by itself, or zero volume
+does not qualify. The preflight uses the exchange send time and a strict
+09:15:00 Beijing cutoff. It does not use the last update as a proxy for dispatch.
+
+Before acquiring data, confirm whether historical Level-1/Level-2 samples
+include SSE 600825 on 2026-09-07 strictly before 09:15:00 Beijing, whether a
+halted instrument remains included, and whether the export preserves the
+exchange send timestamp and explicit halt state with a dated field map.
+Request the source/channel, coverage start, transformation notes, and original
+file or provider checksum for independent review. A pre-auction exchange-feed
+message can support only the evidenced dissemination scope, not the first
+publication of the 2026-014 issuer notice.
+
+The offline preflight accepts a normalized excerpt for structural screening
+only. It is not a binary decoder, a provenance authenticator, or a claim that
+any subscription or archive contains the record. No real excerpt is supplied
+to CI. A missing row is not evidence of no halt or no disclosure.
