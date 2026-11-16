@@ -23,18 +23,21 @@ class SingleGapAcceptanceTests(unittest.TestCase):
                          shard_count=2, completed=[row], completed_shards=1, completed_issuers=1,
                          pending_shards=[0], next_shard=0, failed_in_this_reconciliation=[],
                          full_market_bars_certified=False)
+        self.checkpoint_blob = json.dumps(self.live, indent=2).encode()
+        blob_sha = hashlib.sha1(f"blob {len(self.checkpoint_blob)}\0".encode() + self.checkpoint_blob).hexdigest()
         self.run_meta = dict(id=123, run_attempt=2, event="workflow_dispatch", path=WORKFLOW,
                              head_branch="main", head_sha=self.workflow, status="completed", conclusion="success")
         self.receipt = dict(status="MANUAL_GAP_ARCHIVE_AND_CHECKPOINT_VERIFIED", run_id="123",
                             run_attempt="2", workflow_sha=self.workflow, archive_audit_commit=self.archive,
                             source_sha256=source, selected_shards=[1], new_shards_durably_accepted=1,
                             accepted_shards=[row], remote_readback_verified=True, historical_PIT_verified=False,
-                            trade_gate="BLOCKED", orders=[], executable_candidates=[], checkpoint_blob_sha="c"*40)
+                            trade_gate="BLOCKED", orders=[], executable_candidates=[], checkpoint_blob_sha=blob_sha,
+                            completed_shards=1)
         self.status = dict(source_sha256=source, trade_gate="BLOCKED", archived_shards=[1])
 
     def check(self, **overrides):
         args = dict(run=self.run_meta, receipt=self.receipt, live=self.live, quality=self.quality,
-                    archive_status=self.status, read_csv=lambda code: self.csv)
+                    archive_status=self.status, checkpoint_blob=self.checkpoint_blob, read_csv=lambda code: self.csv)
         return verify(**(args | overrides), shard=1, workflow_sha=self.workflow, archive_sha=self.archive)
 
     def test_verifies_canonical_receipt_and_original_bytes(self):
@@ -52,3 +55,17 @@ class SingleGapAcceptanceTests(unittest.TestCase):
                          dict(archive_status=self.status | {"archived_shards": []})):
             with self.subTest(fields=list(override)), self.assertRaises(ValueError):
                 self.check(**override)
+
+
+    def test_refuses_reformatted_checkpoint_blob_and_wrong_reported_count(self):
+        with self.assertRaisesRegex(ValueError, "Git blob"):
+            self.check(checkpoint_blob=self.checkpoint_blob + b"\n")
+        with self.assertRaisesRegex(ValueError, "completed count"):
+            self.check(receipt=self.receipt | {"completed_shards": 2})
+
+    def test_later_addition_does_not_invalidate_original_single_shard(self):
+        old = self.live["completed"][0]
+        later = self.live | dict(completed=[old | {"index": 0}, old], completed_shards=2,
+                                completed_issuers=2, pending_shards=[], next_shard=None)
+        self.assertEqual(self.check(live=later, archive_status=self.status | {"archived_shards": [0, 1]})
+                         ["live_completed_shards"], 2)

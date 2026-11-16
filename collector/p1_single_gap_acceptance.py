@@ -11,7 +11,8 @@ from collector.p1_checkpoint import validate
 WORKFLOW = ".github/workflows/p1-fresh-vendor-roster.yml"
 
 
-def verify(run, receipt, live, quality, archive_status, read_csv, *, shard, workflow_sha, archive_sha):
+def verify(run, receipt, live, quality, archive_status, read_csv, checkpoint_blob, *,
+           shard, workflow_sha, archive_sha):
     """Bind the artifact to the exact run attempt and independently read archive state."""
     validate(live)
     if (type(shard) is not int or not 0 <= shard < live["shard_count"]
@@ -37,7 +38,21 @@ def verify(run, receipt, live, quality, archive_status, read_csv, *, shard, work
             or receipt.get("orders") != [] or receipt.get("executable_candidates") != []
             or not re.fullmatch(r"[0-9a-f]{40}", receipt.get("checkpoint_blob_sha", ""))):
         raise ValueError("manual acceptance receipt does not match run or shard")
+    # Git's SHA-1 object ID hashes the blob header followed by the exact bytes.
+    blob_header = f"blob {len(checkpoint_blob)}\0".encode("ascii")
+    if hashlib.sha1(blob_header + checkpoint_blob, usedforsecurity=False).hexdigest() != receipt["checkpoint_blob_sha"]:
+        raise ValueError("receipt checkpoint Git blob does not match independently read bytes")
+    at_run = json.loads(checkpoint_blob)
+    validate(at_run)
+    if (at_run["source_sha256"] != live["source_sha256"]
+            or at_run["shard_count"] != live["shard_count"]
+            or at_run["completed_shards"] != receipt.get("completed_shards")):
+        raise ValueError("receipt checkpoint epoch or completed count mismatch")
     done = {row["index"]: row for row in live["completed"]}
+    if any(done.get(row["index"]) != row for row in at_run["completed"]):
+        raise ValueError("live checkpoint no longer preserves the accepted receipts")
+    if not any(row["index"] == shard for row in at_run["completed"]):
+        raise ValueError("accepted shard absent from receipt checkpoint blob")
     accepted = done.get(shard)
     archived_quality = json.loads(quality)
     canonical = json.dumps(archived_quality, sort_keys=True, ensure_ascii=False).encode()
@@ -72,7 +87,7 @@ def verify(run, receipt, live, quality, archive_status, read_csv, *, shard, work
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    for key in ("run", "receipt", "live", "quality", "archive-status"):
+    for key in ("run", "receipt", "live", "quality", "archive-status", "checkpoint-blob"):
         parser.add_argument("--" + key, type=Path, required=True)
     parser.add_argument("--shard", type=int, required=True)
     parser.add_argument("--workflow-sha", required=True)
@@ -82,6 +97,7 @@ def main():
     print(json.dumps(verify(load(args.run), load(args.receipt), load(args.live),
                             args.quality.read_bytes(), load(args.archive_status),
                             lambda code: (args.quality.parent / (code.replace(".", "_") + ".csv")).read_bytes(),
+                            args.checkpoint_blob.read_bytes(),
                             shard=args.shard, workflow_sha=args.workflow_sha,
                             archive_sha=args.archive_sha), indent=2))
 
