@@ -25,7 +25,8 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(len(rows), 62)
         self.assertEqual([rows[d] for d in ("2026-12-01", "2026-12-02", "2026-12-05",
                                             "2026-12-07", "2027-01-01")],
-                         ["RETAINED", "MISSING", "WEEKEND_CLOSED", "PENDING", "CALENDAR_UNVERIFIED"])
+                         ["RETAINED", "NOT_IN_SUBMITTED_RUNS", "WEEKEND_CLOSED", "AWAITING_RECEIPT",
+                          "CALENDAR_UNVERIFIED"])
 
     def test_rejects_changed_or_duplicate_receipts(self):
         with self.assertRaises(ValueError):
@@ -33,6 +34,33 @@ class ReconcileTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.run_check([(self.one, b"source")] * 2)
 
-    def test_no_missing_before_window(self):
+    def test_close_cutover_uses_beijing_time(self):
+        for timestamp, status in (("2026-12-07T06:59:59+00:00", "PENDING_SESSION_CLOSE"),
+                                  ("2026-12-07T07:00:00+00:00", "AWAITING_RECEIPT")):
+            with self.subTest(timestamp=timestamp):
+                self.now = datetime.fromisoformat(timestamp)
+                report = self.run_check()
+                rows = {r["date"]: r["status"] for r in report["rows"]}
+                self.assertEqual(rows["2026-12-07"], status)
+                self.assertEqual(rows["2026-12-08"], "PENDING_SESSION_CLOSE")
+                self.assertEqual(rows["2026-12-04"], "NOT_CHECKED")
+                self.assertEqual(report["coverage_scope"], "CALENDAR_ONLY")
+
+    def test_before_window_preserves_bounded_notice_scope(self):
         self.now = datetime.fromisoformat("2026-11-16T12:00:00+08:00")
-        self.assertNotIn("MISSING", self.run_check()["counts"])
+        report = self.run_check()
+        rows = {r["date"]: r["status"] for r in report["rows"]}
+        self.assertEqual(rows["2026-12-31"], "PENDING_SESSION_CLOSE")
+        self.assertEqual(rows["2027-01-01"], "CALENDAR_UNVERIFIED")
+        self.assertEqual(rows["2027-01-02"], "WEEKEND_CLOSED")
+        self.assertEqual(set(report["calendar_notices"]), {"SSE", "SZSE"})
+        self.assertFalse(report["official_calendar_fully_verified"])
+        self.assertFalse(report["prospective_OOS_validated"])
+        self.assertEqual(report["trade_gate"], "BLOCKED")
+
+    def test_refuses_receipt_outside_notice_scope(self):
+        self.now = datetime.fromisoformat("2027-01-04T17:00:00+08:00")
+        record = dict(self.one, session_date="2027-01-04", observed_at="2027-01-04T16:00:00+08:00")
+        self.seal.return_value = record
+        with self.assertRaisesRegex(ValueError, "unverified-calendar"):
+            self.run_check([(record, b"source")])

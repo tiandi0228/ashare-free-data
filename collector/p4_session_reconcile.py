@@ -7,14 +7,21 @@ from pathlib import Path
 from collector.p4_daily_evidence import BEIJING, seal
 from collector.p4_prewindow_evidence import verify
 
-SSE_2026 = "https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml"
+CALENDAR_NOTICES = {
+    "SSE": "https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml",
+    "SZSE": "https://www.szse.cn/disclosure/notice/t20251222_618087.html",
+}
+NOTICE_SCOPE_START = date(2026, 12, 1)
+NOTICE_SCOPE_END = date(2026, 12, 31)
+SESSION_CLOSE_BEIJING = time(15)
+EXPECTED_SESSION = "EXPECTED_HS_SESSION"
 
 
 def calendar(day):
     if day.weekday() >= 5:
         return "WEEKEND_CLOSED"
-    if date(2026, 12, 1) <= day <= date(2026, 12, 31):
-        return "EXPECTED_SSE_SESSION"
+    if NOTICE_SCOPE_START <= day <= NOTICE_SCOPE_END:
+        return EXPECTED_SESSION
     return "CALENDAR_UNVERIFIED"
 
 
@@ -30,22 +37,28 @@ def reconcile(run, job, manifest, submissions, now):
         at = datetime.fromisoformat(record["observed_at"])
         rebuilt = seal(run, job, manifest, raw, at)
         d = date.fromisoformat(rebuilt["session_date"])
-        if rebuilt != record or at > now or calendar(d) != "EXPECTED_SSE_SESSION" or d in valid:
+        if rebuilt != record or at > now or calendar(d) != EXPECTED_SESSION or d in valid:
             raise ValueError("invalid, future, unverified-calendar or duplicate receipt")
         valid[d] = rebuilt["source_sha256"]
     rows = []
     while day <= end:
         status = calendar(day)
-        if status == "EXPECTED_SSE_SESSION":
+        if status == EXPECTED_SESSION:
             if day in valid:
                 status = "RETAINED"
             elif now.date() > day:
-                status = "MISSING"
+                status = "NOT_IN_SUBMITTED_RUNS" if valid else "NOT_CHECKED"
+            elif day > now.date() or now.time() < SESSION_CLOSE_BEIJING:
+                status = "PENDING_SESSION_CLOSE"
             else:
-                status = "PENDING"
+                status = "AWAITING_RECEIPT"
         rows.append(dict(date=day.isoformat(), status=status, source_sha256=valid.get(day)))
         day += timedelta(days=1)
-    return dict(schema="p4_session_reconcile_v1", calendar_notice=SSE_2026, rows=rows,
+    return dict(schema="p4_session_reconcile_v2", calendar_notices=CALENDAR_NOTICES.copy(),
+                calendar_notice_scope=dict(start=NOTICE_SCOPE_START.isoformat(),
+                                           end=NOTICE_SCOPE_END.isoformat()),
+                coverage_scope="SUBMITTED_RUNS_ONLY" if valid else "CALENDAR_ONLY",
+                as_of_beijing=now.isoformat(), rows=rows,
                 counts={s: sum(r["status"] == s for r in rows) for s in sorted({r["status"] for r in rows})},
                 official_calendar_fully_verified=False, prospective_OOS_validated=False,
                 broker_fills_verified=0, trade_gate="BLOCKED", orders=[], executable_candidates=[])

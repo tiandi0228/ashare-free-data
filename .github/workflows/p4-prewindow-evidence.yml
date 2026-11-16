@@ -91,12 +91,6 @@ jobs:
           result = reconcile(run, job, manifest, submissions, datetime.now(timezone.utc))
           result["source_run_ids"] = ids
           result["source_run_clock_checks"] = run_clock_checks
-          result["coverage_scope"] = "SUBMITTED_RUNS_ONLY" if ids else "CALENDAR_ONLY"
-          for row in result["rows"]:
-              if row["status"] == "MISSING":
-                  row["status"] = "NOT_IN_SUBMITTED_RUNS" if ids else "NOT_CHECKED"
-          result["counts"] = {s: sum(row["status"] == s for row in result["rows"])
-                              for s in sorted({row["status"] for row in result["rows"]})}
           with Path("p4-session-coverage.json").open("x") as out:
               json.dump(result, out, indent=2)
           print(json.dumps(result["counts"]))
