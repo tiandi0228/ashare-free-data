@@ -5,9 +5,12 @@ import re
 from pathlib import Path
 
 from collector.p3_600825_index_clock import EXPECTED, SOURCE, replay
+from collector.p3_600825_september_clock import audit
+
+SEPTEMBER = Path("evidence/p3_600825/september-start-clock.json")
 
 
-def join(original, index):
+def join(original, index, september):
     if (original["issuer"] != "sh.600825" or original["trade_gate"] != "BLOCKED"
         or original["orders"] != [] or original["executable_candidates"] != []
         or original["historical_PIT_verified"] is not False
@@ -38,6 +41,7 @@ def join(original, index):
         "status": "FOUR_ORIGINALS_JOINED_TO_INDEX_NO_OFFICIAL_RELEASE_PROOF",
         "issuer": original["issuer"], "rows": list(rows.values()),
         "secondary_visibility_lead": original["secondary_public_visibility_lead"],
+        "september_halt_clock": audit(september, rows["1225552231"]),
         "matched_vendor_days": original["matched_days"], "official_first_release_count": 0,
         "historical_PIT_verified": False, "entire_issuer_gap_closed": False,
         "trade_gate": "BLOCKED", "orders": [], "executable_candidates": [],
@@ -56,6 +60,9 @@ def markdown(result):
         lines.append(f'| {row["announcement_number"]} | {events} | {row["index_time_beijing"]} | 未认证 |')
     lines += ["", "索引值不是首发时间。媒体报道是公开消息旁证，不替代官方开盘前披露证据。",
               "", f'归档行情匹配 {result["matched_vendor_days"]} 天。整项缺口未关闭，交易门禁 BLOCKED。']
+    september = result["september_halt_clock"]
+    lines += ["", "9 月 7 日首次停牌的盘前可见性仍未认证。",
+              f'9 月 8 日续停的最早已审阅媒体旁证为 {september["earliest_reviewed_continuation_media_time"]}。']
     return "\n".join(lines) + "\n"
 
 
@@ -64,7 +71,8 @@ def main():
     parser.add_argument("original", type=Path)
     parser.add_argument("--markdown", type=Path, required=True)
     args = parser.parse_args()
-    result = join(json.loads(args.original.read_bytes()), json.loads(SOURCE.read_bytes()))
+    result = join(json.loads(args.original.read_bytes()), json.loads(SOURCE.read_bytes()),
+                  json.loads(SEPTEMBER.read_bytes()))
     args.markdown.write_text(markdown(result), encoding="utf-8")
     print(json.dumps(result, ensure_ascii=False, indent=2))
 

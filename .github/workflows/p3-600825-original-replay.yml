@@ -6,6 +6,9 @@ on:
       - 'collector/p3_600825_original_replay.py'
       - 'collector/p3_600825_index_clock.py'
       - 'collector/p3_600825_evidence_join.py'
+      - 'collector/p3_600825_september_clock.py'
+      - 'tests/test_p3_600825_september_clock.py'
+      - 'evidence/p3_600825/**'
       - 'tests/test_p3_600825_index_clock.py'
       - 'evidence/p3_600825_index/**'
       - 'evidence/p3_600825_notices/**'
@@ -35,7 +38,7 @@ jobs:
           assert r["matched_days"] == 15 and len(r["notices"]) == 4 and not r["pre_open_availability_verified"]
           assert not r["entire_issuer_gap_closed"] and r["trade_gate"] == "BLOCKED" and r["orders"] == []
           PY
-      - run: python -m unittest tests.test_p3_600825_index_clock -v
+      - run: python -m unittest tests.test_p3_600825_index_clock tests.test_p3_600825_september_clock -v
       - run: |
           python -m collector.p3_600825_evidence_join 600825-replay.json --markdown 600825-clock-table.md > 600825-joined.json
           python - <<'PYCODE'
@@ -44,6 +47,10 @@ jobs:
           r = json.loads(Path("600825-joined.json").read_bytes())
           assert len(r["rows"]) == 4 and r["matched_vendor_days"] == 15
           assert all(row["classification"] == "MIDNIGHT_DATE_LABEL_ONLY" for row in r["rows"])
+          sep = r["september_halt_clock"]
+          assert len(sep["observations"]) == 5
+          assert not sep["initial_halt_before_auction_verified"] and not sep["official_first_release_verified"]
+          assert sep["earliest_reviewed_continuation_media_time"] == "2026-09-07T19:09:00+08:00"
           assert r["official_first_release_count"] == 0 and not r["entire_issuer_gap_closed"]
           assert r["trade_gate"] == "BLOCKED" and r["orders"] == []
           PYCODE

@@ -1,0 +1,37 @@
+{
+  "issuer": "sh.600825",
+  "notice_id": "1225552231",
+  "observations": [
+    {
+      "source": "Tonghuashun iNews",
+      "url": "https://stock.10jqka.com.cn/20260907/c679637111.shtml",
+      "displayed_time": "2026-09-07T00:20:07+08:00",
+      "scope": "ROUNDUP_OMISSION"
+    },
+    {
+      "source": "JRJ",
+      "url": "https://finance.jrj.com.cn/2026/09/07073058369026.shtml",
+      "displayed_time": "2026-09-07T07:30:02+08:00",
+      "scope": "ROUNDUP_OMISSION"
+    },
+    {
+      "source": "Jiemian via Sina",
+      "url": "https://finance.sina.com.cn/jjxw/2026-09-07/doc-iniqyzxx0307698.shtml",
+      "displayed_time": "2026-09-07T19:09:00+08:00",
+      "scope": "REPORTS_INITIAL_AND_CONTINUED_HALT"
+    },
+    {
+      "source": "Yicai",
+      "url": "https://www.yicai.com/brief/103354877.html",
+      "displayed_time": "2026-09-07T19:16:00+08:00",
+      "scope": "REPORTS_INITIAL_AND_CONTINUED_HALT"
+    },
+    {
+      "source": "Eastmoney",
+      "url": "https://data.eastmoney.com/stockcalendar/600825.html",
+      "displayed_time": null,
+      "scope": "EFFECTIVE_INTERVAL_ONLY",
+      "effective_start": "2026-09-07T09:30:00+08:00"
+    }
+  ]
+}
