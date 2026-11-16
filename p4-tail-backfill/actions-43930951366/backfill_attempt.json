@@ -1,0 +1,104 @@
+{
+  "phase": "P4_FREE_TAIL_BACKFILL_ATTEMPT",
+  "requested_issuers": 8,
+  "batch_offset": 0,
+  "total_pending_issuers": 2400,
+  "source_missing_exit_observations": 11365,
+  "results": [
+    {
+      "code": "sh.600235",
+      "requested_start": "2026-10-21",
+      "requested_end": "2026-10-23",
+      "status": "OBSERVED_RESEARCH_ONLY",
+      "rows": 3,
+      "active": 3,
+      "vendor_suspended": 0,
+      "sha256": "c85ced108fa5d2483da4887a0d038844b56018caf2d9423eaf13c1e88cabdd2e",
+      "filename": "sh_600235_tail.csv"
+    },
+    {
+      "code": "sh.600236",
+      "requested_start": "2026-10-21",
+      "requested_end": "2026-10-23",
+      "status": "OBSERVED_RESEARCH_ONLY",
+      "rows": 3,
+      "active": 3,
+      "vendor_suspended": 0,
+      "sha256": "101587a39038f533910177314917fdfd6bafda517c6838b52916c29c3018c379",
+      "filename": "sh_600236_tail.csv"
+    },
+    {
+      "code": "sh.600237",
+      "requested_start": "2026-10-21",
+      "requested_end": "2026-10-23",
+      "status": "OBSERVED_RESEARCH_ONLY",
+      "rows": 3,
+      "active": 3,
+      "vendor_suspended": 0,
+      "sha256": "d127662016f5104a6191ef3a60e17a2e414aebd65481c6cc5e5ac61d124445c2",
+      "filename": "sh_600237_tail.csv"
+    },
+    {
+      "code": "sh.600238",
+      "requested_start": "2026-10-21",
+      "requested_end": "2026-10-23",
+      "status": "OBSERVED_RESEARCH_ONLY",
+      "rows": 3,
+      "active": 3,
+      "vendor_suspended": 0,
+      "sha256": "b9d991658d4c52c076d371b4bc7c9bcb80f02d50fbdecb1dc120dbd31dc8cad6",
+      "filename": "sh_600238_tail.csv"
+    },
+    {
+      "code": "sh.600239",
+      "requested_start": "2026-10-21",
+      "requested_end": "2026-10-23",
+      "status": "OBSERVED_RESEARCH_ONLY",
+      "rows": 3,
+      "active": 3,
+      "vendor_suspended": 0,
+      "sha256": "5fccb868270813f4e96d6fd16b9dcad7fb017d52cf8e7def497084de6f526f22",
+      "filename": "sh_600239_tail.csv"
+    },
+    {
+      "code": "sh.600241",
+      "requested_start": "2026-10-21",
+      "requested_end": "2026-10-23",
+      "status": "OBSERVED_RESEARCH_ONLY",
+      "rows": 3,
+      "active": 3,
+      "vendor_suspended": 0,
+      "sha256": "833c67e807151bb8039c64714689f2f4d2bb02a799ac62ca78c7197e1e078f57",
+      "filename": "sh_600241_tail.csv"
+    },
+    {
+      "code": "sh.600243",
+      "requested_start": "2026-10-21",
+      "requested_end": "2026-10-23",
+      "status": "OBSERVED_RESEARCH_ONLY",
+      "rows": 3,
+      "active": 3,
+      "vendor_suspended": 0,
+      "sha256": "32bbc2780e92e01647e0b3f387fa0124a569bcadb063a2071e2119d60353cf4d",
+      "filename": "sh_600243_tail.csv"
+    },
+    {
+      "code": "sh.600246",
+      "requested_start": "2026-10-21",
+      "requested_end": "2026-10-23",
+      "status": "OBSERVED_RESEARCH_ONLY",
+      "rows": 3,
+      "active": 3,
+      "vendor_suspended": 0,
+      "sha256": "6d4a3c33e2f7f36880dcbfdd9f0eb2e489c571b6acdc2875e3246ebb43280410",
+      "filename": "sh_600246_tail.csv"
+    }
+  ],
+  "successful_issuers": 8,
+  "recovered_target_rows": 24,
+  "source_archive_unchanged": true,
+  "historical_PIT_verified": false,
+  "official_halt_verified": false,
+  "trade_gate": "BLOCKED",
+  "orders": []
+}
