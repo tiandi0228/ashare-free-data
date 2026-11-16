@@ -48,3 +48,92 @@ jobs:
             p1-gap-batch-queue.json
             p1-gap-readback.json
           if-no-files-found: error
+
+  vendor-preflight:
+    if: github.repository == 'tiandi0228/ashare-free-data' && github.event.pull_request.number == 361 && github.event.pull_request.head.repo.full_name == github.repository
+    needs: replay
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    concurrency:
+      group: p1-readonly-gap-vendor-probe
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'baostock>=0.8,<1'
+      - name: Fetch and independently verify the first pending two shards without archiving
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PYCODE'
+          import json, os, subprocess, sys
+          from pathlib import Path
+          from tempfile import TemporaryDirectory
+          from collector.p1_fresh_shard_plan import plan
+          from collector.p1_gap_remote_preflight import read_remote
+          from collector.p1_live_gap_rehearsal import rehearse
+          from collector.p1_quad_verify import verify
+          from collector.p1_roster_lock import unpack
+
+          repo = os.environ["GITHUB_REPOSITORY"]
+          expected = [231, 232]
+          epoch = "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022"
+
+          def preflight():
+              receipt = rehearse(repo)
+              if (receipt["proposed_manual_shards"] != expected or receipt["source_sha256"] != epoch
+                      or receipt["archive_index_parity_checked"] is not True):
+                  raise ValueError("target shards or roster changed; do not query")
+
+          preflight()
+          provider_env = {k: v for k, v in os.environ.items() if k not in ("GH_TOKEN", "GITHUB_TOKEN")}
+          outcome = {"attempted": [], "verified": [], "archive_writes": 0, "checkpoint_writes": 0,
+                     "trade_gate": "BLOCKED", "historical_PIT_verified": False, "orders": []}
+          try:
+              with TemporaryDirectory() as tmp:
+                  root = Path(tmp)
+                  raw, meta = unpack(read_remote(repo, "evidence/p1_active_roster.json", "main"))
+                  roster = root / "roster.csv"
+                  roster.write_bytes(raw)
+                  manifests = root / "manifests"
+                  frozen = plan(roster, manifests, meta["requested_day"])
+                  if frozen["source_sha256"] != epoch:
+                      raise ValueError("manifest epoch changed")
+                  for index in expected:
+                      preflight()
+                      outcome["attempted"].append(index)
+                      dest = root / str(index)
+                      process = subprocess.run([
+                          "timeout", "--kill-after=5s", "150s", sys.executable, "-u", "-m",
+                          "collector.baostock_batch", "--manifest", str(manifests / frozen["shards"][index]["name"]),
+                          "--batch-index", "0", "--out", str(dest),
+                      ], env=provider_env, check=False)
+                      if process.returncode:
+                          outcome["provider_exit_code"] = process.returncode
+                          quality = dest / "quality.json"
+                          if quality.exists():
+                              diagnostic = json.loads(quality.read_bytes())
+                              outcome["provider_failure_categories"] = sorted({
+                                  row["failure_category"] for row in diagnostic.get("results", [])
+                                  if isinstance(row.get("failure_category"), str)
+                              } | ({diagnostic["failure_category"]}
+                                   if isinstance(diagnostic.get("failure_category"), str) else set()))
+                          raise SystemExit(process.returncode)
+                      checked = verify(frozen, [(index, dest)], manifests)
+                      outcome["verified"].append({"index": index, "issuers": checked["verified_issuers"],
+                          "active_rows": checked["independently_checked_active_rows"],
+                          "suspended_rows": checked["independently_checked_suspended_rows"]})
+                  preflight()
+          finally:
+              Path("p1-gap-provider-preflight.json").write_text(json.dumps(outcome, indent=2) + "\n")
+          PYCODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p1-gap-provider-preflight
+          path: p1-gap-provider-preflight.json
+          if-no-files-found: warn
