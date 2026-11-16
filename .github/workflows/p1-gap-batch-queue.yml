@@ -1,0 +1,33 @@
+name: P1 pinned missing shard queue (NO WRITES)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/p1-gap-batch-queue.yml'
+      - 'collector/p1_gap_batch_queue.py'
+      - 'tests/test_p1_gap_batch_queue.py'
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest tests.test_p1_gap_batch_queue tests.test_p1_live_gap_rehearsal tests.test_p1_prewrite_gap_guard -v
+      - name: Replay pinned roster, checkpoint and actual archive directories
+        run: |
+          main=316a7ef01ded61fe809dc03a10cd4b32f91b8068
+          archive=968b47863467ebfd00154e38cdf50851f3c3285b
+          git fetch --depth=1 origin "$main" "$archive"
+          python -m collector.p1_gap_batch_queue --main-sha "$main" --archive-sha "$archive" > p1-gap-batch-queue.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p1-pinned-gap-batch-queue
+          path: p1-gap-batch-queue.json
+          if-no-files-found: error
