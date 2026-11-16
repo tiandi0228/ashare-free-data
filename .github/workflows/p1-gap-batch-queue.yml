@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/p1-gap-batch-queue.yml'
       - 'collector/p1_gap_batch_queue.py'
+      - 'collector/p1_archive_audit.py'
       - 'tests/test_p1_gap_batch_queue.py'
 permissions:
   contents: read
@@ -25,7 +26,9 @@ jobs:
           main=316a7ef01ded61fe809dc03a10cd4b32f91b8068
           archive=968b47863467ebfd00154e38cdf50851f3c3285b
           git fetch --depth=1 origin "$main" "$archive"
-          python -m collector.p1_gap_batch_queue --main-sha "$main" --archive-sha "$archive" > p1-gap-batch-queue.json
+          git worktree add --detach "$RUNNER_TEMP/p1-archive" "$archive"
+          python -m collector.p1_gap_batch_queue --main-sha "$main" --archive-sha "$archive" \
+            --replay-checkout "$RUNNER_TEMP/p1-archive" > p1-gap-batch-queue.json
       - uses: actions/upload-artifact@v4
         with:
           name: p1-pinned-gap-batch-queue

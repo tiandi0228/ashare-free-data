@@ -6,6 +6,7 @@ import re
 import subprocess
 from tempfile import TemporaryDirectory
 
+from collector.p1_archive_audit import audit
 from collector.p1_checkpoint import epoch_path
 from collector.p1_fresh_shard_plan import plan as build_plan
 from collector.p1_prewrite_gap_guard import check
@@ -51,7 +52,7 @@ def queue(plan, ledger, status, archive_ids):
     }
 
 
-def from_git(repo, main_sha, archive_sha):
+def from_git(repo, main_sha, archive_sha, *, replay_checkout=None):
     def git(*args):
         return subprocess.check_output(["git", "-C", str(repo), *args], timeout=30)
 
@@ -76,6 +77,17 @@ def from_git(repo, main_sha, archive_sha):
         roster.write_bytes(raw)
         plan = build_plan(roster, root / "shards", receipt["requested_day"])
         result = queue(plan, ledger, status, [int(name[6:]) for name in dirs])
+        if replay_checkout is not None:
+            actual = subprocess.check_output(
+                ["git", "-C", str(replay_checkout), "rev-parse", "HEAD"], timeout=30
+            ).decode().strip()
+            if actual != archive_sha:
+                raise ValueError("archive replay checkout does not match pinned archive SHA")
+            replayed = audit(plan, ledger, replay_checkout, replay=True)
+            if (not replayed["archive_complete"] or replayed["repair_shard_count"] != 0
+                    or replayed["archived_issuers"] != ledger["completed_issuers"]):
+                raise ValueError("original archive replay and checkpoint do not reconcile")
+            result.update(archive_original_csvs_replayed=True, archive_replay=replayed)
     return {**result, "main_commit": main_sha, "archive_commit": archive_sha}
 
 
@@ -84,8 +96,11 @@ def main():
     parser.add_argument("--repo", type=Path, default=Path("."))
     parser.add_argument("--main-sha", required=True)
     parser.add_argument("--archive-sha", required=True)
+    parser.add_argument("--replay-checkout", type=Path,
+                        help="Read-only archive checkout for independent original CSV replay")
     args = parser.parse_args()
-    print(json.dumps(from_git(args.repo, args.main_sha, args.archive_sha), indent=2))
+    print(json.dumps(from_git(args.repo, args.main_sha, args.archive_sha,
+                              replay_checkout=args.replay_checkout), indent=2))
 
 
 if __name__ == "__main__":
