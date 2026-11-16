@@ -1,6 +1,8 @@
 """Compare announced 2026 SSE/SZSE sessions with archived vendor dates, research only."""
 import argparse
+from collections import Counter
 from datetime import date, timedelta
+from decimal import Decimal
 import csv
 import json
 from pathlib import Path
@@ -127,8 +129,32 @@ def reconcile_early_notices(observed, first, last):
     return results
 
 
+def record_row(observed, activity, row):
+    market = row["code"][:2]
+    day = date.fromisoformat(row["date"])
+    observed[market].add(day)
+    # Evidence of actual trading activity in vendor bars, not exchange status.
+    if row["tradestatus"] == "1" and Decimal(row["volume"]) > 0 and Decimal(row["amount"]) > 0:
+        activity[market][day] += 1
+
+
+def reopen_activity(activity, reopen_dates):
+    return {
+        market: {
+            day: {
+                "active_positive_volume_and_amount_rows": activity[market][date.fromisoformat(day)],
+                "status": ("VENDOR_TRADING_ACTIVITY_OBSERVED"
+                           if activity[market][date.fromisoformat(day)] else "NO_VENDOR_TRADING_ACTIVITY_OBSERVED"),
+            }
+            for day in sorted(set(reopen_dates))
+        }
+        for market in sorted(activity)
+    }
+
+
 def replay(epoch):
     observed = {"sh": set(), "sz": set()}
+    activity = {"sh": Counter(), "sz": Counter()}
     shards = sorted(epoch.glob("shard_*/quality.json"))
     if not shards:
         raise ValueError("no original archive shards")
@@ -137,9 +163,9 @@ def replay(epoch):
             code = item["code"]
             raw = receipt.parent / (code.replace(".", "_") + ".csv")
             with raw.open(encoding="utf-8-sig", newline="") as stream:
-                observed[code[:2]].update(date.fromisoformat(row["date"]) for row in csv.DictReader(stream))
-    return observed
-
+                for row in csv.DictReader(stream):
+                    record_row(observed, activity, row)
+    return observed, activity
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
@@ -147,11 +173,15 @@ def main():
     p.add_argument("--start", type=date.fromisoformat, default=date(2026, 1, 1))
     p.add_argument("--end", type=date.fromisoformat, default=date(2026, 10, 20))
     a = p.parse_args()
-    observed = replay(a.epoch)
+    observed, activity = replay(a.epoch)
     report = reconcile(observed, a.start, a.end)
     if a.start <= date(2026, 9, 20) and a.end >= date(2026, 10, 10):
         report["mid_autumn_national_day_followup"] = reconcile_followup(observed)
     report["early_holiday_notice_checks"] = reconcile_early_notices(observed, a.start, a.end)
+    reopens = [p[2] for _, p, _ in EARLY_PERIODS]
+    reopens.extend(period[2] for period in FOLLOWUP["sh"][2])
+    report["reopen_vendor_activity"] = reopen_activity(
+        activity, [day for day in reopens if a.start <= date.fromisoformat(day) <= a.end])
     print(json.dumps(report, indent=2))
 
 

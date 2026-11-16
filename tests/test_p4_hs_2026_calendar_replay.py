@@ -1,8 +1,9 @@
+from collections import Counter
 from datetime import date
 import unittest
 from unittest.mock import patch
 
-from collector.p4_hs_2026_calendar_replay import FOLLOWUP, reconcile, reconcile_early_notices, reconcile_followup
+from collector.p4_hs_2026_calendar_replay import FOLLOWUP, reconcile, reconcile_early_notices, reconcile_followup, record_row, reopen_activity
 
 
 class CalendarReplayTests(unittest.TestCase):
@@ -47,3 +48,17 @@ class CalendarReplayTests(unittest.TestCase):
         self.assertEqual(list(results), ["new_year"])
         self.assertEqual(results["new_year"]["venues"]["sh"]["notice_kind"], "ANNUAL")
         self.assertEqual(results["new_year"]["venues"]["sz"]["reopen_dates_observed"], ["2026-01-05"])
+
+    def test_suspended_or_zero_turnover_rows_do_not_prove_activity(self):
+        day = "2026-01-05"
+        observed = {"sh": set(), "sz": set()}
+        activity = {"sh": Counter(), "sz": Counter()}
+        for status, volume, amount in (("0", "", ""), ("1", "10", "0"), ("1", "10", "99")):
+            record_row(observed, activity, dict(code="sh.600001", date=day, tradestatus=status,
+                                                volume=volume, amount=amount))
+        record_row(observed, activity, dict(code="sz.000001", date=day, tradestatus="0",
+                                            volume="", amount=""))
+        self.assertIn(date.fromisoformat(day), observed["sz"])
+        r = reopen_activity(activity, [day])
+        self.assertEqual(r["sh"][day]["active_positive_volume_and_amount_rows"], 1)
+        self.assertEqual(r["sz"][day]["status"], "NO_VENDOR_TRADING_ACTIVITY_OBSERVED")

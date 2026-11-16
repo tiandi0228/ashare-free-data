@@ -31,6 +31,11 @@ jobs:
           import json
           from pathlib import Path
           report = json.loads(Path("calendar-replay.json").read_bytes())
+          activity = report["reopen_vendor_activity"]
+          assert set(activity) == {"sh", "sz"}
+          assert all(len(days) == 7 and all(
+              row["active_positive_volume_and_amount_rows"] > 0 for row in days.values()
+          ) for days in activity.values())
           early = report["early_holiday_notice_checks"]
           assert len(early) == 5
           for name, section in early.items():
