@@ -155,6 +155,7 @@ def diagnose(coverage,archive_epoch):
     if set(index)!=set(codes):
         raise ValueError("missing SHA-original for one or more P2 gaps")
     results=[]
+    audited_shards=set()
     for code in codes:
         folder,item=index[code]
         if item.get("status")!="OBSERVED_UNVERIFIED":
@@ -164,9 +165,11 @@ def diagnose(coverage,archive_epoch):
         digest=hashlib.sha256(raw).hexdigest()
         if item.get("sha256")!=digest:
             raise ValueError("original vendor SHA mismatch")
-        audited=assess(folder)
-        if not audited.get("source_csv_sha_validated") or audited.get("trade_gate")!="BLOCKED":
-            raise ValueError("original P1 shard audit failed")
+        if folder not in audited_shards:
+            audited=assess(folder)
+            if audited.get("source_csv_sha_validated") is not True or audited.get("trade_gate")!="BLOCKED":
+                raise ValueError("original P1 shard audit failed")
+            audited_shards.add(folder)
         rows=list(csv.DictReader(raw.decode("utf-8-sig").splitlines()))
         shard,reason,pinned_digest=declared[code]
         if shard!=folder.name or pinned_digest!=digest:
