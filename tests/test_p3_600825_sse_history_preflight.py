@@ -1,7 +1,10 @@
+import hashlib
 from io import StringIO
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
 
-from collector.p3_600825_sse_history_preflight import assess
+from collector.p3_600825_sse_history_preflight import assess, assess_file
 
 TICKS = "SecurityID,TickTime,Type,TickBSFlag,SendingTime\n"
 
@@ -46,3 +49,26 @@ class HistoricalCSVTests(unittest.TestCase):
         for body in (TICKS.rstrip() + ",SendingTime\n", TICKS + "600825,,S,SUSP\n"):
             with self.subTest(body=body), self.assertRaises(ValueError):
                 assess(StringIO(body), "l2-stock-tick")
+
+    def test_file_receipt_hashes_exact_bytes_and_locates_original_candidate(self):
+        raw = ("\ufeff" + TICKS.rstrip() + ",TickIndex,ChannelNo\n"
+               "600825,2026090709145900,S,SUSP,20260907091459,42,7\n"
+               "600826,2026090709000000,S,SUSP,20260907090000,43,7\n").encode("utf-8")
+        digest = hashlib.sha256(raw).hexdigest()
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "StockTick.csv"
+            path.write_bytes(raw)
+            result = assess_file(path, "l2-stock-tick", expected_sha256=digest)
+            self.assertEqual(result["input_sha256"], digest)
+            candidate = result["earliest_candidate"]
+            self.assertEqual((candidate["csv_record_end_line"], candidate["TickIndex"],
+                              candidate["ChannelNo"]), (2, "42", "7"))
+            self.assertFalse(result["source_authenticated"])
+            path.write_bytes(raw + b"\n")
+            with self.assertRaisesRegex(ValueError, "SHA-256 mismatch"):
+                assess_file(path, "l2-stock-tick", expected_sha256=digest)
+
+    def test_missing_candidate_is_not_proof(self):
+        result = assess(StringIO(TICKS), "l2-stock-tick")
+        self.assertIsNone(result["earliest_candidate"])
+        self.assertFalse(result["initial_halt_before_auction_verified"])

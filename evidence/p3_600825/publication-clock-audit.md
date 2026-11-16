@@ -54,14 +54,14 @@ to CI. A missing row is not evidence of no halt or no disclosure.
 
 ### Historical export format confirmed
 
-The [historical data interface 1.1.4](https://www.sseinfo.com/services/assortment/market/hqywwd/wdzsjk/c/10800481/files/43b75567ae224148bd576acf11d30bd3.pdf)
+The [historical data interface 1.1.5 (published March 27, 2026)](https://www.sseinfo.com/services/assortment/market/hqywwd/wdzsjk/c/10824356/files/4ddcd5a592f9429f9288b0d2cb0c9549.pdf)
 documents three export formats separately from the live Binary feed.
 
 | Export | Explicit halt field | Time used to screen |
 | --- | --- | --- |
 | Level-1 Snapshot.csv, table 3-2 | PhaseCode starts with P | SendingTime (seconds), not DateTime |
-| Level-2 Snapshot.csv, table 3-6 | TradingPhaseCode starts with P | SendingTime (seconds), not DateTime |
-| Level-2 StockTick.csv, table 3-12 | Type S and TickBSFlag SUSP | SendingTime (seconds), not TickTime |
+| Level-2 Snapshot.csv, table 3-7 | TradingPhaseCode starts with P | SendingTime (seconds), not DateTime |
+| Level-2 StockTick.csv, table 3-13 | Type S and TickBSFlag SUSP | SendingTime (seconds), not TickTime |
 
 Request the September 7 StockTick product-state rows first, with the matching
 snapshot as a cross-check. A schema listing does not establish that 600825 or
@@ -75,3 +75,34 @@ suspended products, so row presence does not distinguish halt status.
 In the CPXX product-state flag, position four P is the main-board delisting
 arrangement category, not a halt. The record update time is not a delivery
 timestamp. Do not use CPXX as a shortcut for the historical status evidence.
+
+### Sample acquisition and readback
+
+No publicly downloadable sample for the target issuer and trading date was
+found. The [official application page](https://bsp.sseinfo.com/business/?id=1703682586115227650)
+describes institutional approval and a service agreement. The [price list](https://www.sseinfo.com/services/cpfwjg/)
+lists annual Level-2 history at CNY 120,000, not a single-day quote. No inquiry,
+application or purchase was made. Ask about a limited sample before assuming that
+the annual product is necessary or that the required window is retained.
+
+Request original Level-2 StockTick for 2026-09-07, SSE 600825, including all
+available pre-09:15 product-state rows. Ask for channel and sequence fields,
+the archive's earliest stored SendingTime for that day, any export filtering
+or normalization, and an independently supplied file checksum. If the data
+cannot be shared, ask the provider to confirm whether a matching state row and
+original dispatch time are retained. An answer confirming availability is a
+lead, not the raw record.
+
+Run the read-only intake locally with the original UTF-8 archive export and,
+when available, an independent checksum.
+
+```sh
+python -m collector.p3_600825_sse_history_preflight --format l2-stock-tick \
+  --csv /path/to/StockTick.csv --sha256 EXPECTED_SHA256
+```
+
+The receipt hashes the exact bytes read and records a candidate's CSV line,
+raw send time, and available channel/sequence fields. A hash match proves byte
+identity with the separately supplied digest, not historical authenticity.
+Do not upload licensed source bytes to public CI or treat an empty result as
+proof that the source never disseminated a halt.
