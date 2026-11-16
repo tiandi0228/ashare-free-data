@@ -53,9 +53,35 @@ FOLLOWUP = {
 }
 
 
-def reconcile_followup(observed):
+# New Year's Day uses the annual exchange notices, not a separate follow-up.
+EARLY_NOTICES = {
+    "sh": (
+        ("https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml", "2025-12-22", "ANNUAL"),
+        ("https://www.sse.com.cn/disclosure/announcement/general/c/c_20260205_10808618.shtml", "2026-02-05", "FOLLOWUP"),
+        ("https://www.sse.com.cn/disclosure/announcement/general/c/c_20260331_10813622.shtml", "2026-03-31", "FOLLOWUP"),
+        ("https://www.sse.com.cn/disclosure/announcement/general/c/c_20260423_10816345.shtml", "2026-04-23", "FOLLOWUP"),
+        ("https://www.sse.com.cn/disclosure/announcement/general/c/c_20260611_10821419.shtml", "2026-06-11", "FOLLOWUP"),
+    ),
+    "sz": (
+        (SZSE_NOTICE, "2025-12-22", "ANNUAL"),
+        ("https://www.szse.cn/disclosure/notice/t20260206_618970.html", "2026-02-06", "FOLLOWUP"),
+        ("https://www.szse.cn/www/disclosure/notice/t20260331_619774.html", "2026-03-31", "FOLLOWUP"),
+        ("https://www.szse.cn/disclosure/notice/t20260423_620142.html", "2026-04-23", "FOLLOWUP"),
+        ("https://www.szse.cn/disclosure/notice/general/t20260611_620979.html", "2026-06-11", "FOLLOWUP"),
+    ),
+}
+EARLY_PERIODS = (
+    ("new_year", ("2026-01-01", "2026-01-03", "2026-01-05"), ("2026-01-04",)),
+    ("spring_festival", ("2026-02-15", "2026-02-23", "2026-02-24"), ("2026-02-14", "2026-02-28")),
+    ("qingming", ("2026-04-04", "2026-04-06", "2026-04-07"), ()),
+    ("labour_day", ("2026-05-01", "2026-05-05", "2026-05-06"), ("2026-05-09",)),
+    ("dragon_boat", ("2026-06-19", "2026-06-21", "2026-06-22"), ()),
+)
+
+
+def reconcile_followup(observed, notices=None):
     venues = {}
-    for market, (url, published, periods, weekends) in FOLLOWUP.items():
+    for market, (url, published, periods, weekends) in (FOLLOWUP if notices is None else notices).items():
         source_ranges = closures(2026) if market == "sh" else {
             d for sm, sd, em, ed in SZSE_2026 for d in days(date(2026, sm, sd), date(2026, em, ed))}
         holiday_days = set()
@@ -86,6 +112,21 @@ def reconcile_followup(observed):
             "all_exceptional_closures_reviewed": False}
 
 
+def reconcile_early_notices(observed, first, last):
+    results = {}
+    for pos, (name, period, weekends) in enumerate(EARLY_PERIODS):
+        dates = [date.fromisoformat(day) for day in (*period, *weekends)]
+        if min(dates) < first or max(dates) > last:
+            continue
+        scopes = {market: (notices[pos][0], notices[pos][1], (period,), weekends)
+                  for market, notices in EARLY_NOTICES.items()}
+        section = reconcile_followup(observed, scopes)
+        for market, row in section["venues"].items():
+            row["notice_kind"] = EARLY_NOTICES[market][pos][2]
+        results[name] = section
+    return results
+
+
 def replay(epoch):
     observed = {"sh": set(), "sz": set()}
     shards = sorted(epoch.glob("shard_*/quality.json"))
@@ -110,6 +151,7 @@ def main():
     report = reconcile(observed, a.start, a.end)
     if a.start <= date(2026, 9, 20) and a.end >= date(2026, 10, 10):
         report["mid_autumn_national_day_followup"] = reconcile_followup(observed)
+    report["early_holiday_notice_checks"] = reconcile_early_notices(observed, a.start, a.end)
     print(json.dumps(report, indent=2))
 
 

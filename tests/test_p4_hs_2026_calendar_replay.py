@@ -2,7 +2,7 @@ from datetime import date
 import unittest
 from unittest.mock import patch
 
-from collector.p4_hs_2026_calendar_replay import FOLLOWUP, reconcile, reconcile_followup
+from collector.p4_hs_2026_calendar_replay import FOLLOWUP, reconcile, reconcile_early_notices, reconcile_followup
 
 
 class CalendarReplayTests(unittest.TestCase):
@@ -38,3 +38,12 @@ class CalendarReplayTests(unittest.TestCase):
         changed = (url, published, (periods[0], (*periods[1][:2], "2026-10-09")), weekends)
         with patch.dict(FOLLOWUP, {"sh": changed}), self.assertRaisesRegex(ValueError, "conflicts"):
             reconcile_followup({"sh": set(), "sz": set()})
+
+    def test_early_checks_only_apply_to_windows_covering_entire_holiday(self):
+        reopen = date(2026, 1, 5)
+        observed = {"sh": {reopen}, "sz": {reopen}}
+        self.assertEqual(reconcile_early_notices(observed, date(2026, 1, 2), reopen), {})
+        results = reconcile_early_notices(observed, date(2026, 1, 1), reopen)
+        self.assertEqual(list(results), ["new_year"])
+        self.assertEqual(results["new_year"]["venues"]["sh"]["notice_kind"], "ANNUAL")
+        self.assertEqual(results["new_year"]["venues"]["sz"]["reopen_dates_observed"], ["2026-01-05"])
