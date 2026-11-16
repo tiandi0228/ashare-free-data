@@ -5,6 +5,8 @@ on:
     paths:
       - '.github/workflows/p1-gap-batch-queue.yml'
       - 'collector/p1_gap_batch_queue.py'
+      - 'collector/p1_gap_probe_fingerprint.py'
+      - 'tests/test_p1_gap_probe_fingerprint.py'
       - 'collector/p1_archive_audit.py'
       - 'collector/p1_gap_batch_readback.py'
       - 'tests/test_p1_gap_batch_readback.py'
@@ -22,7 +24,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest tests.test_p1_gap_batch_readback tests.test_p1_gap_batch_queue tests.test_p1_live_gap_rehearsal tests.test_p1_prewrite_gap_guard -v
+      - run: python -m unittest tests.test_p1_gap_probe_fingerprint tests.test_p1_gap_batch_readback tests.test_p1_gap_batch_queue tests.test_p1_live_gap_rehearsal tests.test_p1_prewrite_gap_guard -v
       - name: Replay pinned roster, checkpoint and actual archive directories
         run: |
           main=316a7ef01ded61fe809dc03a10cd4b32f91b8068
@@ -75,6 +77,7 @@ jobs:
           from tempfile import TemporaryDirectory
           from collector.p1_fresh_shard_plan import plan
           from collector.p1_gap_remote_preflight import read_remote
+          from collector.p1_gap_probe_fingerprint import fingerprint
           from collector.p1_live_gap_rehearsal import rehearse
           from collector.p1_quad_verify import verify
           from collector.p1_roster_lock import unpack
@@ -126,7 +129,8 @@ jobs:
                       checked = verify(frozen, [(index, dest)], manifests)
                       outcome["verified"].append({"index": index, "issuers": checked["verified_issuers"],
                           "active_rows": checked["independently_checked_active_rows"],
-                          "suspended_rows": checked["independently_checked_suspended_rows"]})
+                          "suspended_rows": checked["independently_checked_suspended_rows"],
+                          **fingerprint(json.loads((dest / "quality.json").read_bytes()))})
                   preflight()
           finally:
               Path("p1-gap-provider-preflight.json").write_text(json.dumps(outcome, indent=2) + "\n")
