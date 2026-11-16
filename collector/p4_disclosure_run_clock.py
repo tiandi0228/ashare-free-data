@@ -1,5 +1,9 @@
 """Cross-check a disclosure handoff's claimed observation against Actions metadata."""
 from datetime import datetime, timezone
+import hashlib
+from io import BytesIO
+import json
+from zipfile import ZipFile, BadZipFile
 import re
 
 
@@ -10,6 +14,34 @@ def _instant(raw):
     if stamp.utcoffset() is None:
         raise ValueError("explicit timezone required")
     return stamp.astimezone(timezone.utc)
+
+
+RECEIPT_FILE = "p4_registered_daily_receipt.json"
+HANDOFF_FILE = "p3_to_p4_readiness.json"
+MAX_ARTIFACT_BYTES = 4 * 1024 * 1024
+
+
+def read_bound_zip(artifact, raw):
+    """Verify the exact ZIP before parsing its two expected source members."""
+    digest = artifact.get("digest")
+    size = artifact.get("size_in_bytes")
+    if (not isinstance(digest, str) or re.fullmatch(r"sha256:[0-9a-f]{64}", digest) is None
+            or type(size) is not int or not 0 < size <= MAX_ARTIFACT_BYTES):
+        raise ValueError("missing or invalid Actions artifact digest or size")
+    if len(raw) != size or "sha256:" + hashlib.sha256(raw).hexdigest() != digest:
+        raise ValueError("downloaded artifact differs from Actions digest or size")
+    try:
+        with ZipFile(BytesIO(raw)) as bundle:
+            members = bundle.infolist()
+            if (len(members) != 2 or {m.filename for m in members} != {RECEIPT_FILE, HANDOFF_FILE}
+                    or any(m.is_dir() or not 0 < m.file_size <= MAX_ARTIFACT_BYTES for m in members)):
+                raise ValueError("unexpected disclosure ZIP members")
+            record = json.loads(bundle.read(RECEIPT_FILE))
+            if not isinstance(record, dict):
+                raise ValueError("unexpected disclosure receipt JSON")
+            return record, bundle.read(HANDOFF_FILE)
+    except BadZipFile as exc:
+        raise ValueError("invalid disclosure ZIP") from exc
 
 
 def verify(run, artifact, record, *, repo, run_id, attempt, head_sha):
@@ -23,7 +55,8 @@ def verify(run, artifact, record, *, repo, run_id, attempt, head_sha):
             "completed", "success", repo):
         raise ValueError("unexpected disclosure run attempt")
     identity = artifact.get("workflow_run") or {}
-    if (artifact.get("name") != f"p4-registered-disclosure-{run_id}-{attempt}"
+    if (type(artifact.get("id")) is not int or artifact["id"] < 1
+            or artifact.get("name") != f"p4-registered-disclosure-{run_id}-{attempt}"
             or artifact.get("expired") is not False
             or (identity.get("id"), identity.get("head_sha"), identity.get("head_branch"))
             != (run_id, head_sha, "main")):
