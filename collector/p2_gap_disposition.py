@@ -1,6 +1,7 @@
 """Distinguish frozen feature ineligibility from gaps still needing review."""
 import argparse
 import json
+from collections import Counter
 from pathlib import Path
 
 FIELDS = ("source_shard", "original_csv_sha256", "diagnosis",
@@ -32,16 +33,31 @@ def compare(replay, pinned):
             raise ValueError("duplicate issuer or inconsistent replay cutoff")
         seen.add(issuer)
         evidence = entries.get(issuer)
-        matches = (evidence is not None and all(k in evidence and k in r and evidence[k] == r[k]
-                                               for k in FIELDS))
-        reason = REASONS.get(r["diagnosis"]) if matches else None
+        changed = [k for k in FIELDS if evidence is not None and
+                   (k not in evidence or k not in r or evidence[k] != r[k])]
+        if not same_scope:
+            review_code = "PIN_SCOPE_CHANGED"
+        elif evidence is None:
+            review_code = "NEW_GAP_NOT_IN_PIN"
+        elif "original_csv_sha256" in changed:
+            review_code = "ORIGINAL_CSV_CHANGED"
+        elif changed or r["diagnosis"] not in REASONS:
+            review_code = "GAP_METADATA_CHANGED"
+        else:
+            review_code = None
+        reason = REASONS[r["diagnosis"]] if review_code is None else None
         rows.append(dict(issuer=issuer, source_shard=r["source_shard"],
                          status="EXPLAINED_FEATURE_UNAVAILABLE" if reason else "REVIEW_REQUIRED",
-                         reason=reason, ordinary_recapture_indicated=False if reason else None))
+                         reason=reason, review_code=review_code, changed_fields=changed,
+                         ordinary_recapture_indicated=False if reason else None))
     if replay.get("research_gap_issuers") != len(rows):
         raise ValueError("replay count mismatch")
     explained = sum(row["reason"] is not None for row in rows)
+    review_queue = [r for r in rows if r["review_code"] is not None]
     return dict(asof=asof, source_epoch_sha256=epoch, pinned_scope_match=same_scope,
+                review_reason_counts=dict(sorted(Counter(r["review_code"] for r in review_queue).items())),
+                review_queue=review_queue,
+                pinned_issuers_absent_from_current_gap_list=sorted(set(entries)-seen),
                 explained_feature_unavailable=explained, review_required=len(rows)-explained,
                 feature_gaps_resolved=0, historical_PIT_verified=False, trade_gate="BLOCKED",
                 orders=[], executable_candidates=[], rows=rows)
