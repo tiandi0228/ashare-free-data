@@ -21,6 +21,7 @@ def join(bars_csv,events,decision_time):
                        "matching_bar_rows":len(dates),
                        "rows_on_or_after_effective":sum(d>=event["effective_date"] for d in dates),
                        "known_before_decision":event["known_before_decision"],
+                       "effective_by_decision_instant":event["effective_by_decision_instant"],
                        "certified_issuer_day_state_rows":0,
                        "missing_authenticated_full_state":True})
     return {"phase":"P3_ASOF_EVENTS_TO_RESEARCH_BARS","event_links":linked,

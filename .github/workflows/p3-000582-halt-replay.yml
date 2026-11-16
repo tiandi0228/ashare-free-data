@@ -8,6 +8,7 @@ on:
       - 'collector/p3_000582_publication_clock.py'
       - 'collector/p3_000582_asof_replay.py'
       - 'collector/p3_publication_asof_gate.py'
+      - 'tests/test_p3_publication_asof_gate.py'
       - 'collector/p3_publication_bar_gap.py'
       - 'collector/p3_publication_proof_task_queue.py'
       - 'tests/test_p3_000582_asof_replay.py'
@@ -27,7 +28,7 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m pip install 'pypdf>=5,<7'
-      - run: python -m unittest -v tests.test_p3_000582_halt_replay tests.test_p3_000582_publication_clock tests.test_p3_000582_asof_replay
+      - run: python -m unittest -v tests.test_p3_000582_halt_replay tests.test_p3_000582_publication_clock tests.test_p3_000582_asof_replay tests.test_p3_publication_asof_gate
       - name: Replay issuer PDF pair and pinned BaoStock CSV
         run: |
           sha=9928ba76ceaeac72506a3e6d4af63bac8d98c279

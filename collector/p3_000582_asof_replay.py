@@ -53,7 +53,8 @@ def replay_clock(clock, bars):
         joined = join(bars, events, instant)
         if (asof["known_event_count"] != 0 or queue["task_count"] != len(events)
                 or joined["certified_issuer_day_state_rows"] != 0
-                or any(row["known_before_decision"] for row in joined["event_links"])):
+                or any(row["known_before_decision"] or row["effective_by_decision_instant"]
+                       for row in joined["event_links"])):
             raise ValueError("retrospective event crossed the historical decision boundary")
         cases.append(dict(decision_beijing=instant, asof=asof, proof_queue=queue, bar_audit=joined))
     return dict(phase="P3_000582_HISTORICAL_DECISION_REPLAY", issuer=ISSUER, cases=cases,
