@@ -11,12 +11,18 @@ on:
       - 'tests/test_p4_session_reconcile.py'
       - '.github/workflows/p4-prewindow-evidence.yml'
   workflow_dispatch:
+    inputs:
+      source_runs:
+        description: "Comma-separated P3 daily run IDs, at most 62; empty gives a calendar-only report"
+        required: false
+        type: string
 permissions:
   contents: read
+  actions: read
 jobs:
   corroborate:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -28,9 +34,63 @@ jobs:
         run: python -m collector.p4_prewindow_evidence --out p4-prewindow-evidence.json
       - name: Verify rejection paths offline
         run: python -m unittest tests.test_p4_prewindow_evidence tests.test_p4_daily_evidence tests.test_p4_session_reconcile -v
+      - name: Build P4 session coverage report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUNS: ${{ inputs.source_runs }}
+          PIN_RUN: '43789424999'
+          PIN_JOB: '133044247886'
+        run: |
+          python - <<'PY'
+          import json, os, re, subprocess, tempfile
+          from datetime import datetime, timezone
+          from pathlib import Path
+          from collector.p4_session_reconcile import reconcile
+
+          repo = os.environ["GITHUB_REPOSITORY"]
+          ids = [value.strip() for value in os.environ.get("SOURCE_RUNS", "").split(",")]
+          if ids == [""]:
+              ids = []
+          if len(ids) > 62 or len(ids) != len(set(ids)) or not all(re.fullmatch(r"[1-9][0-9]{0,19}", i) for i in ids):
+              raise ValueError("invalid or duplicate source run IDs")
+          def read(endpoint):
+              return json.loads(subprocess.check_output(["gh", "api", f"repos/{repo}/actions/{endpoint}"], timeout=15))
+          run = read(f'runs/{os.environ["PIN_RUN"]}')
+          job = read(f'jobs/{os.environ["PIN_JOB"]}')
+          from collector.p4_prewindow_evidence import HEAD, MANIFEST, get
+          manifest = get(f"https://raw.githubusercontent.com/{repo}/{HEAD}/{MANIFEST}")
+          submissions = []
+          with tempfile.TemporaryDirectory() as tmp:
+              for run_id in ids:
+                  meta = read(f"runs/{run_id}")
+                  if (meta["repository"]["full_name"] != repo or meta["head_branch"] != "main"
+                          or meta["path"] != ".github/workflows/p3-prospective-official-observation.yml"
+                          or meta["status"] != "completed" or meta["conclusion"] != "success"):
+                      raise ValueError(f"not a successful main-branch disclosure run: {run_id}")
+                  directory = Path(tmp) / run_id
+                  name = f'p4-registered-disclosure-{run_id}-{meta["run_attempt"]}'
+                  subprocess.run(["gh", "run", "download", run_id, "--repo", repo, "--name", name,
+                                  "--dir", str(directory)], check=True, timeout=20)
+                  record = json.loads((directory / "p4_registered_daily_receipt.json").read_bytes())
+                  source = (directory / "p3_to_p4_readiness.json").read_bytes()
+                  submissions.append((record, source))
+          result = reconcile(run, job, manifest, submissions, datetime.now(timezone.utc))
+          result["source_run_ids"] = ids
+          result["coverage_scope"] = "SUBMITTED_RUNS_ONLY" if ids else "CALENDAR_ONLY"
+          for row in result["rows"]:
+              if row["status"] == "MISSING":
+                  row["status"] = "NOT_IN_SUBMITTED_RUNS" if ids else "NOT_CHECKED"
+          result["counts"] = {s: sum(row["status"] == s for row in result["rows"])
+                              for s in sorted({row["status"] for row in result["rows"]})}
+          with Path("p4-session-coverage.json").open("x") as out:
+              json.dump(result, out, indent=2)
+          print(json.dumps(result["counts"]))
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: p4-prewindow-evidence
-          path: p4-prewindow-evidence.json
+          path: |
+            p4-prewindow-evidence.json
+            p4-session-coverage.json
           if-no-files-found: error
           retention-days: 90
