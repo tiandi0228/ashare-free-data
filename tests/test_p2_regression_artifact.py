@@ -28,7 +28,8 @@ class ArtifactTests(unittest.TestCase):
                 "review_required", "feature_gaps_resolved")
         rec = {k: self.disp[k] for k in keys}
         rec.update(kind="PINNED_ARCHIVE_REGRESSION_NOT_LIVE_COVERAGE", archive_commit="commit",
-                   github_run_id="42", trade_gate="BLOCKED", historical_PIT_verified=False,
+                   github_run_id="42", github_run_attempt="1", tested_commit="merge-sha",
+                   trade_gate="BLOCKED", historical_PIT_verified=False,
                    report_sha256={k: hashlib.sha256(v.encode()).hexdigest() for k, v in self.reports.items()})
         with ZipFile(self.path, "w") as z:
             for k, v in self.reports.items():
@@ -37,23 +38,40 @@ class ArtifactTests(unittest.TestCase):
             if extra:
                 z.writestr("extra", "unexpected")
 
-    def test_valid_and_wrong_run(self):
+    def verify_bundle(self, **overrides):
+        expected = dict(expected_archive_commit="commit", expected_run_id="42",
+                        expected_run_attempt="1", expected_tested_commit="merge-sha",
+                        expected_zip_sha256="sha256:" + hashlib.sha256(self.path.read_bytes()).hexdigest())
+        return verify(self.path, self.pin, **(expected | overrides))
+
+    def test_valid_provenance(self):
         self.bundle()
-        self.assertEqual(verify(self.path, self.pin, expected_archive_commit="commit",
-                                expected_run_id="42")["feature_gaps_resolved"], 0)
-        with self.assertRaisesRegex(ValueError, "scope"):
-            verify(self.path, self.pin, expected_archive_commit="commit", expected_run_id="43")
+        result = self.verify_bundle()
+        self.assertEqual(result["feature_gaps_resolved"], 0)
+        self.assertEqual((result["tested_commit"], result["github_run_attempt"]), ("merge-sha", "1"))
+
+    def test_reject_stale_or_wrong_provenance(self):
+        self.bundle()
+        for field, wrong in (("expected_run_id", "43"), ("expected_run_attempt", "2"),
+                             ("expected_tested_commit", "pr-head"), ("expected_archive_commit", "other")):
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, "scope"):
+                self.verify_bundle(**{field: wrong})
+
+    def test_reject_zip_digest_mismatch(self):
+        self.bundle()
+        with self.assertRaisesRegex(ValueError, "ZIP SHA-256"):
+            self.verify_bundle(expected_zip_sha256="0" * 64)
 
     def test_modified_report_and_extra_file(self):
         self.bundle(tamper=True)
         with self.assertRaisesRegex(ValueError, "SHA-256"):
-            verify(self.path, self.pin, expected_archive_commit="commit")
+            self.verify_bundle()
         self.bundle(extra=True)
         with self.assertRaisesRegex(ValueError, "contents"):
-            verify(self.path, self.pin, expected_archive_commit="commit")
+            self.verify_bundle()
 
     def test_rehashed_disposition_still_requires_replay(self):
         self.reports[DISPOSITION] = json.dumps(dict(self.disp, review_required=1))
         self.bundle()
         with self.assertRaisesRegex(ValueError, "replay mismatch"):
-            verify(self.path, self.pin, expected_archive_commit="commit")
+            self.verify_bundle()
