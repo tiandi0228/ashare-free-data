@@ -6,6 +6,8 @@ on:
       - '.github/workflows/p1-gap-batch-queue.yml'
       - 'collector/p1_gap_batch_queue.py'
       - 'collector/p1_archive_audit.py'
+      - 'collector/p1_gap_batch_readback.py'
+      - 'tests/test_p1_gap_batch_readback.py'
       - 'tests/test_p1_gap_batch_queue.py'
 permissions:
   contents: read
@@ -20,7 +22,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest tests.test_p1_gap_batch_queue tests.test_p1_live_gap_rehearsal tests.test_p1_prewrite_gap_guard -v
+      - run: python -m unittest tests.test_p1_gap_batch_readback tests.test_p1_gap_batch_queue tests.test_p1_live_gap_rehearsal tests.test_p1_prewrite_gap_guard -v
       - name: Replay pinned roster, checkpoint and actual archive directories
         run: |
           main=316a7ef01ded61fe809dc03a10cd4b32f91b8068
@@ -29,8 +31,20 @@ jobs:
           git worktree add --detach "$RUNNER_TEMP/p1-archive" "$archive"
           python -m collector.p1_gap_batch_queue --main-sha "$main" --archive-sha "$archive" \
             --replay-checkout "$RUNNER_TEMP/p1-archive" > p1-gap-batch-queue.json
+      - name: Independently check a real prior archive change and a still-missing shard
+        run: |
+          git fetch --depth=8 origin 316a7ef01ded61fe809dc03a10cd4b32f91b8068 968b47863467ebfd00154e38cdf50851f3c3285b
+          git worktree add --detach "$RUNNER_TEMP/p1-prior-archive" a37b9fd3a9b80c5a301f3ff7ab4b4796cb21413e
+          python -m collector.p1_gap_batch_readback \
+            --main-before 315ceb03f88ecfa02fcf6d9f0f4883fb90b3cd18 --main-after 316a7ef01ded61fe809dc03a10cd4b32f91b8068 \
+            --archive-before a37b9fd3a9b80c5a301f3ff7ab4b4796cb21413e --archive-after 968b47863467ebfd00154e38cdf50851f3c3285b \
+            --checkout-before "$RUNNER_TEMP/p1-prior-archive" --checkout-after "$RUNNER_TEMP/p1-archive" \
+            --selected 343 232 > p1-gap-readback.json
+          python -c 'import json; r=json.load(open("p1-gap-readback.json")); assert r["selected_durably_present"] == [343] and r["selected_still_missing"] == [232]'
       - uses: actions/upload-artifact@v4
         with:
           name: p1-pinned-gap-batch-queue
-          path: p1-gap-batch-queue.json
+          path: |
+            p1-gap-batch-queue.json
+            p1-gap-readback.json
           if-no-files-found: error
