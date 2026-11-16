@@ -10,6 +10,7 @@ from collector.baostock_batch import END
 from collector.p2_independent_bars import assess
 
 GAP_REASON="INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS"
+ASOF_GAP="VENDOR_NOT_TRADABLE_ASOF"
 SOURCE_PHASE="P2_PERSISTENT_ARCHIVE_FEATURE_COVERAGE"
 def check_current_checkpoint(coverage,checkpoint,archive_status):
     """Refuse stale durable P2 summaries as if they cover newly archived P1 data."""
@@ -53,7 +54,7 @@ def check_current_checkpoint(coverage,checkpoint,archive_status):
             "trade_gate":"BLOCKED",
             "historical_PIT_verified":False}
 
-def classify(rows,asof=END):
+def classify(rows,asof=END,expected_reason=GAP_REASON):
     """Check frozen 21 vendor-row trailing window; no inferred missing dates."""
     try:
         cutoff=date.fromisoformat(asof)
@@ -79,10 +80,14 @@ def classify(rows,asof=END):
             history.append(row)
     if not history or history[-1]["date"]!=asof:
         raise ValueError("missing exactly as-of original vendor row")
-    if history[-1]["tradestatus"]!="1":
-        raise ValueError("as-of original is not tradable")
     recent=history[-21:]
-    if len(recent)<21:
+    if expected_reason==ASOF_GAP:
+        if history[-1]["tradestatus"]!="0":
+            raise ValueError("as-of original contradicts nontradable gap")
+        reason="VENDOR_MARKED_NOT_TRADABLE_AT_ASOF"
+    elif expected_reason!=GAP_REASON or history[-1]["tradestatus"]!="1":
+        raise ValueError("as-of original is not tradable or reason is unsupported")
+    elif len(recent)<21:
         reason="FEWER_THAN_21_VENDOR_ROWS_ASOF"
     elif any(r["tradestatus"]!="1" for r in recent):
         reason="VENDOR_SUSPENDED_ROW_WITHIN_LAST_21"
@@ -108,12 +113,26 @@ def diagnose(coverage,archive_epoch):
         raise ValueError("unsafe P2 source research coverage")
     codes=coverage.get("gap_issuer_codes")
     counts=coverage.get("gap_reason_counts")
+    from collections import Counter
     if (not isinstance(codes,list) or not codes or
             any(not isinstance(c,str) for c in codes) or
             codes!=sorted(set(codes)) or
-            not isinstance(counts,dict) or counts!={GAP_REASON:len(codes)} or
+            not isinstance(counts,dict) or any(k not in (GAP_REASON,ASOF_GAP) or type(n) is not int or n<1 for k,n in counts.items()) or sum(counts.values())!=len(codes) or
             coverage.get("issuer_evidence_gap_count")!=len(codes)):
         raise ValueError("unexpected P2 gap types or damaged summary")
+    declared={}
+    for entry in coverage.get("gap_repair_queue",[]):
+        issuer_rows=entry["issuer_reasons"]
+        if len(issuer_rows)!=entry["issuer_gap_count"]:
+            raise ValueError("gap queue count mismatch")
+        for row in issuer_rows:
+            issuer=row["issuer"]
+            if issuer in declared:
+                raise ValueError("duplicate gap queue issuer")
+            declared[issuer]=(entry["shard_id"],row["reason"],
+                              row["original_gap_diagnostic"]["original_csv_sha256"])
+    if (set(declared)!=set(codes) or Counter(row[1] for row in declared.values())!=counts):
+        raise ValueError("gap queue differs from coverage summary")
     epoch=coverage.get("source_epoch_sha256")
     root=Path(archive_epoch)
     if (not isinstance(epoch,str) or len(epoch)!=64 or
@@ -147,7 +166,10 @@ def diagnose(coverage,archive_epoch):
         if not audited.get("source_csv_sha_validated") or audited.get("trade_gate")!="BLOCKED":
             raise ValueError("original P1 shard audit failed")
         rows=list(csv.DictReader(raw.decode("utf-8-sig").splitlines()))
-        detail=classify(rows)
+        shard,reason,pinned_digest=declared[code]
+        if shard!=folder.name or pinned_digest!=digest:
+            raise ValueError("coverage gap source differs from original archive")
+        detail=classify(rows,expected_reason=reason)
         results.append({"issuer":code,"original_csv_sha256":digest,
                         "source_shard":folder.name,**detail})
     groups={r["diagnosis"]:sum(x["diagnosis"]==r["diagnosis"] for x in results)
