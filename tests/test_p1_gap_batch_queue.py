@@ -5,7 +5,7 @@ import unittest
 
 from collector.p1_checkpoint import epoch_path
 from collector.p1_fresh_shard_plan import plan
-from collector.p1_gap_batch_queue import queue
+from collector.p1_gap_batch_queue import queue, tracked_states
 from collector.p1_quad_pick import choose_gap_window
 from collector.p1_roster_lock import unpack
 
@@ -44,3 +44,18 @@ class GapQueueTests(unittest.TestCase):
         ids = self.ids[1:]
         with self.assertRaisesRegex(ValueError, "archive/checkpoint"):
             queue(self.plan, self.ledger, dict(self.status, archived_shards=ids), ids)
+
+    def test_probe_only_does_not_become_archived(self):
+        probe = Path("tests/fixtures/p1/probe_run_43820286717.json").read_bytes()
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for row in json.loads(probe)["verified"]:
+                name = self.plan["shards"][row["index"]]["name"]
+                (root / name).write_text("\n".join(row["csv_sha256_by_issuer"]) + "\n")
+            result = tracked_states(self.plan, [232, 238], root, [231, 232, 238], probe)
+            self.assertEqual([r["status"] for r in result], [
+                "ARCHIVED_IN_PINNED_SNAPSHOT", "PREPROBED_NOT_ARCHIVED",
+                "PENDING_NO_MATCH_IN_PINNED_PROBE",
+            ])
+            with self.assertRaisesRegex(ValueError, "probe bytes"):
+                tracked_states(self.plan, [232], root, [232], probe + b"x")

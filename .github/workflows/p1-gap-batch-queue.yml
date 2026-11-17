@@ -75,6 +75,27 @@ jobs:
               )
           Path("p1-gap-probe-readback.json").write_text(json.dumps(result, indent=2) + "\n")
           PY
+      - name: Classify tracked shards against the 305-shard snapshot
+        run: |
+          main=7af0c126ccdbda363865b94fb5b2bfd03369be6a
+          archive=7129bdd738de2030c2bd40cb5fa05c1d654fbd8d
+          git fetch --depth=1 origin "$main" "$archive"
+          git worktree add --detach "$RUNNER_TEMP/p1-archive-305" "$archive"
+          python -m collector.p1_gap_batch_queue --main-sha "$main" --archive-sha "$archive" \
+            --replay-checkout "$RUNNER_TEMP/p1-archive-305" --track 231 232 238 \
+            --probe tests/fixtures/p1/probe_run_43820286717.json > p1-tracked-shards.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("p1-tracked-shards.json").read_bytes())
+          assert report["completed_shards"] == 305 and report["pending_shards"] == 95
+          assert report["archive_original_csvs_replayed"]
+          assert report["batches"][0]["shard_indices"][0] == 238
+          assert [(r["index"], r["status"]) for r in report["tracked_shards"]] == [
+              (231, "ARCHIVED_IN_PINNED_SNAPSHOT"), (232, "ARCHIVED_IN_PINNED_SNAPSHOT"),
+              (238, "PENDING_NO_MATCH_IN_PINNED_PROBE"),
+          ]
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: p1-pinned-gap-batch-queue
@@ -82,6 +103,7 @@ jobs:
             p1-gap-batch-queue.json
             p1-gap-readback.json
             p1-gap-probe-readback.json
+            p1-tracked-shards.json
           if-no-files-found: error
 
   vendor-preflight:

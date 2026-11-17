@@ -1,5 +1,6 @@
 """Build a pinned, read-only queue of at most two P1 shards per dispatch."""
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -9,6 +10,7 @@ from tempfile import TemporaryDirectory
 from collector.p1_archive_audit import audit
 from collector.p1_checkpoint import epoch_path
 from collector.p1_fresh_shard_plan import plan as build_plan
+from collector.p1_gap_probe_fingerprint import PROBE_JSON_SHA256, PROBE_RUN_ID
 from collector.p1_prewrite_gap_guard import check
 from collector.p1_quad_pick import verify_prior_for_selection
 from collector.p1_roster_lock import unpack
@@ -52,7 +54,34 @@ def queue(plan, ledger, status, archive_ids):
     }
 
 
-def from_git(repo, main_sha, archive_sha, *, replay_checkout=None):
+def tracked_states(plan, pending, manifests, tracked, probe_raw):
+    """Label shards against the validated snapshot and one exact historical probe."""
+    if (not tracked or len(tracked) != len(set(tracked))
+            or any(type(i) is not int or not 0 <= i < plan["shard_count"] for i in tracked)):
+        raise ValueError("invalid tracked shard set")
+    if hashlib.sha256(probe_raw).hexdigest() != PROBE_JSON_SHA256:
+        raise ValueError("unexpected historical probe bytes")
+    probe = json.loads(probe_raw)
+    verified = {}
+    for row in probe["verified"]:
+        index = row["index"]
+        shard = plan["shards"][index]
+        codes = (manifests / shard["name"]).read_text().splitlines()
+        if (row["manifest_sha256"] != shard["sha256"] or row["issuers"] != shard["count"]
+                or set(row["csv_sha256_by_issuer"]) != set(codes)):
+            raise ValueError("historical probe and frozen roster disagree")
+        verified[index] = PROBE_RUN_ID
+    pending = set(pending)
+    return [
+        dict(index=i, status=("ARCHIVED_IN_PINNED_SNAPSHOT" if i not in pending
+                              else "PREPROBED_NOT_ARCHIVED" if i in verified
+                              else "PENDING_NO_MATCH_IN_PINNED_PROBE"),
+             historical_probe_run_id=verified.get(i))
+        for i in tracked
+    ]
+
+
+def from_git(repo, main_sha, archive_sha, *, replay_checkout=None, tracked=(), probe_raw=None):
     def git(*args):
         return subprocess.check_output(["git", "-C", str(repo), *args], timeout=30)
 
@@ -77,6 +106,11 @@ def from_git(repo, main_sha, archive_sha, *, replay_checkout=None):
         roster.write_bytes(raw)
         plan = build_plan(roster, root / "shards", receipt["requested_day"])
         result = queue(plan, ledger, status, [int(name[6:]) for name in dirs])
+        if tracked:
+            if probe_raw is None:
+                raise ValueError("tracked states require the pinned probe fixture")
+            result["tracked_shards"] = tracked_states(plan, ledger["pending_shards"], root / "shards",
+                                                      tracked, probe_raw)
         if replay_checkout is not None:
             actual = subprocess.check_output(
                 ["git", "-C", str(replay_checkout), "rev-parse", "HEAD"], timeout=30
@@ -98,9 +132,12 @@ def main():
     parser.add_argument("--archive-sha", required=True)
     parser.add_argument("--replay-checkout", type=Path,
                         help="Read-only archive checkout for independent original CSV replay")
+    parser.add_argument("--track", type=int, nargs="+", default=[])
+    parser.add_argument("--probe", type=Path)
     args = parser.parse_args()
     print(json.dumps(from_git(args.repo, args.main_sha, args.archive_sha,
-                              replay_checkout=args.replay_checkout), indent=2))
+                              replay_checkout=args.replay_checkout, tracked=args.track,
+                              probe_raw=args.probe.read_bytes() if args.probe else None), indent=2))
 
 
 if __name__ == "__main__":
