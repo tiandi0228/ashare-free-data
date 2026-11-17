@@ -1,0 +1,82 @@
+{
+  "audited_issuer_count": 2578,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 0,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sz.002860"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603393"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603395"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 44202728844,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 22892,
+  "research_date_action_links": [],
+  "run_id": 44202896193,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225484381",
+      "archive_path": "pdf/sh_603393/1225484381/36d829da59a03eec4131ea31785a5b25f39081523b1b823e78728e9d50a57401.pdf",
+      "bytes": 134695,
+      "captured_at_utc": "2026-11-17T23:51:23.097999+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1787241600000,
+      "issuer": "sh.603393",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-08-21/1225484381.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "36d829da59a03eec4131ea31785a5b25f39081523b1b823e78728e9d50a57401",
+      "title_from_index_unverified": "新天然气-2026年第一次临时股东会会议资料"
+    },
+    {
+      "announcement_id": "1221831324",
+      "archive_path": "pdf/sh_603395/1221831324/4b168418682e1560739f113b52b1f64b82a74726dc941cb198ae841f8fe25173.pdf",
+      "bytes": 556604,
+      "captured_at_utc": "2026-11-17T23:51:24.047263+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1732464000000,
+      "issuer": "sh.603395",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2024-11-25/1221831324.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "4b168418682e1560739f113b52b1f64b82a74726dc941cb198ae841f8fe25173",
+      "title_from_index_unverified": "红四方首次公开发行股票主板上市公告书提示性公告"
+    },
+    {
+      "announcement_id": "1225483393",
+      "archive_path": "pdf/sz_002860/1225483393/fcb25e18f7e8e62696f47d2353056cd7c2ac7500ab2e7cde08f4e90832982011.pdf",
+      "bytes": 57252,
+      "captured_at_utc": "2026-11-17T23:51:22.243500+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1787155200000,
+      "issuer": "sz.002860",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-08-20/1225483393.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "fcb25e18f7e8e62696f47d2353056cd7c2ac7500ab2e7cde08f4e90832982011",
+      "title_from_index_unverified": "关于会计政策变更的公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
