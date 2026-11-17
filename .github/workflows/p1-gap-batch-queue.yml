@@ -103,6 +103,34 @@ jobs:
               (240, "PENDING_NO_MATCH_IN_PINNED_PROBE"),
           ]
           PY
+      - name: Verify both preprobed shards in the 311-shard archive
+        run: |
+          main=8b338c234b970c750fa3e491b221ed6802072db9
+          archive=d208438dc67505d60186ebf9b1f2907ed858f563
+          git fetch --depth=1 origin "$main" "$archive"
+          git worktree add --detach "$RUNNER_TEMP/p1-archive-311" "$archive"
+          python -m collector.p1_gap_batch_queue --main-sha "$main" --archive-sha "$archive" \
+            --replay-checkout "$RUNNER_TEMP/p1-archive-311" --track 238 239 240 \
+            --probe tests/fixtures/p1/probe_run_44029438652.json --refresh-selection 238 239 \
+            --expected-epoch 5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022 > p1-tracked-shards-311.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path("p1-tracked-shards-311.json").read_bytes())
+          assert (r["completed_shards"], r["pending_shards"]) == (311, 89)
+          assert r["archive_original_csvs_replayed"] and r["trade_gate"] == "BLOCKED"
+          assert r["batches"][0]["shard_indices"][0] == 240
+          first, second, pending = r["tracked_shards"]
+          for item, expected_index in ((first, 238), (second, 239)):
+              assert item["index"] == expected_index and item["status"] == "ARCHIVED_IN_PINNED_SNAPSHOT"
+              proof = item["archive_fingerprint_comparison"]
+              assert proof["status"] == "CSV_DIGESTS_MATCH"
+              assert proof["matching_count"] == 8 and proof["changed_issuers"] == []
+          assert pending["index"] == 240 and pending["archive_fingerprint_comparison"] is None
+          refresh = r["refreshed_selection"]
+          assert refresh["already_archived_shards"] == [238, 239] and refresh["remaining_shards"] == []
+          assert refresh["dispatch_preview"] is None and not refresh["dispatch_performed"]
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: p1-pinned-gap-batch-queue
@@ -111,6 +139,7 @@ jobs:
             p1-gap-readback.json
             p1-gap-probe-readback.json
             p1-tracked-shards.json
+            p1-tracked-shards-311.json
           if-no-files-found: error
 
   vendor-preflight:
