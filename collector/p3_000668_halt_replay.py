@@ -8,6 +8,9 @@ import re
 import sys
 import unicodedata
 
+from collector.p3_publication_asof_gate import assess
+from collector.p3_publication_proof_task_queue import build
+
 ISSUER = "sz.000668"
 ARCHIVE = "7129bdd738de2030c2bd40cb5fa05c1d654fbd8d"
 CSV_SHA = "44a4551b69866385f224f731b02467f205613cd9e5c93cb7d1b7e5acfeba1231"
@@ -49,6 +52,42 @@ def check_vendor(raw):
     return found
 
 
+# Clauses verified by check_notices are retrospective, not publication timestamps.
+EVENTS = (
+    ("HALT_START", "2026-10-08", "2026-064"),
+    ("HALT_CONTINUES", "2026-10-12", "2026-066"),
+    ("RESUME_START", "2026-10-13", "2026-066"),
+)
+DECISIONS = (
+    "2026-10-08T09:30:00+08:00",
+    "2026-10-12T09:30:00+08:00",
+    "2026-10-13T09:30:00+08:00",
+)
+
+
+def _replay_decisions():
+    events = [
+        dict(issuer=ISSUER, kind=kind, effective_date=day,
+             original_sha256=PDF_SHA256[notice], original_bytes_verified=True,
+             publisher_independently_authenticated=True,
+             authenticated_first_published_at=None,
+             publication_timestamp_independently_authenticated=False,
+             trade_gate="BLOCKED", orders=[], executable_candidates=[])
+        for kind, day, notice in EVENTS
+    ]
+    results = []
+    for decision in DECISIONS:
+        audit = assess(events, decision)
+        queue = build(audit)
+        if (audit["known_event_count"] != 0
+                or any(e["effective_by_decision_date"] for e in audit["events"])
+                or queue["task_count"] != len(EVENTS)
+                or queue["task_counts_by_missing_proof"] != {"FIRST_PUBLICATION_NOT_AUTHENTICATED": len(EVENTS)}):
+            raise ValueError("retrospective notice used at a historical decision boundary")
+        results.append(dict(decision_beijing=decision, asof=audit, proof_queue=queue))
+    return results
+
+
 def replay(halt, resume, vendor):
     from pypdf import PdfReader
 
@@ -77,6 +116,7 @@ def replay(halt, resume, vendor):
         ],
         "official_pdf_digests_match_pinned_originals": True,
         "matched_vendor_rows": [{"date": day, "tradestatus": status} for day, status in rows],
+        "historical_decision_replay": _replay_decisions(),
         "first_publication_time_verified": False, "full_halt_interval_certified": False,
         "historical_PIT_verified": False, "p2_feature_gaps_resolved": 0,
         "trade_gate": "BLOCKED", "orders": [], "executable_candidates": [],

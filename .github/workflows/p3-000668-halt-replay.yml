@@ -4,6 +4,8 @@ on:
     paths:
       - '.github/workflows/p3-000668-halt-replay.yml'
       - 'collector/p3_000668_halt_replay.py'
+      - 'collector/p3_publication_asof_gate.py'
+      - 'collector/p3_publication_proof_task_queue.py'
 permissions:
   contents: read
 jobs:
@@ -31,7 +33,7 @@ jobs:
           python - <<'PY'
           import json, unittest
           from pathlib import Path
-          from collector.p3_000668_halt_replay import check_notices, check_vendor, replay
+          from collector.p3_000668_halt_replay import DECISIONS, check_notices, check_vendor, replay
 
           class RejectionTests(unittest.TestCase):
               def test_notice_date_cannot_be_substituted(self):
@@ -61,6 +63,17 @@ jobs:
                   self.assertTrue(report["official_pdf_digests_match_pinned_originals"])
                   self.assertFalse(report["first_publication_time_verified"])
                   self.assertFalse(report["historical_PIT_verified"])
+              def test_historical_openings_do_not_admit_later_evidence(self):
+                  report = json.loads(Path("p3-000668/report.json").read_bytes())
+                  cases = report["historical_decision_replay"]
+                  self.assertEqual(tuple(case["decision_beijing"] for case in cases), DECISIONS)
+                  for case in cases:
+                      with self.subTest(decision=case["decision_beijing"]):
+                          self.assertEqual(case["asof"]["known_event_count"], 0)
+                          self.assertFalse(case["asof"]["eligible_for_trading"])
+                          self.assertEqual({task["research_action"] for task in case["proof_queue"]["tasks"]},
+                                           {"AUTHENTICATE_OFFICIAL_FIRST_PUBLICATION_INSTANT"})
+                          self.assertEqual(len(case["proof_queue"]["tasks"]), 3)
           unittest.main(verbosity=2)
           PY
       - uses: actions/upload-artifact@v4
