@@ -14,6 +14,10 @@ CSV_SHA = "44a4551b69866385f224f731b02467f205613cd9e5c93cb7d1b7e5acfeba1231"
 HALT_URL = "https://static.cninfo.com.cn/finalpage/2026-10-08/1225591961.PDF"
 RESUME_URL = ("https://disc.static.szse.cn/download/disc/disk03/finalpage/2026-10-13/"
               "a94b3320-be06-43d5-bbff-19649a5c627e.PDF")
+PDF_SHA256 = {
+    "2026-064": "833ab438cb99b89bf0c2466b81d58c8c3aa73f46598477ce7a6df776223aa9db",
+    "2026-066": "79235333729860f5d6c99e78f7664a8e57098b2d221bd4e375c06c33b4d01757",
+}
 EXPECTED = [
     ("2026-10-08", "0"), ("2026-10-09", "0"), ("2026-10-12", "0"), ("2026-10-13", "1"),
 ]
@@ -58,6 +62,10 @@ def replay(halt, resume, vendor):
 
     if hashlib.sha256(vendor).hexdigest() != CSV_SHA:
         raise ValueError("vendor CSV digest differs from the P2 archive")
+    originals = ((HALT_URL, "2026-064", halt), (RESUME_URL, "2026-066", resume))
+    for _, number, raw in originals:
+        if hashlib.sha256(raw).hexdigest() != PDF_SHA256[number]:
+            raise ValueError(f"official PDF SHA-256 mismatch: {number}")
     check_notices(extract(halt), extract(resume))
     rows = check_vendor(vendor)
     return {
@@ -65,8 +73,9 @@ def replay(halt, resume, vendor):
         "issuer": ISSUER, "archive_commit": ARCHIVE, "vendor_csv_sha256": CSV_SHA,
         "notice_originals": [
             {"url": url, "announcement_number": number, "observed_pdf_sha256": hashlib.sha256(raw).hexdigest()}
-            for url, number, raw in ((HALT_URL, "2026-064", halt), (RESUME_URL, "2026-066", resume))
+            for url, number, raw in originals
         ],
+        "official_pdf_digests_match_pinned_originals": True,
         "matched_vendor_rows": [{"date": day, "tradestatus": status} for day, status in rows],
         "first_publication_time_verified": False, "full_halt_interval_certified": False,
         "historical_PIT_verified": False, "p2_feature_gaps_resolved": 0,

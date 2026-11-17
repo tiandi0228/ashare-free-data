@@ -48,10 +48,17 @@ jobs:
                       check_vendor(raw.replace(b"2026-10-12,", b"2026-10-11,"))
                   with self.assertRaisesRegex(ValueError, "digest"):
                       replay(b"", b"", raw + b"x")
+              def test_modified_pdf_rejected_even_if_it_still_parses(self):
+                  root = Path("p3-000668")
+                  halt, resume, vendor = [(root / name).read_bytes() for name in ("halt.pdf", "resume.pdf", "source.csv")]
+                  for a, b in ((halt + b"\n", resume), (halt, resume + b"\n"), (resume, halt)):
+                      with self.assertRaisesRegex(ValueError, "PDF SHA-256 mismatch"):
+                          replay(a, b, vendor)
               def test_report_does_not_promote_pit(self):
                   report = json.loads(Path("p3-000668/report.json").read_bytes())
                   self.assertEqual(report["trade_gate"], "BLOCKED")
                   self.assertEqual([x["tradestatus"] for x in report["matched_vendor_rows"]], ["0","0","0","1"])
+                  self.assertTrue(report["official_pdf_digests_match_pinned_originals"])
                   self.assertFalse(report["first_publication_time_verified"])
                   self.assertFalse(report["historical_PIT_verified"])
           unittest.main(verbosity=2)
