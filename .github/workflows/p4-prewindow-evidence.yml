@@ -46,10 +46,10 @@ jobs:
           PIN_JOB: '133044247886'
         run: |
           python - <<'PY'
-          import json, os, re, subprocess
+          import hashlib, json, os, re, subprocess
           from datetime import datetime, timezone
           from pathlib import Path
-          from collector.p4_session_reconcile import reconcile
+          from collector.p4_session_reconcile import attach_run_provenance, reconcile
           from collector.p4_disclosure_run_clock import read_bound_zip, verify as verify_run_clock
 
           repo = os.environ["GITHUB_REPOSITORY"]
@@ -88,9 +88,12 @@ jobs:
               run_clock_checks.append(verify_run_clock(
                   attempt_meta, artifact, record, repo=repo, run_id=int(run_id),
                   attempt=attempt, head_sha=meta["head_sha"]))
-              run_clock_checks[-1]["verified_zip_digest"] = artifact["digest"]
+              run_clock_checks[-1].update(verified_zip_digest=artifact["digest"],
+                                          session_date=record["session_date"],
+                                          source_sha256=hashlib.sha256(source).hexdigest())
               submissions.append((record, source))
           result = reconcile(run, job, manifest, submissions, datetime.now(timezone.utc))
+          result = attach_run_provenance(result, run_clock_checks)
           result["source_run_ids"] = ids
           result["source_run_clock_checks"] = run_clock_checks
           with Path("p4-session-coverage.json").open("x") as out:
