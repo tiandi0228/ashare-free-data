@@ -2,7 +2,7 @@ from datetime import datetime
 import unittest
 from unittest.mock import patch
 
-from collector.p4_session_reconcile import reconcile
+from collector.p4_session_reconcile import attach_run_provenance, reconcile
 
 
 class ReconcileTests(unittest.TestCase):
@@ -64,3 +64,30 @@ class ReconcileTests(unittest.TestCase):
         self.seal.return_value = record
         with self.assertRaisesRegex(ValueError, "unverified-calendar"):
             self.run_check([(record, b"source")])
+
+
+class RunProvenanceTests(unittest.TestCase):
+    def setUp(self):
+        self.first = dict(session_date="2026-12-01", run_id=8, run_attempt=2,
+                          artifact_id=90, source_sha256="a" * 64)
+        self.second = dict(session_date="2026-12-02", run_id=9, run_attempt=1,
+                           artifact_id=91, source_sha256="b" * 64)
+        self.report = dict(rows=[
+            dict(date=entry["session_date"], status="RETAINED", source_sha256=entry["source_sha256"])
+            for entry in (self.first, self.second)
+        ] + [dict(date="2026-12-03", status="NOT_IN_SUBMITTED_RUNS", source_sha256=None)])
+
+    def test_binds_by_date_regardless_of_submission_order(self):
+        result = attach_run_provenance(self.report, [self.second, self.first])
+        self.assertEqual([row["actions_provenance"] for row in result["rows"]],
+                         [self.first, self.second, None])
+        self.assertNotIn("actions_provenance", self.report["rows"][0])
+
+    def test_refuses_ambiguous_wrong_or_incomplete_provenance(self):
+        for checks in ([self.first], [self.first, self.first],
+                       [self.first, dict(self.second, source_sha256="c" * 64)],
+                       [self.first, dict(self.second, artifact_id=90)],
+                       [self.first, dict(self.second, run_id=8)],
+                       [self.first, dict(self.second, session_date="2026-12-03")]):
+            with self.subTest(checks=checks), self.assertRaisesRegex(ValueError, "provenance"):
+                attach_run_provenance(self.report, checks)
