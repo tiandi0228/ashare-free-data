@@ -129,9 +129,9 @@ jobs:
           python-version: '3.11'
       - name: Pin actual checkpoint, original archive and durable coverage
         run: |
-          checkpoint=e401c89bc7d89413a436870babeb8004a7e9cb32
-          archive=9928ba76ceaeac72506a3e6d4af63bac8d98c279
-          coverage=3a7602ae844df63538e299bfc5f57d76b114755e
+          checkpoint=7af0c126ccdbda363865b94fb5b2bfd03369be6a
+          archive=7129bdd738de2030c2bd40cb5fa05c1d654fbd8d
+          coverage=9805b3a799d1701c038f9a9f7d14d34cbc414276
           git fetch --depth=1 origin "$checkpoint" "$archive" "$coverage"
           git worktree add --detach "$RUNNER_TEMP/p2-current-checkpoint" "$checkpoint"
           git worktree add --detach archived-research "$archive"
@@ -158,9 +158,9 @@ jobs:
           current = load(Path("durable-p2-coverage") / summary_path)
           status = load(archive / "archive_status.json")
           witness = check_current_checkpoint(current, checkpoint, status)
-          assert witness["checkpoint_completed_shards"] == 291
-          assert witness["gap_issuer_count"] == 21
-          previous = "815701a2faa460aa3e4899a6de2d48a7a70b967a"
+          assert witness["checkpoint_completed_shards"] == 305
+          assert witness["gap_issuer_count"] == 22
+          previous = "a9c4f72d33ccd0ba09d448b0473e8bc06f77dbc2"
           subprocess.run(["git", "fetch", "--depth=1", "origin", previous], check=True)
           stale = json.loads(subprocess.check_output(["git", "show", f"{previous}:{summary_path}"]))
           try:
@@ -168,26 +168,29 @@ jobs:
           except ValueError as exc:
               assert "stale or unsafe P2 coverage" in str(exc)
           else:
-              raise AssertionError("old 289-shard summary must not pass as 291 shards")
+              raise AssertionError("old 293-shard summary must not pass as 305 shards")
           replay = diagnose(current, archive)
           result = compare(replay, load("manifests/p2_gap_explanations_20261020.json"))
           assert Counter(row["reason"] for row in result["rows"]) == {
-              "HALT_INTERRUPTS_FEATURE_WINDOW": 18, "HALTED_AT_CUTOFF": 2, "IPO_WINDOW_TOO_SHORT": 1,
+              "HALT_INTERRUPTS_FEATURE_WINDOW": 19, "HALTED_AT_CUTOFF": 2, "IPO_WINDOW_TOO_SHORT": 1,
           }
           assert (result["review_required"], result["feature_gaps_resolved"]) == (0, 0)
-          new_gap = next(row for row in replay["results"] if row["issuer"] == "sz.000582")
-          assert new_gap["source_shard"] == "shard_0231"
-          assert new_gap["trailing_vendor_suspended_rows"] == 2
+          new_gap = next(row for row in replay["results"] if row["issuer"] == "sz.002813")
+          assert new_gap["source_shard"] == "shard_0372"
+          assert new_gap["trailing_vendor_suspended_rows"] == 5
+          added_gap = next(row for row in replay["results"] if row["issuer"] == "sz.000668")
+          assert added_gap["source_shard"] == "shard_0237"
+          assert added_gap["trailing_vendor_suspended_rows"] == 3
           display = summarize(current, result)
-          assert display["feature_complete_shards"]["count"] == 271
-          assert display["computed_feature_issuers"]["count"] == 2301
-          assert display["explained_uncomputable_issuers"] == 21
+          assert display["feature_complete_shards"]["count"] == 284
+          assert display["computed_feature_issuers"]["count"] == 2412
+          assert display["explained_uncomputable_issuers"] == 22
           assert result["trade_gate"] == "BLOCKED" and result["historical_PIT_verified"] is False
           Path("p2-durable-gap-replay.json").write_text(json.dumps({
               "kind": "PINNED_DURABLE_SNAPSHOT_REGRESSION_NOT_LIVE_STATUS",
-              "checkpoint_commit": "e401c89bc7d89413a436870babeb8004a7e9cb32",
-              "archive_commit": "9928ba76ceaeac72506a3e6d4af63bac8d98c279",
-              "coverage_commit": "3a7602ae844df63538e299bfc5f57d76b114755e",
+              "checkpoint_commit": "7af0c126ccdbda363865b94fb5b2bfd03369be6a",
+              "archive_commit": "7129bdd738de2030c2bd40cb5fa05c1d654fbd8d",
+              "coverage_commit": "9805b3a799d1701c038f9a9f7d14d34cbc414276",
               "stale_coverage_commit_rejected": previous,
               "witness": witness, "disposition": result, "coverage_display": display,
           }, indent=2) + "\n")

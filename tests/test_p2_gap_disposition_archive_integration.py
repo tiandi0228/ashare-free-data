@@ -25,7 +25,7 @@ class EmptyQueueTests(unittest.TestCase):
             report = compare(diagnose(fixture, epoch), pin)
         self.assertEqual(report["review_queue"], [])
         self.assertEqual(report["feature_gaps_resolved"], 0)
-        self.assertEqual(len(report["pinned_issuers_absent_from_current_gap_list"]), 21)
+        self.assertEqual(report["pinned_issuers_absent_from_current_gap_list"], sorted(pin["entries"]))
 
 
 @unittest.skipUnless(os.environ.get("P2_ARCHIVE_EPOCH"), "requires pinned CSV checkout")
