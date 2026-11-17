@@ -1,0 +1,82 @@
+{
+  "audited_issuer_count": 2570,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 0,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sz.000668"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603390"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603391"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 44193954955,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 22820,
+  "research_date_action_links": [],
+  "run_id": 44194254682,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225571769",
+      "archive_path": "pdf/sh_603390/1225571769/0fe9e732d3ac4d844bdc24858e3c491a72f17f76e227a5675f36e3e2704651ef.pdf",
+      "bytes": 168972,
+      "captured_at_utc": "2026-11-17T22:53:10.519690+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1789747200000,
+      "issuer": "sh.603390",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-19/1225571769.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "0fe9e732d3ac4d844bdc24858e3c491a72f17f76e227a5675f36e3e2704651ef",
+      "title_from_index_unverified": "广州通达汽车电气股份有限公司2026年半年度权益分派实施公告"
+    },
+    {
+      "announcement_id": "1225597028",
+      "archive_path": "pdf/sh_603391/1225597028/6260305cc1ff7981128c3068d0a130e11e42d4ca28e69fc8cd5b6a4cccdefd59.pdf",
+      "bytes": 390559,
+      "captured_at_utc": "2026-11-17T22:53:11.145472+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1791475200000,
+      "issuer": "sh.603391",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-09/1225597028.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "6260305cc1ff7981128c3068d0a130e11e42d4ca28e69fc8cd5b6a4cccdefd59",
+      "title_from_index_unverified": "国浩律师（杭州）事务所关于浙江力聚热能装备股份有限公司2026年第一次临时股东会法律意见书"
+    },
+    {
+      "announcement_id": "1225545774",
+      "archive_path": "pdf/sz_000668/1225545774/587eb062a5945f156d5876a9b23f1815faa0193faea9550edb6c1e48967b524a.pdf",
+      "bytes": 131747,
+      "captured_at_utc": "2026-11-17T22:53:09.804049+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1788451200000,
+      "issuer": "sz.000668",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-04/1225545774.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "587eb062a5945f156d5876a9b23f1815faa0193faea9550edb6c1e48967b524a",
+      "title_from_index_unverified": "荣丰控股集团关于向2026年限制性股票激励计划激励对象授予限制性股票的公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
