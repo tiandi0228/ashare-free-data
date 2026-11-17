@@ -5,7 +5,7 @@ import unittest
 
 from collector.p1_checkpoint import epoch_path
 from collector.p1_fresh_shard_plan import plan
-from collector.p1_gap_batch_queue import queue, tracked_states
+from collector.p1_gap_batch_queue import queue, refresh_preview, tracked_states
 from collector.p1_quad_pick import choose_gap_window
 from collector.p1_roster_lock import unpack
 
@@ -59,3 +59,23 @@ class GapQueueTests(unittest.TestCase):
             ])
             with self.assertRaisesRegex(ValueError, "probe bytes"):
                 tracked_states(self.plan, [232], root, [232], probe + b"x")
+
+    def test_refresh_removes_archived_without_substituting_other_pending_shards(self):
+        report = queue(self.plan, self.ledger, self.status, self.ids)
+        report["archive_original_csvs_replayed"] = True
+        done = self.ids[0]
+        pending = self.ledger["pending_shards"]
+        epoch = self.plan["source_sha256"]
+        refreshed = refresh_preview(report, [done, pending[0]], epoch)
+        self.assertEqual(refreshed["already_archived_shards"], [done])
+        self.assertEqual(refreshed["remaining_shards"], [pending[0]])
+        self.assertEqual(refreshed["dispatch_preview"],
+                         {"gap_window": f"{pending[0]}:{pending[0]}", "shards_per_run": "1"})
+        self.assertIsNone(refresh_preview(report, [done], epoch)["dispatch_preview"])
+        split = refresh_preview(report, [pending[0], pending[2]], epoch)
+        self.assertIsNone(split["dispatch_preview"])
+        self.assertTrue(split["requires_separate_windows"])
+        with self.assertRaisesRegex(ValueError, "same-epoch"):
+            refresh_preview(report, [done], "a" * 64)
+        with self.assertRaisesRegex(ValueError, "same-epoch"):
+            refresh_preview(dict(report, archive_original_csvs_replayed=False), [done], epoch)

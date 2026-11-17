@@ -83,7 +83,8 @@ jobs:
           git worktree add --detach "$RUNNER_TEMP/p1-archive-305" "$archive"
           python -m collector.p1_gap_batch_queue --main-sha "$main" --archive-sha "$archive" \
             --replay-checkout "$RUNNER_TEMP/p1-archive-305" --track 231 232 238 \
-            --probe tests/fixtures/p1/probe_run_43820286717.json > p1-tracked-shards.json
+            --probe tests/fixtures/p1/probe_run_43820286717.json --refresh-selection 232 238 \
+            --expected-epoch 5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022 > p1-tracked-shards.json
           python - <<'PY'
           import json
           from pathlib import Path
@@ -91,6 +92,11 @@ jobs:
           assert report["completed_shards"] == 305 and report["pending_shards"] == 95
           assert report["archive_original_csvs_replayed"]
           assert report["batches"][0]["shard_indices"][0] == 238
+          refresh = report["refreshed_selection"]
+          assert refresh["already_archived_shards"] == [232]
+          assert refresh["remaining_shards"] == [238]
+          assert refresh["dispatch_preview"] == {"gap_window": "238:238", "shards_per_run": "1"}
+          assert refresh["dispatch_performed"] is False
           assert [(r["index"], r["status"]) for r in report["tracked_shards"]] == [
               (231, "ARCHIVED_IN_PINNED_SNAPSHOT"), (232, "ARCHIVED_IN_PINNED_SNAPSHOT"),
               (238, "PENDING_NO_MATCH_IN_PINNED_PROBE"),

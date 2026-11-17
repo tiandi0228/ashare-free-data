@@ -81,6 +81,35 @@ def tracked_states(plan, pending, manifests, tracked, probe_raw):
     ]
 
 
+def refresh_preview(report, requested, expected_epoch):
+    """Narrow a saved selection against a newly verified read-only snapshot."""
+    if (report["source_sha256"] != expected_epoch
+            or report["archive_original_csvs_replayed"] is not True
+            or report["archive_index_parity_checked"] is not True
+            or report["trade_gate"] != "BLOCKED"):
+        raise ValueError("fresh same-epoch original archive replay is required")
+    if (not 1 <= len(requested) <= 2
+            or any(type(i) is not int or not 0 <= i < report["total_shards"] for i in requested)
+            or len(set(requested)) != len(requested)):
+        raise ValueError("expected one or two distinct requested shards")
+    pending = {index for batch in report["batches"] for index in batch["shard_indices"]}
+    if len(pending) != report["pending_shards"]:
+        raise ValueError("pending shard count disagrees with the checked queue")
+    remaining = sorted(set(requested) & pending)
+    skipped = sorted(set(requested) - pending)
+    window = None
+    if remaining:
+        # A broad interval could silently select a different pending shard.
+        within = sorted(i for i in pending if remaining[0] <= i <= remaining[-1])
+        if within == remaining:
+            window = {"gap_window": f"{remaining[0]}:{remaining[-1]}", "shards_per_run": str(len(remaining))}
+    return dict(
+        requested_shards=sorted(requested), already_archived_shards=skipped, remaining_shards=remaining,
+        dispatch_preview=window, requires_separate_windows=bool(remaining and window is None),
+        recheck_required_before_dispatch=True, dispatch_performed=False,
+    )
+
+
 def from_git(repo, main_sha, archive_sha, *, replay_checkout=None, tracked=(), probe_raw=None):
     def git(*args):
         return subprocess.check_output(["git", "-C", str(repo), *args], timeout=30)
@@ -134,10 +163,15 @@ def main():
                         help="Read-only archive checkout for independent original CSV replay")
     parser.add_argument("--track", type=int, nargs="+", default=[])
     parser.add_argument("--probe", type=Path)
+    parser.add_argument("--refresh-selection", type=int, nargs="+")
+    parser.add_argument("--expected-epoch")
     args = parser.parse_args()
-    print(json.dumps(from_git(args.repo, args.main_sha, args.archive_sha,
-                              replay_checkout=args.replay_checkout, tracked=args.track,
-                              probe_raw=args.probe.read_bytes() if args.probe else None), indent=2))
+    report = from_git(args.repo, args.main_sha, args.archive_sha,
+                      replay_checkout=args.replay_checkout, tracked=args.track,
+                      probe_raw=args.probe.read_bytes() if args.probe else None)
+    if args.refresh_selection is not None:
+        report["refreshed_selection"] = refresh_preview(report, args.refresh_selection, args.expected_epoch)
+    print(json.dumps(report, indent=2))
 
 
 if __name__ == "__main__":
