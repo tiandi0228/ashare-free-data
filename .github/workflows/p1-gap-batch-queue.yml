@@ -10,6 +10,7 @@ on:
       - 'tests/test_p1_single_gap_acceptance.py'
       - 'tests/test_p1_gap_probe_fingerprint.py'
       - 'tests/fixtures/p1/probe_run_43820286717.json'
+      - 'tests/fixtures/p1/probe_run_44029438652.json'
       - 'collector/p1_archive_audit.py'
       - 'collector/p1_gap_batch_readback.py'
       - 'tests/test_p1_gap_batch_readback.py'
@@ -82,8 +83,8 @@ jobs:
           git fetch --depth=1 origin "$main" "$archive"
           git worktree add --detach "$RUNNER_TEMP/p1-archive-305" "$archive"
           python -m collector.p1_gap_batch_queue --main-sha "$main" --archive-sha "$archive" \
-            --replay-checkout "$RUNNER_TEMP/p1-archive-305" --track 231 232 238 \
-            --probe tests/fixtures/p1/probe_run_43820286717.json --refresh-selection 232 238 \
+            --replay-checkout "$RUNNER_TEMP/p1-archive-305" --track 238 239 240 \
+            --probe tests/fixtures/p1/probe_run_44029438652.json --refresh-selection 232 238 \
             --expected-epoch 5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022 > p1-tracked-shards.json
           python - <<'PY'
           import json
@@ -98,8 +99,8 @@ jobs:
           assert refresh["dispatch_preview"] == {"gap_window": "238:238", "shards_per_run": "1"}
           assert refresh["dispatch_performed"] is False
           assert [(r["index"], r["status"]) for r in report["tracked_shards"]] == [
-              (231, "ARCHIVED_IN_PINNED_SNAPSHOT"), (232, "ARCHIVED_IN_PINNED_SNAPSHOT"),
-              (238, "PENDING_NO_MATCH_IN_PINNED_PROBE"),
+              (238, "PREPROBED_NOT_ARCHIVED"), (239, "PREPROBED_NOT_ARCHIVED"),
+              (240, "PENDING_NO_MATCH_IN_PINNED_PROBE"),
           ]
           PY
       - uses: actions/upload-artifact@v4
@@ -113,7 +114,7 @@ jobs:
           if-no-files-found: error
 
   vendor-preflight:
-    if: github.event.pull_request.head.ref == 'p1-pinned-gap-batch-queue' && github.repository == 'tiandi0228/ashare-free-data' && github.event.pull_request.number == 361 && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event.pull_request.head.sha == '76e347e69842e8b2abec3684d856c5a6fb9eb4c0' && github.repository == 'tiandi0228/ashare-free-data' && github.event.pull_request.number == 361 && github.event.pull_request.head.repo.full_name == github.repository
     needs: replay
     runs-on: ubuntu-latest
     timeout-minutes: 8

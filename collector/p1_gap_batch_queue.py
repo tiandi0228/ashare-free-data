@@ -10,7 +10,10 @@ from tempfile import TemporaryDirectory
 from collector.p1_archive_audit import audit
 from collector.p1_checkpoint import epoch_path
 from collector.p1_fresh_shard_plan import plan as build_plan
-from collector.p1_gap_probe_fingerprint import PROBE_JSON_SHA256, PROBE_RUN_ID
+from collector.p1_gap_probe_fingerprint import PROBE_JSON_SHA256, PROBE_RUN_ID, compare
+
+LATEST_PROBE_RUN_ID = 44029438652
+LATEST_PROBE_SHA256 = "b28c0819d2058cd9eb307b717ac81f1e358d6a148030b94dd5412eb40c56c226"
 from collector.p1_prewrite_gap_guard import check
 from collector.p1_quad_pick import verify_prior_for_selection
 from collector.p1_roster_lock import unpack
@@ -54,31 +57,45 @@ def queue(plan, ledger, status, archive_ids):
     }
 
 
-def tracked_states(plan, pending, manifests, tracked, probe_raw):
+def tracked_states(plan, pending, manifests, tracked, probe_raw, *, read_quality=None):
     """Label shards against the validated snapshot and one exact historical probe."""
     if (not tracked or len(tracked) != len(set(tracked))
             or any(type(i) is not int or not 0 <= i < plan["shard_count"] for i in tracked)):
         raise ValueError("invalid tracked shard set")
-    if hashlib.sha256(probe_raw).hexdigest() != PROBE_JSON_SHA256:
+    digest = hashlib.sha256(probe_raw).hexdigest()
+    identity = {
+        PROBE_JSON_SHA256: (PROBE_RUN_ID, [231, 232]),
+        LATEST_PROBE_SHA256: (LATEST_PROBE_RUN_ID, [238, 239]),
+    }.get(digest)
+    if identity is None:
         raise ValueError("unexpected historical probe bytes")
+    run_id, expected = identity
     probe = json.loads(probe_raw)
+    if (probe["attempted"] != expected or [row["index"] for row in probe["verified"]] != expected
+            or probe["trade_gate"] != "BLOCKED" or probe["archive_writes"] != 0
+            or probe["checkpoint_writes"] != 0 or probe["historical_PIT_verified"] is not False
+            or probe.get("source_sha256", plan["source_sha256"]) != plan["source_sha256"]):
+        raise ValueError("historical probe scope differs")
     verified = {}
     for row in probe["verified"]:
         index = row["index"]
         shard = plan["shards"][index]
-        codes = (manifests / shard["name"]).read_text().splitlines()
-        if (row["manifest_sha256"] != shard["sha256"] or row["issuers"] != shard["count"]
-                or set(row["csv_sha256_by_issuer"]) != set(codes)):
+        blob = (manifests / shard["name"]).read_bytes()
+        if (hashlib.sha256(blob).hexdigest() != shard["sha256"]
+                or row["manifest_sha256"] != shard["sha256"] or row["issuers"] != shard["count"]
+                or sorted(row["csv_sha256_by_issuer"]) != blob.decode().splitlines()):
             raise ValueError("historical probe and frozen roster disagree")
-        verified[index] = PROBE_RUN_ID
+        verified[index] = row
     pending = set(pending)
-    return [
-        dict(index=i, status=("ARCHIVED_IN_PINNED_SNAPSHOT" if i not in pending
-                              else "PREPROBED_NOT_ARCHIVED" if i in verified
-                              else "PENDING_NO_MATCH_IN_PINNED_PROBE"),
-             historical_probe_run_id=verified.get(i))
-        for i in tracked
-    ]
+    result = []
+    for i in tracked:
+        archived = i not in pending
+        status = ("ARCHIVED_IN_PINNED_SNAPSHOT" if archived else "PREPROBED_NOT_ARCHIVED"
+                  if i in verified else "PENDING_NO_MATCH_IN_PINNED_PROBE")
+        comparison = compare(verified[i], read_quality(i)) if archived and i in verified and read_quality else None
+        result.append(dict(index=i, status=status, historical_probe_run_id=run_id if i in verified else None,
+                           archive_fingerprint_comparison=comparison))
+    return result
 
 
 def refresh_preview(report, requested, expected_epoch):
@@ -135,11 +152,6 @@ def from_git(repo, main_sha, archive_sha, *, replay_checkout=None, tracked=(), p
         roster.write_bytes(raw)
         plan = build_plan(roster, root / "shards", receipt["requested_day"])
         result = queue(plan, ledger, status, [int(name[6:]) for name in dirs])
-        if tracked:
-            if probe_raw is None:
-                raise ValueError("tracked states require the pinned probe fixture")
-            result["tracked_shards"] = tracked_states(plan, ledger["pending_shards"], root / "shards",
-                                                      tracked, probe_raw)
         if replay_checkout is not None:
             actual = subprocess.check_output(
                 ["git", "-C", str(replay_checkout), "rev-parse", "HEAD"], timeout=30
@@ -151,6 +163,17 @@ def from_git(repo, main_sha, archive_sha, *, replay_checkout=None, tracked=(), p
                     or replayed["archived_issuers"] != ledger["completed_issuers"]):
                 raise ValueError("original archive replay and checkpoint do not reconcile")
             result.update(archive_original_csvs_replayed=True, archive_replay=replayed)
+        if tracked:
+            if probe_raw is None:
+                raise ValueError("tracked states require the pinned probe fixture")
+
+            def read_quality(index):
+                path = Path(replay_checkout) / epoch / f"shard_{index:04d}" / "quality.json"
+                return json.loads(path.read_bytes())
+
+            result["tracked_shards"] = tracked_states(
+                plan, ledger["pending_shards"], root / "shards", tracked, probe_raw,
+                read_quality=read_quality if result["archive_original_csvs_replayed"] else None)
     return {**result, "main_commit": main_sha, "archive_commit": archive_sha}
 
 
