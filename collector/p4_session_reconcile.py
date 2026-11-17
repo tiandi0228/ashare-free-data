@@ -1,5 +1,6 @@
 """Reconcile research handoffs against the notice-covered part of the P4 window."""
 import argparse
+from collections import Counter
 from datetime import date, datetime, time, timedelta, timezone
 import json
 from pathlib import Path
@@ -54,14 +55,43 @@ def reconcile(run, job, manifest, submissions, now):
                 status = "AWAITING_RECEIPT"
         rows.append(dict(date=day.isoformat(), status=status, source_sha256=valid.get(day)))
         day += timedelta(days=1)
+    counts = dict(sorted(Counter(row["status"] for row in rows).items()))
     return dict(schema="p4_session_reconcile_v2", calendar_notices=CALENDAR_NOTICES.copy(),
                 calendar_notice_scope=dict(start=NOTICE_SCOPE_START.isoformat(),
                                            end=NOTICE_SCOPE_END.isoformat()),
                 coverage_scope="SUBMITTED_RUNS_ONLY" if valid else "CALENDAR_ONLY",
-                as_of_beijing=now.isoformat(), rows=rows,
-                counts={s: sum(r["status"] == s for r in rows) for s in sorted({r["status"] for r in rows})},
+                as_of_beijing=now.isoformat(), rows=rows, counts=counts,
+                window_coverage=_window_coverage(rows),
                 official_calendar_fully_verified=False, prospective_OOS_validated=False,
                 broker_fills_verified=0, trade_gate="BLOCKED", orders=[], executable_candidates=[])
+
+
+def _window_coverage(rows):
+    groups = {
+        "retained": ("RETAINED",),
+        "closed_awaiting_receipt": ("AWAITING_RECEIPT",),
+        "past_not_in_submitted_runs": ("NOT_IN_SUBMITTED_RUNS",),
+        "past_not_checked": ("NOT_CHECKED",),
+        "pending_close": ("PENDING_SESSION_CLOSE",),
+        "calendar_unverified": ("CALENDAR_UNVERIFIED",),
+        "weekend_closed": ("WEEKEND_CLOSED",),
+    }
+    days = {key: [row["date"] for row in rows if row["status"] in states]
+            for key, states in groups.items()}
+    elapsed = sum(len(days[key]) for key in ("retained", "closed_awaiting_receipt",
+                                             "past_not_in_submitted_runs", "past_not_checked"))
+    return {
+        "window_start_beijing": rows[0]["date"],
+        "window_end_beijing_inclusive": rows[-1]["date"],
+        "calendar_days": len(rows),
+        "notice_scoped_expected_sessions": elapsed + len(days["pending_close"]),
+        "notice_scoped_sessions_past_close": elapsed,
+        "retained_sessions": len(days["retained"]),
+        "retained_fraction_of_notice_scoped_sessions_past_close":
+            len(days["retained"]) / elapsed if elapsed else None,
+        "dates_by_status": days,
+        "not_in_submitted_runs_is_not_proof_of_missing_receipt": True,
+    }
 
 
 def attach_run_provenance(report, checks):

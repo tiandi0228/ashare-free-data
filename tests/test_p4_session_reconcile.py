@@ -28,6 +28,28 @@ class ReconcileTests(unittest.TestCase):
                          ["RETAINED", "NOT_IN_SUBMITTED_RUNS", "WEEKEND_CLOSED", "AWAITING_RECEIPT",
                           "CALENDAR_UNVERIFIED"])
 
+    def test_coverage_distinguishes_unsubmitted_waiting_and_unverified_days(self):
+        summary = self.run_check([(self.one, b"source")])["window_coverage"]
+        self.assertEqual(summary["calendar_days"], 62)
+        self.assertEqual(summary["notice_scoped_expected_sessions"], 23)
+        self.assertEqual(summary["notice_scoped_sessions_past_close"], 5)
+        self.assertEqual(summary["retained_sessions"], 1)
+        self.assertEqual(summary["retained_fraction_of_notice_scoped_sessions_past_close"], 0.2)
+        days = summary["dates_by_status"]
+        self.assertEqual(days["retained"], ["2026-12-01"])
+        self.assertEqual(days["closed_awaiting_receipt"], ["2026-12-07"])
+        self.assertEqual(days["past_not_in_submitted_runs"], ["2026-12-02", "2026-12-03", "2026-12-04"])
+        self.assertEqual(len(days["calendar_unverified"]), 21)
+        self.assertEqual(sum(map(len, days.values())), 62)
+        self.assertTrue(summary["not_in_submitted_runs_is_not_proof_of_missing_receipt"])
+
+    def test_coverage_before_window_does_not_show_a_zero_completion_rate(self):
+        self.now = datetime.fromisoformat("2026-11-17T12:00:00+08:00")
+        summary = self.run_check()["window_coverage"]
+        self.assertIsNone(summary["retained_fraction_of_notice_scoped_sessions_past_close"])
+        self.assertEqual(summary["notice_scoped_sessions_past_close"], 0)
+        self.assertEqual(len(summary["dates_by_status"]["pending_close"]), 23)
+
     def test_rejects_changed_or_duplicate_receipts(self):
         with self.assertRaises(ValueError):
             self.run_check([(dict(self.one, source_sha256="b"), b"source")])
