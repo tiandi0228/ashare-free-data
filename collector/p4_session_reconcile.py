@@ -94,6 +94,48 @@ def _window_coverage(rows):
     }
 
 
+def render_actions_summary(report):
+    """Render the same notice-scoped snapshot published in the JSON artifact."""
+    coverage = report["window_coverage"]
+    days = coverage["dates_by_status"]
+    fraction = coverage["retained_fraction_of_notice_scoped_sessions_past_close"]
+    ratio = "Not yet measurable" if fraction is None else f"{fraction:.1%}"
+    lines = [
+        "## P4 observation window · research only",
+        "",
+        f'Beijing window: {coverage["window_start_beijing"]} through '
+        f'{coverage["window_end_beijing_inclusive"]} (inclusive).',
+        f'As of: {report["as_of_beijing"]}. Scope: `{report["coverage_scope"]}`.',
+        "",
+        f'Retained receipts: **{coverage["retained_sessions"]} / '
+        f'{coverage["notice_scoped_sessions_past_close"]}** notice-scoped sessions past close ({ratio}).',
+        f'Expected sessions inside the notice scope: **{coverage["notice_scoped_expected_sessions"]}**.',
+        "",
+        "| Status | Dates |",
+        "| --- | ---: |",
+    ]
+    labels = {
+        "retained": "Receipt retained",
+        "closed_awaiting_receipt": "Closed, awaiting receipt",
+        "past_not_in_submitted_runs": "Past session not in submitted runs",
+        "past_not_checked": "Past session not checked",
+        "pending_close": "Pending session close",
+        "calendar_unverified": "Calendar unverified",
+        "weekend_closed": "Weekend closed",
+    }
+    lines.extend(f"| {label} | {len(days[key])} |" for key, label in labels.items())
+    lines += [
+        "",
+        "Only notice-scoped sessions past close are in the denominator. "
+        "A session not in submitted runs is not proof of a missing receipt.",
+        "",
+        "See the `p4-prewindow-evidence` artifact for dates, source digests and run provenance.",
+        "",
+        "**Trade gate: BLOCKED.** This summary does not certify live fills or out-of-sample performance.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
 def attach_run_provenance(report, checks):
     """Link verified Actions artifacts to retained dates, never by list position."""
     rows = {row["date"]: row for row in report["rows"] if row["status"] == "RETAINED"}

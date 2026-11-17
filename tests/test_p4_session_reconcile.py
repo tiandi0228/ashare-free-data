@@ -2,7 +2,7 @@ from datetime import datetime
 import unittest
 from unittest.mock import patch
 
-from collector.p4_session_reconcile import attach_run_provenance, reconcile
+from collector.p4_session_reconcile import attach_run_provenance, reconcile, render_actions_summary
 
 
 class ReconcileTests(unittest.TestCase):
@@ -49,6 +49,24 @@ class ReconcileTests(unittest.TestCase):
         self.assertIsNone(summary["retained_fraction_of_notice_scoped_sessions_past_close"])
         self.assertEqual(summary["notice_scoped_sessions_past_close"], 0)
         self.assertEqual(len(summary["dates_by_status"]["pending_close"]), 23)
+
+    def test_actions_summary_distinguishes_undefined_rate_from_zero(self):
+        already_closed = render_actions_summary(self.run_check())
+        self.assertIn("**0 / 5** notice-scoped sessions past close (0.0%)", already_closed)
+        self.assertIn("| Past session not checked | 4 |", already_closed)
+        self.assertIn("| Calendar unverified | 21 |", already_closed)
+        self.assertIn("Trade gate: BLOCKED", already_closed)
+        self.now = datetime.fromisoformat("2026-11-17T12:00:00+08:00")
+        before = render_actions_summary(self.run_check())
+        self.assertIn("Not yet measurable", before)
+        self.assertNotIn("0.0%", before)
+
+    def test_actions_summary_preserves_partial_submission_boundary(self):
+        report = self.run_check([(self.one, b"source")])
+        summary = render_actions_summary(report)
+        self.assertIn("**1 / 5** notice-scoped sessions past close (20.0%)", summary)
+        self.assertIn("| Past session not in submitted runs | 3 |", summary)
+        self.assertIn("not proof of a missing receipt", summary)
 
     def test_rejects_changed_or_duplicate_receipts(self):
         with self.assertRaises(ValueError):

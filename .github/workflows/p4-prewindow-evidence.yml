@@ -49,7 +49,7 @@ jobs:
           import hashlib, json, os, re, subprocess
           from datetime import datetime, timezone
           from pathlib import Path
-          from collector.p4_session_reconcile import attach_run_provenance, reconcile
+          from collector.p4_session_reconcile import attach_run_provenance, reconcile, render_actions_summary
           from collector.p4_disclosure_run_clock import read_bound_zip, verify as verify_run_clock
 
           repo = os.environ["GITHUB_REPOSITORY"]
@@ -98,6 +98,10 @@ jobs:
           result["source_run_clock_checks"] = run_clock_checks
           with Path("p4-session-coverage.json").open("x") as out:
               json.dump(result, out, indent=2)
+          summary = render_actions_summary(result)
+          Path("p4-session-summary.md").write_text(summary, encoding="utf-8")
+          with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as out:
+              out.write(summary)
           print(json.dumps(result["counts"]))
           PY
       - uses: actions/upload-artifact@v4
@@ -106,5 +110,6 @@ jobs:
           path: |
             p4-prewindow-evidence.json
             p4-session-coverage.json
+            p4-session-summary.md
           if-no-files-found: error
           retention-days: 90
