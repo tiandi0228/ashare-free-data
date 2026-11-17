@@ -1,0 +1,82 @@
+{
+  "audited_issuer_count": 2498,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 0,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sz.000668"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603370"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603373"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 44101355518,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 22200,
+  "research_date_action_links": [],
+  "run_id": 44101756284,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1224636678",
+      "archive_path": "pdf/sh_603370/1224636678/1ddf7a0dbb5f2e17758bf0e9fb8f55ca426589be88de860ce59e2e9cb1c83083.pdf",
+      "bytes": 549778,
+      "captured_at_utc": "2026-11-17T14:19:31.353389+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1756915200000,
+      "issuer": "sh.603370",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2025-09-04/1224636678.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "1ddf7a0dbb5f2e17758bf0e9fb8f55ca426589be88de860ce59e2e9cb1c83083",
+      "title_from_index_unverified": "华新精科首次公开发行股票主板上市公告书提示性公告"
+    },
+    {
+      "announcement_id": "1225607588",
+      "archive_path": "pdf/sh_603373/1225607588/9d7bd5c6b3c2725a5d17f219c424c00ae86fd7820ea8a4aa4463f3a538600c7b.pdf",
+      "bytes": 117488,
+      "captured_at_utc": "2026-11-17T14:19:31.584948+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1792080000000,
+      "issuer": "sh.603373",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-16/1225607588.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "9d7bd5c6b3c2725a5d17f219c424c00ae86fd7820ea8a4aa4463f3a538600c7b",
+      "title_from_index_unverified": "安邦护卫2026年半年度权益分派实施公告"
+    },
+    {
+      "announcement_id": "1225577677",
+      "archive_path": "pdf/sz_000668/1225577677/06db9dd8e112d4a821263201fb422cd7a2522f544ed024b5966be06491ecfd66.pdf",
+      "bytes": 90752,
+      "captured_at_utc": "2026-11-17T14:19:30.641956+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1790092800000,
+      "issuer": "sz.000668",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-23/1225577677.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "06db9dd8e112d4a821263201fb422cd7a2522f544ed024b5966be06491ecfd66",
+      "title_from_index_unverified": "荣丰控股集团关于控股股东权益变动被动触及1%及5%整数倍暨披露简式权益变动报告书的提示性公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
