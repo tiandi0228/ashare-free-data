@@ -129,9 +129,9 @@ jobs:
           python-version: '3.11'
       - name: Pin actual checkpoint, original archive and durable coverage
         run: |
-          checkpoint=7af0c126ccdbda363865b94fb5b2bfd03369be6a
-          archive=7129bdd738de2030c2bd40cb5fa05c1d654fbd8d
-          coverage=9805b3a799d1701c038f9a9f7d14d34cbc414276
+          checkpoint=8b338c234b970c750fa3e491b221ed6802072db9
+          archive=d208438dc67505d60186ebf9b1f2907ed858f563
+          coverage=96d73ef5cfc596d4932489ac8eaa2bb9fae75f98
           git fetch --depth=1 origin "$checkpoint" "$archive" "$coverage"
           git worktree add --detach "$RUNNER_TEMP/p2-current-checkpoint" "$checkpoint"
           git worktree add --detach archived-research "$archive"
@@ -158,9 +158,9 @@ jobs:
           current = load(Path("durable-p2-coverage") / summary_path)
           status = load(archive / "archive_status.json")
           witness = check_current_checkpoint(current, checkpoint, status)
-          assert witness["checkpoint_completed_shards"] == 305
+          assert witness["checkpoint_completed_shards"] == 311
           assert witness["gap_issuer_count"] == 22
-          previous = "a9c4f72d33ccd0ba09d448b0473e8bc06f77dbc2"
+          previous = "9805b3a799d1701c038f9a9f7d14d34cbc414276"
           subprocess.run(["git", "fetch", "--depth=1", "origin", previous], check=True)
           stale = json.loads(subprocess.check_output(["git", "show", f"{previous}:{summary_path}"]))
           try:
@@ -168,7 +168,18 @@ jobs:
           except ValueError as exc:
               assert "stale or unsafe P2 coverage" in str(exc)
           else:
-              raise AssertionError("old 293-shard summary must not pass as 305 shards")
+              raise AssertionError("old 305-shard summary must not pass as 311 shards")
+          old_ids = set(stale["observed_shard_ids"])
+          current_ids = set(current["observed_shard_ids"])
+          added = sorted(current_ids - old_ids)
+          assert old_ids <= current_ids
+          assert current_ids == {f"shard_{i:04d}" for i in status["archived_shards"]}
+          assert added == ["shard_0238", "shard_0239", "shard_0329",
+                           "shard_0330", "shard_0331", "shard_0332"]
+          assert set(added).isdisjoint(current["gap_shard_ids"])
+          assert current["gap_issuer_codes"] == stale["gap_issuer_codes"]
+          assert current["gap_reason_counts"] == stale["gap_reason_counts"]
+          assert current["feature_issuer_count"] - stale["feature_issuer_count"] == 48
           replay = diagnose(current, archive)
           result = compare(replay, load("manifests/p2_gap_explanations_20261020.json"))
           assert Counter(row["reason"] for row in result["rows"]) == {
@@ -182,16 +193,18 @@ jobs:
           assert added_gap["source_shard"] == "shard_0237"
           assert added_gap["trailing_vendor_suspended_rows"] == 3
           display = summarize(current, result)
-          assert display["feature_complete_shards"]["count"] == 284
-          assert display["computed_feature_issuers"]["count"] == 2412
+          assert display["feature_complete_shards"]["count"] == 290
+          assert display["computed_feature_issuers"]["count"] == 2460
           assert display["explained_uncomputable_issuers"] == 22
           assert result["trade_gate"] == "BLOCKED" and result["historical_PIT_verified"] is False
           Path("p2-durable-gap-replay.json").write_text(json.dumps({
               "kind": "PINNED_DURABLE_SNAPSHOT_REGRESSION_NOT_LIVE_STATUS",
-              "checkpoint_commit": "7af0c126ccdbda363865b94fb5b2bfd03369be6a",
-              "archive_commit": "7129bdd738de2030c2bd40cb5fa05c1d654fbd8d",
-              "coverage_commit": "9805b3a799d1701c038f9a9f7d14d34cbc414276",
+              "checkpoint_commit": "8b338c234b970c750fa3e491b221ed6802072db9",
+              "archive_commit": "d208438dc67505d60186ebf9b1f2907ed858f563",
+              "coverage_commit": "96d73ef5cfc596d4932489ac8eaa2bb9fae75f98",
               "stale_coverage_commit_rejected": previous,
+              "new_feature_complete_shards": added,
+              "new_computable_issuers": 48,
               "witness": witness, "disposition": result, "coverage_display": display,
           }, indent=2) + "\n")
           PYCODE
