@@ -64,6 +64,30 @@ def reconcile(run, job, manifest, submissions, now):
                 broker_fills_verified=0, trade_gate="BLOCKED", orders=[], executable_candidates=[])
 
 
+def attach_run_provenance(report, checks):
+    """Link verified Actions artifacts to retained dates, never by list position."""
+    rows = {row["date"]: row for row in report["rows"] if row["status"] == "RETAINED"}
+    by_date = {}
+    artifacts = set()
+    runs = set()
+    for check in checks:
+        day = check["session_date"]
+        artifact = check["artifact_id"]
+        run = check["run_id"]
+        if (day in by_date or artifact in artifacts or run in runs or day not in rows
+                or check["source_sha256"] != rows[day]["source_sha256"]):
+            raise ValueError("disclosure provenance does not match unique retained sessions")
+        by_date[day] = check
+        artifacts.add(artifact)
+        runs.add(run)
+    if by_date.keys() != rows.keys():
+        raise ValueError("a retained session is missing verified Actions provenance")
+    return {**report, "rows": [
+        {**row, "actions_provenance": by_date.get(row["date"])}
+        for row in report["rows"]
+    ]}
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--run", type=Path, required=True)
