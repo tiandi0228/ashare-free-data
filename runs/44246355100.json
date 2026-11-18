@@ -1,0 +1,82 @@
+{
+  "audited_issuer_count": 2610,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 0,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.601238"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603406"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603407"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 44246158454,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 23168,
+  "research_date_action_links": [],
+  "run_id": 44246355100,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225560026",
+      "archive_path": "pdf/sh_601238/1225560026/67d575c5dd894763a3c4e43738211b6abe7d64821bb6083b5499ff3cc67a6f0f.pdf",
+      "bytes": 91862,
+      "captured_at_utc": "2026-11-18T05:45:05.848524+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1789142400000,
+      "issuer": "sh.601238",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-12/1225560026.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "67d575c5dd894763a3c4e43738211b6abe7d64821bb6083b5499ff3cc67a6f0f",
+      "title_from_index_unverified": "广汽集团第七届董事会第29次会议决议公告"
+    },
+    {
+      "announcement_id": "1225565020",
+      "archive_path": "pdf/sh_603406/1225565020/81aae39d207ef1e7c11e8ae326ebc223e0096964f7f1563b369c9136273df2b9.pdf",
+      "bytes": 166529,
+      "captured_at_utc": "2026-11-18T05:45:06.758013+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1789488000000,
+      "issuer": "sh.603406",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-16/1225565020.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "81aae39d207ef1e7c11e8ae326ebc223e0096964f7f1563b369c9136273df2b9",
+      "title_from_index_unverified": "关于使用闲置募集资金进行现金管理到期赎回并继续购买的公告"
+    },
+    {
+      "announcement_id": "1225282932",
+      "archive_path": "pdf/sh_603407/1225282932/08074c9ff7cbd94902895f2256c37f2b49265ca996d3d3782bea9b323ad7553c.pdf",
+      "bytes": 2872488,
+      "captured_at_utc": "2026-11-18T05:45:07.855067+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1778169600000,
+      "issuer": "sh.603407",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-05-08/1225282932.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "08074c9ff7cbd94902895f2256c37f2b49265ca996d3d3782bea9b323ad7553c",
+      "title_from_index_unverified": "长裕集团首次公开发行股票主板上市公告书"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
