@@ -8,6 +8,7 @@ from decimal import Decimal
 
 def check_execution(*,entry_day,exit_day,calendar_sessions,security_limit_up,security_limit_down,observed_low,observed_high,side,order_limit_price,orderbook_fill_evidence=False):
     start=date.fromisoformat(entry_day);end=date.fromisoformat(exit_day)
+    if type(orderbook_fill_evidence) is not bool:raise ValueError("invalid orderbook evidence flag")
     if end<=start:raise ValueError("T+1 date violated")
     if not isinstance(calendar_sessions,list) or not calendar_sessions or len(calendar_sessions)!=len(set(calendar_sessions)):
         raise ValueError("historical calendar missing or duplicate sessions")
@@ -19,7 +20,8 @@ def check_execution(*,entry_day,exit_day,calendar_sessions,security_limit_up,sec
     lo=Decimal(str(security_limit_down));hi=Decimal(str(security_limit_up))
     minimum=Decimal(str(observed_low));maximum=Decimal(str(observed_high))
     price=Decimal(str(order_limit_price))
-    if min(lo,minimum,price)<=0 or lo>hi or minimum>maximum:
+    if (not all(x.is_finite() for x in (lo,hi,minimum,maximum,price))
+        or min(lo,hi,minimum,maximum,price)<=0 or lo>hi or minimum>maximum):
         raise ValueError("invalid market prices or limits")
     if not lo<=price<=hi:
         outcome="ORDER_PRICE_OUTSIDE_LIMIT"

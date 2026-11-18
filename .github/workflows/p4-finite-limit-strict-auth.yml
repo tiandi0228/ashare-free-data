@@ -1,0 +1,31 @@
+name: P4 finite quote and strict price-limit evidence (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p4_calendar_limit_gate.py'
+      - 'collector/p4_unified_execution_preflight.py'
+      - 'tests/test_p4_finite_limit_auth.py'
+      - '.github/workflows/p4-finite-limit-strict-auth.yml'
+  push:
+    branches: ['fix/p4-finite-limit-strict-auth-20261112']
+    paths:
+      - 'collector/p4_calendar_limit_gate.py'
+      - 'collector/p4_unified_execution_preflight.py'
+      - 'tests/test_p4_finite_limit_auth.py'
+      - '.github/workflows/p4-finite-limit-strict-auth.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Fail closed on nonfinite prices and forged authentication flags
+        run: python -m unittest -v tests.test_p4_calendar_limit_gate tests.test_p4_unified_execution_preflight tests.test_p4_finite_limit_auth
