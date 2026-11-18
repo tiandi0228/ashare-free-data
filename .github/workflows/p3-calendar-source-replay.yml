@@ -1,0 +1,29 @@
+name: P3 scoped calendar source replay (NO TRADES)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'collector/p3_calendar_source_replay.py'
+      - 'tests/test_p3_calendar_source_replay.py'
+      - 'evidence/p3_calendar_sources/**'
+      - '.github/workflows/p3-calendar-source-replay.yml'
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest tests.test_p3_calendar_source_replay -v
+      - run: python -m collector.p3_calendar_source_replay --as-of 2026-09-24 > calendar-replay.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p3-scoped-calendar-replay
+          path: calendar-replay.json
+          if-no-files-found: error
