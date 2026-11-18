@@ -1,0 +1,118 @@
+name: P3 600150 two-source original PDF acquisition (READ ONLY, NO TRADES)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/p3-600150-original-pdf-acquisition.yml'
+  push:
+    branches: ['ci/p3-600150-original-pdf-acquisition-20261112']
+    paths:
+      - '.github/workflows/p3-600150-original-pdf-acquisition.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-bytes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Retrieve exactly two bounded 600150 research leads and fingerprint original PDF bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,ssl,urllib.request,urllib.error
+          from datetime import datetime,timezone
+          from pathlib import Path
+          from urllib.parse import urlsplit
+          issuer="sh.600150"
+          source_csv_sha="45bb1574dc7068d696d74bfb74491984a9c792444396f3be6f04abe295ed7c40"
+          source_commit="5be9d6ad76d8635defe02f8d90bc50ad4c03c086"
+          targets=(
+            ("halt","2025-059","1224387134","https://static.cninfo.com.cn/finalpage/2025-08-05/1224387134.PDF"),
+            ("resume","2025-063","1224504273","https://static.cninfo.com.cn/finalpage/2025-08-19/1224504273.PDF"),
+          )
+          MAX_BYTES=4_000_000
+          folder=Path("p3_600150_research")
+          originals=folder/"originals"
+          originals.mkdir(parents=True,exist_ok=True)
+          observed=[]
+          for kind,notice,announcement,url in targets:
+              record={
+                  "issuer":issuer,"document_role":kind,"notice_number_claimed":notice,
+                  "announcement_id":announcement,"requested_url":url,
+                  "observed_utc":datetime.now(timezone.utc).isoformat(),
+                  "status":"SOURCE_UNAVAILABLE","pdf_sha256":None,
+                  "original_pdf_bytes":None,"failure_class":None,
+                  "first_publication_authenticated":False,
+                  "official_publisher_authenticated_independently":False,
+                  "historical_effective_date_authenticated":False,
+              }
+              try:
+                  req=urllib.request.Request(url,headers={
+                      "User-Agent":"Mozilla/5.0 (compatible; P3ResearchAudit/1.0)",
+                      "Accept":"application/pdf"})
+                  with urllib.request.urlopen(req,timeout=25,context=ssl.create_default_context()) as resp:
+                      final=resp.geturl()
+                      if (urlsplit(final).scheme!="https" or
+                          urlsplit(final).hostname!="static.cninfo.com.cn" or
+                          final!=url):
+                          raise ValueError("REDIRECT_OR_ORIGIN_MISMATCH")
+                      status=resp.status
+                      if status!=200:raise ValueError("HTTP_STATUS_NOT_200")
+                      raw=resp.read(MAX_BYTES+1)
+                  if len(raw)>MAX_BYTES:raise ValueError("PDF_TOO_LARGE")
+                  if len(raw)<3000 or not raw.startswith(b"%PDF-") or b"%%EOF" not in raw[-2048:]:
+                      raise ValueError("INVALID_PDF_STRUCTURE")
+                  digest=hashlib.sha256(raw).hexdigest()
+                  filename=f"{issuer.replace('.','_')}_{announcement}_{digest}.pdf"
+                  (originals/filename).write_bytes(raw)
+                  if hashlib.sha256((originals/filename).read_bytes()).hexdigest()!=digest:
+                      raise ValueError("PDF_REPLAY_SHA_MISMATCH")
+                  record.update({"status":"ORIGINAL_BYTES_SHA_REPLAY_VERIFIED_RESEARCH_ONLY",
+                                 "pdf_sha256":digest,"original_pdf_bytes":len(raw),
+                                 "original_artifact_path":f"originals/{filename}",
+                                 "observed_utc":datetime.now(timezone.utc).isoformat()})
+                  record.pop("failure_class",None)
+              except (ValueError,urllib.error.HTTPError,urllib.error.URLError,
+                      TimeoutError,OSError,ssl.SSLError) as exc:
+                  record["failure_class"]=type(exc).__name__
+                  record["failure_reason"]=str(exc)[:160]
+              observed.append(record)
+          result={
+              "phase":"P3_600150_TWO_CNINFO_ORIGINAL_RESEARCH_ACQUISITION",
+              "source_issuer":issuer,"frozen_vendor_csv_sha256":source_csv_sha,
+              "frozen_vendor_source_commit":source_commit,
+              "documents_attempted":len(targets),
+              "documents_pdf_sha_replayed":sum(x["pdf_sha256"] is not None for x in observed),
+              "documents":observed,
+              "official_first_publication_authenticated":False,
+              "official_halt_resume_interval_certified":False,
+              "official_historical_PIT_verified":False,
+              "trading_calendar_verified":False,
+              "broker_fills_verified":0,
+              "originals_in_immutable_git_archive":False,
+              "research_only_not_certified":True,
+              "trade_gate":"BLOCKED","orders":[],"executable_candidates":[]
+          }
+          assert len(observed)==2 and all(
+              x["issuer"]==issuer and x["first_publication_authenticated"] is False
+              for x in observed)
+          assert result["trade_gate"]=="BLOCKED" and result["orders"]==[]
+          folder.joinpath("receipt.json").write_text(
+              json.dumps(result,ensure_ascii=False,sort_keys=True,indent=2)+"\n")
+          print(json.dumps(result,ensure_ascii=False))
+          PY
+      - name: Upload bounded source byte artifacts and fail-closed metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p3-600150-original-pdfs-research-${{ github.run_id }}
+          path: p3_600150_research/
+          if-no-files-found: warn
+          retention-days: 30
