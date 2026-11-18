@@ -7,6 +7,7 @@ on:
       - 'collector/p2_coverage_display.py'
       - 'tests/test_p2_coverage_display.py'
       - 'tests/test_p2_323_archive_regression.py'
+      - 'tests/test_p2_332_archive_delta.py'
       - 'manifests/p2_gap_explanations_20261020.json'
       - 'manifests/p2_gap_replay_fixture_20261020.json'
       - 'tests/test_p2_gap_disposition.py'
@@ -30,6 +31,7 @@ on:
       - 'collector/p2_coverage_display.py'
       - 'tests/test_p2_coverage_display.py'
       - 'tests/test_p2_323_archive_regression.py'
+      - 'tests/test_p2_332_archive_delta.py'
       - 'manifests/p2_gap_explanations_20261020.json'
       - 'manifests/p2_gap_replay_fixture_20261020.json'
       - 'tests/test_p2_gap_disposition.py'
@@ -238,6 +240,32 @@ jobs:
           pin previous 96d73ef5cfc596d4932489ac8eaa2bb9fae75f98
       - name: Verify 96 source hashes and reconcile the new issuer gap
         run: P2_SNAPSHOT_ROOT="$RUNNER_TEMP/p2-323-snapshot" python -m unittest -v tests.test_p2_323_archive_regression
+  durable_delta_332:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Reconcile the 325 and 332 shard P1 and P2 snapshots
+        run: |
+          export P2_DELTA_ROOT="$RUNNER_TEMP/p2-332-delta"
+          mkdir -p "$P2_DELTA_ROOT"/{prior,current}
+          pin() {
+            git fetch --depth=1 origin "$2"
+            git worktree add --detach "$P2_DELTA_ROOT/$1" "$2"
+          }
+          pin prior/checkpoint 52a48b208ae8afc697ae1a581409683ce957e7ed
+          pin prior/archive 8fdeb25e45ecb13e634b59c125b7dc6f4d0dac35
+          pin prior/coverage 5c87d79aa3cfe6ea474e5239cba141a262cf326e
+          pin current/checkpoint a3a1fd3fe53017aaa48a91da55e4463f9454cf2f
+          pin current/archive 750f26461fa3ab9d221cb8afd92b8d29ede8492c
+          pin current/coverage d032b95658081f6bcda34f373c33605233b93a13
+          python -m unittest -v tests.test_p2_332_archive_delta
   replay_once:
     if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     needs: offline
