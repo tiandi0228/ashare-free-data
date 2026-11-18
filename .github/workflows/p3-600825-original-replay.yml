@@ -1,0 +1,38 @@
+name: P3 original 600825 halt resume replay (NO TRADES)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'collector/p3_600825_original_replay.py'
+      - 'evidence/p3_600825_notices/**'
+      - '.github/workflows/p3-600825-original-replay.yml'
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - run: |
+          git fetch --depth=1 origin 7028eb4c9cc7f23add64958bc6f2611565476538
+          git worktree add --detach "$RUNNER_TEMP/p3-archive" FETCH_HEAD
+          python -m collector.p3_600825_original_replay --archive "$RUNNER_TEMP/p3-archive" > 600825-replay.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path("600825-replay.json").read_bytes())
+          assert r["matched_days"] == 4 and not r["pre_open_availability_verified"]
+          assert not r["entire_issuer_gap_closed"] and r["trade_gate"] == "BLOCKED" and r["orders"] == []
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p3-600825-original-replay
+          path: 600825-replay.json
+          if-no-files-found: error
