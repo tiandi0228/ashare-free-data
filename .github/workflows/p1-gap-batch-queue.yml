@@ -131,6 +131,37 @@ jobs:
           assert refresh["already_archived_shards"] == [238, 239] and refresh["remaining_shards"] == []
           assert refresh["dispatch_preview"] is None and not refresh["dispatch_performed"]
           PY
+      - name: Replay all 323 archived shards and refresh an overlapping saved selection
+        run: |
+          main=b91646a934fd203d4d8b1299104444f7283f27b4
+          archive=feb0ebef89ef5926d4d5597937cdbbbe340b5d9e
+          git fetch --depth=1 origin "$main" "$archive"
+          git worktree add --detach "$RUNNER_TEMP/p1-archive-323" "$archive"
+          python -m collector.p1_gap_batch_queue --main-sha "$main" --archive-sha "$archive" \
+            --replay-checkout "$RUNNER_TEMP/p1-archive-323" --track 240 244 245 246 \
+            --probe tests/fixtures/p1/probe_run_44029438652.json --refresh-selection 244 245 \
+            --expected-epoch 5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022 > p1-tracked-shards-323.json
+          python - <<'PYCODE'
+          import json
+          from pathlib import Path
+          r = json.loads(Path("p1-tracked-shards-323.json").read_bytes())
+          assert (r["completed_shards"], r["total_shards"], r["pending_shards"]) == (323, 400, 77)
+          assert r["pending_issuers"] == 616
+          assert r["archive_original_csvs_replayed"] and r["archive_index_parity_checked"]
+          assert r["archive_replay"]["archived_issuers"] == 2578
+          assert r["archive_replay"]["repair_shard_count"] == 0
+          assert r["batches"][0]["shard_indices"] == [245, 246]
+          assert r["batches"][0]["expected_issuers"] == 16
+          assert [(row["index"], row["status"]) for row in r["tracked_shards"]] == [
+              (240, "ARCHIVED_IN_PINNED_SNAPSHOT"), (244, "ARCHIVED_IN_PINNED_SNAPSHOT"),
+              (245, "PENDING_NO_MATCH_IN_PINNED_PROBE"), (246, "PENDING_NO_MATCH_IN_PINNED_PROBE"),
+          ]
+          refresh = r["refreshed_selection"]
+          assert refresh["already_archived_shards"] == [244] and refresh["remaining_shards"] == [245]
+          assert refresh["dispatch_preview"] == {"gap_window": "245:245", "shards_per_run": "1"}
+          assert refresh["recheck_required_before_dispatch"] and not refresh["dispatch_performed"]
+          assert r["trade_gate"] == "BLOCKED" and r["orders"] == [] and r["archive_writes"] == 0
+          PYCODE
       - uses: actions/upload-artifact@v4
         with:
           name: p1-pinned-gap-batch-queue
@@ -140,6 +171,7 @@ jobs:
             p1-gap-probe-readback.json
             p1-tracked-shards.json
             p1-tracked-shards-311.json
+            p1-tracked-shards-323.json
           if-no-files-found: error
 
   vendor-preflight:
