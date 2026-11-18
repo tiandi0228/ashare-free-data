@@ -1,0 +1,41 @@
+name: P3 605303 original evidence replay (NO TRADES)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'collector/p3_605303_original_replay.py'
+      - 'evidence/p3_605303/**'
+      - '.github/workflows/p3-605303-original-replay.yml'
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: command -v pdftotext || (sudo apt-get update && sudo apt-get install -y poppler-utils)
+      - run: |
+          git fetch --depth=1 origin 7028eb4c9cc7f23add64958bc6f2611565476538
+          git worktree add --detach "$RUNNER_TEMP/p3-archive" FETCH_HEAD
+          python -m collector.p3_605303_original_replay "$RUNNER_TEMP/p3-archive" > replay.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path("replay.json").read_bytes())
+          assert r["index_matched"] == len(r["notices"]) == 3 and len(r["matched_rows"]) == 11
+          assert list(r["matched_rows"].values()).count("0") == 10
+          assert "2026-09-25" not in r["matched_rows"]
+          assert all(x["official_first_release"] is None for x in r["notices"])
+          assert r["trade_gate"] == "BLOCKED" and r["orders"] == []
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p3-605303-original-replay
+          path: replay.json
+          if-no-files-found: error
