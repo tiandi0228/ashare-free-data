@@ -1,0 +1,29 @@
+name: P4 vendor suspended exit regression (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'tests/test_p4_real_exit_availability.py'
+      - 'collector/p4_real_exit_availability.py'
+      - 'collector/p2_independent_bars.py'
+      - '.github/workflows/p4-vendor-suspended-exit-regression.yml'
+  push:
+    branches: ['test/p4-vendor-suspended-exit-no-fill-20261111']
+    paths:
+      - 'tests/test_p4_real_exit_availability.py'
+      - '.github/workflows/p4-vendor-suspended-exit-regression.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Reject suspended exit fills and active vendor fill assumptions
+        run: python -m unittest -v tests.test_p4_real_exit_availability tests.test_p4_issuer_session_gate
