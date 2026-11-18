@@ -174,6 +174,21 @@
         "https://disc.static.szse.cn/download/disc/disk03/finalpage/2026-10-13/a94b3320-be06-43d5-bbff-19649a5c627e.PDF"
       ]
     },
+    "sz.002388": {
+      "source_shard": "shard_0324",
+      "original_csv_sha256": "f3f6e9af697f880a35889bd7cb2380d957996f7df62d385e99044ef2c27679df",
+      "diagnosis": "VENDOR_MARKED_NOT_TRADABLE_AT_ASOF",
+      "available_vendor_rows_through_asof": 485,
+      "trailing_vendor_suspended_rows": 9,
+      "source_urls": [
+        "https://disc.static.szse.cn/download/disc/disk03/finalpage/2026-10-08/ab572edc-c744-4e4f-9bb3-bdd242ad966f.PDF"
+      ],
+      "halt_effective_session": "2026-10-08",
+      "retrospective_only_resume": {
+        "session": "2026-10-22",
+        "source_url": "https://static.cninfo.com.cn/finalpage/2026-10-22/1225614960.PDF"
+      }
+    },
     "sz.002667": {
       "source_shard": "shard_0356",
       "original_csv_sha256": "2e0b4c8f12e053d6978d118875303321a82a69739b7b30d96216859257e7e9ca",

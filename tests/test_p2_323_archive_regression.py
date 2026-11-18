@@ -59,10 +59,25 @@ class P2Archive323Regression(unittest.TestCase):
         self.assertEqual(gap["trailing_vendor_suspended_rows"], 9)
         self.assertIs(gap["official_halt_explanation_authenticated"], False)
         pin = Path(__file__).resolve().parents[1] / "manifests/p2_gap_explanations_20261020.json"
-        result = compare(replay, load(pin))
-        self.assertEqual(result["review_reason_counts"], {"NEW_GAP_NOT_IN_PIN": 1})
-        self.assertEqual([r["issuer"] for r in result["review_queue"]], ["sz.002388"])
-        self.assertEqual(result["explained_feature_unavailable"], 22)
+        current_pin = load(pin)
+        new_entry = current_pin["entries"]["sz.002388"]
+        # Preserve the regression for recognizing an unexplained issuer before the pin is updated.
+        previous_pin = {**current_pin, "entries": {
+            k: v for k, v in current_pin["entries"].items() if k != "sz.002388"
+        }}
+        before = compare(replay, previous_pin)
+        self.assertEqual(before["review_reason_counts"], {"NEW_GAP_NOT_IN_PIN": 1})
+        self.assertEqual([r["issuer"] for r in before["review_queue"]], ["sz.002388"])
+        self.assertEqual(before["explained_feature_unavailable"], 22)
+
+        self.assertLessEqual(new_entry["halt_effective_session"], gap["asof_date"])
+        self.assertGreater(new_entry["retrospective_only_resume"]["session"], gap["asof_date"])
+        self.assertTrue(all("/2026-10-08/" in url for url in new_entry["source_urls"]))
+        result = compare(replay, current_pin)
+        self.assertEqual(result["review_required"], 0)
+        self.assertEqual(result["explained_feature_unavailable"], 23)
+        self.assertEqual(next(r["reason"] for r in result["rows"] if r["issuer"] == "sz.002388"),
+                         "HALTED_AT_CUTOFF")
         self.assertEqual(result["feature_gaps_resolved"], 0)
         self.assertEqual(result["orders"], [])
         display = summarize(current, result)
