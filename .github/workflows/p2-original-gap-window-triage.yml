@@ -6,6 +6,7 @@ on:
       - 'collector/p2_gap_disposition.py'
       - 'collector/p2_coverage_display.py'
       - 'tests/test_p2_coverage_display.py'
+      - 'tests/test_p2_323_archive_regression.py'
       - 'manifests/p2_gap_explanations_20261020.json'
       - 'manifests/p2_gap_replay_fixture_20261020.json'
       - 'tests/test_p2_gap_disposition.py'
@@ -28,6 +29,7 @@ on:
       - 'collector/p2_gap_disposition.py'
       - 'collector/p2_coverage_display.py'
       - 'tests/test_p2_coverage_display.py'
+      - 'tests/test_p2_323_archive_regression.py'
       - 'manifests/p2_gap_explanations_20261020.json'
       - 'manifests/p2_gap_replay_fixture_20261020.json'
       - 'tests/test_p2_gap_disposition.py'
@@ -213,6 +215,30 @@ jobs:
           name: p2-durable-gap-snapshot
           path: p2-durable-gap-replay.json
           if-no-files-found: error
+  durable_snapshot_323:
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      P2_SNAPSHOT_ROOT: ${{ runner.temp }}/p2-323-snapshot
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Fetch immutable P1 and P2 snapshots
+        run: |
+          mkdir -p "$P2_SNAPSHOT_ROOT"
+          pin() {
+            git fetch --depth=1 origin "$2"
+            git worktree add --detach "$P2_SNAPSHOT_ROOT/$1" "$2"
+          }
+          pin checkpoint b91646a934fd203d4d8b1299104444f7283f27b4
+          pin archive feb0ebef89ef5926d4d5597937cdbbbe340b5d9e
+          pin coverage 41905adb1d20ed448fa2c34268ba9bb2d279d056
+          pin previous 96d73ef5cfc596d4932489ac8eaa2bb9fae75f98
+      - name: Verify 96 source hashes and isolate the new issuer gap
+        run: python -m unittest -v tests.test_p2_323_archive_regression
   replay_once:
     if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     needs: offline
