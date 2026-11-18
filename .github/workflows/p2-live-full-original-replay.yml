@@ -1,0 +1,297 @@
+name: P2 LIVE full original CSV and 242-shard feature receipts SHA replay (READ ONLY, NO TRADES)
+on:
+  push:
+    branches: ['ci/stockmate-p2-p4-frozen-baseline-20261112']
+    paths:
+      - '.github/workflows/p2-live-full-original-replay.yml'
+      - 'collector/p2_live_full_source_feature_reconciliation.py'
+      - 'tests/test_p2_live_full_source_feature_reconciliation.py'
+      - 'collector/p2_p3_live_gap_reference_queue.py'
+      - 'tests/test_p2_p3_live_gap_reference_queue.py'
+      - 'collector/p3_eight_issuer_announcement_crosswalk.py'
+      - 'tests/test_p3_eight_issuer_announcement_crosswalk.py'
+      - 'collector/p3_curated_pdf_byte_probe.py'
+      - 'tests/test_p3_curated_pdf_byte_probe.py'
+      - 'collector/p3_pdf_content_anchor_replay.py'
+      - 'tests/test_p3_pdf_content_anchor_replay.py'
+      - 'collector/p3_historical_st_temporal_veto.py'
+      - 'tests/test_p3_historical_st_temporal_veto.py'
+      - 'collector/p3_remaining_six_pdf_content_replay.py'
+      - 'tests/test_p3_remaining_six_pdf_content_replay.py'
+      - 'evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json'
+      - 'evidence/p3_issuer_halt_resume_three_research_refs.json'
+      - 'evidence/p3_four_issuer_halt_st_research_refs.json'
+  pull_request:
+    paths:
+      - '.github/workflows/p2-live-full-original-replay.yml'
+      - 'collector/p2_live_full_source_feature_reconciliation.py'
+      - 'tests/test_p2_live_full_source_feature_reconciliation.py'
+      - 'collector/p2_p3_live_gap_reference_queue.py'
+      - 'tests/test_p2_p3_live_gap_reference_queue.py'
+      - 'collector/p3_eight_issuer_announcement_crosswalk.py'
+      - 'tests/test_p3_eight_issuer_announcement_crosswalk.py'
+      - 'collector/p3_curated_pdf_byte_probe.py'
+      - 'tests/test_p3_curated_pdf_byte_probe.py'
+      - 'collector/p3_pdf_content_anchor_replay.py'
+      - 'tests/test_p3_pdf_content_anchor_replay.py'
+      - 'collector/p3_historical_st_temporal_veto.py'
+      - 'tests/test_p3_historical_st_temporal_veto.py'
+      - 'collector/p3_remaining_six_pdf_content_replay.py'
+      - 'tests/test_p3_remaining_six_pdf_content_replay.py'
+      - 'evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json'
+      - 'evidence/p3_issuer_halt_resume_three_research_refs.json'
+      - 'evidence/p3_four_issuer_halt_st_research_refs.json'
+permissions:
+  contents: read
+jobs:
+  verify-live-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout reviewed code from original PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Checkout live MAIN checkpoint as isolated evidence
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: live-main
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Checkout live append-only original CSV research branch
+        uses: actions/checkout@v4
+        with:
+          ref: research-csv-archive
+          path: live-archive
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Checkout live feature receipt branch
+        uses: actions/checkout@v4
+        with:
+          ref: p2-feature-coverage
+          path: live-receipts
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test fail-closed live same-epoch feature reconciliation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p2_live_full_source_feature_reconciliation
+      - name: Recompute ALL live P2 receipts against original SHA-verified CSVs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports/p2_live_source_replay
+          python -m collector.p2_feature_coverage_ledger \
+            --archive-epoch live-archive/5ba00fbd720fad90 \
+            --checkpoint live-main/evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json \
+            --receipts live-receipts/reports/5ba00fbd720fad90 \
+            --out reports/p2_live_source_replay/live_recomputed.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("reports/p2_live_source_replay/live_recomputed.json")
+          r=json.loads(p.read_text())
+          assert r["status"]=="DURABLE_RESEARCH_PAGE_COVERAGE_NOT_CERTIFIED"
+          assert r["observed_archived_shards"]>=242
+          assert r["feature_complete_shards"]>=227
+          assert r["observed_with_feature_gaps_shards"]==15
+          assert r["unobserved_archived_shards"]==0
+          assert r["full_archive_evidence_accounted"] is True
+          assert r["historical_PIT_verified"] is False
+          assert r["trade_gate"]=="BLOCKED"
+          assert r["orders"]==[] and r["executable_candidates"]==[]
+          print("P2_LIVE_ALL_VENDOR_CSV_AND_FEATURE_RECEIPTS_SHA_REPLAY_PASSED")
+          PY
+      - name: Compare full live recomputation to independently persisted P2 summary and source branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m collector.p2_live_full_source_feature_reconciliation \
+            --replayed reports/p2_live_source_replay/live_recomputed.json \
+            --published live-receipts/summaries/5ba00fbd720fad90.json \
+            --checkpoint live-main/evidence/checkpoints/5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022.json \
+            --archive live-archive/5ba00fbd720fad90/archive_status.json \
+            --checkpoint-git-sha "$(git -C live-main rev-parse HEAD)" \
+            --original-csv-archive-git-sha "$(git -C live-archive rev-parse HEAD)" \
+            --feature-receipts-git-sha "$(git -C live-receipts rev-parse HEAD)" \
+            --out reports/p2_live_source_replay/live_acceptance.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_live_source_replay/live_acceptance.json").read_text())
+          assert r["accepted_main_shards"]>=242
+          assert r["P2_feature_complete_shards"]>=227
+          assert r["independent_replayed_feature_summary_matches_published"] is True
+          assert r["same_epoch_original_archived_shards_verified"] is True
+          assert r["historical_PIT_verified"] is False
+          assert r["no_data_written_or_overwritten"] is True
+          assert r["cutover_authorized"] is False
+          assert r["trading_authorized"] is False
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P2_LIVE_SOURCE_COVERAGE_RECONCILED_READ_ONLY",r["P2_feature_complete_shards"],r["P2_observed_original_shards"])
+          PY
+      - name: Join SHA-replayed live 15 gap shards to seven curated P3 references; list eight still missing
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p2_p3_live_gap_reference_queue
+          python -m collector.p2_p3_live_gap_reference_queue \
+            --live live-receipts/summaries/5ba00fbd720fad90.json \
+            --replayed reports/p2_live_source_replay/live_recomputed.json \
+            --three evidence/p3_issuer_halt_resume_three_research_refs.json \
+            --four evidence/p3_four_issuer_halt_st_research_refs.json \
+            --out reports/p2_live_source_replay/live_p2_p3_gap_and_unlinked_issuer_queue.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("reports/p2_live_source_replay/live_p2_p3_gap_and_unlinked_issuer_queue.json")
+          r=json.loads(p.read_text())
+          assert r["current_same_epoch_original_shards"]>=242
+          assert r["current_replayed_feature_complete_shards"]>=227
+          assert r["unresolved_gap_issuers"]==16
+          assert r["vendor_suspension_issuer_count"]==15
+          assert r["curated_p3_reference_issuer_count"]==7
+          assert r["missing_p3_halt_source_reference_issuer_count"]==8
+          assert len(r["missing_official_halt_source_research_queue"])==8
+          assert len(r["short_ipo_history_research_queue"])==1
+          assert r["issuer_pdf_bytes_sha_verified"] is False
+          assert r["feature_shards_promoted"]==0
+          assert r["historical_PIT_verified"] is False
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P2_P3_LIVE_7_REFERENCED_8_MISSING_1_SHORT_IPO_GAPS_VERIFIED")
+          PY
+      - name: Crosswalk eight dated issuer disclosures without promoting PDF/PIT authenticity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p3_eight_issuer_announcement_crosswalk
+          python -m collector.p3_eight_issuer_announcement_crosswalk \
+            --queue reports/p2_live_source_replay/live_p2_p3_gap_and_unlinked_issuer_queue.json \
+            --sources evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json \
+            --out reports/p2_live_source_replay/p3_eight_issuer_disclosure_research_crosswalk.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_live_source_replay/p3_eight_issuer_disclosure_research_crosswalk.json").read_text())
+          assert r["research_issuer_reference_count"]==8
+          assert r["combined_research_reference_issuer_count"]==15
+          assert r["still_missing_a_research_link_issuer_count"]==0
+          assert r["pdf_original_bytes_sha_independently_verified_count"]==0
+          assert r["official_full_pit_halt_certified_count"]==0
+          assert r["original_feature_gap_issuers_unresolved"]==16
+          assert r["original_feature_gap_shards_unresolved"]==15
+          assert r["P2_feature_shards_promoted"]==0
+          assert r["P3_offline_engineering_acceptance_automatically_changed"] is False
+          assert r["historical_PIT_verified"] is False
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P3_EIGHT_DATED_DISCLOSURE_REFERENCES_15_OF_15_NO_PIT_PROMOTION")
+          PY
+      - name: Verify bounded nine-PDF byte hashing with never-authenticate-PIT tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p3_curated_pdf_byte_probe
+          python -m collector.p3_curated_pdf_byte_probe \
+            --manifest evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json \
+            --out reports/p2_live_source_replay/p3_nine_pdf_byte_sha256_network_probes.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_live_source_replay/p3_nine_pdf_byte_sha256_network_probes.json").read_text())
+          assert r["approved_pdf_url_count"]==9
+          assert (r["downloaded_pdf_with_sha_count"]+r["failed_or_unavailable_pdf_count"])==9
+          assert r["source_pdf_original_bytes_authenticity_certified"] is False
+          assert r["pdf_contents_issuer_code_announcement_matching_certified"] is False
+          assert r["full_historical_exchange_PIT_certified"] is False
+          assert r["original_p2_gap_issuers_remaining"]==16
+          assert r["source_feature_shards_promoted"]==0
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P3_NETWORK_PDF_SHA_READ_ONLY_NO_PIT_CERTIFICATION")
+          PY
+      - name: Bind three high-risk PDF text claims to SHA-matched second-read bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p3_pdf_content_anchor_replay
+          # Ubuntu runners may not ship poppler: make text extraction
+          # deterministic using a pinned pure-Python parser instead.
+          python -m pip install --disable-pip-version-check --no-input pypdf==5.9.0
+          python -m collector.p3_pdf_content_anchor_replay \
+            --manifest evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json \
+            --first-probe reports/p2_live_source_replay/p3_nine_pdf_byte_sha256_network_probes.json \
+            --out reports/p2_live_source_replay/p3_priority_pdf_content_anchor_second_read.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_live_source_replay/p3_priority_pdf_content_anchor_second_read.json").read_text())
+          assert r["priority_issuer_count"]==3
+          assert r["content_sha256_is_NOT_issuer_authenticity"] is True
+          assert r["guangqi_conflicting_halt_date_unresolved"] is True
+          assert r["pre_st_removal_dates_conservatively_excluded"] is True
+          assert r["full_issuer_halt_calendar_certified"] is False
+          assert r["historical_PIT_verified"] is False
+          assert r["feature_shards_promoted"]==0
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          assert len(r["rows"])==3
+          print("P3_PDF_TEXT_SHA_SECOND_READ_RESEARCH_ONLY",
+            r["same_bytes_twice_count"],r["issuer_notice_and_term_text_observed_count"])
+          PY
+      - name: Check historical ST removal as-of rule and disputed GAC halt days
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p3_historical_st_temporal_veto
+          python -m collector.p3_historical_st_temporal_veto \
+            --manifest evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json \
+            --out reports/p2_live_source_replay/p3_historical_ST_and_conflicting_halt_day_veto.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_live_source_replay/p3_historical_ST_and_conflicting_halt_day_veto.json").read_text())
+          assert len(r["historical_examples"])==6
+          assert all(x["decision"]=="BLOCK" for x in r["historical_examples"])
+          assert all(x["historical_PIT_verified"] is False for x in r["historical_examples"])
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P3_NO_HISTORICAL_ST_LOOKAHEAD_AND_NO_DISPUTED_DATE_PROMOTION")
+          PY
+      - name: Double-read six remaining curated issuer PDFs and validate document text anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p3_remaining_six_pdf_content_replay
+          python -m collector.p3_remaining_six_pdf_content_replay \
+            --manifest evidence/p3_eight_issuer_halt_resume_research_refs_20261112.json \
+            --first-probe reports/p2_live_source_replay/p3_nine_pdf_byte_sha256_network_probes.json \
+            --out reports/p2_live_source_replay/p3_remaining_six_pdf_sha_and_text.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("reports/p2_live_source_replay/p3_remaining_six_pdf_sha_and_text.json").read_text())
+          assert r["remaining_original_pdf_count"]==6
+          assert len(r["rows"])==6
+          assert r["two_read_sha_matching_count"]<=6
+          assert r["issuer_company_notice_term_text_matched_count"]<=6
+          assert r["issuer_signature_authenticated"] is False
+          assert r["exchange_PIT_trading_calendar_authenticated"] is False
+          assert r["historical_PIT_verified"] is False
+          assert r["feature_shards_promoted"]==0
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          print("P3_REMAINING_SIX_PDF_CONTENT_RESEARCH_ONLY",
+            r["two_read_sha_matching_count"],
+            r["issuer_company_notice_term_text_matched_count"])
+          PY
+      - name: Preserve independent read-only source SHA report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p2-live-full-original-sha-replay-${{ github.run_id }}
+          path: reports/p2_live_source_replay/
+          if-no-files-found: ignore
+          retention-days: 30

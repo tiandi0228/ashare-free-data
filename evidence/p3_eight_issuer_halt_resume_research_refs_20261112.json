@@ -1,0 +1,255 @@
+{
+  "phase": "P3_EIGHT_PREVIOUSLY_UNLINKED_ISSUER_DATED_DISCLOSURE_RESEARCH_V1",
+  "source_epoch_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "asof_vendor_day": "2026-10-20",
+  "references_retrieved_at_utc_date": "2026-11-12",
+  "documentation_only": true,
+  "issuer_authority_not_independently_authenticated": true,
+  "source_pdf_bytes_sha_verified": false,
+  "full_historical_pit_halt_calendar_verified": false,
+  "first_publication_instant_authenticated": false,
+  "trading_allowed": false,
+  "historical_PIT_verified": false,
+  "trade_gate": "BLOCKED",
+  "orders": [],
+  "executable_candidates": [],
+  "cases": [
+    {
+      "issuer": "sh.601238",
+      "shard_id": "shard_0104",
+      "original_csv_sha256": "a2f6d4f36ec5487329a8e66a56bdf872c4dfc1e9a1cb2eb565994628800b7e65",
+      "claimed_halt_start": "2026-09-14",
+      "claimed_resume_day": "2026-09-29",
+      "st_removal_effective_day": null,
+      "unresolved_caveat": "停牌公告正文称9月14日开始，停复牌表格显示9月15日；须独立核对交易所日历",
+      "source_pdf_bytes_sha_verified": false,
+      "full_pit_tradability_verified": false,
+      "gap_resolved": false,
+      "feature_shard_promotion_authorized": false,
+      "documents": [
+        {
+          "kind": "halt",
+          "announcement": "2026-049",
+          "date": "2026-09-15",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-09-15/1225564444.PDF",
+          "reference_class": "issuer_pdf_indexed",
+          "content_sha256": null,
+          "first_publication_instant_authenticated": false
+        },
+        {
+          "kind": "resume",
+          "announcement": "2026-053",
+          "date": "2026-09-29",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-09-29/1225586271.PDF",
+          "reference_class": "issuer_pdf_indexed",
+          "content_sha256": null,
+          "first_publication_instant_authenticated": false
+        }
+      ]
+    },
+    {
+      "issuer": "sh.601995",
+      "shard_id": "shard_0120",
+      "original_csv_sha256": "c62152568423890c5bfc384fa4e0ec34e9ef71b9a092011b75b83a9e282d6609",
+      "claimed_halt_start": "2026-09-15",
+      "claimed_resume_day": "2026-09-23",
+      "st_removal_effective_day": null,
+      "unresolved_caveat": null,
+      "source_pdf_bytes_sha_verified": false,
+      "full_pit_tradability_verified": false,
+      "gap_resolved": false,
+      "feature_shard_promotion_authorized": false,
+      "documents": [
+        {
+          "kind": "halt",
+          "announcement": "临2026-057",
+          "date": "2026-09-08",
+          "url": "https://paper.cnstock.com/html/2026-09/08/content_2265977.htm",
+          "reference_class": "publisher_reprint",
+          "content_sha256": null,
+          "first_publication_instant_authenticated": false
+        },
+        {
+          "kind": "resume",
+          "announcement": "临2026-065",
+          "date": "2026-09-23",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-09-23/1225577325.PDF",
+          "reference_class": "issuer_pdf_indexed",
+          "content_sha256": null,
+          "first_publication_instant_authenticated": false
+        }
+      ]
+    },
+    {
+      "issuer": "sh.603183",
+      "shard_id": "shard_0140",
+      "original_csv_sha256": "3f53cf0bd447c2d757488614b4236632069885e793ee04959ae0c888c614168c",
+      "claimed_halt_start": "2026-09-30",
+      "claimed_resume_day": "2026-10-09",
+      "st_removal_effective_day": null,
+      "unresolved_caveat": null,
+      "source_pdf_bytes_sha_verified": false,
+      "full_pit_tradability_verified": false,
+      "gap_resolved": false,
+      "feature_shard_promotion_authorized": false,
+      "documents": [
+        {
+          "kind": "halt",
+          "announcement": "2026-021",
+          "date": "2026-09-30",
+          "url": "https://epaper.cs.com.cn/zgzqb/html/2026-09/30/nw.D110000zgzqb_20260930_6-B060.htm",
+          "reference_class": "publisher_reprint",
+          "content_sha256": null,
+          "first_publication_instant_authenticated": false
+        },
+        {
+          "kind": "resume",
+          "announcement": "2026-022",
+          "date": "2026-10-09",
+          "url": "https://epaper.cs.com.cn/zgzqb/html/2026-10/09/nw.D110000zgzqb_20261009_4-B071.htm",
+          "reference_class": "publisher_reprint",
+          "content_sha256": null,
+          "first_publication_instant_authenticated": false
+        }
+      ]
+    },
+    {
+      "issuer": "sh.603517",
+      "shard_id": "shard_0166",
+      "original_csv_sha256": "f6e5848ea8ff0e682608d96342adf68594140f9e7eac3aaad75afbfb2dc2394a",
+      "claimed_halt_start": "2026-10-19",
+      "claimed_resume_day": "2026-10-20",
+      "st_removal_effective_day": "2026-10-20",
+      "unresolved_caveat": "2026-10-19之前仍为ST绝味，不得把2026-10-20摘帽状态倒灌历史",
+      "source_pdf_bytes_sha_verified": false,
+      "full_pit_tradability_verified": false,
+      "gap_resolved": false,
+      "feature_shard_promotion_authorized": false,
+      "documents": [
+        {
+          "kind": "halt_resume_and_st_removal",
+          "announcement": "2026-080",
+          "date": "2026-10-19",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-10-19/1225609996.PDF",
+          "reference_class": "issuer_pdf_indexed",
+          "content_sha256": null,
+          "first_publication_instant_authenticated": false
+        }
+      ]
+    },
+    {
+      "issuer": "sh.603759",
+      "shard_id": "shard_0182",
+      "original_csv_sha256": "b5d17da3ca737e21479b5e4b5a1ad41c7f13f777f42b8eaf419f30c35dcce4dc",
+      "claimed_halt_start": "2026-10-19",
+      "claimed_resume_day": "2026-10-20",
+      "st_removal_effective_day": null,
+      "unresolved_caveat": "股票与可转债均涉及停复牌，此处只对股票603759做研究引用",
+      "source_pdf_bytes_sha_verified": false,
+      "full_pit_tradability_verified": false,
+      "gap_resolved": false,
+      "feature_shard_promotion_authorized": false,
+      "documents": [
+        {
+          "kind": "halt_and_resume",
+          "announcement": "2026-083",
+          "date": "2026-10-20",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-10-20/1225611487.PDF",
+          "reference_class": "issuer_pdf_indexed",
+          "content_sha256": null,
+          "first_publication_instant_authenticated": false
+        }
+      ]
+    },
+    {
+      "issuer": "sh.603838",
+      "shard_id": "shard_0186",
+      "original_csv_sha256": "98441e8dcbfae442ec14a7004a95ce5abff8d876b8cd69e1e754a77b16436e86",
+      "claimed_halt_start": "2026-10-19",
+      "claimed_resume_day": "2026-10-20",
+      "st_removal_effective_day": "2026-10-20",
+      "unresolved_caveat": "2026-10-20以前为*ST四通；摘帽生效日不等于之前可纳入非ST策略",
+      "source_pdf_bytes_sha_verified": false,
+      "full_pit_tradability_verified": false,
+      "gap_resolved": false,
+      "feature_shard_promotion_authorized": false,
+      "documents": [
+        {
+          "kind": "halt_resume_and_st_removal",
+          "announcement": "2026-040",
+          "date": "2026-10-17",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-10-17/1225608268.PDF",
+          "reference_class": "issuer_pdf_indexed",
+          "content_sha256": null,
+          "first_publication_instant_authenticated": false
+        }
+      ]
+    },
+    {
+      "issuer": "sz.002860",
+      "shard_id": "shard_0378",
+      "original_csv_sha256": "c1e9e5844abed70f2471cb337bf917f584f0029109aac7c0bfb80ae85ad1d188",
+      "claimed_halt_start": "2026-09-22",
+      "claimed_resume_day": "2026-10-14",
+      "st_removal_effective_day": null,
+      "unresolved_caveat": null,
+      "source_pdf_bytes_sha_verified": false,
+      "full_pit_tradability_verified": false,
+      "gap_resolved": false,
+      "feature_shard_promotion_authorized": false,
+      "documents": [
+        {
+          "kind": "halt_progress",
+          "announcement": "2026-044",
+          "date": "2026-09-30",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-09-30/1225586506.PDF",
+          "reference_class": "issuer_pdf_indexed",
+          "content_sha256": null,
+          "first_publication_instant_authenticated": false
+        },
+        {
+          "kind": "resume",
+          "announcement": "2026-047",
+          "date": "2026-10-14",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-10-14/1225604019.PDF",
+          "reference_class": "issuer_pdf_indexed",
+          "content_sha256": null,
+          "first_publication_instant_authenticated": false
+        }
+      ]
+    },
+    {
+      "issuer": "sz.002870",
+      "shard_id": "shard_0379",
+      "original_csv_sha256": "9f69a30a532df4e4178109d0c886f30c82e1f8fd1cf9e0fb3693f13582d3935a",
+      "claimed_halt_start": "2026-09-01",
+      "claimed_resume_day": "2026-09-15",
+      "st_removal_effective_day": null,
+      "unresolved_caveat": "复牌公告原始PDF文号及字节SHA仍待独立核实",
+      "source_pdf_bytes_sha_verified": false,
+      "full_pit_tradability_verified": false,
+      "gap_resolved": false,
+      "feature_shard_promotion_authorized": false,
+      "documents": [
+        {
+          "kind": "halt",
+          "announcement": "2026-068",
+          "date": "2026-09-01",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-09-01/1225538772.PDF",
+          "reference_class": "issuer_pdf_indexed",
+          "content_sha256": null,
+          "first_publication_instant_authenticated": false
+        },
+        {
+          "kind": "resume",
+          "announcement": "2026-unknown",
+          "date": "2026-09-15",
+          "url": "https://vip.stock.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?CompanyCode=80318402&gather=1&id=12601960",
+          "reference_class": "publisher_reprint",
+          "content_sha256": null,
+          "first_publication_instant_authenticated": false
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "phase": "P3_ISSUER_AUTHORED_HALT_RESUME_PDF_RESEARCH_REFERENCES",
+  "publisher_origin_independently_authenticated": false,
+  "pdf_original_bytes_sha_verified_in_this_audit": false,
+  "first_publication_instant_authenticated": false,
+  "historical_PIT_verified": false,
+  "trade_gate": "BLOCKED",
+  "orders": [],
+  "executable_candidates": [],
+  "pairs": [
+    {
+      "issuer": "sh.600293",
+      "shard": "shard_0027",
+      "original_csv_sha256": "f18062e301843b403e52aa4ca7dbac511579a6f9683da74b414451a8ab38d56c",
+      "vendor_suspended_rows_last_21": 10,
+      "halt_start": "2026-09-29",
+      "resume_day": "2026-10-20",
+      "docs": [
+        {
+          "announcement": "2026-031",
+          "date": "2026-09-29",
+          "kind": "halt",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-09-29/1225586063.PDF"
+        },
+        {
+          "announcement": "2026-036",
+          "date": "2026-10-20",
+          "kind": "resume",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-10-20/1225611307.PDF"
+        }
+      ]
+    },
+    {
+      "issuer": "sh.600301",
+      "shard": "shard_0027",
+      "original_csv_sha256": "2f163fecfb61ea758ecdbd98edb1d7a4b05c32172a78df31801ec3b9f3d5a5f4",
+      "vendor_suspended_rows_last_21": 5,
+      "halt_start": "2026-09-14",
+      "resume_day": "2026-09-21",
+      "docs": [
+        {
+          "announcement": "2026-054",
+          "date": "2026-09-19",
+          "kind": "resume",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-09-19/1225571318.PDF"
+        }
+      ]
+    },
+    {
+      "issuer": "sh.603400",
+      "shard": "shard_0161",
+      "original_csv_sha256": "d7d67226a1430bc3c0a56a4e48f08871f1a6dfb996043cc8f6d5c1523a6d60f5",
+      "vendor_suspended_rows_last_21": 10,
+      "halt_start": "2026-09-15",
+      "resume_day": "2026-09-30",
+      "docs": [
+        {
+          "announcement": "2026-051",
+          "date": "2026-09-30",
+          "kind": "resume",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-09-30/1225588894.PDF"
+        }
+      ]
+    }
+  ]
+}

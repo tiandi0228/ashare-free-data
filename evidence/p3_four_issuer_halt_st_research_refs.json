@@ -1,0 +1,97 @@
+{
+  "phase": "P3_FOUR_ISSUER_DATED_SOURCE_REFERENCES_WITH_ST_GUARD",
+  "source_epoch_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "source_documents_pdf_bytes_sha_verified": false,
+  "official_full_pit_halt_calendar_certified": false,
+  "st_trading_date_verified_via_issuer_notice_only": true,
+  "trade_gate": "BLOCKED",
+  "historical_PIT_verified": false,
+  "orders": [],
+  "executable_candidates": [],
+  "cases": [
+    {
+      "issuer": "sh.600363",
+      "shard": "shard_0033",
+      "original_csv_sha256": "e4c01fa609951f30d25ec28ff729fa862c4815eca4ae279c9d7aeb1940f0fee2",
+      "vendor_suspended_rows_last_21": 1,
+      "halt_start": "2026-09-29",
+      "resume_day": "2026-09-30",
+      "st_start": "2026-09-30",
+      "st_name": "ST联光",
+      "documents": [
+        {
+          "kind": "halt_st",
+          "notice": "2026-068",
+          "date": "2026-09-29",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-09-29/1225584110.PDF"
+        }
+      ]
+    },
+    {
+      "issuer": "sh.600825",
+      "shard": "shard_0078",
+      "original_csv_sha256": "63ae1dd1502c2340aea79be6144a58d2256ed7edeb8c72b3bc69f289eb673e8a",
+      "vendor_suspended_rows_last_21": 8,
+      "halt_start": "2026-10-13",
+      "resume_day": "2026-10-16",
+      "st_start": null,
+      "st_name": null,
+      "documents": [
+        {
+          "kind": "halt",
+          "notice": "2026-030",
+          "date": "2026-10-13",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-10-13/1225602155.PDF"
+        },
+        {
+          "kind": "resume",
+          "notice": "2026-031",
+          "date": "2026-10-16",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-10-16/1225607741.PDF"
+        }
+      ]
+    },
+    {
+      "issuer": "sh.603159",
+      "shard": "shard_0137",
+      "original_csv_sha256": "c36cfc0437a88c63a3f63385a147c8f203cb0fc29ea5086dd71f32607bc24eb2",
+      "vendor_suspended_rows_last_21": 3,
+      "halt_start": "2026-09-10",
+      "resume_day": "2026-09-17",
+      "st_start": null,
+      "st_name": null,
+      "documents": [
+        {
+          "kind": "resume",
+          "notice": "2026-026",
+          "date": "2026-09-17",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-09-17/1225568804.PDF"
+        }
+      ]
+    },
+    {
+      "issuer": "sh.605303",
+      "shard": "shard_0208",
+      "original_csv_sha256": "6c96135604c6cacdccc054c0babd022c3ac21488ab1c3597c7628f763b653688",
+      "vendor_suspended_rows_last_21": 10,
+      "halt_start": "2026-09-14",
+      "resume_day": "2026-09-29",
+      "st_start": null,
+      "st_name": null,
+      "documents": [
+        {
+          "kind": "halt",
+          "notice": "2026-040",
+          "date": "2026-09-12",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-09-12/1225560951.PDF"
+        },
+        {
+          "kind": "resume",
+          "notice": "2026-043",
+          "date": "2026-09-29",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-09-29/1225585581.PDF"
+        }
+      ]
+    }
+  ]
+}
