@@ -219,8 +219,6 @@ jobs:
     if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
-    env:
-      P2_SNAPSHOT_ROOT: ${{ runner.temp }}/p2-323-snapshot
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -228,6 +226,7 @@ jobs:
           python-version: '3.11'
       - name: Fetch immutable P1 and P2 snapshots
         run: |
+          P2_SNAPSHOT_ROOT="$RUNNER_TEMP/p2-323-snapshot"
           mkdir -p "$P2_SNAPSHOT_ROOT"
           pin() {
             git fetch --depth=1 origin "$2"
@@ -237,8 +236,8 @@ jobs:
           pin archive feb0ebef89ef5926d4d5597937cdbbbe340b5d9e
           pin coverage 41905adb1d20ed448fa2c34268ba9bb2d279d056
           pin previous 96d73ef5cfc596d4932489ac8eaa2bb9fae75f98
-      - name: Verify 96 source hashes and isolate the new issuer gap
-        run: python -m unittest -v tests.test_p2_323_archive_regression
+      - name: Verify 96 source hashes and reconcile the new issuer gap
+        run: P2_SNAPSHOT_ROOT="$RUNNER_TEMP/p2-323-snapshot" python -m unittest -v tests.test_p2_323_archive_regression
   replay_once:
     if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     needs: offline
