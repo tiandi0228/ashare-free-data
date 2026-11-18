@@ -1,0 +1,44 @@
+name: P2 durable catch-up readback (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/p2-durable-catchup-readback.yml'
+      - 'collector/p2_durable_catchup_readback.py'
+      - 'tests/test_p2_durable_catchup_readback.py'
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest tests.test_p2_durable_catchup_readback tests.test_p2_feature_coverage_ledger tests.test_p2_priority_archive_pages -v
+      - name: Reproduce shard 342 and the 128-receipt ledger
+        run: |
+          source=f435cd6ea65fd0f9fad3a30780b52914d8b670cf
+          archive=b588615aa0db3c72649e1adfaf227518cb5ce395
+          previous=78b06f88b9fb8beb93adf283d57571d3798c78ce
+          current=815701a2faa460aa3e4899a6de2d48a7a70b967a
+          git fetch --depth=1 origin "$source" "$archive" "$previous" "$current"
+          git worktree add --detach "$RUNNER_TEMP/source" "$source"
+          git worktree add --detach "$RUNNER_TEMP/archive" "$archive"
+          git worktree add --detach "$RUNNER_TEMP/previous" "$previous"
+          git worktree add --detach "$RUNNER_TEMP/current" "$current"
+          python -m collector.p2_durable_catchup_readback \
+            --source "$RUNNER_TEMP/source" --source-sha "$source" \
+            --archive "$RUNNER_TEMP/archive" --archive-sha "$archive" \
+            --previous "$RUNNER_TEMP/previous" --previous-sha "$previous" \
+            --current "$RUNNER_TEMP/current" --current-sha "$current" \
+            --epoch 5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022 \
+            --receipt-id 43815375404 > p2-catchup-readback.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p2-durable-catchup-readback
+          path: p2-catchup-readback.json
+          if-no-files-found: error
