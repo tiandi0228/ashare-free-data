@@ -1,0 +1,26 @@
+[
+  {
+    "kind": "PREVIOUSLY_REPORTED_NOT_REPLAYED_THIS_RUN",
+    "reported_day": "2026-11-10",
+    "feature_complete_shards": 200,
+    "observed_shards": 211
+  },
+  {
+    "kind": "PREVIOUSLY_REPORTED_NOT_REPLAYED_THIS_RUN",
+    "reported_day": "2026-11-10",
+    "feature_complete_shards": 202,
+    "observed_shards": 213
+  },
+  {
+    "kind": "PREVIOUSLY_REPORTED_NOT_REPLAYED_THIS_RUN",
+    "reported_day": "2026-11-11",
+    "feature_complete_shards": 214,
+    "observed_shards": 226
+  },
+  {
+    "kind": "PREVIOUSLY_REPORTED_NOT_REPLAYED_THIS_RUN",
+    "reported_day": "2026-11-11",
+    "feature_complete_shards": 215,
+    "observed_shards": 227
+  }
+]
