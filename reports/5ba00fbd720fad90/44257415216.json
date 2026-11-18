@@ -1,0 +1,142 @@
+{
+  "phase": "P2_PAGED_REAL_ARCHIVE_FEATURE_REPLAY",
+  "status": "PAGED_REAL_ARCHIVE_RESEARCH_ONLY",
+  "trade_gate": "BLOCKED",
+  "orders": [],
+  "executable_candidates": [],
+  "actionable_buy_signals": [],
+  "historical_PIT_verified": false,
+  "full_market_universe_verified": false,
+  "source_epoch_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "archive_commit_sha": "46c61592fb65e431f5d3d9f133f01bc413f11221",
+  "asof_completed_day": "2026-10-20",
+  "page_index": 15,
+  "total_pages": 21,
+  "selection_method": "PRIORITIZE_UNOBSERVED_ACROSS_PAGES",
+  "selected_page_indices": [
+    15
+  ],
+  "archived_shards_in_selected_epoch": 328,
+  "checkpoint_completed_shards": 328,
+  "checkpoint_total_shards": 400,
+  "selected_shards": [
+    "shard_0319"
+  ],
+  "processed_shards": 1,
+  "scoped_verified_issuers": 8,
+  "computed_feature_issuers": 8,
+  "missing_feature_evidence_issuers": 0,
+  "features": [
+    {
+      "issuer": "sz.002340",
+      "asof_completed_day": "2026-10-20",
+      "source_original_sha256": "a694d71c16a46bce99cddc48fa7396f653d7efce95bfe1280317eafe38a6356f",
+      "ma20_close_cny": "6.1165",
+      "last_close_cny": "5.9100",
+      "above_ma20": false,
+      "volume_vs_prior20_ratio": "0.6026",
+      "trailing20_close_drawdown_pct": "5.5911",
+      "sector": null,
+      "historical_st_and_company_actions_verified": false,
+      "buy_signal": false
+    },
+    {
+      "issuer": "sz.002342",
+      "asof_completed_day": "2026-10-20",
+      "source_original_sha256": "f07c9d710669df7b5389a707de61fb46198ef6ed092b63aba82865fdc6934966",
+      "ma20_close_cny": "7.6915",
+      "last_close_cny": "6.9000",
+      "above_ma20": false,
+      "volume_vs_prior20_ratio": "0.4730",
+      "trailing20_close_drawdown_pct": "20.5069",
+      "sector": null,
+      "historical_st_and_company_actions_verified": false,
+      "buy_signal": false
+    },
+    {
+      "issuer": "sz.002343",
+      "asof_completed_day": "2026-10-20",
+      "source_original_sha256": "f6b95cea84f55a091ee665d3fffcd2880882af1d705489d4cc3f7a5bce8edac1",
+      "ma20_close_cny": "6.7395",
+      "last_close_cny": "10.2500",
+      "above_ma20": true,
+      "volume_vs_prior20_ratio": "3.9323",
+      "trailing20_close_drawdown_pct": "0.0975",
+      "sector": null,
+      "historical_st_and_company_actions_verified": false,
+      "buy_signal": false
+    },
+    {
+      "issuer": "sz.002344",
+      "asof_completed_day": "2026-10-20",
+      "source_original_sha256": "3e5e46b227ceeb3e80e96c48580eba090a13542c4b1f859057efd7c5b491b111",
+      "ma20_close_cny": "3.9695",
+      "last_close_cny": "3.8600",
+      "above_ma20": false,
+      "volume_vs_prior20_ratio": "0.9390",
+      "trailing20_close_drawdown_pct": "5.3922",
+      "sector": null,
+      "historical_st_and_company_actions_verified": false,
+      "buy_signal": false
+    },
+    {
+      "issuer": "sz.002345",
+      "asof_completed_day": "2026-10-20",
+      "source_original_sha256": "97afc39eed6a772811f963865c27a5ede531c99a3c9e7401a2354e2f0198cbe9",
+      "ma20_close_cny": "8.5340",
+      "last_close_cny": "8.1700",
+      "above_ma20": false,
+      "volume_vs_prior20_ratio": "0.7447",
+      "trailing20_close_drawdown_pct": "9.0200",
+      "sector": null,
+      "historical_st_and_company_actions_verified": false,
+      "buy_signal": false
+    },
+    {
+      "issuer": "sz.002346",
+      "asof_completed_day": "2026-10-20",
+      "source_original_sha256": "db9bcb8edb688ffe688ffb884f7a0b97f785e36f72c190dbf154308d9a2cc171",
+      "ma20_close_cny": "17.7320",
+      "last_close_cny": "16.0500",
+      "above_ma20": false,
+      "volume_vs_prior20_ratio": "0.4744",
+      "trailing20_close_drawdown_pct": "16.2317",
+      "sector": null,
+      "historical_st_and_company_actions_verified": false,
+      "buy_signal": false
+    },
+    {
+      "issuer": "sz.002347",
+      "asof_completed_day": "2026-10-20",
+      "source_original_sha256": "27513702c8ff53736da4c9587d319db9a10d8ea2bc335733f1b508fc94a48264",
+      "ma20_close_cny": "6.0705",
+      "last_close_cny": "6.6100",
+      "above_ma20": true,
+      "volume_vs_prior20_ratio": "1.4698",
+      "trailing20_close_drawdown_pct": "0.0000",
+      "sector": null,
+      "historical_st_and_company_actions_verified": false,
+      "buy_signal": false
+    },
+    {
+      "issuer": "sz.002348",
+      "asof_completed_day": "2026-10-20",
+      "source_original_sha256": "4dcc11ef422211e306f337b5bf44315b9e8c979569f9153cf83f6099ff90bf33",
+      "ma20_close_cny": "10.0825",
+      "last_close_cny": "8.7300",
+      "above_ma20": false,
+      "volume_vs_prior20_ratio": "0.6729",
+      "trailing20_close_drawdown_pct": "20.7084",
+      "sector": null,
+      "historical_st_and_company_actions_verified": false,
+      "buy_signal": false
+    }
+  ],
+  "evidence_gaps": [],
+  "reasons": [
+    "BOUNDED_ARCHIVED_SHARD_SAMPLE_NOT_ALL_MARKET",
+    "RESEARCH_ARCHIVE_ORIGINALS_NOT_OFFICIAL_PIT",
+    "NO_SOURCE_CERTIFIED_SECTOR_CLASSIFICATION",
+    "NOT_AN_EXECUTABLE_STRATEGY_OR_RETURN_BACKTEST"
+  ]
+}
