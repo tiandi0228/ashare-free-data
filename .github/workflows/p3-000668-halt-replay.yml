@@ -1,0 +1,84 @@
+name: P3 000668 halt and resume original replay (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/p3-000668-halt-replay.yml'
+      - 'collector/p3_000668_halt_replay.py'
+      - 'collector/p3_publication_asof_gate.py'
+      - 'collector/p3_publication_proof_task_queue.py'
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'pypdf>=5,<7'
+      - name: Verify original notices and archive bars
+        run: |
+          set -euo pipefail
+          sha=7129bdd738de2030c2bd40cb5fa05c1d654fbd8d
+          git fetch --depth=1 origin "$sha"
+          mkdir p3-000668
+          git show "$sha:5ba00fbd720fad90/shard_0237/sz_000668.csv" > p3-000668/source.csv
+          curl -fsS --max-time 25 --max-filesize 4194304 'https://static.cninfo.com.cn/finalpage/2026-10-08/1225591961.PDF' -o p3-000668/halt.pdf
+          curl -fsS --max-time 25 --max-filesize 4194304 'https://disc.static.szse.cn/download/disc/disk03/finalpage/2026-10-13/a94b3320-be06-43d5-bbff-19649a5c627e.PDF' -o p3-000668/resume.pdf
+          python -m collector.p3_000668_halt_replay p3-000668/halt.pdf p3-000668/resume.pdf p3-000668/source.csv p3-000668/report.json
+          python - <<'PY'
+          import json, unittest
+          from pathlib import Path
+          from collector.p3_000668_halt_replay import DECISIONS, check_notices, check_vendor, replay
+
+          class RejectionTests(unittest.TestCase):
+              def test_notice_date_cannot_be_substituted(self):
+                  head = "证券代码：000668 证券简称：荣丰控股 公告编号："
+                  first = head + "2026-064 自2026年10月8日开市起停牌"
+                  last = head + "2026-066 自2026年10月12日开市起继续停牌 自2026年10月13日开市起复牌"
+                  check_notices(first, last)
+                  with self.assertRaisesRegex(ValueError, "effective-date"):
+                      check_notices(first, last.replace("13日", "14日"))
+              def test_vendor_changes_rejected(self):
+                  root = Path("p3-000668")
+                  raw = (root / "source.csv").read_bytes()
+                  with self.assertRaisesRegex(ValueError, "statuses"):
+                      check_vendor(raw.replace(b"2026-10-12,", b"2026-10-11,"))
+                  with self.assertRaisesRegex(ValueError, "digest"):
+                      replay(b"", b"", raw + b"x")
+              def test_modified_pdf_rejected_even_if_it_still_parses(self):
+                  root = Path("p3-000668")
+                  halt, resume, vendor = [(root / name).read_bytes() for name in ("halt.pdf", "resume.pdf", "source.csv")]
+                  for a, b in ((halt + b"\n", resume), (halt, resume + b"\n"), (resume, halt)):
+                      with self.assertRaisesRegex(ValueError, "PDF SHA-256 mismatch"):
+                          replay(a, b, vendor)
+              def test_report_does_not_promote_pit(self):
+                  report = json.loads(Path("p3-000668/report.json").read_bytes())
+                  self.assertEqual(report["trade_gate"], "BLOCKED")
+                  self.assertEqual([x["tradestatus"] for x in report["matched_vendor_rows"]], ["0","0","0","1"])
+                  self.assertTrue(report["official_pdf_digests_match_pinned_originals"])
+                  self.assertFalse(report["first_publication_time_verified"])
+                  self.assertFalse(report["historical_PIT_verified"])
+              def test_historical_openings_do_not_admit_later_evidence(self):
+                  report = json.loads(Path("p3-000668/report.json").read_bytes())
+                  cases = report["historical_decision_replay"]
+                  self.assertEqual(tuple(case["decision_beijing"] for case in cases), DECISIONS)
+                  for case in cases:
+                      with self.subTest(decision=case["decision_beijing"]):
+                          self.assertEqual(case["asof"]["known_event_count"], 0)
+                          self.assertFalse(case["asof"]["eligible_for_trading"])
+                          self.assertEqual({task["research_action"] for task in case["proof_queue"]["tasks"]},
+                                           {"AUTHENTICATE_OFFICIAL_FIRST_PUBLICATION_INSTANT"})
+                          self.assertEqual(len(case["proof_queue"]["tasks"]), 3)
+          unittest.main(verbosity=2)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p3-000668-halt-resume-evidence
+          path: p3-000668/
+          retention-days: 90
+          if-no-files-found: error
