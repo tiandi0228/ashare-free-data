@@ -1,0 +1,115 @@
+name: P4 pre-window evidence (NO TRADES)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'collector/p4_prewindow_evidence.py'
+      - 'tests/test_p4_prewindow_evidence.py'
+      - 'collector/p4_daily_evidence.py'
+      - 'tests/test_p4_daily_evidence.py'
+      - 'collector/p4_session_reconcile.py'
+      - 'tests/test_p4_session_reconcile.py'
+      - 'tests/test_p4_receipt_integration.py'
+      - 'collector/p4_disclosure_run_clock.py'
+      - 'tests/test_p4_disclosure_run_clock.py'
+      - 'collector/p4_prospective_handoff.py'
+      - '.github/workflows/p4-prewindow-evidence.yml'
+  workflow_dispatch:
+    inputs:
+      source_runs:
+        description: "Comma-separated P3 daily run IDs, at most 62; empty gives a calendar-only report"
+        required: false
+        type: string
+permissions:
+  contents: read
+  actions: read
+jobs:
+  corroborate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Corroborate frozen registration against GitHub timestamps
+        run: python -m collector.p4_prewindow_evidence --out p4-prewindow-evidence.json
+      - name: Verify rejection paths offline
+        run: python -m unittest tests.test_p4_prewindow_evidence tests.test_p4_daily_evidence tests.test_p4_session_reconcile tests.test_p4_receipt_integration tests.test_p4_disclosure_run_clock -v
+      - name: Build P4 session coverage report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUNS: ${{ inputs.source_runs }}
+          PIN_RUN: '43789424999'
+          PIN_JOB: '133044247886'
+        run: |
+          python - <<'PY'
+          import hashlib, json, os, re, subprocess
+          from datetime import datetime, timezone
+          from pathlib import Path
+          from collector.p4_session_reconcile import attach_run_provenance, reconcile, render_actions_summary
+          from collector.p4_disclosure_run_clock import read_bound_zip, verify as verify_run_clock
+
+          repo = os.environ["GITHUB_REPOSITORY"]
+          ids = [value.strip() for value in os.environ.get("SOURCE_RUNS", "").split(",")]
+          if ids == [""]:
+              ids = []
+          if len(ids) > 62 or len(ids) != len(set(ids)) or not all(re.fullmatch(r"[1-9][0-9]{0,19}", i) for i in ids):
+              raise ValueError("invalid or duplicate source run IDs")
+          def read(endpoint):
+              return json.loads(subprocess.check_output(["gh", "api", f"repos/{repo}/actions/{endpoint}"], timeout=15))
+          run = read(f'runs/{os.environ["PIN_RUN"]}')
+          job = read(f'jobs/{os.environ["PIN_JOB"]}')
+          from collector.p4_prewindow_evidence import HEAD, MANIFEST, get
+          manifest = get(f"https://raw.githubusercontent.com/{repo}/{HEAD}/{MANIFEST}")
+          submissions = []
+          run_clock_checks = []
+          for run_id in ids:
+              meta = read(f"runs/{run_id}")
+              if (meta["repository"]["full_name"] != repo or meta["head_branch"] != "main"
+                      or meta["path"] != ".github/workflows/p3-prospective-official-observation.yml"
+                      or meta["status"] != "completed" or meta["conclusion"] != "success"):
+                  raise ValueError(f"not a successful main-branch disclosure run: {run_id}")
+              name = f'p4-registered-disclosure-{run_id}-{meta["run_attempt"]}'
+              attempt = meta["run_attempt"]
+              attempt_meta = read(f"runs/{run_id}/attempts/{attempt}")
+              matches = read(f"runs/{run_id}/artifacts?name={name}")["artifacts"]
+              if len(matches) != 1:
+                  raise ValueError(f"expected one named disclosure artifact: {run_id}")
+              artifact = matches[0]
+              artifact_id = artifact.get("id")
+              if type(artifact_id) is not int or artifact_id < 1:
+                  raise ValueError("invalid Actions artifact ID")
+              raw = subprocess.check_output(
+                  ["gh", "api", f"repos/{repo}/actions/artifacts/{artifact_id}/zip"], timeout=30)
+              record, source = read_bound_zip(artifact, raw)
+              run_clock_checks.append(verify_run_clock(
+                  attempt_meta, artifact, record, repo=repo, run_id=int(run_id),
+                  attempt=attempt, head_sha=meta["head_sha"]))
+              run_clock_checks[-1].update(verified_zip_digest=artifact["digest"],
+                                          session_date=record["session_date"],
+                                          source_sha256=hashlib.sha256(source).hexdigest())
+              submissions.append((record, source))
+          result = reconcile(run, job, manifest, submissions, datetime.now(timezone.utc))
+          result = attach_run_provenance(result, run_clock_checks)
+          result["source_run_ids"] = ids
+          result["source_run_clock_checks"] = run_clock_checks
+          with Path("p4-session-coverage.json").open("x") as out:
+              json.dump(result, out, indent=2)
+          summary = render_actions_summary(result)
+          Path("p4-session-summary.md").write_text(summary, encoding="utf-8")
+          with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as out:
+              out.write(summary)
+          print(json.dumps(result["counts"]))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p4-prewindow-evidence
+          path: |
+            p4-prewindow-evidence.json
+            p4-session-coverage.json
+            p4-session-summary.md
+          if-no-files-found: error
+          retention-days: 90
