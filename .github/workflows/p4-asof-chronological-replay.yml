@@ -1,0 +1,65 @@
+name: P4 chronological replay (NO TRADES)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'collector/p4_asof_chronological_replay.py'
+      - 'collector/p2_independent_bars.py'
+      - 'tests/test_p4_asof_chronological_replay.py'
+      - '.github/workflows/p4-asof-chronological-replay.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p4_asof_chronological_replay.py'
+      - 'collector/p2_independent_bars.py'
+      - 'tests/test_p4_asof_chronological_replay.py'
+      - '.github/workflows/p4-asof-chronological-replay.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  chronological-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test signal-time isolation and immutable source
+        run: python -m unittest tests.test_p4_asof_chronological_replay -v
+      - name: Replay pinned original archive as research evidence
+        env:
+          ARCHIVE_COMMIT: 7028eb4c9cc7f23add64958bc6f2611565476538
+        run: |
+          git fetch --depth=1 origin "$ARCHIVE_COMMIT"
+          git worktree add --detach archived-research "$ARCHIVE_COMMIT"
+          python -m collector.p4_asof_chronological_replay \
+            --root archived-research --archive-commit "$ARCHIVE_COMMIT" \
+            --epoch 5ba00fbd720fad90 --train-end 2026-06-30 \
+            --validation-start 2026-07-08 --validation-end 2026-10-20 \
+            --out p4-asof-chronological-replay.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = json.loads(Path("p4-asof-chronological-replay.json").read_text())
+          assert report["status"] == "VENDOR_REPLAY_NOT_CERTIFIED_OOS"
+          assert report["checked_issuers"] == report["issuer_prefix_checks_passed"] == 2114
+          count = report["holdout_signal_count"]
+          assert count == len(report["events"]) == 9123
+          assert report["holdout_events_compared_in_prefix"] > 0
+          assert report["holdout_events_after_prefix"] > 0
+          assert report["holdout_events_compared_in_prefix"] + report["holdout_events_after_prefix"] == count
+          assert all(sum(outcomes.values()) == count for outcomes in report["forward_availability_counts"].values())
+          assert report["trade_gate"] == "BLOCKED"
+          assert report["orders"] == report["executable_candidates"] == []
+          assert report["broker_fills_verified"] == 0
+          assert not report["trade_returns_computed"] and not report["historical_OOS_validated"]
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p4-asof-chronological-replay
+          path: p4-asof-chronological-replay.json
+          if-no-files-found: error
+          retention-days: 14
