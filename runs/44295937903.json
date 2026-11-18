@@ -1,0 +1,82 @@
+{
+  "audited_issuer_count": 2650,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 0,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sz.000582"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603435"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603439"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 44295423828,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 23520,
+  "research_date_action_links": [],
+  "run_id": 44295937903,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225320972",
+      "archive_path": "pdf/sh_603435/1225320972/e251f92afd01a8b37ddc71f85974d60dab2d84e0f505ebf3e4a9b3c6e4edc8a7.pdf",
+      "bytes": 1320052,
+      "captured_at_utc": "2026-11-18T11:35:14.868229+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1779292800000,
+      "issuer": "sh.603435",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-05-21/1225320972.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "e251f92afd01a8b37ddc71f85974d60dab2d84e0f505ebf3e4a9b3c6e4edc8a7",
+      "title_from_index_unverified": "嘉德利首次公开发行股票主板上市公告书"
+    },
+    {
+      "announcement_id": "1225562491",
+      "archive_path": "pdf/sh_603439/1225562491/e1db4def2209725559070bb9d6ada7b31af3239491128e8712199c1f9c81d790.pdf",
+      "bytes": 131768,
+      "captured_at_utc": "2026-11-18T11:35:15.454871+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1789401600000,
+      "issuer": "sh.603439",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-15/1225562491.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "e1db4def2209725559070bb9d6ada7b31af3239491128e8712199c1f9c81d790",
+      "title_from_index_unverified": "贵州三力制药股份有限公司关于股票交易异常波动的公告"
+    },
+    {
+      "announcement_id": "1225569894",
+      "archive_path": "pdf/sz_000582/1225569894/baa845275cb937b02da4678eb929eda36fc72d28b5ff5f7124614580c5258db5.pdf",
+      "bytes": 335213,
+      "captured_at_utc": "2026-11-18T11:35:14.215342+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1789660800000,
+      "issuer": "sz.000582",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-18/1225569894.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "baa845275cb937b02da4678eb929eda36fc72d28b5ff5f7124614580c5258db5",
+      "title_from_index_unverified": "关于与广西北港规划设计院有限公司签订工程设计合同涉及关联交易的公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
