@@ -1,0 +1,82 @@
+{
+  "audited_issuer_count": 2898,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 0,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603759"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603588"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603589"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 44638392386,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 25740,
+  "research_date_action_links": [],
+  "run_id": 44638595309,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225606589",
+      "archive_path": "pdf/sh_603588/1225606589/39dc63e277c626d8928c6ec8ff77d769d80ae3954a9f57e7874634bf10727c9a.pdf",
+      "bytes": 151075,
+      "captured_at_utc": "2026-11-19T23:33:32.373590+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1792080000000,
+      "issuer": "sh.603588",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-16/1225606589.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "39dc63e277c626d8928c6ec8ff77d769d80ae3954a9f57e7874634bf10727c9a",
+      "title_from_index_unverified": "高能环境关于拟变更证券简称的公告"
+    },
+    {
+      "announcement_id": "1225564638",
+      "archive_path": "pdf/sh_603589/1225564638/659e92a76cc0f5c257f7ea9485d8108148439156a5f93fd25c4c60d485fe78bf.pdf",
+      "bytes": 120006,
+      "captured_at_utc": "2026-11-19T23:33:32.688533+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1789488000000,
+      "issuer": "sh.603589",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-16/1225564638.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "659e92a76cc0f5c257f7ea9485d8108148439156a5f93fd25c4c60d485fe78bf",
+      "title_from_index_unverified": "安徽口子酒业股份有限公司关于股东部分股份解除质押的公告"
+    },
+    {
+      "announcement_id": "1225602844",
+      "archive_path": "pdf/sh_603759/1225602844/395604493e9e1088b759fc45c75474d79db275112a1d13f3ba0ebabd4697cda8.pdf",
+      "bytes": 63642,
+      "captured_at_utc": "2026-11-19T23:33:32.089051+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1791907200000,
+      "issuer": "sh.603759",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-14/1225602844.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "395604493e9e1088b759fc45c75474d79db275112a1d13f3ba0ebabd4697cda8",
+      "title_from_index_unverified": "关于证券事务代表辞职的公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
