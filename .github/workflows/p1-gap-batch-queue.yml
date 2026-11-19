@@ -162,6 +162,39 @@ jobs:
           assert refresh["recheck_required_before_dispatch"] and not refresh["dispatch_performed"]
           assert r["trade_gate"] == "BLOCKED" and r["orders"] == [] and r["archive_writes"] == 0
           PYCODE
+      - name: Verify 344 archived shards and retire the stale 249–250 selection
+        run: |
+          main=eb5ee15664c5121ae3ec9340e254df11513f0268
+          archive=4699695862bf935f26d669be5ec68e6e456fef5b
+          git fetch --depth=1 origin "$main" "$archive"
+          git worktree add --detach "$RUNNER_TEMP/p1-archive-344" "$archive"
+          python -m collector.p1_gap_batch_queue --main-sha "$main" --archive-sha "$archive" \
+            --replay-checkout "$RUNNER_TEMP/p1-archive-344" --refresh-selection 249 250 \
+            --expected-epoch 5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022 > p1-tracked-shards-344.json
+          python - <<'PYNEW'
+          import json
+          from pathlib import Path
+          from collector.p1_gap_batch_queue import refresh_preview
+
+          r = json.loads(Path("p1-tracked-shards-344.json").read_bytes())
+          assert (r["completed_shards"], r["total_shards"], r["pending_shards"]) == (344, 400, 56)
+          assert r["pending_issuers"] == 448
+          assert r["archive_original_csvs_replayed"] and r["archive_index_parity_checked"]
+          assert r["archive_replay"]["archived_issuers"] == 2746
+          assert r["archive_replay"]["repair_shard_count"] == 0
+          stale = r["refreshed_selection"]
+          assert stale["already_archived_shards"] == [249, 250] and not stale["remaining_shards"]
+          assert stale["dispatch_preview"] is None and not stale["dispatch_performed"]
+          overlap = refresh_preview(r, [253, 254], r["source_sha256"])
+          assert overlap["already_archived_shards"] == [253] and overlap["remaining_shards"] == [254]
+          assert overlap["dispatch_preview"] == {"gap_window": "254:254", "shards_per_run": "1"}
+          fresh = refresh_preview(r, [254, 255], r["source_sha256"])
+          assert r["batches"][0]["shard_indices"] == fresh["remaining_shards"] == [254, 255]
+          assert r["batches"][0]["expected_issuers"] == 16
+          assert fresh["dispatch_preview"] == {"gap_window": "254:255", "shards_per_run": "2"}
+          assert fresh["recheck_required_before_dispatch"] and not fresh["dispatch_performed"]
+          assert r["trade_gate"] == "BLOCKED" and r["orders"] == [] and r["archive_writes"] == 0
+          PYNEW
       - uses: actions/upload-artifact@v4
         with:
           name: p1-pinned-gap-batch-queue
@@ -172,6 +205,7 @@ jobs:
             p1-tracked-shards.json
             p1-tracked-shards-311.json
             p1-tracked-shards-323.json
+            p1-tracked-shards-344.json
           if-no-files-found: error
 
   vendor-preflight:
