@@ -1576,6 +1576,12 @@
       "receipt_sha256": "a87a7b3c7f032d024c316515c283382707464d7d5b680db6cb2a71085a6dc539"
     },
     {
+      "index": 298,
+      "manifest_sha256": "1718541b7f1b8a46754588d72efb64d4694457d5a3f82654d1ec252aca4863a9",
+      "issuer_count": 8,
+      "receipt_sha256": "0ae51101040ec4000733d783a440955888907c96f3bded00e9053af9d6315516"
+    },
+    {
       "index": 299,
       "manifest_sha256": "b64a4c1d77a2beaa5728a68322d2ff26b7e234cecd886378b49a9007cb2c7c0c",
       "issuer_count": 8,
@@ -2182,8 +2188,8 @@
       "receipt_sha256": "a99567d0752a7e633d95cf7341637126d171b7d32387a58a6777417037ee1e1c"
     }
   ],
-  "completed_shards": 363,
-  "completed_issuers": 2898,
+  "completed_shards": 364,
+  "completed_issuers": 2906,
   "pending_shards": [
     262,
     263,
@@ -2220,8 +2226,7 @@
     294,
     295,
     296,
-    297,
-    298
+    297
   ],
   "failed_in_this_reconciliation": [],
   "next_shard": 262,
