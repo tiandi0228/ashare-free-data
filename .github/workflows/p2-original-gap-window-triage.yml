@@ -7,6 +7,7 @@ on:
       - 'collector/p2_coverage_display.py'
       - 'collector/p2_catchup_status.py'
       - 'tests/test_p2_catchup_status.py'
+      - 'tests/test_p2_catchup_status_archive.py'
       - 'tests/test_p2_coverage_display.py'
       - 'tests/test_p2_323_archive_regression.py'
       - 'tests/test_p2_332_archive_delta.py'
@@ -33,6 +34,7 @@ on:
       - 'collector/p2_coverage_display.py'
       - 'collector/p2_catchup_status.py'
       - 'tests/test_p2_catchup_status.py'
+      - 'tests/test_p2_catchup_status_archive.py'
       - 'tests/test_p2_coverage_display.py'
       - 'tests/test_p2_323_archive_regression.py'
       - 'tests/test_p2_332_archive_delta.py'
@@ -270,6 +272,30 @@ jobs:
           pin current/archive 750f26461fa3ab9d221cb8afd92b8d29ede8492c
           pin current/coverage d032b95658081f6bcda34f373c33605233b93a13
           python -m unittest -v tests.test_p2_332_archive_delta
+  catchup_report_regression:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compare real stale and current coverage without writing either ledger
+        run: |
+          git fetch --depth=1 origin \
+            fe6763fa761545dd4ca8cb950179ab8e354091b2 \
+            9f8b580637944e4172e8d42373174e072def49c5 \
+            0940259f89a742b7d226ad259e9853a2b81d7062 \
+            3f07029af2bf68aa94dd363d9851ebf6c0fff3c2
+          P2_CATCHUP_ARCHIVE_REPORT=p2-catchup-regression.json python -m unittest -v tests.test_p2_catchup_status_archive
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p2-catchup-regression-346-to-363
+          path: p2-catchup-regression.json
+          if-no-files-found: error
   replay_once:
     if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     needs: offline
