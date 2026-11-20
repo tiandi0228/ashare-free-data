@@ -5,6 +5,8 @@ on:
       - 'collector/p2_original_gap_window_triage.py'
       - 'collector/p2_gap_disposition.py'
       - 'collector/p2_coverage_display.py'
+      - 'collector/p2_catchup_status.py'
+      - 'tests/test_p2_catchup_status.py'
       - 'tests/test_p2_coverage_display.py'
       - 'tests/test_p2_323_archive_regression.py'
       - 'tests/test_p2_332_archive_delta.py'
@@ -29,6 +31,8 @@ on:
       - 'collector/p2_original_gap_window_triage.py'
       - 'collector/p2_gap_disposition.py'
       - 'collector/p2_coverage_display.py'
+      - 'collector/p2_catchup_status.py'
+      - 'tests/test_p2_catchup_status.py'
       - 'tests/test_p2_coverage_display.py'
       - 'tests/test_p2_323_archive_regression.py'
       - 'tests/test_p2_332_archive_delta.py'
@@ -56,7 +60,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest -v tests.test_p2_coverage_display tests.test_p2_gap_disposition tests.test_p2_regression_artifact tests.test_p2_gap_disposition_archive_integration tests.test_p2_original_gap_window_triage tests.test_p2_real_archive_features tests.test_p2_p3_current_source_guard tests.test_p2_gap_workflow_epoch_binding tests.test_p1_active_migration_checkpoint
+      - run: python -m unittest -v tests.test_p2_catchup_status tests.test_p2_coverage_display tests.test_p2_gap_disposition tests.test_p2_regression_artifact tests.test_p2_gap_disposition_archive_integration tests.test_p2_original_gap_window_triage tests.test_p2_real_archive_features tests.test_p2_p3_current_source_guard tests.test_p2_gap_workflow_epoch_binding tests.test_p1_active_migration_checkpoint
   pinned_archive_regression:
     if: github.event_name == 'pull_request'
     needs: offline
@@ -291,6 +295,7 @@ jobs:
           from pathlib import Path
           from collector.p2_original_gap_window_triage import check_current_checkpoint
           from collector.p1_active_migration_checkpoint import resolve
+          from collector.p2_catchup_status import inspect
           selected=resolve(Path('.'))
           epoch=selected['source_sha256']
           checkpoint_path=Path(selected['checkpoint_path'])
@@ -301,6 +306,9 @@ jobs:
           checkpoint=json.loads(checkpoint_path.read_text())
           coverage=json.loads(coverage_path.read_text())
           status=json.loads((source/'archive_status.json').read_text())
+          catchup=inspect(coverage,checkpoint,status)
+          Path("evidence/p2-catchup-status.json").write_text(json.dumps(catchup, indent=2) + "\n")
+          print("P2 archive catch-up:", json.dumps(catchup))
           witness=check_current_checkpoint(coverage,checkpoint,status)
           assert witness['trade_gate']=='BLOCKED'
           subprocess.run(['python','-m','collector.p2_original_gap_window_triage',
@@ -336,5 +344,6 @@ jobs:
             evidence/p2-original-gap-triage.json
             evidence/p2-gap-disposition.json
             evidence/p2-coverage-display.json
+            evidence/p2-catchup-status.json
           retention-days: 14
           if-no-files-found: warn
