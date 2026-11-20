@@ -1,0 +1,101 @@
+{
+  "audited_issuer_count": 2938,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 1,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.600293"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603602"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603605"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 44702505858,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 26108,
+  "research_date_action_links": [
+    {
+      "announcement_id": "1225586063",
+      "claimed_index_publication_utc_unverified": "2026-09-28T16:00:00+00:00",
+      "decision_day": "2026-09-29",
+      "decision_time_available_certified": false,
+      "effective_date_authenticated": false,
+      "event_kind": "halt",
+      "first_publication_authenticated": false,
+      "index_time_screen": "INDEX_TIME_NOT_AFTER_DECISION_CLOSE_UNVERIFIED",
+      "issuer": "sh.600293",
+      "local_textual_direction_candidate": "HALT_START",
+      "original_pdf_sha256": "8107cc4d7ecedc8c57d18e8edc8ac6f0e3a8bfa0b49e811c4d2a4b8fa1c8e0b9",
+      "source_clause_excerpt": "证券代码：600293）自2026年9月29日（星期二）开市起开始停牌",
+      "source_date_text": "2026年9月29日",
+      "source_shard": 27,
+      "vendor_csv_sha256": "f18062e301843b403e52aa4ca7dbac511579a6f9683da74b414451a8ab38d56c",
+      "vendor_tradestatus_observed": "0"
+    }
+  ],
+  "run_id": 44702841168,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225586063",
+      "archive_path": "pdf/sh_600293/1225586063/8107cc4d7ecedc8c57d18e8edc8ac6f0e3a8bfa0b49e811c4d2a4b8fa1c8e0b9.pdf",
+      "bytes": 106010,
+      "captured_at_utc": "2026-11-20T08:29:06.792580+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1790611200000,
+      "issuer": "sh.600293",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-29/1225586063.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "8107cc4d7ecedc8c57d18e8edc8ac6f0e3a8bfa0b49e811c4d2a4b8fa1c8e0b9",
+      "title_from_index_unverified": "湖北三峡新型建材股份有限公司关于筹划发行股份及支付现金购买资产的停牌公告"
+    },
+    {
+      "announcement_id": "1225591943",
+      "archive_path": "pdf/sh_603602/1225591943/92b6d38afa27e466eccd0a4f2df53456ece4a224383bde2ba163c1942eee3d73.pdf",
+      "bytes": 149204,
+      "captured_at_utc": "2026-11-20T08:29:07.611948+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1790784000000,
+      "issuer": "sh.603602",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-01/1225591943.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "92b6d38afa27e466eccd0a4f2df53456ece4a224383bde2ba163c1942eee3d73",
+      "title_from_index_unverified": "纵横通信关于召开2026年第二次临时股东会的通知"
+    },
+    {
+      "announcement_id": "1225600430",
+      "archive_path": "pdf/sh_603605/1225600430/922e98cc4995789055b49870a124d0472efef3c614af0e85c0589d6d2c870d78.pdf",
+      "bytes": 310589,
+      "captured_at_utc": "2026-11-20T08:29:08.109949+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1791734400000,
+      "issuer": "sh.603605",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-12/1225600430.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "922e98cc4995789055b49870a124d0472efef3c614af0e85c0589d6d2c870d78",
+      "title_from_index_unverified": "国浩律师（杭州）事务所关于珀莱雅化妆品股份有限公司2026年半年度差异化分红事项之法律意见书"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
