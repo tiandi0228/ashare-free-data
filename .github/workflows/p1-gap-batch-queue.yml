@@ -20,7 +20,7 @@ permissions:
 jobs:
   replay:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
         with:
@@ -195,6 +195,53 @@ jobs:
           assert fresh["recheck_required_before_dispatch"] and not fresh["dispatch_performed"]
           assert r["trade_gate"] == "BLOCKED" and r["orders"] == [] and r["archive_writes"] == 0
           PYNEW
+      - name: Replay latest live P1 checkpoint against matching research archive (NO WRITES)
+        run: |
+          set -euo pipefail
+          # Exact branch tips are recorded before any replay; no floating refs are used in the audit.
+          main_sha="$(git ls-remote origin refs/heads/main | cut -f1)"
+          archive_sha="$(git ls-remote origin refs/heads/research-csv-archive | cut -f1)"
+          [[ "$main_sha" =~ ^[0-9a-f]{40}$ && "$archive_sha" =~ ^[0-9a-f]{40}$ ]]
+          git fetch --no-tags --depth=1 origin "$main_sha" "$archive_sha"
+          git worktree add --detach "$RUNNER_TEMP/p1-latest-archive" "$archive_sha"
+          python -m collector.p1_gap_batch_queue --main-sha "$main_sha" --archive-sha "$archive_sha" \
+            --replay-checkout "$RUNNER_TEMP/p1-latest-archive" > p1-current-gap-batch-queue.json
+          python - <<'PYLIVE'
+          import json
+          import os
+          from pathlib import Path
+
+          report = json.loads(Path("p1-current-gap-batch-queue.json").read_bytes())
+          pending = [i for batch in report["batches"] for i in batch["shard_indices"]]
+          assert report["source_sha256"] == "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022"
+          assert report["total_shards"] == 400
+          assert report["completed_shards"] >= 383, "P1 archive has regressed below verified 383"
+          assert report["completed_shards"] + report["pending_shards"] == 400
+          assert len(pending) == len(set(pending)) == report["pending_shards"]
+          assert report["archive_index_parity_checked"] and report["archive_original_csvs_replayed"]
+          assert report["archive_replay"]["repair_shard_count"] == 0
+          assert report["trade_gate"] == "BLOCKED"
+          assert not report["permission_to_write_or_trade"] and report["orders"] == []
+          assert report["vendor_requests"] == report["archive_writes"] == 0
+          for batch in report["batches"]:
+              indices = batch["shard_indices"]
+              assert 1 <= len(indices) <= 2
+              assert batch["dispatch_preview"] == {
+                  "gap_window": f"{indices[0]}:{indices[-1]}",
+                  "shards_per_run": str(len(indices)),
+              }
+          lines = [
+              "### P1 latest read-only archive replay",
+              f"- Completed: {report['completed_shards']}/400; missing: {report['pending_shards']}",
+              f"- Frozen main SHA: \`{report['main_commit']}\`",
+              f"- Frozen archive SHA: \`{report['archive_commit']}\`",
+              f"- Original CSV replay: PASS; trade gate: BLOCKED; no vendor requests or writes",
+              f"- Next checked batch: {pending[:2] if pending else 'none'}",
+              "- These are preview inputs only. Each dispatch requires a fresh remote recheck.",
+          ]
+          with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a") as f:
+              f.write("\n".join(lines) + "\n")
+          PYLIVE
       - uses: actions/upload-artifact@v4
         with:
           name: p1-pinned-gap-batch-queue
@@ -206,6 +253,7 @@ jobs:
             p1-tracked-shards-311.json
             p1-tracked-shards-323.json
             p1-tracked-shards-344.json
+            p1-current-gap-batch-queue.json
           if-no-files-found: error
 
   vendor-preflight:
