@@ -1,0 +1,354 @@
+name: P1 pinned missing shard queue (NO WRITES)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/p1-gap-batch-queue.yml'
+      - 'collector/p1_gap_batch_queue.py'
+      - 'collector/p1_gap_probe_fingerprint.py'
+      - 'collector/p1_single_gap_acceptance.py'
+      - 'tests/test_p1_single_gap_acceptance.py'
+      - 'tests/test_p1_gap_probe_fingerprint.py'
+      - 'tests/fixtures/p1/probe_run_43820286717.json'
+      - 'tests/fixtures/p1/probe_run_44029438652.json'
+      - 'collector/p1_archive_audit.py'
+      - 'collector/p1_gap_batch_readback.py'
+      - 'tests/test_p1_gap_batch_readback.py'
+      - 'tests/test_p1_gap_batch_queue.py'
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest tests.test_p1_single_gap_acceptance tests.test_p1_gap_probe_fingerprint tests.test_p1_gap_batch_readback tests.test_p1_gap_batch_queue tests.test_p1_live_gap_rehearsal tests.test_p1_prewrite_gap_guard -v
+      - name: Replay pinned roster, checkpoint and actual archive directories
+        run: |
+          main=e401c89bc7d89413a436870babeb8004a7e9cb32
+          archive=9928ba76ceaeac72506a3e6d4af63bac8d98c279
+          git fetch --depth=8 origin "$main" "$archive"
+          git worktree add --detach "$RUNNER_TEMP/p1-archive" "$archive"
+          python -m collector.p1_gap_batch_queue --main-sha "$main" --archive-sha "$archive" \
+            --replay-checkout "$RUNNER_TEMP/p1-archive" > p1-gap-batch-queue.json
+      - name: Reconcile read-only probe with later archive and frozen roster
+        run: |
+          main_before=f435cd6ea65fd0f9fad3a30780b52914d8b670cf
+          archive_before=b588615aa0db3c72649e1adfaf227518cb5ce395
+          git fetch --depth=8 origin "$main_before" "$archive_before"
+          git worktree add --detach "$RUNNER_TEMP/p1-prior-archive" "$archive_before"
+          python -m collector.p1_gap_batch_readback \
+            --main-before "$main_before" --main-after e401c89bc7d89413a436870babeb8004a7e9cb32 \
+            --archive-before "$archive_before" --archive-after 9928ba76ceaeac72506a3e6d4af63bac8d98c279 \
+            --checkout-before "$RUNNER_TEMP/p1-prior-archive" --checkout-after "$RUNNER_TEMP/p1-archive" \
+            --selected 231 232 > p1-gap-readback.json
+          python - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          from tempfile import TemporaryDirectory
+          from collector.p1_fresh_shard_plan import plan
+          from collector.p1_gap_probe_fingerprint import compare_historical_probe
+          from collector.p1_roster_lock import unpack
+
+          readback = json.loads(Path("p1-gap-readback.json").read_bytes())
+          assert readback["unrelated_new_shards"] == [341]
+          lock = json.loads(subprocess.check_output([
+              "git", "show", readback["main_after"] + ":evidence/p1_active_roster.json",
+          ]))
+          raw, receipt = unpack(lock)
+          archive_epoch = Path(os.environ["RUNNER_TEMP"]) / "p1-archive" / lock["source_sha256"][:16]
+          quality = json.loads((archive_epoch / "shard_0231" / "quality.json").read_bytes())
+          with TemporaryDirectory() as tmp:
+              root = Path(tmp)
+              csv = root / "roster.csv"
+              csv.write_bytes(raw)
+              manifests = root / "shards"
+              frozen = plan(csv, manifests, receipt["requested_day"])
+              result = compare_historical_probe(
+                  Path("tests/fixtures/p1/probe_run_43820286717.json").read_bytes(),
+                  readback, quality, frozen, manifests,
+              )
+          Path("p1-gap-probe-readback.json").write_text(json.dumps(result, indent=2) + "\n")
+          PY
+      - name: Classify tracked shards against the 305-shard snapshot
+        run: |
+          main=7af0c126ccdbda363865b94fb5b2bfd03369be6a
+          archive=7129bdd738de2030c2bd40cb5fa05c1d654fbd8d
+          git fetch --depth=1 origin "$main" "$archive"
+          git worktree add --detach "$RUNNER_TEMP/p1-archive-305" "$archive"
+          python -m collector.p1_gap_batch_queue --main-sha "$main" --archive-sha "$archive" \
+            --replay-checkout "$RUNNER_TEMP/p1-archive-305" --track 238 239 240 \
+            --probe tests/fixtures/p1/probe_run_44029438652.json --refresh-selection 232 238 \
+            --expected-epoch 5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022 > p1-tracked-shards.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("p1-tracked-shards.json").read_bytes())
+          assert report["completed_shards"] == 305 and report["pending_shards"] == 95
+          assert report["archive_original_csvs_replayed"]
+          assert report["batches"][0]["shard_indices"][0] == 238
+          refresh = report["refreshed_selection"]
+          assert refresh["already_archived_shards"] == [232]
+          assert refresh["remaining_shards"] == [238]
+          assert refresh["dispatch_preview"] == {"gap_window": "238:238", "shards_per_run": "1"}
+          assert refresh["dispatch_performed"] is False
+          assert [(r["index"], r["status"]) for r in report["tracked_shards"]] == [
+              (238, "PREPROBED_NOT_ARCHIVED"), (239, "PREPROBED_NOT_ARCHIVED"),
+              (240, "PENDING_NO_MATCH_IN_PINNED_PROBE"),
+          ]
+          PY
+      - name: Verify both preprobed shards in the 311-shard archive
+        run: |
+          main=8b338c234b970c750fa3e491b221ed6802072db9
+          archive=d208438dc67505d60186ebf9b1f2907ed858f563
+          git fetch --depth=1 origin "$main" "$archive"
+          git worktree add --detach "$RUNNER_TEMP/p1-archive-311" "$archive"
+          python -m collector.p1_gap_batch_queue --main-sha "$main" --archive-sha "$archive" \
+            --replay-checkout "$RUNNER_TEMP/p1-archive-311" --track 238 239 240 \
+            --probe tests/fixtures/p1/probe_run_44029438652.json --refresh-selection 238 239 \
+            --expected-epoch 5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022 > p1-tracked-shards-311.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path("p1-tracked-shards-311.json").read_bytes())
+          assert (r["completed_shards"], r["pending_shards"]) == (311, 89)
+          assert r["archive_original_csvs_replayed"] and r["trade_gate"] == "BLOCKED"
+          assert r["batches"][0]["shard_indices"][0] == 240
+          first, second, pending = r["tracked_shards"]
+          for item, expected_index in ((first, 238), (second, 239)):
+              assert item["index"] == expected_index and item["status"] == "ARCHIVED_IN_PINNED_SNAPSHOT"
+              proof = item["archive_fingerprint_comparison"]
+              assert proof["status"] == "CSV_DIGESTS_MATCH"
+              assert proof["matching_count"] == 8 and proof["changed_issuers"] == []
+          assert pending["index"] == 240 and pending["archive_fingerprint_comparison"] is None
+          refresh = r["refreshed_selection"]
+          assert refresh["already_archived_shards"] == [238, 239] and refresh["remaining_shards"] == []
+          assert refresh["dispatch_preview"] is None and not refresh["dispatch_performed"]
+          PY
+      - name: Replay all 323 archived shards and refresh an overlapping saved selection
+        run: |
+          main=b91646a934fd203d4d8b1299104444f7283f27b4
+          archive=feb0ebef89ef5926d4d5597937cdbbbe340b5d9e
+          git fetch --depth=1 origin "$main" "$archive"
+          git worktree add --detach "$RUNNER_TEMP/p1-archive-323" "$archive"
+          python -m collector.p1_gap_batch_queue --main-sha "$main" --archive-sha "$archive" \
+            --replay-checkout "$RUNNER_TEMP/p1-archive-323" --track 240 244 245 246 \
+            --probe tests/fixtures/p1/probe_run_44029438652.json --refresh-selection 244 245 \
+            --expected-epoch 5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022 > p1-tracked-shards-323.json
+          python - <<'PYCODE'
+          import json
+          from pathlib import Path
+          r = json.loads(Path("p1-tracked-shards-323.json").read_bytes())
+          assert (r["completed_shards"], r["total_shards"], r["pending_shards"]) == (323, 400, 77)
+          assert r["pending_issuers"] == 616
+          assert r["archive_original_csvs_replayed"] and r["archive_index_parity_checked"]
+          assert r["archive_replay"]["archived_issuers"] == 2578
+          assert r["archive_replay"]["repair_shard_count"] == 0
+          assert r["batches"][0]["shard_indices"] == [245, 246]
+          assert r["batches"][0]["expected_issuers"] == 16
+          assert [(row["index"], row["status"]) for row in r["tracked_shards"]] == [
+              (240, "ARCHIVED_IN_PINNED_SNAPSHOT"), (244, "ARCHIVED_IN_PINNED_SNAPSHOT"),
+              (245, "PENDING_NO_MATCH_IN_PINNED_PROBE"), (246, "PENDING_NO_MATCH_IN_PINNED_PROBE"),
+          ]
+          refresh = r["refreshed_selection"]
+          assert refresh["already_archived_shards"] == [244] and refresh["remaining_shards"] == [245]
+          assert refresh["dispatch_preview"] == {"gap_window": "245:245", "shards_per_run": "1"}
+          assert refresh["recheck_required_before_dispatch"] and not refresh["dispatch_performed"]
+          assert r["trade_gate"] == "BLOCKED" and r["orders"] == [] and r["archive_writes"] == 0
+          PYCODE
+      - name: Verify 344 archived shards and retire the stale 249–250 selection
+        run: |
+          main=eb5ee15664c5121ae3ec9340e254df11513f0268
+          archive=4699695862bf935f26d669be5ec68e6e456fef5b
+          git fetch --depth=1 origin "$main" "$archive"
+          git worktree add --detach "$RUNNER_TEMP/p1-archive-344" "$archive"
+          python -m collector.p1_gap_batch_queue --main-sha "$main" --archive-sha "$archive" \
+            --replay-checkout "$RUNNER_TEMP/p1-archive-344" --refresh-selection 249 250 \
+            --expected-epoch 5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022 > p1-tracked-shards-344.json
+          python - <<'PYNEW'
+          import json
+          from pathlib import Path
+          from collector.p1_gap_batch_queue import refresh_preview
+
+          r = json.loads(Path("p1-tracked-shards-344.json").read_bytes())
+          assert (r["completed_shards"], r["total_shards"], r["pending_shards"]) == (344, 400, 56)
+          assert r["pending_issuers"] == 448
+          assert r["archive_original_csvs_replayed"] and r["archive_index_parity_checked"]
+          assert r["archive_replay"]["archived_issuers"] == 2746
+          assert r["archive_replay"]["repair_shard_count"] == 0
+          stale = r["refreshed_selection"]
+          assert stale["already_archived_shards"] == [249, 250] and not stale["remaining_shards"]
+          assert stale["dispatch_preview"] is None and not stale["dispatch_performed"]
+          overlap = refresh_preview(r, [253, 254], r["source_sha256"])
+          assert overlap["already_archived_shards"] == [253] and overlap["remaining_shards"] == [254]
+          assert overlap["dispatch_preview"] == {"gap_window": "254:254", "shards_per_run": "1"}
+          fresh = refresh_preview(r, [254, 255], r["source_sha256"])
+          assert r["batches"][0]["shard_indices"] == fresh["remaining_shards"] == [254, 255]
+          assert r["batches"][0]["expected_issuers"] == 16
+          assert fresh["dispatch_preview"] == {"gap_window": "254:255", "shards_per_run": "2"}
+          assert fresh["recheck_required_before_dispatch"] and not fresh["dispatch_performed"]
+          assert r["trade_gate"] == "BLOCKED" and r["orders"] == [] and r["archive_writes"] == 0
+          PYNEW
+      - name: Replay latest live P1 checkpoint against matching research archive (NO WRITES)
+        run: |
+          set -euo pipefail
+          # Exact branch tips are recorded before any replay; no floating refs are used in the audit.
+          main_sha="$(git ls-remote origin refs/heads/main | cut -f1)"
+          archive_sha="$(git ls-remote origin refs/heads/research-csv-archive | cut -f1)"
+          [[ "$main_sha" =~ ^[0-9a-f]{40}$ && "$archive_sha" =~ ^[0-9a-f]{40}$ ]]
+          git fetch --no-tags --depth=1 origin "$main_sha" "$archive_sha"
+          git worktree add --detach "$RUNNER_TEMP/p1-latest-archive" "$archive_sha"
+          python -m collector.p1_gap_batch_queue --main-sha "$main_sha" --archive-sha "$archive_sha" \
+            --replay-checkout "$RUNNER_TEMP/p1-latest-archive" > p1-current-gap-batch-queue.json
+          python - <<'PYLIVE'
+          import json
+          import os
+          from pathlib import Path
+
+          report = json.loads(Path("p1-current-gap-batch-queue.json").read_bytes())
+          pending = [i for batch in report["batches"] for i in batch["shard_indices"]]
+          assert report["source_sha256"] == "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022"
+          assert report["total_shards"] == 400
+          assert report["completed_shards"] >= 383, "P1 archive has regressed below verified 383"
+          assert report["completed_shards"] + report["pending_shards"] == 400
+          assert len(pending) == len(set(pending)) == report["pending_shards"]
+          assert report["archive_index_parity_checked"] and report["archive_original_csvs_replayed"]
+          assert report["archive_replay"]["repair_shard_count"] == 0
+          assert report["trade_gate"] == "BLOCKED"
+          assert not report["permission_to_write_or_trade"] and report["orders"] == []
+          assert report["vendor_requests"] == report["archive_writes"] == 0
+          for batch in report["batches"]:
+              indices = batch["shard_indices"]
+              assert 1 <= len(indices) <= 2
+              assert batch["dispatch_preview"] == {
+                  "gap_window": f"{indices[0]}:{indices[-1]}",
+                  "shards_per_run": str(len(indices)),
+              }
+          lines = [
+              "### P1 latest read-only archive replay",
+              f"- Completed: {report['completed_shards']}/400; missing: {report['pending_shards']}",
+              f"- Frozen main SHA: \`{report['main_commit']}\`",
+              f"- Frozen archive SHA: \`{report['archive_commit']}\`",
+              f"- Original CSV replay: PASS; trade gate: BLOCKED; no vendor requests or writes",
+              f"- Next checked batch: {pending[:2] if pending else 'none'}",
+              "- These are preview inputs only. Each dispatch requires a fresh remote recheck.",
+          ]
+          with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a") as f:
+              f.write("\n".join(lines) + "\n")
+          PYLIVE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p1-pinned-gap-batch-queue
+          path: |
+            p1-gap-batch-queue.json
+            p1-gap-readback.json
+            p1-gap-probe-readback.json
+            p1-tracked-shards.json
+            p1-tracked-shards-311.json
+            p1-tracked-shards-323.json
+            p1-tracked-shards-344.json
+            p1-current-gap-batch-queue.json
+          if-no-files-found: error
+
+  vendor-preflight:
+    if: github.event.pull_request.head.sha == '76e347e69842e8b2abec3684d856c5a6fb9eb4c0' && github.repository == 'tiandi0228/ashare-free-data' && github.event.pull_request.number == 361 && github.event.pull_request.head.repo.full_name == github.repository
+    needs: replay
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    concurrency:
+      group: p1-readonly-gap-vendor-probe
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'baostock>=0.8,<1'
+      - name: Fetch and independently verify the first pending two shards without archiving
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PYCODE'
+          import json, os, subprocess, sys
+          from pathlib import Path
+          from tempfile import TemporaryDirectory
+          from collector.p1_fresh_shard_plan import plan
+          from collector.p1_gap_remote_preflight import read_remote
+          from collector.p1_gap_probe_fingerprint import fingerprint
+          from collector.p1_live_gap_rehearsal import rehearse
+          from collector.p1_quad_verify import verify
+          from collector.p1_roster_lock import unpack
+
+          repo = os.environ["GITHUB_REPOSITORY"]
+          expected = [238, 239]
+          epoch = "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022"
+
+          def preflight():
+              receipt = rehearse(repo)
+              if (receipt["proposed_manual_shards"] != expected or receipt["source_sha256"] != epoch
+                      or receipt["archive_index_parity_checked"] is not True):
+                  raise ValueError("target shards or roster changed; do not query")
+
+          provider_env = {k: v for k, v in os.environ.items() if k not in ("GH_TOKEN", "GITHUB_TOKEN")}
+          outcome = {"status": "NOT_COMPLETED", "source_sha256": epoch,
+                     "expected": expected, "attempted": [], "verified": [],
+                     "archive_writes": 0, "checkpoint_writes": 0,
+                     "trade_gate": "BLOCKED", "historical_PIT_verified": False, "orders": []}
+          try:
+              preflight()
+              with TemporaryDirectory() as tmp:
+                  root = Path(tmp)
+                  raw, meta = unpack(read_remote(repo, "evidence/p1_active_roster.json", "main"))
+                  roster = root / "roster.csv"
+                  roster.write_bytes(raw)
+                  manifests = root / "manifests"
+                  frozen = plan(roster, manifests, meta["requested_day"])
+                  if frozen["source_sha256"] != epoch:
+                      raise ValueError("manifest epoch changed")
+                  for index in expected:
+                      preflight()
+                      outcome["attempted"].append(index)
+                      dest = root / str(index)
+                      process = subprocess.run([
+                          "timeout", "--kill-after=5s", "150s", sys.executable, "-u", "-m",
+                          "collector.baostock_batch", "--manifest", str(manifests / frozen["shards"][index]["name"]),
+                          "--batch-index", "0", "--out", str(dest),
+                      ], env=provider_env, check=False)
+                      if process.returncode:
+                          outcome["provider_exit_code"] = process.returncode
+                          quality = dest / "quality.json"
+                          if quality.exists():
+                              diagnostic = json.loads(quality.read_bytes())
+                              outcome["provider_failure_categories"] = sorted({
+                                  row["failure_category"] for row in diagnostic.get("results", [])
+                                  if isinstance(row.get("failure_category"), str)
+                              } | ({diagnostic["failure_category"]}
+                                   if isinstance(diagnostic.get("failure_category"), str) else set()))
+                          raise SystemExit(process.returncode)
+                      checked = verify(frozen, [(index, dest)], manifests)
+                      outcome["verified"].append({"index": index, "issuers": checked["verified_issuers"],
+                          "active_rows": checked["independently_checked_active_rows"],
+                          "suspended_rows": checked["independently_checked_suspended_rows"],
+                          **fingerprint(json.loads((dest / "quality.json").read_bytes()))})
+                  preflight()
+                  outcome["status"] = "READ_ONLY_VENDOR_PROBE_VERIFIED_NOT_ARCHIVED"
+          except ValueError as exc:
+              outcome["validation_failure"] = str(exc)
+              raise
+          finally:
+              Path("p1-gap-provider-preflight.json").write_text(json.dumps(outcome, indent=2) + "\n")
+          PYCODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p1-gap-provider-preflight-238-239
+          path: p1-gap-provider-preflight.json
+          if-no-files-found: warn

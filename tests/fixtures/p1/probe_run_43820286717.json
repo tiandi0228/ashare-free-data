@@ -1,0 +1,47 @@
+{
+  "attempted": [
+    231,
+    232
+  ],
+  "verified": [
+    {
+      "index": 231,
+      "issuers": 8,
+      "active_rows": 3866,
+      "suspended_rows": 14,
+      "manifest_sha256": "e9c88da8f8ab7bf2521d4f8c399fb26aaa09ae2ca60b984efb87cdfdabd204d5",
+      "csv_sha256_by_issuer": {
+        "sz.000582": "e80eff9f115192df540005f6ca7f519dd3cb8c3728551dbff48679145b03a893",
+        "sz.000586": "102447278a7c5d842b4d019a9ea71eb58e9abe64e057158d93ec6e59d248dd86",
+        "sz.000589": "b5a604efbbf4ad7cc78876f3459d81487caea7a1fe52c7cbbe7aba84b8af30d6",
+        "sz.000590": "452f7daf462389f34d5e19dc5c275bd6b71c4ba437fb901fcd365d85665a6bdd",
+        "sz.000591": "cd8bf83f2cd9f37e50757b92f23916c40503b505afeba073fc6337b4aed2c4c2",
+        "sz.000592": "b0e5661cf7f10b1a02a394fb6c74d6bc1b3350ac8d63fce3926c0af877dc8547",
+        "sz.000593": "713b930740893558d1d06364cb24cb344f98432a838f6355e5f3f91af2449ab0",
+        "sz.000595": "cd4f084af077819b91ee9e4a5805a7495c31b6e37954680c3b506a5e232179f2"
+      }
+    },
+    {
+      "index": 232,
+      "issuers": 8,
+      "active_rows": 3872,
+      "suspended_rows": 8,
+      "manifest_sha256": "f2b26917ff063fdbddb5a4e6532d50bd6d46477af30630f4c1e40b82ec8be1a4",
+      "csv_sha256_by_issuer": {
+        "sz.000596": "a76e71c5e18440f2dc79e6e87a6299e3dff0da4fbbdc1ff045c45468ee4b8508",
+        "sz.000597": "15c172aefa3bf934d8194964e41234ae554b44ed99716b80a6acd79480203199",
+        "sz.000598": "05c4c24bed2d303579d3aa304c09496f1a482b6a08ba4b792aaf7877780da33a",
+        "sz.000599": "a644bdf4a0b2f462b2ff220f231a8b7089e6906481df025bc7f77829d8452c85",
+        "sz.000600": "df39f68464756063bb55085305ee1c5a3aa357403e784fff57f37ee914ad6bf1",
+        "sz.000601": "55d98b841f441b3eaa7ecf053735ddd25e3eb5789d9f78ac8c2e353f6edc7921",
+        "sz.000603": "dfb5ee943af44d922847aff3b496d622b5db4477f6f908899e7588f896810274",
+        "sz.000605": "8eb6dc9165ddabf5bd248d13a4ff762f5779a91bd5de2c0a5710d9d2a6e8f8de"
+      }
+    }
+  ],
+  "archive_writes": 0,
+  "checkpoint_writes": 0,
+  "trade_gate": "BLOCKED",
+  "historical_PIT_verified": false,
+  "orders": []
+}
