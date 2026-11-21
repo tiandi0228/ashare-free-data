@@ -1,5 +1,5 @@
 import unittest
-from collector.p1_quad_pick import choose,rotating_start,verify_prior_for_selection,verify_frozen_plan
+from collector.p1_quad_pick import choose,choose_scheduled_tail,rotating_start,verify_prior_for_selection,verify_frozen_plan
 class PickTests(unittest.TestCase):
     def plan(self):
         return {"phase":"P1_FRESH_VENDOR_SHARD_PLAN","trade_gate":"BLOCKED",
@@ -198,6 +198,57 @@ class PickTests(unittest.TestCase):
         for value in (-1,True,"2"):
             with self.assertRaises(ValueError):
                 rotating_start(7,value)
+
+    def test_383_archive_tail_prioritizes_271_272_and_preserves_rotation_before_threshold(self):
+        plan = self.plan()
+        plan["shard_count"] = plan["issuer_count"] = 400
+        plan["shards"] = [{"index": i, "name": f"shard_{i:04d}.txt",
+                           "count": 1, "sha256": f"{i + 1:064x}"} for i in range(400)]
+        def checkpoint(done):
+            done = set(done)
+            return {"phase": "P1_ROSTER_SHARD_LEDGER",
+                    "source_sha256": plan["source_sha256"], "shard_count": 400,
+                    "completed": [{"index": i, "issuer_count": 1,
+                                   "manifest_sha256": plan["shards"][i]["sha256"],
+                                   "receipt_sha256": f"{i + 101:064x}"}
+                                  for i in sorted(done)],
+                    "completed_shards": len(done), "completed_issuers": len(done),
+                    "pending_shards": [i for i in range(400) if i not in done],
+                    "next_shard": next((i for i in range(400) if i not in done), None),
+                    "failed_in_this_reconciliation": [], "full_market_bars_certified": False,
+                    "historical_PIT_verified": False, "trade_gate": "BLOCKED",
+                    "orders": [], "executable_candidates": []}
+        late = checkpoint(set(range(400)) - set(range(271, 288)))
+        self.assertEqual(choose_scheduled_tail(plan, late, 390, 2), [271, 272])
+        self.assertEqual(choose_scheduled_tail(plan, late, 390, 1), [271])
+        early = checkpoint(range(359))
+        self.assertEqual(choose_scheduled_tail(plan, early, 390, 2), [390, 391])
+        advanced = checkpoint(set(range(400)) - set(range(273, 288)))
+        self.assertEqual(choose_scheduled_tail(plan, advanced, 0, 2), [273, 274])
+
+    def test_priority_flag_cannot_be_used_outside_schedule(self):
+        import json, os, tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from collector.p1_quad_pick import main
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            f = root / "plan.json"
+            f.write_text(json.dumps(self.plan()))
+            argv = ["p1_quad_pick", "--plan", str(f), "--output-file",
+                    str(root / "output.txt"), "--prioritize-final-gaps"]
+            with patch("sys.argv", argv), patch.dict(os.environ,
+                    {"GITHUB_RUN_NUMBER": "12", "GITHUB_EVENT_NAME": "workflow_dispatch"}):
+                with self.assertRaisesRegex(ValueError, "scheduled-only"):
+                    main()
+            with patch("sys.argv", argv), patch.dict(os.environ,
+                    {"GITHUB_RUN_NUMBER": "12", "GITHUB_EVENT_NAME": "schedule"}):
+                main()
+            self.assertTrue((root / "output.txt").exists())
+        flow = (Path(__file__).resolve().parents[1] /
+                ".github/workflows/p1-fresh-vendor-roster.yml").read_text()
+        self.assertIn('TAIL_ARGS=(--prioritize-final-gaps)', flow)
+        self.assertIn('if [[ "' + chr(36) + '{GITHUB_EVENT_NAME}" == "schedule" ]]', flow)
 
     def test_changed_epoch_fails(self):
         with self.assertRaises(ValueError):
