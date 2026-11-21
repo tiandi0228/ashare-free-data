@@ -353,7 +353,9 @@ jobs:
             [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]] || { echo "manual-only gap override" >&2; exit 1; }
             GAP_ARGS=(--gap-window "$P1_GAP_WINDOW")
           fi
-          python -m collector.p1_quad_pick --plan evidence/shards/plan.json "${PRIOR_ARGS[@]}" "${GAP_ARGS[@]}" --per-run "$P1_REQUESTED_SHARDS" --output-file "$GITHUB_OUTPUT"
+          TAIL_ARGS=()
+          if [[ "${GITHUB_EVENT_NAME}" == "schedule" ]]; then TAIL_ARGS=(--prioritize-final-gaps); fi
+          python -m collector.p1_quad_pick --plan evidence/shards/plan.json "${PRIOR_ARGS[@]}" "${GAP_ARGS[@]}" "${TAIL_ARGS[@]}" --per-run "$P1_REQUESTED_SHARDS" --output-file "$GITHUB_OUTPUT"
       - name: Record bounded pilot selection for audit
         run: |
           python - <<'PY'
