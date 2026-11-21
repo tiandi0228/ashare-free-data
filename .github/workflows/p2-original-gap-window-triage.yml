@@ -3,6 +3,20 @@ on:
   pull_request:
     paths:
       - 'collector/p2_original_gap_window_triage.py'
+      - 'collector/p2_gap_disposition.py'
+      - 'collector/p2_coverage_display.py'
+      - 'collector/p2_catchup_status.py'
+      - 'tests/test_p2_catchup_status.py'
+      - 'tests/test_p2_catchup_status_archive.py'
+      - 'tests/test_p2_coverage_display.py'
+      - 'tests/test_p2_323_archive_regression.py'
+      - 'tests/test_p2_332_archive_delta.py'
+      - 'manifests/p2_gap_explanations_20261020.json'
+      - 'manifests/p2_gap_replay_fixture_20261020.json'
+      - 'tests/test_p2_gap_disposition.py'
+      - 'collector/p2_regression_artifact.py'
+      - 'tests/test_p2_regression_artifact.py'
+      - 'tests/test_p2_gap_disposition_archive_integration.py'
       - 'collector/p1_active_migration_checkpoint.py'
       - 'tests/test_p2_gap_workflow_epoch_binding.py'
       - 'collector/p2_p3_current_source_guard.py'
@@ -16,6 +30,20 @@ on:
     branches: [main]
     paths:
       - 'collector/p2_original_gap_window_triage.py'
+      - 'collector/p2_gap_disposition.py'
+      - 'collector/p2_coverage_display.py'
+      - 'collector/p2_catchup_status.py'
+      - 'tests/test_p2_catchup_status.py'
+      - 'tests/test_p2_catchup_status_archive.py'
+      - 'tests/test_p2_coverage_display.py'
+      - 'tests/test_p2_323_archive_regression.py'
+      - 'tests/test_p2_332_archive_delta.py'
+      - 'manifests/p2_gap_explanations_20261020.json'
+      - 'manifests/p2_gap_replay_fixture_20261020.json'
+      - 'tests/test_p2_gap_disposition.py'
+      - 'collector/p2_regression_artifact.py'
+      - 'tests/test_p2_regression_artifact.py'
+      - 'tests/test_p2_gap_disposition_archive_integration.py'
       - 'collector/p1_active_migration_checkpoint.py'
       - 'tests/test_p2_gap_workflow_epoch_binding.py'
       - 'collector/p2_p3_current_source_guard.py'
@@ -34,7 +62,240 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest -v tests.test_p2_original_gap_window_triage tests.test_p2_real_archive_features tests.test_p2_p3_current_source_guard tests.test_p2_gap_workflow_epoch_binding tests.test_p1_active_migration_checkpoint
+      - run: python -m unittest -v tests.test_p2_catchup_status tests.test_p2_coverage_display tests.test_p2_gap_disposition tests.test_p2_regression_artifact tests.test_p2_gap_disposition_archive_integration tests.test_p2_original_gap_window_triage tests.test_p2_real_archive_features tests.test_p2_p3_current_source_guard tests.test_p2_gap_workflow_epoch_binding tests.test_p1_active_migration_checkpoint
+  pinned_archive_regression:
+    if: github.event_name == 'pull_request'
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      ARCHIVE_COMMIT: 968b47863467ebfd00154e38cdf50851f3c3285b
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Replay all 20 gaps against pinned original CSVs
+        run: |
+          git fetch --depth=1 origin "$ARCHIVE_COMMIT"
+          git worktree add --detach "$RUNNER_TEMP/p2-pinned" "$ARCHIVE_COMMIT"
+          P2_ARCHIVE_EPOCH="$RUNNER_TEMP/p2-pinned/5ba00fbd720fad90" python -m unittest -v tests.test_p2_coverage_display tests.test_p2_gap_disposition_archive_integration
+          python -m collector.p2_original_gap_window_triage --coverage manifests/p2_gap_replay_fixture_20261020.json --archive-epoch "$RUNNER_TEMP/p2-pinned/5ba00fbd720fad90" --out evidence/p2-pinned-replay.json
+          python -m collector.p2_gap_disposition --replay evidence/p2-pinned-replay.json --pinned manifests/p2_gap_explanations_20261020.json --out evidence/p2-pinned-disposition.json
+          python - <<'PY'
+          import json
+          from collections import Counter
+          from pathlib import Path
+          r = json.loads(Path("evidence/p2-pinned-disposition.json").read_text())
+          assert (r["explained_feature_unavailable"], r["review_required"], r["feature_gaps_resolved"]) == (20, 0, 0)
+          assert Counter(x["reason"] for x in r["rows"]) == {
+              "HALT_INTERRUPTS_FEATURE_WINDOW": 17, "HALTED_AT_CUTOFF": 2, "IPO_WINDOW_TOO_SHORT": 1,
+          }
+          assert r["trade_gate"] == "BLOCKED" and r["historical_PIT_verified"] is False
+          import hashlib, os
+          out = Path("evidence")
+          names = ("p2-pinned-replay.json", "p2-pinned-disposition.json")
+          receipt = {
+              "kind": "PINNED_ARCHIVE_REGRESSION_NOT_LIVE_COVERAGE",
+              "archive_commit": os.environ["ARCHIVE_COMMIT"],
+              "tested_commit": os.environ["GITHUB_SHA"],
+              "github_run_id": os.environ["GITHUB_RUN_ID"],
+              "github_run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "asof": r["asof"],
+              "source_epoch_sha256": r["source_epoch_sha256"],
+              "explained_feature_unavailable": r["explained_feature_unavailable"],
+              "review_required": r["review_required"],
+              "feature_gaps_resolved": r["feature_gaps_resolved"],
+              "historical_PIT_verified": False,
+              "trade_gate": "BLOCKED",
+              "report_sha256": {name: hashlib.sha256((out / name).read_bytes()).hexdigest() for name in names},
+          }
+          (out / "p2-pinned-run-receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
+          print("Pinned archive: 20 explained, 0 pending, 0 feature promotions")
+          PY
+      - name: Preserve verified regression reports and provenance
+        uses: actions/upload-artifact@v4
+        with:
+          name: p2-pinned-regression-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            evidence/p2-pinned-replay.json
+            evidence/p2-pinned-disposition.json
+            evidence/p2-pinned-run-receipt.json
+          if-no-files-found: error
+          retention-days: 30
+  pinned_durable_snapshot:
+    if: github.event_name == 'pull_request'
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Pin actual checkpoint, original archive and durable coverage
+        run: |
+          checkpoint=8b338c234b970c750fa3e491b221ed6802072db9
+          archive=d208438dc67505d60186ebf9b1f2907ed858f563
+          coverage=96d73ef5cfc596d4932489ac8eaa2bb9fae75f98
+          git fetch --depth=1 origin "$checkpoint" "$archive" "$coverage"
+          git worktree add --detach "$RUNNER_TEMP/p2-current-checkpoint" "$checkpoint"
+          git worktree add --detach archived-research "$archive"
+          git worktree add --detach durable-p2-coverage "$coverage"
+          git log -1 --format=%H "$checkpoint"
+      - name: Compare durable archive against current and prior coverage
+        run: |
+          python - <<'PYCODE'
+          import json, subprocess
+          from collections import Counter
+          from pathlib import Path
+          import os
+          from collector.p1_active_migration_checkpoint import resolve
+          from collector.p2_original_gap_window_triage import check_current_checkpoint, diagnose
+          from collector.p2_gap_disposition import compare
+          from collector.p2_coverage_display import summarize
+
+          load = lambda p: json.loads(Path(p).read_bytes())
+          lock = resolve(Path(os.environ["RUNNER_TEMP"]) / "p2-current-checkpoint")
+          epoch = lock["source_sha256"][:16]
+          checkpoint = load(Path(os.environ["RUNNER_TEMP"]) / "p2-current-checkpoint" / lock["checkpoint_path"])
+          archive = Path("archived-research") / epoch
+          summary_path = f"summaries/{epoch}.json"
+          current = load(Path("durable-p2-coverage") / summary_path)
+          status = load(archive / "archive_status.json")
+          witness = check_current_checkpoint(current, checkpoint, status)
+          assert witness["checkpoint_completed_shards"] == 311
+          assert witness["gap_issuer_count"] == 22
+          previous = "9805b3a799d1701c038f9a9f7d14d34cbc414276"
+          subprocess.run(["git", "fetch", "--depth=1", "origin", previous], check=True)
+          stale = json.loads(subprocess.check_output(["git", "show", f"{previous}:{summary_path}"]))
+          try:
+              check_current_checkpoint(stale, checkpoint, status)
+          except ValueError as exc:
+              assert "stale or unsafe P2 coverage" in str(exc)
+          else:
+              raise AssertionError("old 305-shard summary must not pass as 311 shards")
+          old_ids = set(stale["observed_shard_ids"])
+          current_ids = set(current["observed_shard_ids"])
+          added = sorted(current_ids - old_ids)
+          assert old_ids <= current_ids
+          assert current_ids == {f"shard_{i:04d}" for i in status["archived_shards"]}
+          assert added == ["shard_0238", "shard_0239", "shard_0329",
+                           "shard_0330", "shard_0331", "shard_0332"]
+          assert set(added).isdisjoint(current["gap_shard_ids"])
+          assert current["gap_issuer_codes"] == stale["gap_issuer_codes"]
+          assert current["gap_reason_counts"] == stale["gap_reason_counts"]
+          assert current["feature_issuer_count"] - stale["feature_issuer_count"] == 48
+          replay = diagnose(current, archive)
+          result = compare(replay, load("manifests/p2_gap_explanations_20261020.json"))
+          assert Counter(row["reason"] for row in result["rows"]) == {
+              "HALT_INTERRUPTS_FEATURE_WINDOW": 19, "HALTED_AT_CUTOFF": 2, "IPO_WINDOW_TOO_SHORT": 1,
+          }
+          assert (result["review_required"], result["feature_gaps_resolved"]) == (0, 0)
+          new_gap = next(row for row in replay["results"] if row["issuer"] == "sz.002813")
+          assert new_gap["source_shard"] == "shard_0372"
+          assert new_gap["trailing_vendor_suspended_rows"] == 5
+          added_gap = next(row for row in replay["results"] if row["issuer"] == "sz.000668")
+          assert added_gap["source_shard"] == "shard_0237"
+          assert added_gap["trailing_vendor_suspended_rows"] == 3
+          display = summarize(current, result)
+          assert display["feature_complete_shards"]["count"] == 290
+          assert display["computed_feature_issuers"]["count"] == 2460
+          assert display["explained_uncomputable_issuers"] == 22
+          assert result["trade_gate"] == "BLOCKED" and result["historical_PIT_verified"] is False
+          Path("p2-durable-gap-replay.json").write_text(json.dumps({
+              "kind": "PINNED_DURABLE_SNAPSHOT_REGRESSION_NOT_LIVE_STATUS",
+              "checkpoint_commit": "8b338c234b970c750fa3e491b221ed6802072db9",
+              "archive_commit": "d208438dc67505d60186ebf9b1f2907ed858f563",
+              "coverage_commit": "96d73ef5cfc596d4932489ac8eaa2bb9fae75f98",
+              "stale_coverage_commit_rejected": previous,
+              "new_feature_complete_shards": added,
+              "new_computable_issuers": 48,
+              "witness": witness, "disposition": result, "coverage_display": display,
+          }, indent=2) + "\n")
+          PYCODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p2-durable-gap-snapshot
+          path: p2-durable-gap-replay.json
+          if-no-files-found: error
+  durable_snapshot_323:
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Fetch immutable P1 and P2 snapshots
+        run: |
+          P2_SNAPSHOT_ROOT="$RUNNER_TEMP/p2-323-snapshot"
+          mkdir -p "$P2_SNAPSHOT_ROOT"
+          pin() {
+            git fetch --depth=1 origin "$2"
+            git worktree add --detach "$P2_SNAPSHOT_ROOT/$1" "$2"
+          }
+          pin checkpoint b91646a934fd203d4d8b1299104444f7283f27b4
+          pin archive feb0ebef89ef5926d4d5597937cdbbbe340b5d9e
+          pin coverage 41905adb1d20ed448fa2c34268ba9bb2d279d056
+          pin previous 96d73ef5cfc596d4932489ac8eaa2bb9fae75f98
+      - name: Verify 96 source hashes and reconcile the new issuer gap
+        run: P2_SNAPSHOT_ROOT="$RUNNER_TEMP/p2-323-snapshot" python -m unittest -v tests.test_p2_323_archive_regression
+  durable_delta_332:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Reconcile the 325 and 332 shard P1 and P2 snapshots
+        run: |
+          export P2_DELTA_ROOT="$RUNNER_TEMP/p2-332-delta"
+          mkdir -p "$P2_DELTA_ROOT"/{prior,current}
+          pin() {
+            git fetch --depth=1 origin "$2"
+            git worktree add --detach "$P2_DELTA_ROOT/$1" "$2"
+          }
+          pin prior/checkpoint 52a48b208ae8afc697ae1a581409683ce957e7ed
+          pin prior/archive 8fdeb25e45ecb13e634b59c125b7dc6f4d0dac35
+          pin prior/coverage 5c87d79aa3cfe6ea474e5239cba141a262cf326e
+          pin current/checkpoint a3a1fd3fe53017aaa48a91da55e4463f9454cf2f
+          pin current/archive 750f26461fa3ab9d221cb8afd92b8d29ede8492c
+          pin current/coverage d032b95658081f6bcda34f373c33605233b93a13
+          python -m unittest -v tests.test_p2_332_archive_delta
+  catchup_report_regression:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compare real stale and current coverage without writing either ledger
+        run: |
+          git fetch --depth=1 origin \
+            fe6763fa761545dd4ca8cb950179ab8e354091b2 \
+            9f8b580637944e4172e8d42373174e072def49c5 \
+            0940259f89a742b7d226ad259e9853a2b81d7062 \
+            3f07029af2bf68aa94dd363d9851ebf6c0fff3c2
+          P2_CATCHUP_ARCHIVE_REPORT=p2-catchup-regression.json python -m unittest -v tests.test_p2_catchup_status_archive
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p2-catchup-regression-346-to-363
+          path: p2-catchup-regression.json
+          if-no-files-found: error
   replay_once:
     if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     needs: offline
@@ -60,6 +321,7 @@ jobs:
           from pathlib import Path
           from collector.p2_original_gap_window_triage import check_current_checkpoint
           from collector.p1_active_migration_checkpoint import resolve
+          from collector.p2_catchup_status import inspect
           selected=resolve(Path('.'))
           epoch=selected['source_sha256']
           checkpoint_path=Path(selected['checkpoint_path'])
@@ -70,6 +332,9 @@ jobs:
           checkpoint=json.loads(checkpoint_path.read_text())
           coverage=json.loads(coverage_path.read_text())
           status=json.loads((source/'archive_status.json').read_text())
+          catchup=inspect(coverage,checkpoint,status)
+          Path("evidence/p2-catchup-status.json").write_text(json.dumps(catchup, indent=2) + "\n")
+          print("P2 archive catch-up:", json.dumps(catchup))
           witness=check_current_checkpoint(coverage,checkpoint,status)
           assert witness['trade_gate']=='BLOCKED'
           subprocess.run(['python','-m','collector.p2_original_gap_window_triage',
@@ -87,11 +352,24 @@ jobs:
               'checkpoint_completed_issuers':witness['checkpoint_completed_issuers'],
               'diagnosis_counts':result['diagnosis_counts']},ensure_ascii=False))
           PY
+      - name: Separate frozen explained gaps from gaps requiring review
+        run: |
+          python -m collector.p2_gap_disposition --replay evidence/p2-original-gap-triage.json \
+            --pinned manifests/p2_gap_explanations_20261020.json --out evidence/p2-gap-disposition.json
+      - name: Report shard and issuer coverage with separate denominators
+        run: |
+          epoch=$(python -c 'from pathlib import Path; from collector.p1_active_migration_checkpoint import resolve; print(resolve(Path("."))["source_sha256"][:16])')
+          python -m collector.p2_coverage_display --coverage "durable-p2-coverage/summaries/$epoch.json" \
+            --disposition evidence/p2-gap-disposition.json --out evidence/p2-coverage-display.json
       - name: Archive read-only gap triage, not signals or official status
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: p2-original-gap-triage-${{ github.run_id }}
-          path: evidence/p2-original-gap-triage.json
+          path: |
+            evidence/p2-original-gap-triage.json
+            evidence/p2-gap-disposition.json
+            evidence/p2-coverage-display.json
+            evidence/p2-catchup-status.json
           retention-days: 14
           if-no-files-found: warn

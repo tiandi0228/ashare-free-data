@@ -1,0 +1,293 @@
+{
+  "phase": "P2_PERSISTENT_ARCHIVE_FEATURE_COVERAGE",
+  "status": "DURABLE_RESEARCH_PAGE_COVERAGE_NOT_CERTIFIED",
+  "trade_gate": "BLOCKED",
+  "historical_PIT_verified": false,
+  "coverage_certified_for_trading": false,
+  "orders": [],
+  "full_archive_evidence_accounted": true,
+  "gap_issuer_codes": [
+    "sh.600293",
+    "sh.600301",
+    "sh.600363",
+    "sh.600825",
+    "sh.601091",
+    "sh.601238",
+    "sh.601995",
+    "sh.603159",
+    "sh.603183",
+    "sh.603400",
+    "sh.603517",
+    "sh.603759",
+    "sh.603838",
+    "sh.605303",
+    "sz.002667",
+    "sz.002717",
+    "sz.002731",
+    "sz.002813",
+    "sz.002860",
+    "sz.002870"
+  ],
+  "gap_reason_counts": {
+    "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS": 18,
+    "VENDOR_NOT_TRADABLE_ASOF": 2
+  },
+  "issuer_evidence_gap_count": 20,
+  "gap_repair_queue": [
+    {
+      "shard_id": "shard_0027",
+      "issuer_gap_count": 2,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.600293",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "original_csv_sha256": "f18062e301843b403e52aa4ca7dbac511579a6f9683da74b414451a8ab38d56c"
+          }
+        },
+        {
+          "issuer": "sh.600301",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "original_csv_sha256": "2f163fecfb61ea758ecdbd98edb1d7a4b05c32172a78df31801ec3b9f3d5a5f4"
+          }
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0033",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.600363",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "original_csv_sha256": "e4c01fa609951f30d25ec28ff729fa862c4815eca4ae279c9d7aeb1940f0fee2"
+          }
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0078",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.600825",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "original_csv_sha256": "63ae1dd1502c2340aea79be6144a58d2256ed7edeb8c72b3bc69f289eb673e8a"
+          }
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0097",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.601091",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "original_csv_sha256": "a99a8383f8a3a41682a7264cac5a1a3097831bb2e456c2c36d09c188b8fcdf3d"
+          }
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0104",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.601238",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "original_csv_sha256": "a2f6d4f36ec5487329a8e66a56bdf872c4dfc1e9a1cb2eb565994628800b7e65"
+          }
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0120",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.601995",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "original_csv_sha256": "c62152568423890c5bfc384fa4e0ec34e9ef71b9a092011b75b83a9e282d6609"
+          }
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0137",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.603159",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "original_csv_sha256": "c36cfc0437a88c63a3f63385a147c8f203cb0fc29ea5086dd71f32607bc24eb2"
+          }
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0140",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.603183",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "original_csv_sha256": "3f53cf0bd447c2d757488614b4236632069885e793ee04959ae0c888c614168c"
+          }
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0161",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.603400",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "original_csv_sha256": "d7d67226a1430bc3c0a56a4e48f08871f1a6dfb996043cc8f6d5c1523a6d60f5"
+          }
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0166",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.603517",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "original_csv_sha256": "f6e5848ea8ff0e682608d96342adf68594140f9e7eac3aaad75afbfb2dc2394a"
+          }
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0182",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.603759",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "original_csv_sha256": "b5d17da3ca737e21479b5e4b5a1ad41c7f13f777f42b8eaf419f30c35dcce4dc"
+          }
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0186",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.603838",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "original_csv_sha256": "98441e8dcbfae442ec14a7004a95ce5abff8d876b8cd69e1e754a77b16436e86"
+          }
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0208",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sh.605303",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "original_csv_sha256": "6c96135604c6cacdccc054c0babd022c3ac21488ab1c3597c7628f763b653688"
+          }
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0356",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sz.002667",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "original_csv_sha256": "2e0b4c8f12e053d6978d118875303321a82a69739b7b30d96216859257e7e9ca"
+          }
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0362",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sz.002717",
+          "reason": "VENDOR_NOT_TRADABLE_ASOF",
+          "original_gap_diagnostic": {
+            "original_csv_sha256": "ae1b73a1389f0629f64e130af4f2c1778f52ca837985e4b5f95ef14f048b81ac"
+          }
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0364",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sz.002731",
+          "reason": "VENDOR_NOT_TRADABLE_ASOF",
+          "original_gap_diagnostic": {
+            "original_csv_sha256": "0486cfcd1af2ffd60a48911a3f94178e9bbe56daeca2c6232d83876688234510"
+          }
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0372",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sz.002813",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "original_csv_sha256": "cb54189b8e76230ba70324a16fb53c6b316c0ce4c64dd3e2ff066177e82cf08f"
+          }
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0378",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sz.002860",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "original_csv_sha256": "c1e9e5844abed70f2471cb337bf917f584f0029109aac7c0bfb80ae85ad1d188"
+          }
+        }
+      ]
+    },
+    {
+      "shard_id": "shard_0379",
+      "issuer_gap_count": 1,
+      "issuer_reasons": [
+        {
+          "issuer": "sz.002870",
+          "reason": "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS",
+          "original_gap_diagnostic": {
+            "original_csv_sha256": "9f69a30a532df4e4178109d0c886f30c82e1f8fd1cf9e0fb3693f13582d3935a"
+          }
+        }
+      ]
+    }
+  ],
+  "source_epoch_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022"
+}

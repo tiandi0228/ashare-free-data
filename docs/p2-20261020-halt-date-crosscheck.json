@@ -1,0 +1,206 @@
+{
+  "phase": "P2_TRAILING_WINDOW_HALT_DATE_RECONCILIATION",
+  "asof": "2026-10-20",
+  "archive_commit": "968b47863467ebfd00154e38cdf50851f3c3285b",
+  "scope": "Nine issuer subsets of the 17 suspension-window gaps; compare effective dates, not time of market visibility",
+  "issuer_count": 9,
+  "matched_suspension_issuer_days": 66,
+  "remaining_issuers_in_suspension_subset": 8,
+  "rows": [
+    {
+      "issuer": "sh.600293",
+      "csv_sha256": "f18062e301843b403e52aa4ca7dbac511579a6f9683da74b414451a8ab38d56c",
+      "shard": "shard_0027",
+      "matched": [
+        "2026-09-29",
+        "2026-09-30",
+        "2026-10-08",
+        "2026-10-09",
+        "2026-10-12",
+        "2026-10-13",
+        "2026-10-14",
+        "2026-10-15",
+        "2026-10-16",
+        "2026-10-19"
+      ],
+      "unexplained": [],
+      "urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-10-20/1225611307.PDF"
+      ]
+    },
+    {
+      "issuer": "sh.600825",
+      "csv_sha256": "63ae1dd1502c2340aea79be6144a58d2256ed7edeb8c72b3bc69f289eb673e8a",
+      "shard": "shard_0078",
+      "matched": [
+        "2026-09-14",
+        "2026-09-15",
+        "2026-09-16",
+        "2026-09-17",
+        "2026-09-18",
+        "2026-10-13",
+        "2026-10-14",
+        "2026-10-15"
+      ],
+      "unexplained": [],
+      "urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-09-08/1225552231.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-09-19/1225571469.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-10-13/1225602155.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-10-16/1225607741.PDF"
+      ]
+    },
+    {
+      "issuer": "sh.601238",
+      "csv_sha256": "a2f6d4f36ec5487329a8e66a56bdf872c4dfc1e9a1cb2eb565994628800b7e65",
+      "shard": "shard_0104",
+      "matched": [
+        "2026-09-14",
+        "2026-09-15",
+        "2026-09-16",
+        "2026-09-17",
+        "2026-09-18",
+        "2026-09-21",
+        "2026-09-22",
+        "2026-09-23",
+        "2026-09-24",
+        "2026-09-28"
+      ],
+      "unexplained": [],
+      "urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-09-15/1225564444.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-09-19/1225572692.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-09-29/1225586271.PDF"
+      ]
+    },
+    {
+      "issuer": "sh.603183",
+      "csv_sha256": "3f53cf0bd447c2d757488614b4236632069885e793ee04959ae0c888c614168c",
+      "shard": "shard_0140",
+      "matched": [
+        "2026-09-30",
+        "2026-10-08"
+      ],
+      "unexplained": [],
+      "urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-10-09/1225597696.PDF"
+      ]
+    },
+    {
+      "issuer": "sh.603400",
+      "csv_sha256": "d7d67226a1430bc3c0a56a4e48f08871f1a6dfb996043cc8f6d5c1523a6d60f5",
+      "shard": "shard_0161",
+      "matched": [
+        "2026-09-15",
+        "2026-09-16",
+        "2026-09-17",
+        "2026-09-18",
+        "2026-09-21",
+        "2026-09-22",
+        "2026-09-23",
+        "2026-09-24",
+        "2026-09-28",
+        "2026-09-29"
+      ],
+      "unexplained": [],
+      "urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-09-15/1225564363.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-09-22/1225573898.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-09-30/1225588894.PDF"
+      ]
+    },
+    {
+      "issuer": "sh.605303",
+      "csv_sha256": "6c96135604c6cacdccc054c0babd022c3ac21488ab1c3597c7628f763b653688",
+      "shard": "shard_0208",
+      "matched": [
+        "2026-09-14",
+        "2026-09-15",
+        "2026-09-16",
+        "2026-09-17",
+        "2026-09-18",
+        "2026-09-21",
+        "2026-09-22",
+        "2026-09-23",
+        "2026-09-24",
+        "2026-09-28"
+      ],
+      "unexplained": [],
+      "urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-09-12/1225560951.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-09-19/1225571995.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-09-29/1225585581.PDF"
+      ]
+    },
+    {
+      "issuer": "sz.002813",
+      "csv_sha256": "cb54189b8e76230ba70324a16fb53c6b316c0ce4c64dd3e2ff066177e82cf08f",
+      "shard": "shard_0372",
+      "matched": [
+        "2026-09-30",
+        "2026-10-08",
+        "2026-10-09",
+        "2026-10-12",
+        "2026-10-13"
+      ],
+      "unexplained": [],
+      "urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-09-30/1225589222.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-10-09/1225597548.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-10-14/1225604178.PDF"
+      ]
+    },
+    {
+      "issuer": "sz.002860",
+      "csv_sha256": "c1e9e5844abed70f2471cb337bf917f584f0029109aac7c0bfb80ae85ad1d188",
+      "shard": "shard_0378",
+      "matched": [
+        "2026-09-22",
+        "2026-09-23",
+        "2026-09-24",
+        "2026-09-28",
+        "2026-09-29",
+        "2026-09-30",
+        "2026-10-08",
+        "2026-10-09",
+        "2026-10-12",
+        "2026-10-13"
+      ],
+      "unexplained": [],
+      "urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-09-22/1225575586.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-09-30/1225586506.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-10-14/1225604019.PDF"
+      ]
+    },
+    {
+      "issuer": "sz.002870",
+      "csv_sha256": "9f69a30a532df4e4178109d0c886f30c82e1f8fd1cf9e0fb3693f13582d3935a",
+      "shard": "shard_0379",
+      "matched": [
+        "2026-09-14"
+      ],
+      "unexplained": [],
+      "urls": [
+        "https://static.cninfo.com.cn/finalpage/2026-09-01/1225538772.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-09-08/1225550443.PDF",
+        "https://static.cninfo.com.cn/finalpage/2026-09-15/1225563563.PDF"
+      ]
+    }
+  ],
+  "independently_downloaded_notice_pdf_digests": {
+    "https://static.cninfo.com.cn/finalpage/2026-10-09/1225597696.PDF": "f98c71ecd19e23b0c5ba7fee0ec2ac476f052450aceed99ac032b92dc4209f27",
+    "https://static.cninfo.com.cn/finalpage/2026-10-20/1225611307.PDF": "ed9e456c6ccb5779e0a174d0da7c620ae9b5b58ba1e77bbdea80a7f051c38291",
+    "https://static.cninfo.com.cn/finalpage/2026-09-29/1225586063.PDF": "8107cc4d7ecedc8c57d18e8edc8ac6f0e3a8bfa0b49e811c4d2a4b8fa1c8e0b9"
+  },
+  "limitations": [
+    "Seven issuers reuse existing primary notice replays bound to original CSV digests",
+    "603183 initial SSE notice request returned 503; issuer resumption PDF recounts the original halt and states the resumption",
+    "No official first publication clock or trading certification"
+  ],
+  "coverage_gaps_resolved": 0,
+  "historical_PIT_verified": false,
+  "trade_gate": "BLOCKED",
+  "orders": [],
+  "executable_candidates": []
+}
