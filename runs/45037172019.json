@@ -1,0 +1,82 @@
+{
+  "audited_issuer_count": 3106,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 0,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.601238"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603678"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603679"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 45037041647,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 27608,
+  "research_date_action_links": [],
+  "run_id": 45037172019,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225560026",
+      "archive_path": "pdf/sh_601238/1225560026/67d575c5dd894763a3c4e43738211b6abe7d64821bb6083b5499ff3cc67a6f0f.pdf",
+      "bytes": 91862,
+      "captured_at_utc": "2026-11-22T15:14:38.306387+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1789142400000,
+      "issuer": "sh.601238",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-12/1225560026.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "67d575c5dd894763a3c4e43738211b6abe7d64821bb6083b5499ff3cc67a6f0f",
+      "title_from_index_unverified": "广汽集团第七届董事会第29次会议决议公告"
+    },
+    {
+      "announcement_id": "1225562358",
+      "archive_path": "pdf/sh_603678/1225562358/d353dd3d2739484e89e1d2cc7c5d90f29faa1983d9af389b89e1e4654e06b2b9.pdf",
+      "bytes": 87815,
+      "captured_at_utc": "2026-11-22T15:14:38.961524+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1789401600000,
+      "issuer": "sh.603678",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-15/1225562358.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "d353dd3d2739484e89e1d2cc7c5d90f29faa1983d9af389b89e1e4654e06b2b9",
+      "title_from_index_unverified": "火炬电子关于第四期员工持股计划股票出售完毕暨终止的公告"
+    },
+    {
+      "announcement_id": "1225605551",
+      "archive_path": "pdf/sh_603679/1225605551/7ffcb9f57ff2ed50e0ec2d7a8b35a75efdae5e8c65fd815d5a19b01f524ba0aa.pdf",
+      "bytes": 78377,
+      "captured_at_utc": "2026-11-22T15:14:39.838198+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1791993600000,
+      "issuer": "sh.603679",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-15/1225605551.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "7ffcb9f57ff2ed50e0ec2d7a8b35a75efdae5e8c65fd815d5a19b01f524ba0aa",
+      "title_from_index_unverified": "四川华体照明科技股份有限公司关于持股5%以上股东股权质押的公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
