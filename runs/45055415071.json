@@ -1,0 +1,119 @@
+{
+  "audited_issuer_count": 3114,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 2,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603183"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603681"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603682"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 45055289744,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 27672,
+  "research_date_action_links": [
+    {
+      "announcement_id": "1225588724",
+      "claimed_index_publication_utc_unverified": "2026-09-29T16:00:00+00:00",
+      "decision_day": "2026-09-30",
+      "decision_time_available_certified": false,
+      "effective_date_authenticated": false,
+      "event_kind": "halt",
+      "first_publication_authenticated": false,
+      "index_time_screen": "INDEX_TIME_NOT_AFTER_DECISION_CLOSE_UNVERIFIED",
+      "issuer": "sh.603183",
+      "local_textual_direction_candidate": "HALT_START",
+      "original_pdf_sha256": "b90d048268cd0b29f5d6b5e7edb15fbc36a88bcbcdde381fcb9a27b0cd2d83e1",
+      "source_clause_excerpt": "本公司股票将于2026年9月30日（星期三）开市起停牌",
+      "source_date_text": "2026年9月30日",
+      "source_shard": 140,
+      "vendor_csv_sha256": "3f53cf0bd447c2d757488614b4236632069885e793ee04959ae0c888c614168c",
+      "vendor_tradestatus_observed": "0"
+    },
+    {
+      "announcement_id": "1225588724",
+      "claimed_index_publication_utc_unverified": "2026-09-29T16:00:00+00:00",
+      "decision_day": "2026-10-08",
+      "decision_time_available_certified": false,
+      "effective_date_authenticated": false,
+      "event_kind": "halt",
+      "first_publication_authenticated": false,
+      "index_time_screen": "INDEX_TIME_NOT_AFTER_DECISION_CLOSE_UNVERIFIED",
+      "issuer": "sh.603183",
+      "local_textual_direction_candidate": "HALT_START",
+      "original_pdf_sha256": "b90d048268cd0b29f5d6b5e7edb15fbc36a88bcbcdde381fcb9a27b0cd2d83e1",
+      "source_clause_excerpt": "本公司股票将于2026年9月30日（星期三）开市起停牌",
+      "source_date_text": "2026年9月30日",
+      "source_shard": 140,
+      "vendor_csv_sha256": "3f53cf0bd447c2d757488614b4236632069885e793ee04959ae0c888c614168c",
+      "vendor_tradestatus_observed": "0"
+    }
+  ],
+  "run_id": 45055415071,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225588724",
+      "archive_path": "pdf/sh_603183/1225588724/b90d048268cd0b29f5d6b5e7edb15fbc36a88bcbcdde381fcb9a27b0cd2d83e1.pdf",
+      "bytes": 75741,
+      "captured_at_utc": "2026-11-22T18:30:33.852415+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1790697600000,
+      "issuer": "sh.603183",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-30/1225588724.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "b90d048268cd0b29f5d6b5e7edb15fbc36a88bcbcdde381fcb9a27b0cd2d83e1",
+      "title_from_index_unverified": "关于筹划重大事项的停牌公告"
+    },
+    {
+      "announcement_id": "1225606283",
+      "archive_path": "pdf/sh_603681/1225606283/a5c50fba7239cd83da3ef2b66b2062d0d92d42b6cf5bcbfebbd029a9760df855.pdf",
+      "bytes": 79419,
+      "captured_at_utc": "2026-11-22T18:30:34.381534+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1792080000000,
+      "issuer": "sh.603681",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-16/1225606283.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "a5c50fba7239cd83da3ef2b66b2062d0d92d42b6cf5bcbfebbd029a9760df855",
+      "title_from_index_unverified": "上海永冠众诚新材料科技（集团）股份有限公司关于2025年股票期权激励计划部分股票期权注销完成的公告"
+    },
+    {
+      "announcement_id": "1225595437",
+      "archive_path": "pdf/sh_603682/1225595437/3cafda154d1dc1c9b278eda35352fdc59790905e2b6547de51f1ec5cac9038ff.pdf",
+      "bytes": 167319,
+      "captured_at_utc": "2026-11-22T18:30:35.061655+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1791388800000,
+      "issuer": "sh.603682",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-08/1225595437.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "3cafda154d1dc1c9b278eda35352fdc59790905e2b6547de51f1ec5cac9038ff",
+      "title_from_index_unverified": "上海锦和商业经营管理（集团）股份有限公司关于公司控股股东协议转让部分股份的公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
