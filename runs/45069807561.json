@@ -1,0 +1,82 @@
+{
+  "audited_issuer_count": 3122,
+  "certified_event_effective_day_count": 0,
+  "certified_first_publication_count": 0,
+  "certified_historical_decision_state_count": 0,
+  "executable_candidates": [],
+  "explicit_local_textual_candidate_count": 0,
+  "historical_PIT_verified": false,
+  "index_query_attempted_issuers_research_only": [
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603759"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603685"
+    },
+    {
+      "historical_PIT_verified": false,
+      "index_status_research_only": "INDEX_CANDIDATES_UNVERIFIED",
+      "issuer": "sh.603686"
+    }
+  ],
+  "orders": [],
+  "original_pdf_count": 3,
+  "p1_upstream_run_id": 45069668342,
+  "phase": "P3_PERSISTENT_ORIGINAL_PDF_RESEARCH_ARCHIVE",
+  "required_official_PIT_cells": 27736,
+  "research_date_action_links": [],
+  "run_id": 45069807561,
+  "source_pdf_receipts": [
+    {
+      "announcement_id": "1225610235",
+      "archive_path": "pdf/sh_603685/1225610235/be85494bbd4d822ddf60f3b0be3266c79580d34a1efce6850451ae050a913d6b.pdf",
+      "bytes": 72917,
+      "captured_at_utc": "2026-11-22T21:03:00.551435+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1792425600000,
+      "issuer": "sh.603685",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-20/1225610235.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "be85494bbd4d822ddf60f3b0be3266c79580d34a1efce6850451ae050a913d6b",
+      "title_from_index_unverified": "晨丰科技关于开展售后回租赁业务的进展公告"
+    },
+    {
+      "announcement_id": "1225601453",
+      "archive_path": "pdf/sh_603686/1225601453/1fca0d0084e543aac35fbb11bc1738afd4cce6b04ea5ebc84cb11a80b2ff9852.pdf",
+      "bytes": 292515,
+      "captured_at_utc": "2026-11-22T21:03:01.351683+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1791820800000,
+      "issuer": "sh.603686",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-13/1225601453.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "1fca0d0084e543aac35fbb11bc1738afd4cce6b04ea5ebc84cb11a80b2ff9852",
+      "title_from_index_unverified": "福龙马：关于全资子公司拟收购股权的公告"
+    },
+    {
+      "announcement_id": "1225602844",
+      "archive_path": "pdf/sh_603759/1225602844/395604493e9e1088b759fc45c75474d79db275112a1d13f3ba0ebabd4697cda8.pdf",
+      "bytes": 63642,
+      "captured_at_utc": "2026-11-22T21:03:00.258822+00:00",
+      "effective_date_authenticated": false,
+      "historical_PIT_verified": false,
+      "historical_first_publication_authenticated": false,
+      "index_publication_milliseconds_unverified": 1791907200000,
+      "issuer": "sh.603759",
+      "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-10-14/1225602844.PDF",
+      "original_retrieved": true,
+      "pdf_sha256": "395604493e9e1088b759fc45c75474d79db275112a1d13f3ba0ebabd4697cda8",
+      "title_from_index_unverified": "关于证券事务代表辞职的公告"
+    }
+  ],
+  "source_roster_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "trade_gate": "BLOCKED"
+}
