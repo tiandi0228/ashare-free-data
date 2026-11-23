@@ -40,7 +40,14 @@ def choose_scheduled_tail(plan, prior, start_index, limit, *, threshold=0.90):
     pending = prior["pending_shards"]
     if pending != sorted(set(pending)):
         raise ValueError("unsorted or duplicate scheduled gap indices")
-    return pending[:limit]
+    # A vendor failure on the first low-numbered gap must not consume
+    # every subsequent scheduled slot. Deprioritize only failures recorded
+    # by the preceding *validated* same-epoch checkpoint, never promote them
+    # to completed or omit them from pending. Once other gaps are exhausted
+    # the failed ones are retried, still bounded by the same per-run cap.
+    recently_failed = set(prior["failed_in_this_reconciliation"]) & set(pending)
+    ready = [i for i in pending if i not in recently_failed]
+    return (ready if ready else pending)[:limit]
 
 
 def choose_gap_window(plan, prior, window, limit=1):
