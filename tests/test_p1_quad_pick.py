@@ -225,6 +225,22 @@ class PickTests(unittest.TestCase):
         self.assertEqual(choose_scheduled_tail(plan, early, 390, 2), [390, 391])
         advanced = checkpoint(set(range(400)) - set(range(273, 288)))
         self.assertEqual(choose_scheduled_tail(plan, advanced, 0, 2), [273, 274])
+        # A failed 271 must not repeatedly block 272-278 from being reached.
+        failed_once = checkpoint(set(range(400)) - set(range(271, 279)))
+        failed_once["failed_in_this_reconciliation"] = [271]
+        self.assertEqual(choose_scheduled_tail(plan, failed_once, 0, 2), [272, 273])
+        self.assertIn(271, failed_once["pending_shards"])  # not treated as archived
+        # When all remaining requests recently failed, retry them rather than
+        # skipping the only remaining shard(s).
+        failed_once["failed_in_this_reconciliation"] = list(range(271, 279))
+        self.assertEqual(choose_scheduled_tail(plan, failed_once, 0, 2), [271, 272])
+        one_left = checkpoint(set(range(400)) - {278})
+        one_left["failed_in_this_reconciliation"] = [278]
+        self.assertEqual(choose_scheduled_tail(plan, one_left, 0, 2), [278])
+        # Malformed failure metadata never gets to choose a vendor request.
+        one_left["failed_in_this_reconciliation"] = [278, 278]
+        with self.assertRaisesRegex(ValueError, "failed"):
+            choose_scheduled_tail(plan, one_left, 0, 2)
 
     def test_priority_flag_cannot_be_used_outside_schedule(self):
         import json, os, tempfile
