@@ -131,3 +131,72 @@ jobs:
               assert coverage["trade_gate"] == "BLOCKED" and coverage["orders"] == []
           print("PASS: P1 392/400, missing 271-278; P2 369/392; next 271-272, trade BLOCKED")
           PY392
+
+      - name: Replay current moving P1 archive safely and report next scheduled shards (NO WRITES)
+        run: |
+          set -euo pipefail
+          main_sha="$(git ls-remote origin refs/heads/main | cut -f1)"
+          archive_sha="$(git ls-remote origin refs/heads/research-csv-archive | cut -f1)"
+          [[ "$main_sha" =~ ^[0-9a-f]{40}$ && "$archive_sha" =~ ^[0-9a-f]{40}$ ]]
+          git fetch --no-tags --depth=1 origin "$main_sha" "$archive_sha"
+          MAIN_SHA="$main_sha" ARCHIVE_SHA="$archive_sha" python - <<'PYLIVE'
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+          from tempfile import TemporaryDirectory
+          from collector.p1_quad_pick import choose_scheduled_tail, verify_prior_for_selection
+          from collector.p1_roster_lock import unpack
+          from collector.p1_fresh_shard_plan import plan
+
+          main = os.environ["MAIN_SHA"]
+          archive = os.environ["ARCHIVE_SHA"]
+          epoch = "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022"
+          prefix = epoch[:16]
+          def read(ref, path):
+              return json.loads(subprocess.check_output(["git", "show", f"{ref}:{path}"]))
+
+          lock = read(main, "evidence/p1_active_roster.json")
+          assert lock["source_sha256"] == epoch
+          raw, receipt = unpack(lock)
+          checkpoint = read(main, f"evidence/checkpoints/{epoch}.json")
+          archived = read(archive, f"{prefix}/archive_status.json")
+          with TemporaryDirectory() as tmp:
+              root = Path(tmp)
+              roster = root / "roster.csv"
+              roster.write_bytes(raw)
+              frozen = plan(roster, root / "manifests", receipt["requested_day"])
+              verify_prior_for_selection(frozen, checkpoint)
+              ids = sorted(r["index"] for r in checkpoint["completed"])
+              pending = checkpoint["pending_shards"]
+              assert checkpoint["shard_count"] == 400
+              assert checkpoint["completed_shards"] >= 392, "unexpected P1 regression"
+              assert checkpoint["completed_shards"] + len(pending) == 400
+              assert sorted(archived["archived_shards"]) == ids
+              assert archived["source_sha256"] == epoch
+              assert checkpoint["trade_gate"] == archived["trade_gate"] == "BLOCKED"
+              assert checkpoint["orders"] == [] and checkpoint["executable_candidates"] == []
+              assert pending == sorted(set(pending))
+              failed = set(checkpoint["failed_in_this_reconciliation"]) & set(pending)
+              ready = [i for i in pending if i not in failed]
+              expected = ready if ready else pending
+              first = choose_scheduled_tail(frozen, checkpoint, 399, 1) if pending else []
+              double = choose_scheduled_tail(frozen, checkpoint, 399, 2) if pending else []
+              assert first == expected[:1]
+              assert double == expected[:2]
+              assert set(first + double) <= set(pending)
+              # The data and the test never mutate archived status or turn on trading.
+              summary = [
+                  "### P1 current same-epoch read-only replay",
+                  f"- Immutable main commit: \`{main}\`",
+                  f"- Immutable original-archive commit: \`{archive}\`",
+                  f"- Archived: {len(ids)}/400; missing: {pending}",
+                  f"- Previous reconciliation failure indices: {sorted(failed)}",
+                  f"- Scheduled next single: {first}; next dual: {double}",
+                  "- All checkpoint and archive IDs agree; trade gate BLOCKED",
+                  "- This is a read-only dispatch preview, NOT a collection or acceptance.",
+              ]
+              Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a").write("\n".join(summary) + "\n")
+              print("LIVE REPLAY PASS:", {"archived":len(ids), "missing":pending,
+                     "next_single":first, "next_dual":double, "trade_gate":"BLOCKED"})
+          PYLIVE
