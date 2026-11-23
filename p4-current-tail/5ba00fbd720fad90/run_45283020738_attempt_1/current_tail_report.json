@@ -1,0 +1,202 @@
+{
+  "phase": "P4_BOUNDED_CURRENT_TAIL_MA20_RESEARCH",
+  "as_of_day": "2026-11-23",
+  "frozen_p1_end": "2026-10-20",
+  "source_archive_commit": "4c359531064a277551b517a8e1fd2b208427f05e",
+  "source_epoch_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "pilot_shard": "shard_0098",
+  "scope": "AT_MOST_EIGHT_ALREADY_ARCHIVED_ISSUERS",
+  "selected_codes": [
+    "sh.601100",
+    "sh.601101",
+    "sh.601106",
+    "sh.601107",
+    "sh.601108",
+    "sh.601111",
+    "sh.601112",
+    "sh.601113"
+  ],
+  "selected_issuers": 8,
+  "results": [
+    {
+      "code": "sh.601100",
+      "anchor_date": "2026-10-20",
+      "baseline_sha256": "d39ee78a04ac82a06e6adae28e7f90799f5ee8e38331f8dba1aa678916507678",
+      "status": "OBSERVED_RESEARCH_ONLY",
+      "filename": "sh_601100_current.csv",
+      "tail_sha256": "0fccbe49024270bf6b276420cb857ce7bdcd064744766df0b597b4e1ce0df018",
+      "observed_last_date": "2026-11-23",
+      "fresh_rows": 24,
+      "crossing_days": [
+        "2026-10-23",
+        "2026-10-28",
+        "2026-11-02",
+        "2026-11-19"
+      ]
+    },
+    {
+      "code": "sh.601101",
+      "anchor_date": "2026-10-20",
+      "baseline_sha256": "0c1283d37a1701198d5ace609bd8d30e0954dabf983467e8f5b863dd025928af",
+      "status": "OBSERVED_RESEARCH_ONLY",
+      "filename": "sh_601101_current.csv",
+      "tail_sha256": "e2e5f6a68ba66ec36630302d326f75b6b8080170083016034a4f618c5084cc71",
+      "observed_last_date": "2026-11-23",
+      "fresh_rows": 24,
+      "crossing_days": [
+        "2026-11-16"
+      ]
+    },
+    {
+      "code": "sh.601106",
+      "anchor_date": "2026-10-20",
+      "baseline_sha256": "15e1db22367d20dc6759157f940071ce94951a0ff80f1fecb77649007baf1d78",
+      "status": "OBSERVED_RESEARCH_ONLY",
+      "filename": "sh_601106_current.csv",
+      "tail_sha256": "6c1241adcfe075af4eac215f20785a54140dcf188a3369281d0b64996f827c93",
+      "observed_last_date": "2026-11-23",
+      "fresh_rows": 24,
+      "crossing_days": [
+        "2026-11-04"
+      ]
+    },
+    {
+      "code": "sh.601107",
+      "anchor_date": "2026-10-20",
+      "baseline_sha256": "116ec29219d2562d74347a2ee5ac7072c0dca705bd8287c0aa345f51ddf3f943",
+      "status": "OBSERVED_RESEARCH_ONLY",
+      "filename": "sh_601107_current.csv",
+      "tail_sha256": "151a433d51ade404350d8de6040e9679a101b00f5519004dec8d222b1df5c36d",
+      "observed_last_date": "2026-11-23",
+      "fresh_rows": 24,
+      "crossing_days": [
+        "2026-10-28"
+      ]
+    },
+    {
+      "code": "sh.601108",
+      "anchor_date": "2026-10-20",
+      "baseline_sha256": "89917dbb435d2addc21aab26c085b5f6d1c4c88323fcd18d5b81788f98a1d259",
+      "status": "OBSERVED_RESEARCH_ONLY",
+      "filename": "sh_601108_current.csv",
+      "tail_sha256": "79950aa6f6c5e14f7846d17d735a4ac6b9f80fdb3486b4dd2b90a62605e51baa",
+      "observed_last_date": "2026-11-23",
+      "fresh_rows": 24,
+      "crossing_days": []
+    },
+    {
+      "code": "sh.601111",
+      "anchor_date": "2026-10-20",
+      "baseline_sha256": "d4e385a9e4b6039d2d3358776f6c3ea1f12ab411bccf45df9f644597a399f50a",
+      "status": "OBSERVED_RESEARCH_ONLY",
+      "filename": "sh_601111_current.csv",
+      "tail_sha256": "038b05019ecf85639432c81108551097859897d3ac1b45669cdf8dde867e1ffd",
+      "observed_last_date": "2026-11-23",
+      "fresh_rows": 24,
+      "crossing_days": [
+        "2026-10-29"
+      ]
+    },
+    {
+      "code": "sh.601112",
+      "anchor_date": "2026-10-20",
+      "baseline_sha256": "71c19ede601ae1d65fb31db5910d7779d4876163d9bfbddf54a2b7c30f62f9e9",
+      "status": "OBSERVED_RESEARCH_ONLY",
+      "filename": "sh_601112_current.csv",
+      "tail_sha256": "a7c96fb7b4948ebde3f381ec9249d3187a2bf2840990611f5f5c23c4db2a0962",
+      "observed_last_date": "2026-11-23",
+      "fresh_rows": 24,
+      "crossing_days": [
+        "2026-11-04"
+      ]
+    },
+    {
+      "code": "sh.601113",
+      "anchor_date": "2026-10-20",
+      "baseline_sha256": "95b242ed7bb6daa26586ade176387ba0d9bcf6da4e65b08c98b2a239cd4ef9a3",
+      "status": "OBSERVED_RESEARCH_ONLY",
+      "filename": "sh_601113_current.csv",
+      "tail_sha256": "9f1909152c6f62e9f1e45536c7aed1318393691b896c1fc49239a555818f9878",
+      "observed_last_date": "2026-11-23",
+      "fresh_rows": 24,
+      "crossing_days": [
+        "2026-11-11"
+      ]
+    }
+  ],
+  "non_executable_ma20_crossing_events": [
+    {
+      "code": "sh.601100",
+      "completed_close_day": "2026-10-23",
+      "signal_known_after_close_only": true,
+      "entry_filled": false
+    },
+    {
+      "code": "sh.601100",
+      "completed_close_day": "2026-10-28",
+      "signal_known_after_close_only": true,
+      "entry_filled": false
+    },
+    {
+      "code": "sh.601100",
+      "completed_close_day": "2026-11-02",
+      "signal_known_after_close_only": true,
+      "entry_filled": false
+    },
+    {
+      "code": "sh.601100",
+      "completed_close_day": "2026-11-19",
+      "signal_known_after_close_only": true,
+      "entry_filled": false
+    },
+    {
+      "code": "sh.601101",
+      "completed_close_day": "2026-11-16",
+      "signal_known_after_close_only": true,
+      "entry_filled": false
+    },
+    {
+      "code": "sh.601106",
+      "completed_close_day": "2026-11-04",
+      "signal_known_after_close_only": true,
+      "entry_filled": false
+    },
+    {
+      "code": "sh.601107",
+      "completed_close_day": "2026-10-28",
+      "signal_known_after_close_only": true,
+      "entry_filled": false
+    },
+    {
+      "code": "sh.601111",
+      "completed_close_day": "2026-10-29",
+      "signal_known_after_close_only": true,
+      "entry_filled": false
+    },
+    {
+      "code": "sh.601112",
+      "completed_close_day": "2026-11-04",
+      "signal_known_after_close_only": true,
+      "entry_filled": false
+    },
+    {
+      "code": "sh.601113",
+      "completed_close_day": "2026-11-11",
+      "signal_known_after_close_only": true,
+      "entry_filled": false
+    }
+  ],
+  "captured_issuer_count": 8,
+  "new_source_rows": 192,
+  "observations_source_current_certified": false,
+  "complete_mainboard_coverage": false,
+  "historical_PIT_verified": false,
+  "strategy_buy_signals_certified": 0,
+  "entry_fills_assumed": 0,
+  "returns_computed": false,
+  "trade_gate": "BLOCKED",
+  "orders": [],
+  "executable_candidates": [],
+  "paid_api_calls": 0,
+  "status": "OBSERVED_BOUNDED_RESEARCH"
+}
