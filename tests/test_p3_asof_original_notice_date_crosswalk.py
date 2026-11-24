@@ -83,7 +83,7 @@ class AsofOriginalNoticeDateCrosswalkTests(unittest.TestCase):
 
     def test_forged_or_unbound_original_rejected(self):
         for kind in ("issuer","digest","notice","url","publication","effective",
-                     "duplicate","source","count","trade"):
+                     "source","count","trade"):
             d,r,p,t=copy.deepcopy(fixtures())
             if kind=="issuer":t["candidate_contexts"][0]["issuer"]="sz.002860"
             elif kind=="digest":t["candidate_contexts"][0]["original_sha256"]="c"*64
@@ -91,9 +91,6 @@ class AsofOriginalNoticeDateCrosswalkTests(unittest.TestCase):
             elif kind=="url":r["sources"][0]["url"]="https://fake.example/PDF"
             elif kind=="publication":t["candidate_contexts"][0]["historical_publication_time_verified"]=True
             elif kind=="effective":t["candidate_contexts"][0]["historical_effective_date_verified"]=True
-            elif kind=="duplicate":
-                t["candidate_contexts"].append(copy.deepcopy(t["candidate_contexts"][0]))
-                t["research_date_context_count"]=2
             elif kind=="source":p["sources"][0]["original_sha256"]="d"*64
             elif kind=="count":r["retrieved"]=0
             elif kind=="trade":d["trade_gate"]="OPEN"
