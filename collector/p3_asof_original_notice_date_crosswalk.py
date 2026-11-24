@@ -109,7 +109,10 @@ def join(discovery, receipt, pdf, triage):
         fingerprint = hashlib.sha256(phrase.encode()).hexdigest()
         identity = (*key, src["sha256"], day, fingerprint)
         if identity in seen:
-            raise ValueError("duplicated original date context")
+            # The same original PDF may repeat an identical date clause.
+            # Keep one source-SHA-bound research clue; duplicates are not
+            # independent original notices or additional proof.
+            continue
         seen.add(identity)
         outcomes = [classify(phrase, day, kind) for kind in KINDS]
         positives = sorted(set(o["local_textual_direction_candidate"] for o in outcomes
@@ -144,6 +147,7 @@ def join(discovery, receipt, pdf, triage):
         "research_issuers":3,
         "sha_verified_original_pdfs":receipt["retrieved"],
         "date_context_leads":len(leads),
+        "duplicate_source_text_contexts_collapsed":len(cues)-len(leads),
         "classification_counts":dict(sorted(Counter(r["research_classification"] for r in leads).items())),
         "leads":leads,
         "first_publication_times_independently_authenticated":0,
