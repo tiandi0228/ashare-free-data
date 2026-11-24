@@ -35,7 +35,7 @@ def choose_run(rows, artifact_lookup, prefix, preferred_id=None):
         if row["databaseId"] in seen:
             raise ValueError("duplicate GitHub workflow run")
         seen.add(row["databaseId"])
-        if row.get("conclusion") == "success" and row.get("event") in ALLOWED_SOURCE_EVENTS
+        if (row.get("conclusion") == "success" and row.get("event") in ALLOWED_SOURCE_EVENTS
                 and row.get("headBranch") == "main"
                 and isinstance(row.get("headSha"), str)
                 and re.fullmatch(r"[0-9a-f]{40}", row["headSha"])):
