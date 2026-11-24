@@ -13,6 +13,10 @@ EPOCH="b"*64
 def sources():
     cross,ctx=fixture()
     index_time=int(datetime(2026,10,22,10,30,tzinfo=ZoneInfo("Asia/Shanghai")).timestamp()*1000)
+    # Two distinct originals; different timestamps must never be ascribed to one notice.
+    cross["leads"][1]["announcement_id"]="124"
+    cross["leads"][1]["original_pdf_url"]="https://static.cninfo.com.cn/finalpage/2026-10-20/124.PDF"
+    ctx["candidate_contexts"][1]["announcement_id"]="124"
     for i,lead in enumerate(cross["leads"]):
         lead["index_timestamp_unverified"]=index_time if i==0 else None
         lead["index_source_scope"]="CURRENT_INDEX_RESEARCH_UNVERIFIED"
@@ -35,6 +39,10 @@ def sources():
              "candidates":[{"announcement_id":"123",
                "official_pdf_url":"https://static.cninfo.com.cn/finalpage/2026-10-20/123.PDF",
                "index_published_milliseconds_unverified":index_time,
+               "historical_PIT_verified":False,"original_bytes_captured":False},
+               {"announcement_id":"124",
+               "official_pdf_url":"https://static.cninfo.com.cn/finalpage/2026-10-20/124.PDF",
+               "index_published_milliseconds_unverified":None,
                "historical_PIT_verified":False,"original_bytes_captured":False}]},
             {"issuer":"sz.002717","vendor_asof_date":"2026-10-20",
              "original_vendor_csv_sha256":"d"*64,
