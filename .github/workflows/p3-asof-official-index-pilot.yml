@@ -4,6 +4,8 @@ on:
     paths:
       - 'collector/p3_asof_official_index_research.py'
       - 'tests/test_p3_asof_official_index_research.py'
+      - 'collector/p3_asof_original_notice_date_crosswalk.py'
+      - 'tests/test_p3_asof_original_notice_date_crosswalk.py'
       - '.github/workflows/p3-asof-official-index-pilot.yml'
 permissions:
   contents: read
@@ -20,7 +22,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Test bounds and original SHA source constraints
-        run: python -m unittest -v tests.test_p3_asof_official_index_research tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture
+        run: python -m unittest -v tests.test_p3_asof_official_index_research tests.test_p3_asof_original_notice_date_crosswalk tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture
       - name: Retrieve pinned real final P2 400-shard diagnoses
         env:
           GH_TOKEN: ${{ github.token }}
@@ -157,6 +159,34 @@ jobs:
               "first_publication_authentications":0,"certified_official_intervals":0,
               "trade_gate":"BLOCKED"})
           PY
+      - name: Reconcile three SHA-verified original notices to dated text clauses (unverified)
+        run: |
+          set -euo pipefail
+          python -m collector.p3_asof_original_notice_date_crosswalk \
+            --discovery evidence/p3-asof/official-index-unverified.json \
+            --receipt evidence/p3-asof/pdf-originals/quality.json \
+            --pdf-text evidence/p3-asof/pdf-text-cues.json \
+            --triage evidence/p3-asof/risk-date-contexts.json \
+            --out evidence/p3-asof/original-notice-date-leads.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("evidence/p3-asof/original-notice-date-leads.json").read_bytes())
+          assert r["research_issuers"]==3
+          assert r["sha_verified_original_pdfs"]<=3
+          assert r["date_context_leads"]==len(r["leads"])
+          assert sum(r["classification_counts"].values())==len(r["leads"])
+          assert r["first_publication_times_independently_authenticated"]==0
+          assert r["official_state_intervals_certified"]==0
+          assert r["historical_PIT_verified"] is False
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[] and r["buy_signals"]==[]
+          assert all(x["historical_first_publication_authenticated"] is False
+                     and x["official_effective_interval_certified"] is False
+                     and x["historical_trade_eligible"] is False
+                     for x in r["leads"])
+          print("P3 ORIGINAL NOTICE DATE CROSSWALK:",r["date_context_leads"],
+                r["classification_counts"],"0 authenticated first-publication times")
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -168,6 +198,7 @@ jobs:
             evidence/p3-asof/independent-pdf-replay.json
             evidence/p3-asof/pdf-text-cues.json
             evidence/p3-asof/risk-date-contexts.json
+            evidence/p3-asof/original-notice-date-leads.json
             evidence/p3-asof/pdf-originals/*.pdf
           retention-days: 14
           if-no-files-found: warn
