@@ -6,6 +6,8 @@ on:
       - 'collector/p2_p3_issuer_proof_action_queue.py'
       - 'collector/p3_gap_original_provenance_index.py'
       - 'collector/p3_manual_official_evidence_checklist.py'
+      - 'collector/p3_official_source_candidate_intake.py'
+      - 'tests/test_p3_official_source_candidate_intake.py'
       - 'tests/test_p3_manual_official_evidence_checklist.py'
       - 'tests/test_p3_gap_original_provenance_index.py'
       - '.github/workflows/p2-p3-24-mixed-gap-regression.yml'
@@ -24,7 +26,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Test safe review worksheet before real original sources
-        run: python -m unittest -v tests.test_p3_manual_official_evidence_checklist tests.test_p3_gap_original_provenance_index
+        run: python -m unittest -v tests.test_p3_manual_official_evidence_checklist tests.test_p3_official_source_candidate_intake tests.test_p3_gap_original_provenance_index
       - name: Download pinned actual 400-shard P2 original and P3 research artifacts
         env:
           GH_TOKEN: ${{ github.token }}
@@ -49,6 +51,7 @@ jobs:
           from collector.p2_p3_issuer_proof_action_queue import build, CATEGORIES
           from collector.p3_gap_original_provenance_index import index
           from collector.p3_manual_official_evidence_checklist import export
+          from collector.p3_official_source_candidate_intake import intake
 
           def sole(root, filename):
               found=list(Path(root).rglob(filename))
@@ -116,6 +119,20 @@ jobs:
           assert sum(row["vendor_gap_diagnosis"]=="VENDOR_MARKED_NOT_TRADABLE_AT_ASOF"
                      for row in rows) == 3
           assert all(row["review_status"]=="NOT_AUTHENTICATED" for row in rows)
+          evidence_intake=intake(checklist,[])
+          assert evidence_intake["issuers_in_scope"] == 24
+          assert evidence_intake["asof_nontradable_issuers"] == 3
+          assert evidence_intake["candidate_citations_received"] == 0
+          assert evidence_intake["authenticated_first_publication_count"] == 0
+          assert evidence_intake["certified_exchange_intervals"] == 0
+          assert evidence_intake["resolved_p2_feature_gaps"] == 0
+          assert evidence_intake["historical_PIT_verified"] is False
+          assert evidence_intake["trade_gate"] == "BLOCKED"
+          assert evidence_intake["orders"] == evidence_intake["buy_signals"] == []
+          Path("evidence/p3-24-independent-official-source-intake.json").write_text(
+              json.dumps(evidence_intake,indent=2)+"\\n")
+          reparsed=json.loads(Path("evidence/p3-24-independent-official-source-intake.json").read_text())
+          assert reparsed["issuers_in_scope"]==24
           Path("evidence/p2-p3-24-actual-gap-tasks.json").write_text(json.dumps(tasks,indent=2)+"\n")
           print("PASS: real 400-shard P2 gap sources, 24 unresolved official proof tasks, 3 nontradable-asof, NO TRADES")
           PY
@@ -128,5 +145,6 @@ jobs:
             evidence/p2-p3-24-original-pdf-source-index.json
             evidence/p3-24-official-proof-checklist.json
             evidence/p3-24-official-proof-checklist.csv
+            evidence/p3-24-independent-official-source-intake.json
           retention-days: 10
           if-no-files-found: warn
