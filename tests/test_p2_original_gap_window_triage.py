@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch
-from collector.p2_original_gap_window_triage import classify,diagnose,check_current_checkpoint
+from collector.p2_original_gap_window_triage import ASOF_GAP,classify,diagnose,check_current_checkpoint
 
 def row(date,status="1"):
     return {"date":date,"tradestatus":status}
@@ -19,6 +19,16 @@ class GapSourceTests(unittest.TestCase):
         x=classify(rows,asof="2026-10-22")
         self.assertEqual(x["diagnosis"],"VENDOR_SUSPENDED_ROW_WITHIN_LAST_21")
         self.assertEqual(x["trailing_vendor_suspended_rows"],1)
+
+    def test_asof_nontradable_requires_matching_original_status(self):
+        day="2026-10-22"
+        report=classify([row(day,"0"),row("2026-10-23")],asof=day,expected_reason=ASOF_GAP)
+        self.assertEqual(report["diagnosis"],"VENDOR_MARKED_NOT_TRADABLE_AT_ASOF")
+        self.assertFalse(report["official_halt_explanation_authenticated"])
+        with self.assertRaisesRegex(ValueError,"contradicts"):
+            classify([row(day)],asof=day,expected_reason=ASOF_GAP)
+        with self.assertRaisesRegex(ValueError,"not tradable"):
+            classify([row(day,"0")],asof=day)
 
     def test_unordered_duplicate_or_unknown_vendor_rows_fail_closed(self):
         asof="2026-10-22"
