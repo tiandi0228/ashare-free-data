@@ -64,6 +64,16 @@ class AsofOriginalNoticeDateCrosswalkTests(unittest.TestCase):
         self.assertEqual(report["trade_gate"],"BLOCKED")
         self.assertEqual(report["orders"],[])
 
+    def test_repeated_identical_date_context_is_one_source_not_two_proofs(self):
+        d,r,p,t=fixtures()
+        t["candidate_contexts"].append(copy.deepcopy(t["candidate_contexts"][0]))
+        t["research_date_context_count"]=2
+        report=join(d,r,p,t)
+        self.assertEqual(report["date_context_leads"],1)
+        self.assertEqual(report["duplicate_source_text_contexts_collapsed"],1)
+        self.assertEqual(report["official_state_intervals_certified"],0)
+        self.assertEqual(report["trade_gate"],"BLOCKED")
+
     def test_nonaffirmative_clause_not_promoted(self):
         d,r,p,t=fixtures()
         t["candidate_contexts"][0]["source_text_context"]="公司拟于2026年10月20日起停牌。"
