@@ -220,6 +220,14 @@ jobs:
           assert r["research_issuers"]==3
           assert r["sha_verified_original_pdfs"]<=3
           assert r["date_context_leads"]==len(r["leads"])
+          continuity=json.loads(Path("evidence/p3-asof/research-continuity.json").read_bytes())
+          archived=[x for x in r["leads"] if x["index_source_scope"]=="ARCHIVED_RESEARCH_LEAD_NOT_CURRENT_QUERY"]
+          expected=set(continuity["previous_research_lead_codes"])
+          assert {x["issuer"] for x in archived}.issubset(expected)
+          assert all(x["archived_research_source_run_id"]==continuity["previous_artifact_run_id"]
+                     and x["current_index_status"]=="INDEX_UNAVAILABLE_NOT_NO_RISK"
+                     for x in archived)
+          assert all(x["historical_first_publication_authenticated"] is False for x in archived)
           triage=json.loads(Path("evidence/p3-asof/risk-date-contexts.json").read_bytes())
           assert r["date_context_leads"]+r["duplicate_source_text_contexts_collapsed"]==triage["research_date_context_count"]
           assert sum(r["classification_counts"].values())==len(r["leads"])
@@ -252,6 +260,11 @@ jobs:
           assert d["total_contexts"]==len(rows)
           assert d["priority_event_candidates"]+d["ambiguous_quarantined"]+d["conflicting_quarantined"]+d["other_quarantined"]==len(rows)
           assert all(r["review_status"]=="NOT_AUTHENTICATED" for r in rows)
+          assert all(r["index_source_scope"] in
+                     ("CURRENT_INDEX_RESEARCH_UNVERIFIED","ARCHIVED_RESEARCH_LEAD_NOT_CURRENT_QUERY")
+                     for r in rows)
+          assert all(r["current_index_status"]=="INDEX_UNAVAILABLE_NOT_NO_RISK"
+                     for r in rows if r["index_source_scope"]=="ARCHIVED_RESEARCH_LEAD_NOT_CURRENT_QUERY")
           assert all(r["buy_eligible"]=="False" for r in rows)
           assert d["official_first_publication_authenticated"]==0
           assert d["official_state_intervals_certified"]==0
