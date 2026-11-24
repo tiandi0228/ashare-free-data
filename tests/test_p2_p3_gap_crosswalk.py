@@ -84,6 +84,34 @@ class CrosswalkTests(unittest.TestCase):
                 self.assertFalse(result["issuer_evidence"][0]["gap_resolved"])
                 self.assertEqual(result["trade_gate"],"BLOCKED")
 
+    def test_three_asof_nontradable_gaps_crosswalk_without_pit_promotion(self):
+        gaps,events,pairs=samples()
+        for n in range(3):
+            gaps["results"].append({
+                "issuer":f"sz.{300100+n:06d}",
+                "diagnosis":"VENDOR_MARKED_NOT_TRADABLE_AT_ASOF",
+                "asof_date":"2026-10-20",
+                "trailing_vendor_suspended_rows":1,
+                "original_csv_sha256":f"{n+1:064x}",
+                "official_halt_explanation_authenticated":False,
+            })
+        gaps["research_gap_issuers"]=5
+        result=crosswalk(gaps,events,pairs)
+        self.assertEqual(result["gap_issuers_examined"],5)
+        self.assertEqual(sum(r["vendor_gap_diagnosis"]=="VENDOR_MARKED_NOT_TRADABLE_AT_ASOF"
+                             for r in result["issuer_evidence"]),3)
+        self.assertTrue(all(r["official_trading_state_covered_for_gap"] is False
+                            and r["gap_resolved"] is False
+                            for r in result["issuer_evidence"]))
+        self.assertEqual(result["official_halt_intervals_authenticated"],0)
+        self.assertFalse(result["historical_PIT_verified"])
+        self.assertEqual(result["trade_gate"],"BLOCKED")
+        self.assertEqual(result["orders"],[])
+
+        gaps["results"][-1]["trailing_vendor_suspended_rows"]=0
+        with self.assertRaisesRegex(ValueError,"contradicts"):
+            crosswalk(gaps,events,pairs)
+
     def test_empty_bounded_p3_research_not_negative_proof(self):
         gaps,events,pairs=samples()
         events["research_text_event_claims"]=[]
