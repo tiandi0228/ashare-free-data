@@ -9,6 +9,8 @@ on:
       - 'collector/p3_asof_original_notice_date_crosswalk.py'
       - 'tests/test_p3_asof_original_notice_date_crosswalk.py'
       - 'collector/p3_asof_original_notice_review_packets.py'
+      - 'collector/p3_asof_publication_chronology_triage.py'
+      - 'tests/test_p3_asof_publication_chronology_triage.py'
       - 'tests/test_p3_asof_original_notice_review_packets.py'
       - '.github/workflows/p3-asof-official-index-pilot.yml'
 permissions:
@@ -26,7 +28,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Test bounds and original SHA source constraints
-        run: python -m unittest -v tests.test_p3_asof_official_index_research tests.test_p3_asof_index_research_continuity tests.test_p3_asof_original_notice_date_crosswalk tests.test_p3_asof_original_notice_review_packets tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture
+        run: python -m unittest -v tests.test_p3_asof_official_index_research tests.test_p3_asof_index_research_continuity tests.test_p3_asof_original_notice_date_crosswalk tests.test_p3_asof_original_notice_review_packets tests.test_p3_asof_publication_chronology_triage tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture
       - name: Retrieve pinned real final P2 400-shard diagnoses
         env:
           GH_TOKEN: ${{ github.token }}
@@ -276,6 +278,38 @@ jobs:
                 "conflicts",d["conflicting_quarantined"],
                 "other",d["other_quarantined"],"official certified 0")
           PY
+      - name: Independently triage CNINFO index timestamp versus PDF event date (unverified)
+        run: |
+          set -euo pipefail
+          python -m collector.p3_asof_publication_chronology_triage \
+            --packets evidence/p3-asof/original-notice-review-packets.json \
+            --crosswalk evidence/p3-asof/original-notice-date-leads.json \
+            --discovery evidence/p3-asof/effective-discovery-research-only.json \
+            --json-out evidence/p3-asof/chronology-review-unverified.json \
+            --csv-out evidence/p3-asof/chronology-review-unverified.csv
+          python - <<'PY'
+          import csv,json
+          from pathlib import Path
+          report=json.loads(Path("evidence/p3-asof/chronology-review-unverified.json").read_text())
+          with Path("evidence/p3-asof/chronology-review-unverified.csv").open(
+                  encoding="utf-8-sig",newline="") as f:
+              rows=list(csv.DictReader(f))
+          assert report["reviewed_date_contexts"]==len(rows)
+          assert 0<=report["priority_review_candidates"]<=len(rows)
+          assert 0<=report["index_after_event_day_research_warnings"]<=len(rows)
+          assert report["authenticated_first_publication_count"]==0
+          assert report["certified_exchange_intervals"]==0
+          assert report["historical_PIT_verified"] is False
+          assert report["trade_gate"]=="BLOCKED" and report["orders"]==[] and report["buy_signals"]==[]
+          assert all(row["review_status"]=="NEEDS_INDEPENDENT_OFFICIAL_SOURCE"
+                     and row["buy_eligible"]=="False" for row in rows)
+          print("P3 CHRONOLOGY RESEARCH:",{
+              "reviewed":len(rows),
+              "priority":report["priority_review_candidates"],
+              "index_after_event_day":report["index_after_event_day_research_warnings"],
+              "index_after_vendor_asof":report["index_after_vendor_asof_research_warnings"],
+              "authenticated":0,"gate":"BLOCKED"})
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -292,6 +326,8 @@ jobs:
             evidence/p3-asof/original-notice-date-leads.json
             evidence/p3-asof/original-notice-review-packets.json
             evidence/p3-asof/original-notice-review-packets.csv
+            evidence/p3-asof/chronology-review-unverified.json
+            evidence/p3-asof/chronology-review-unverified.csv
             evidence/p3-asof/pdf-originals/*.pdf
           retention-days: 14
           if-no-files-found: warn
