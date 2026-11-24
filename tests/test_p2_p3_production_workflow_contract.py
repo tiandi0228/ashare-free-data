@@ -18,8 +18,12 @@ def workflow(name):
 
 
 def block(source, start, end):
-    """Extract a job/step region so unrelated strings cannot satisfy checks."""
+    """Extract a job or permissions region at its own YAML indentation."""
     a = source.index(start)
+    tail = source[a + len(start):]
+    if start == "  replay_once:":
+        next_job = re.search(r"(?m)^  [a-zA-Z_][\\w-]*:", tail)
+        return source[a:a + len(start) + next_job.start()] if next_job else source[a:]
     b = source.find(end, a + len(start))
     return source[a:] if b == -1 else source[a:b]
 
