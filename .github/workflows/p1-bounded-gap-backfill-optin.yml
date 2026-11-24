@@ -65,6 +65,21 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          main_sha="$(git ls-remote origin refs/heads/main | cut -f1)"
+          archive_sha="$(git ls-remote origin refs/heads/research-csv-archive | cut -f1)"
+          [[ "$main_sha" =~ ^[a-f0-9]{40}$ && "$archive_sha" =~ ^[a-f0-9]{40}$ ]]
+          git fetch --depth=1 --no-tags origin "$main_sha" "$archive_sha"
+          python -m collector.p1_completion_guard --main-sha "$main_sha" \
+            --archive-sha "$archive_sha" --out /tmp/p1-completion-guard.json
+          if python - <<'PYCOMPLETE'
+          import json
+          r=json.load(open('/tmp/p1-completion-guard.json'))
+          raise SystemExit(0 if r['should_collect'] is False else 1)
+          PYCOMPLETE
+          then
+            echo 'P1 400/400: backfill rehearsal correctly disabled; no vendor calls or writes'
+            exit 0
+          fi
           python -m collector.p1_live_gap_rehearsal \
             --repo "${{ github.repository }}" \
             --out /tmp/p1-live-gap-rehearsal.json
