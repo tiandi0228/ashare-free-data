@@ -84,6 +84,48 @@ jobs:
           (root/"integrated-p2-gap-report.json").write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
           print("PASS: integrated P2 actual original CSV replay; 24 unresolved gaps and NO TRADES")
           PY
+      - name: Replay exact production P2 module CLI and compare artifact bytes
+        env:
+          ROOT: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,os,subprocess,sys
+          from pathlib import Path
+          from collector.p1_active_migration_checkpoint import resolve
+          root=Path(os.environ["ROOT"])
+          active=resolve(root/"current-main")
+          epoch=active["source_sha256"]
+          coverage=root/"current-coverage"/"summaries"/(epoch[:16]+".json")
+          archive=root/"actual-archive"/epoch[:16]
+          output=root/"production-cli-gap-triage.json"
+          subprocess.run([sys.executable,"-m","collector.p2_original_gap_window_triage",
+              "--coverage",str(coverage),"--archive-epoch",str(archive),
+              "--out",str(output)],check=True,timeout=160)
+          direct=json.loads((root/"integrated-p2-gap-report.json").read_text())
+          from_cli=json.loads(output.read_text())
+          if from_cli!=direct:
+              raise ValueError("production P2 CLI and independent in-process replay disagree")
+          if from_cli["research_gap_issuers"]!=24 or from_cli["coverage_gaps_resolved"]!=0:
+              raise ValueError("production CLI gap evidence was modified")
+          if from_cli["trade_gate"]!="BLOCKED" or from_cli["orders"]!=[]:
+              raise ValueError("unsafe production CLI gap report")
+          audit={
+              "phase":"P2_REAL_ORIGINAL_PRODUCER_CLI_REPLAY_RESEARCH_ONLY",
+              "source_epoch_sha256":epoch,
+              "source_checkpoint_commit":"c519f477b3a99733850ddafc74629838ca1f7f71",
+              "cli_matches_independent_replay":True,
+              "cli_report_sha256":hashlib.sha256(output.read_bytes()).hexdigest(),
+              "real_production_actions_artifact_created":False,
+              "gaps_unresolved":24,
+              "historical_PIT_verified":False,
+              "trade_gate":"BLOCKED",
+              "orders":[],
+          }
+          (root/"p2-producer-cli-replay-witness.json").write_text(
+              json.dumps(audit,ensure_ascii=False,indent=2)+"\\n")
+          print("PASS: production P2 CLI actual 400-shard vendor original replay matches independent result")
+          PY
       - name: Download fixed P3 research originals for same-run P2 to P3 join
         env:
           GH_TOKEN: ${{ github.token }}
@@ -270,6 +312,8 @@ jobs:
           name: p2-p3-integrated-original-replay-${{ github.run_id }}
           path: |
             ${{ runner.temp }}/integrated-p2-gap-report.json
+            ${{ runner.temp }}/production-cli-gap-triage.json
+            ${{ runner.temp }}/p2-producer-cli-replay-witness.json
             ${{ runner.temp }}/integrated-p2-p3-proof-queue.json
             ${{ runner.temp }}/p3-original-sha-provenance-index.json
             ${{ runner.temp }}/p3-official-issuer-review-checklist.json
