@@ -5,6 +5,8 @@ on:
       - 'collector/p2_p3_gap_crosswalk.py'
       - 'collector/p2_p3_issuer_proof_action_queue.py'
       - 'collector/p3_gap_original_provenance_index.py'
+      - 'collector/p3_manual_official_evidence_checklist.py'
+      - 'tests/test_p3_manual_official_evidence_checklist.py'
       - 'tests/test_p3_gap_original_provenance_index.py'
       - '.github/workflows/p2-p3-24-mixed-gap-regression.yml'
 permissions:
@@ -21,6 +23,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Test safe review worksheet before real original sources
+        run: python -m unittest -v tests.test_p3_manual_official_evidence_checklist tests.test_p3_gap_original_provenance_index
       - name: Download pinned actual 400-shard P2 original and P3 research artifacts
         env:
           GH_TOKEN: ${{ github.token }}
@@ -44,6 +48,7 @@ jobs:
           from collector.p2_p3_gap_crosswalk import crosswalk
           from collector.p2_p3_issuer_proof_action_queue import build, CATEGORIES
           from collector.p3_gap_original_provenance_index import index
+          from collector.p3_manual_official_evidence_checklist import export
 
           def sole(root, filename):
               found=list(Path(root).rglob(filename))
@@ -86,6 +91,22 @@ jobs:
                      and row["buy_eligible"] is False for row in asof)
           Path("evidence/p2-p3-24-original-pdf-source-index.json").write_text(
               json.dumps(proof,indent=2)+"\n")
+          checklist=export(tasks,proof)
+          assert checklist["review_count"] == 24
+          assert checklist["asof_nontradable_tasks"] == 3
+          assert checklist["official_first_publication_authenticated"] == 0
+          assert checklist["official_state_intervals_certified"] == 0
+          assert checklist["historical_PIT_verified"] is False
+          assert checklist["trade_gate"] == "BLOCKED" and checklist["orders"] == []
+          assert sorted(row["issuer"] for row in checklist["review_rows"]) == coverage["gap_issuer_codes"]
+          from csv import DictWriter
+          Path("evidence/p3-24-official-proof-checklist.json").write_text(
+              json.dumps(checklist,indent=2)+"\\n")
+          fields=list(checklist["review_rows"][0])
+          with Path("evidence/p3-24-official-proof-checklist.csv").open("w",newline="",encoding="utf-8-sig") as f:
+              writer=DictWriter(f,fieldnames=fields)
+              writer.writeheader()
+              writer.writerows(checklist["review_rows"])
           Path("evidence/p2-p3-24-actual-gap-tasks.json").write_text(json.dumps(tasks,indent=2)+"\n")
           print("PASS: real 400-shard P2 gap sources, 24 unresolved official proof tasks, 3 nontradable-asof, NO TRADES")
           PY
@@ -96,5 +117,7 @@ jobs:
           path: |
             evidence/p2-p3-24-actual-gap-tasks.json
             evidence/p2-p3-24-original-pdf-source-index.json
+            evidence/p3-24-official-proof-checklist.json
+            evidence/p3-24-official-proof-checklist.csv
           retention-days: 10
           if-no-files-found: warn
