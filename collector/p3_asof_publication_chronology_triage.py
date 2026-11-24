@@ -69,6 +69,7 @@ def triage(packets,crosswalk,discovery):
         or len(rows)!=len(leads) or len(rows)>100):
         raise ValueError("unreconciled research source count")
     roster={}
+    notices={}
     for item in targets:
         issuer=item.get("issuer") if isinstance(item,dict) else None
         if (not isinstance(issuer,str) or not ISSUER.fullmatch(issuer)
@@ -78,7 +79,38 @@ def triage(packets,crosswalk,discovery):
             or not isinstance(item.get("original_vendor_csv_sha256"),str)
             or not SHA.fullmatch(item["original_vendor_csv_sha256"])):
             raise ValueError("forged target asof source")
+        docs=item.get("candidates")
+        if (not isinstance(docs,list) or len(docs)>90
+            or item.get("status") not in (
+                "INDEX_CANDIDATES_UNVERIFIED",
+                "NO_INDEX_MATCH_NOT_NO_RISK",
+                "INDEX_UNAVAILABLE_NOT_NO_RISK",
+                "PREVIOUS_RUN_INDEX_LEADS_RESEARCH_ONLY")):
+            raise ValueError("unbounded or unknown official index source")
+        archived=item.get("research_leads_from_previous_run") is True
+        if archived:
+            if (item["status"]!="PREVIOUS_RUN_INDEX_LEADS_RESEARCH_ONLY"
+                or item.get("current_index_status")!="INDEX_UNAVAILABLE_NOT_NO_RISK"
+                or item.get("current_index_was_unavailable") is not True
+                or type(item.get("archived_research_source_run_id")) is not int
+                or item["archived_research_source_run_id"]<=0):
+                raise ValueError("archived official-index provenance mismatch")
+        elif item.get("archived_research_source_run_id") is not None:
+            raise ValueError("current official index has archival run id")
         roster[issuer]=item
+        for candidate in docs:
+            notice=candidate.get("announcement_id") if isinstance(candidate,dict) else None
+            url=candidate.get("official_pdf_url") if isinstance(candidate,dict) else None
+            match=PDF_URL.fullmatch(url) if isinstance(url,str) else None
+            key=(issuer,notice)
+            if (not isinstance(notice,str) or not notice.isdigit()
+                or match is None or match.group(1)!=notice
+                or key in notices
+                or candidate.get("historical_PIT_verified") is not False
+                or candidate.get("original_bytes_captured") is not False):
+                raise ValueError("invalid original indexed announcement identity")
+            _index_time(candidate.get("index_published_milliseconds_unverified"))
+            notices[key]=candidate
     per_lead={}
     for row in leads:
         issuer=row.get("issuer") if isinstance(row,dict) else None
@@ -120,10 +152,27 @@ def triage(packets,crosswalk,discovery):
         match=PDF_URL.fullmatch(url) if isinstance(url,str) else None
         if match is None or match.group(1)!=notice:
             raise ValueError("untrusted original index URL")
+        indexed=notices.get((issuer,notice))
+        if (indexed is None or indexed.get("official_pdf_url")!=url
+            or type(indexed.get("index_published_milliseconds_unverified")) is not
+               type(lead.get("index_timestamp_unverified"))
+            or indexed.get("index_published_milliseconds_unverified")!=lead.get("index_timestamp_unverified")
+            or item.get("archived_research_source_run_id")!=lead.get("archived_research_source_run_id")):
+            raise ValueError("chronology index timestamp not tied to exact original announcement")
+        origin=roster[issuer]
+        archived=origin.get("research_leads_from_previous_run") is True
+        expected_scope=("ARCHIVED_RESEARCH_LEAD_NOT_CURRENT_QUERY" if archived
+                        else "CURRENT_INDEX_RESEARCH_UNVERIFIED")
+        if (lead.get("index_source_scope")!=expected_scope
+            or item.get("index_source_scope")!=expected_scope
+            or lead.get("archived_research_source_run_id")!=origin.get("archived_research_source_run_id")
+            or item.get("current_index_status")!=lead.get("current_index_status")
+            or lead.get("current_index_status")!=origin.get("current_index_status")):
+            raise ValueError("chronology official index run provenance mismatch")
         used.add(key)
         event_day=_day(item["source_date_text_unverified"])
         asof=date.fromisoformat(roster[issuer]["vendor_asof_date"])
-        index_at=_index_time(lead.get("index_timestamp_unverified"))
+        index_at=_index_time(indexed.get("index_published_milliseconds_unverified"))
         if index_at is None:
             classification="INDEX_TIMESTAMP_ABSENT_UNVERIFIED"
         elif index_at.date()>event_day:
