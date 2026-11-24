@@ -37,7 +37,7 @@ jobs:
           python-version: '3.11'
       - run: python -m unittest -v tests.test_p2_original_gap_window_triage tests.test_p2_real_archive_features tests.test_p2_p3_current_source_guard tests.test_p2_gap_workflow_epoch_binding tests.test_p1_active_migration_checkpoint
   replay_once:
-    if: ${{ ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
+    if: ${{ ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
     needs: offline
     runs-on: ubuntu-latest
     timeout-minutes: 7
@@ -95,4 +95,4 @@ jobs:
           name: p2-original-gap-triage-${{ github.run_id }}
           path: evidence/p2-original-gap-triage.json
           retention-days: 14
-          if-no-files-found: warn
+          if-no-files-found: error
