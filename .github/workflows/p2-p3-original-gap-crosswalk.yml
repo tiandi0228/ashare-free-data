@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'collector/p2_p3_gap_crosswalk.py'
+      - 'collector/p2_p3_artifact_source_select.py'
+      - 'tests/test_p2_p3_artifact_source_select.py'
       - 'collector/p1_active_migration_checkpoint.py'
       - 'tests/test_p2_p3_workflow_epoch_binding.py'
       - 'collector/p2_p3_current_source_guard.py'
@@ -45,7 +47,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Test original issuer join without promoting PIT
-        run: python -m unittest -v tests.test_p2_p3_gap_crosswalk tests.test_p2_original_gap_window_triage tests.test_p2_p3_current_source_guard tests.test_p2_p3_issuer_proof_action_queue tests.test_p3_gap_original_provenance_index tests.test_p2_p3_workflow_epoch_binding
+        run: python -m unittest -v tests.test_p2_p3_gap_crosswalk tests.test_p2_p3_artifact_source_select tests.test_p2_original_gap_window_triage tests.test_p2_p3_current_source_guard tests.test_p2_p3_issuer_proof_action_queue tests.test_p3_gap_original_provenance_index tests.test_p2_p3_workflow_epoch_binding
   replay_once:
     if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     needs: offline
@@ -63,33 +65,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p evidence/sources/p2 evidence/sources/p3
-          python - <<'PY'
-          import json,os,subprocess
-          from pathlib import Path
-          def latest(workflow):
-              rows=json.loads(subprocess.check_output([
-                  'gh','run','list','--workflow',workflow,'--limit','30',
-                  '--json','databaseId,conclusion,event'],text=True))
-              valid=[r for r in rows if r['conclusion']=='success'
-                     and r['event']!='pull_request']
-              if not valid:raise ValueError('no successful authentic source run: '+workflow)
-              return max(r['databaseId'] for r in valid)
-          p2=latest('p2-original-gap-window-triage.yml')
-          p3=latest('p3-full-p1-official-scout.yml')
-          if os.environ['GITHUB_EVENT_NAME']=='workflow_run':
-              event=json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
-              run=event['workflow_run']
-              if run['conclusion']!='success':
-                  raise ValueError('invalid upstream success status')
-              if run['name']=='P2 original CSV 21-bar gap root-cause audit (NO TRADES)':
-                  p2=run['id']
-              elif run['name']=='P3 rotating official originals for full audited P1 issuer queue (NO TRADES)':
-                  p3=run['id']
-              else:raise ValueError('unrecognized upstream research workflow')
-          result={'p2_run_id':p2,'p3_run_id':p3}
-          Path('evidence/sources/selected-runs.json').write_text(json.dumps(result))
-          print('P2/P3 DYNAMIC SOURCE RUNS:',result)
-          PY
+          EVENT_ARGS=()
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_run" ]]; then
+            EVENT_ARGS=(--event "$GITHUB_EVENT_PATH")
+          fi
+          python -m collector.p2_p3_artifact_source_select \
+            --repo "${GITHUB_REPOSITORY}" "${EVENT_ARGS[@]}" \
+            --out evidence/sources/selected-runs.json
           P2_RUN=$(python -c "import json;print(json.load(open('evidence/sources/selected-runs.json'))['p2_run_id'])")
           P3_RUN=$(python -c "import json;print(json.load(open('evidence/sources/selected-runs.json'))['p3_run_id'])")
           gh run download "$P2_RUN" -R "${{ github.repository }}" -n "p2-original-gap-triage-$P2_RUN" -D evidence/sources/p2
