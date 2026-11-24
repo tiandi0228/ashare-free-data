@@ -123,7 +123,7 @@ jobs:
               "orders":[],
           }
           (root/"p2-producer-cli-replay-witness.json").write_text(
-              json.dumps(audit,ensure_ascii=False,indent=2)+"\\n")
+              json.dumps(audit,ensure_ascii=False,indent=2)+"\n")
           print("PASS: production P2 CLI actual 400-shard vendor original replay matches independent result")
           PY
       - name: Download fixed P3 research originals for same-run P2 to P3 join
@@ -180,7 +180,7 @@ jobs:
               if len(files)!=1:
                   raise ValueError(f"missing/ambiguous P3 source {name}: {len(files)}")
               return json.loads(files[0].read_bytes())
-          p2=json.loads((root/"integrated-p2-gap-report.json").read_bytes())
+          p2=json.loads((root/"production-cli-gap-triage.json").read_bytes())
           epoch=p2["source_epoch_sha256"]
           coverage=json.loads((root/"current-coverage"/"summaries"/(epoch[:16]+".json")).read_bytes())
           p3_queue=unique("full_p1_queue.json")
