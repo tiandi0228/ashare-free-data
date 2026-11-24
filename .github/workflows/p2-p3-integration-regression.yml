@@ -118,7 +118,7 @@ jobs:
           events=unique("p3_all_archived_original_event_episodes.json")
           pairs=unique("p3_all_resume_original_text_pairs.json")
           # The run IDs below are fixed *research artifact locators*, never production credentials.
-          guard=validate_sources(p2,coverage,p3_queue,0+45356750790,45246691330)
+          guard=validate_sources(p2,coverage,p3_queue,int(os.environ["GITHUB_RUN_ID"]),45246691330)
           joined=crosswalk(p2,events,pairs)
           review=build(joined,guard)
           assert review["gap_issuer_count"]==review["unresolved_issuer_count"]==24
