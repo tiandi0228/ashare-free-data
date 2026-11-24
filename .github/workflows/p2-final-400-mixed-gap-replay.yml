@@ -1,0 +1,75 @@
+name: P2 final 400-shard mixed-gap original replay (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/p2-final-400-mixed-gap-replay.yml'
+      - 'collector/p2_original_gap_window_triage.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  original-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Read immutable-at-run original archive and coverage references
+        run: |
+          set -euo pipefail
+          git fetch --depth=1 --no-tags origin research-csv-archive
+          git worktree add --detach "$RUNNER_TEMP/archive" FETCH_HEAD
+          git fetch --depth=1 --no-tags origin p2-feature-coverage
+          git worktree add --detach "$RUNNER_TEMP/coverage" FETCH_HEAD
+      - name: Validate same-epoch final original source and run mixed-gap replay
+        env:
+          ARCHIVE_DIR: ${{ runner.temp }}/archive
+          COVERAGE_DIR: ${{ runner.temp }}/coverage
+          OUTPUT: ${{ runner.temp }}/p2-final-mixed-gap-replay.json
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          from collector.p1_active_migration_checkpoint import resolve
+          from collector.p2_original_gap_window_triage import check_current_checkpoint, diagnose
+
+          source=resolve(Path("."))
+          epoch=source["source_sha256"]
+          assert len(epoch)==64
+          coverage_path=Path(os.environ["COVERAGE_DIR"])/"summaries"/(epoch[:16]+".json")
+          archive=Path(os.environ["ARCHIVE_DIR"])/epoch[:16]
+          checkpoint=json.loads(Path(source["checkpoint_path"]).read_text())
+          coverage=json.loads(coverage_path.read_text())
+          status=json.loads((archive/"archive_status.json").read_text())
+          witness=check_current_checkpoint(coverage,checkpoint,status)
+          assert witness["checkpoint_completed_shards"]==400
+          assert witness["gap_issuer_count"]==24
+          assert coverage["gap_reason_counts"]=={
+              "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS":21,
+              "VENDOR_NOT_TRADABLE_ASOF":3}
+          report=diagnose(coverage,archive)
+          assert report["research_gap_issuers"]==24
+          assert report["diagnosis_counts"]["VENDOR_MARKED_NOT_TRADABLE_AT_ASOF"]==3
+          assert sum(report["diagnosis_counts"].values())==24
+          assert report["coverage_gaps_resolved"]==0
+          assert report["historical_halt_intervals_certified"]==0
+          assert report["historical_PIT_verified"] is False
+          assert report["trade_gate"]=="BLOCKED" and report["orders"]==[]
+          assert report["executable_candidates"]==[] and report["buy_signals"]==[]
+          Path(os.environ["OUTPUT"]).write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\n")
+          print("PASS: 400-shard originals, 24 unresolved issuer gaps, 3 as-of vendor markers, NO TRADES")
+          PY
+      - name: Save read-only study report (not a production source)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p2-400-mixed-gap-independent-replay-${{ github.run_id }}
+          path: ${{ runner.temp }}/p2-final-mixed-gap-replay.json
+          retention-days: 7
+          if-no-files-found: warn
