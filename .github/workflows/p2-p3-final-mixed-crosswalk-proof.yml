@@ -1,0 +1,100 @@
+name: P2 P3 final 400-shard mixed-gap crosswalk proof (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/p2-p3-final-mixed-crosswalk-proof.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  mixed-gap-crosswalk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Fetch exact previously verified independent original research and P3 sources
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/actual-p2" "$RUNNER_TEMP/actual-p3" "$RUNNER_TEMP/coverage"
+          gh run download 45354161387 -R "$GITHUB_REPOSITORY" -n p2-400-mixed-gap-independent-replay-45354161387 -D "$RUNNER_TEMP/actual-p2"
+          gh run download 45246691330 -R "$GITHUB_REPOSITORY" -n p3-full-p1-official-scout-45246691330 -D "$RUNNER_TEMP/actual-p3"
+          git fetch --depth=1 --no-tags origin p2-feature-coverage
+          git show FETCH_HEAD:summaries/5ba00fbd720fad90.json > "$RUNNER_TEMP/coverage/current.json"
+      - name: Reconcile 24 original vendor gaps against P3 official-text research leads
+        env:
+          ROOT: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import json,os
+          from collections import Counter
+          from collector.p2_p3_current_source_guard import validate_sources
+          from collector.p2_p3_gap_crosswalk import crosswalk
+          from collector.p2_p3_issuer_proof_action_queue import build, CATEGORIES
+
+          root=Path(os.environ["ROOT"])
+          def only(folder,name):
+              found=list((root/folder).rglob(name))
+              if len(found)!=1:
+                  raise ValueError(f"missing or ambiguous research source: {name} ({len(found)})")
+              return json.loads(found[0].read_bytes())
+          p2=only("actual-p2","p2-final-mixed-gap-replay.json")
+          queue=only("actual-p3","full_p1_queue.json")
+          events=only("actual-p3","p3_all_archived_original_event_episodes.json")
+          pairs=only("actual-p3","p3_all_resume_original_text_pairs.json")
+          coverage=only("coverage","current.json")
+          assert coverage["observed_archived_shards"]==400
+          assert coverage["gap_reason_counts"]=={
+              "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS":21,
+              "VENDOR_NOT_TRADABLE_ASOF":3}
+          assert p2["research_gap_issuers"]==24
+          assert p2["diagnosis_counts"]["VENDOR_MARKED_NOT_TRADABLE_AT_ASOF"]==3
+          guard=validate_sources(p2,coverage,queue,45354161387,45246691330)
+          joined=crosswalk(p2,events,pairs)
+          tasks=build(joined,guard)
+          assert joined["gap_issuers_examined"]==tasks["gap_issuer_count"]==24
+          assert tasks["unresolved_issuer_count"]==24
+          assert Counter(x["vendor_gap_diagnosis"] for x in tasks["tasks"])["VENDOR_MARKED_NOT_TRADABLE_AT_ASOF"]==3
+          assert tasks["review_action_counts"][CATEGORIES[4]]==3
+          assert sorted(x["issuer"] for x in tasks["tasks"])==coverage["gap_issuer_codes"]
+          assert joined["feature_gaps_resolved"]==tasks["feature_gaps_resolved"]==0
+          assert joined["official_halt_intervals_authenticated"]==tasks["official_halt_intervals_certified"]==0
+          assert joined["historical_PIT_verified"] is False
+          assert tasks["historical_PIT_verified"] is False
+          assert joined["trade_gate"]==tasks["trade_gate"]=="BLOCKED"
+          assert tasks["orders"]==tasks["actionable_buy_signals"]==[]
+          assert all(t["buy_eligible"] is False and t["official_evidence_authenticated"] is False for t in tasks["tasks"])
+          report={
+              "status":"FINAL_400_SHARD_MIXED_P2_P3_RESEARCH_ONLY",
+              "source_epoch_sha256":guard["source_epoch_sha256"],
+              "p2_independent_replay_run_id":45354161387,
+              "p3_research_run_id":45246691330,
+              "unresolved_gap_issuers":24,
+              "vendor_nontradable_asof_issuers":3,
+              "issuer_task_counts":tasks["review_action_counts"],
+              "same_epoch_research_join_verified":True,
+              "official_PIT_certified":False,
+              "feature_gaps_resolved":0,
+              "trade_gate":"BLOCKED",
+              "orders":[],
+          }
+          (root/"final-mixed-p2-p3-join.json").write_text(json.dumps(report,indent=2)+"\n")
+          print("PASS: actual independent 400-shard P2 originals join P3, 24 unresolved, 3 vendor nontradable, NO TRADES")
+          PY
+      - name: Save independent report, never production artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p2-p3-final-mixed-join-research-${{ github.run_id }}
+          path: ${{ runner.temp }}/final-mixed-p2-p3-join.json
+          retention-days: 7
+          if-no-files-found: warn
