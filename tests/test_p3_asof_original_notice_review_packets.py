@@ -73,6 +73,29 @@ class ReviewPacketsTests(unittest.TestCase):
         self.assertEqual(result["official_state_intervals_certified"],0)
         self.assertEqual(result["trade_gate"],"BLOCKED")
 
+    def test_different_excerpts_claiming_same_event_are_all_quarantined(self):
+        cw,tri=fixture()
+        extra=copy.deepcopy(tri["candidate_contexts"][0])
+        extra["source_text_context"]="公司公告称自2026年10月20日起停牌。"
+        tri["candidate_contexts"].append(extra)
+        tri["research_date_context_count"]=3
+        lead=copy.deepcopy(cw["leads"][0])
+        lead["source_context_sha256"]=hashlib.sha256(
+            extra["source_text_context"].encode()).hexdigest()
+        cw["leads"].append(lead)
+        cw["date_context_leads"]=3
+        cw["classification_counts"]["SAME_CLAUSE_TEXT_CANDIDATE_MANUAL_REVIEW"]=2
+        report=build(cw,tri)
+        self.assertEqual(report["total_contexts"],3)
+        self.assertEqual(report["priority_event_candidates"],0)
+        self.assertEqual(report["conflicting_quarantined"],2)
+        self.assertEqual(report["other_quarantined"],1)
+        self.assertTrue(all(x["review_status"]=="NOT_AUTHENTICATED"
+                            and x["buy_eligible"] is False
+                            for x in report["review_queue"]))
+        self.assertEqual(report["official_state_intervals_certified"],0)
+        self.assertEqual(report["trade_gate"],"BLOCKED")
+
     def test_sha_mismatch_forged_claims_and_duplicates_rejected(self):
         for case in ("sha","clause","issuer","direction","classification",
                      "certification","duplicate","triage_duplicate","count",
