@@ -82,8 +82,14 @@ def crosswalk(gaps,events,pairs):
             or not 0 <= row["trailing_vendor_suspended_rows"] <= 21):
             raise ValueError("gap source wrongly claims official certification")
         diagnosis=row.get("diagnosis")
-        if diagnosis not in ("VENDOR_SUSPENDED_ROW_WITHIN_LAST_21","FEWER_THAN_21_VENDOR_ROWS_ASOF"):
+        if diagnosis not in ("VENDOR_SUSPENDED_ROW_WITHIN_LAST_21",
+                             "FEWER_THAN_21_VENDOR_ROWS_ASOF",
+                             "VENDOR_MARKED_NOT_TRADABLE_AT_ASOF"):
             raise ValueError("unrecognized gap")
+        # A vendor-marked nontradable as-of row is still not an
+        # exchange-authenticated halt, ST status or PIT exclusion.
+        if diagnosis == "VENDOR_MARKED_NOT_TRADABLE_AT_ASOF" and row["trailing_vendor_suspended_rows"] < 1:
+            raise ValueError("nontradable as-of gap contradicts vendor row evidence")
         original_event=by_issuer.get(code,[])
         related=[x for x in original_event if x["textual_direction"] in ("HALT_START","RESUME_START")]
         if related:
