@@ -8,6 +8,7 @@ on:
       - 'collector/p2_p3_issuer_proof_action_queue.py'
       - 'tests/test_p2_original_gap_window_triage.py'
       - 'tests/test_p2_p3_artifact_source_select.py'
+      - 'tests/test_p2_p3_production_workflow_contract.py'
       - '.github/workflows/p2-p3-integration-regression.yml'
   workflow_dispatch:
 permissions:
@@ -31,7 +32,8 @@ jobs:
             tests.test_p2_p3_artifact_source_select \
             tests.test_p2_p3_current_source_guard \
             tests.test_p2_p3_gap_crosswalk \
-            tests.test_p2_p3_issuer_proof_action_queue
+            tests.test_p2_p3_issuer_proof_action_queue \
+            tests.test_p2_p3_production_workflow_contract
   real-original:
     needs: offline
     runs-on: ubuntu-latest
