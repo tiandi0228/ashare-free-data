@@ -1,0 +1,92 @@
+name: P2 P3 integration independent regression (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p2_original_gap_window_triage.py'
+      - 'collector/p2_p3_artifact_source_select.py'
+      - 'collector/p2_p3_gap_crosswalk.py'
+      - 'collector/p2_p3_issuer_proof_action_queue.py'
+      - 'tests/test_p2_original_gap_window_triage.py'
+      - 'tests/test_p2_p3_artifact_source_select.py'
+      - '.github/workflows/p2-p3-integration-regression.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test integrated P2 gap producer, artifact selection and P3 proof queue
+        run: |
+          python -m unittest -v \
+            tests.test_p2_original_gap_window_triage \
+            tests.test_p2_p3_artifact_source_select \
+            tests.test_p2_p3_current_source_guard \
+            tests.test_p2_p3_gap_crosswalk \
+            tests.test_p2_p3_issuer_proof_action_queue
+  real-original:
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Load exact 400-shard checkpoint and current original research archive
+        run: |
+          set -euo pipefail
+          git fetch --depth=1 --no-tags origin c519f477b3a99733850ddafc74629838ca1f7f71
+          git worktree add --detach "$RUNNER_TEMP/current-main" FETCH_HEAD
+          git fetch --depth=1 --no-tags origin research-csv-archive
+          git worktree add --detach "$RUNNER_TEMP/actual-archive" FETCH_HEAD
+          git fetch --depth=1 --no-tags origin p2-feature-coverage
+          git worktree add --detach "$RUNNER_TEMP/current-coverage" FETCH_HEAD
+      - name: Diagnose actual original 24 gaps with integrated source code
+        env:
+          ROOT: ${{ runner.temp }}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          from collector.p1_active_migration_checkpoint import resolve
+          from collector.p2_original_gap_window_triage import check_current_checkpoint,diagnose
+          root=Path(os.environ["ROOT"])
+          main=root/"current-main"
+          active=resolve(main)
+          epoch=active["source_sha256"]
+          checkpoint=json.loads((main/active["checkpoint_path"]).read_text())
+          archive=root/"actual-archive"/epoch[:16]
+          status=json.loads((archive/"archive_status.json").read_text())
+          coverage=json.loads((root/"current-coverage"/"summaries"/(epoch[:16]+".json")).read_text())
+          witness=check_current_checkpoint(coverage,checkpoint,status)
+          assert witness["checkpoint_completed_shards"]==400
+          assert witness["gap_issuer_count"]==24
+          assert coverage["gap_reason_counts"]=={"INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS":21,"VENDOR_NOT_TRADABLE_ASOF":3}
+          result=diagnose(coverage,archive)
+          assert result["research_gap_issuers"]==24
+          assert result["diagnosis_counts"]["VENDOR_MARKED_NOT_TRADABLE_AT_ASOF"]==3
+          assert result["coverage_gaps_resolved"]==0
+          assert result["historical_PIT_verified"] is False
+          assert result["trade_gate"]=="BLOCKED" and result["orders"]==[]
+          (root/"integrated-p2-gap-report.json").write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
+          print("PASS: integrated P2 actual original CSV replay; 24 unresolved gaps and NO TRADES")
+          PY
+      - name: Save independent research only (NOT a production input)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p2-p3-integrated-original-replay-${{ github.run_id }}
+          path: ${{ runner.temp }}/integrated-p2-gap-report.json
+          retention-days: 7
+          if-no-files-found: warn
