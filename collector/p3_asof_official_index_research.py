@@ -9,7 +9,7 @@ import json
 import re
 from datetime import date,timedelta
 from pathlib import Path
-from collector.p3_real_target_index_probe import query
+from collector.p3_real_target_index_probe import query, retryable_transport_failure
 
 ISSUER=re.compile(r"(?:sh|sz)\.[0-9]{6}\Z")
 SHA=re.compile(r"[0-9a-f]{64}\Z")
@@ -78,21 +78,37 @@ def discover(coverage,gaps,client=query):
     for row in chosen:
         issuer=row["issuer"]
         window=[row["research_window_start"],row["research_window_end"]]
-        try:
-            candidates=client(issuer,research_window=window)
-            if not isinstance(candidates,list) or len(candidates)>90:
-                raise ValueError("invalid official index response")
-            for c in candidates:
-                if (not isinstance(c,dict) or
-                    c.get("historical_PIT_verified") is not False or
-                    c.get("original_bytes_captured") is not False):
-                    raise ValueError("unsafe candidate claims original certification")
-            status="INDEX_CANDIDATES_UNVERIFIED" if candidates else "NO_INDEX_MATCH_NOT_NO_RISK"
-        except Exception as exc:
-            candidates=[]
-            status="INDEX_UNAVAILABLE_NOT_NO_RISK"
-            error_type=type(exc).__name__
+        # One bounded retry for 429/5xx/network failures only. Invalid
+        # source schema or forged certification is never retried or accepted.
+        attempts=0
+        status=None
+        error_type=None
+        candidates=[]
+        while attempts<2:
+            attempts+=1
+            try:
+                candidates=client(issuer,research_window=window)
+                if not isinstance(candidates,list) or len(candidates)>90:
+                    raise ValueError("invalid official index response")
+                for c in candidates:
+                    if (not isinstance(c,dict) or
+                        c.get("historical_PIT_verified") is not False or
+                        c.get("original_bytes_captured") is not False):
+                        raise ValueError("unsafe candidate claims original certification")
+                status="INDEX_CANDIDATES_UNVERIFIED" if candidates else "NO_INDEX_MATCH_NOT_NO_RISK"
+                break
+            except Exception as exc:
+                candidates=[]
+                error_type=type(exc).__name__
+                if attempts==1 and retryable_transport_failure(exc):
+                    continue
+                status="INDEX_UNAVAILABLE_NOT_NO_RISK"
+                break
+        if status is None:
+            raise ValueError("unreconciled bounded index retry")
         item={**row,"status":status,"candidates":candidates,
+              "index_query_attempts":attempts,
+              "transient_transport_retry_used":attempts==2,
               "independent_exchange_status_authenticated":False}
         if status=="INDEX_UNAVAILABLE_NOT_NO_RISK":
             item["error_type"]=error_type
@@ -102,6 +118,9 @@ def discover(coverage,gaps,client=query):
         "source_epoch_sha256":coverage["source_epoch_sha256"],
         "research_issuers":len(result),
         "index_candidates":sum(len(x["candidates"]) for x in result),
+        "max_transient_query_attempts_per_issuer":2,
+        "total_index_query_attempts":sum(x["index_query_attempts"] for x in result),
+        "transient_retry_issuers":sum(x["transient_transport_retry_used"] for x in result),
         "index_unavailable":sum(x["status"]=="INDEX_UNAVAILABLE_NOT_NO_RISK" for x in result),
         "no_index_match_not_no_risk":sum(x["status"]=="NO_INDEX_MATCH_NOT_NO_RISK" for x in result),
         "results":result,"historical_first_publication_authenticated":False,
@@ -124,6 +143,7 @@ def main():
     print(json.dumps({"issuers":report["research_issuers"],
         "index_candidates":report["index_candidates"],
         "index_unavailable":report["index_unavailable"],
+        "transient_retry_issuers":report["transient_retry_issuers"],
         "trade_gate":report["trade_gate"]}))
 
 
