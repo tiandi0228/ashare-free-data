@@ -17,6 +17,7 @@ def sources():
         lead["index_timestamp_unverified"]=index_time if i==0 else None
         lead["index_source_scope"]="CURRENT_INDEX_RESEARCH_UNVERIFIED"
         lead["archived_research_source_run_id"]=None
+        lead["current_index_status"]="INDEX_CANDIDATES_UNVERIFIED"
     packets=build(cross,ctx)
     discovery={
         "phase":"P3_THREE_ASOF_VENDOR_GAP_OFFICIAL_INDEX_RESEARCH",
@@ -26,15 +27,31 @@ def sources():
             {"issuer":"sz.002388","vendor_asof_date":"2026-10-20",
              "original_vendor_csv_sha256":"c"*64,
              "official_asof_state_authenticated":False,
-             "independent_exchange_status_authenticated":False},
+             "independent_exchange_status_authenticated":False,
+             "status":"INDEX_CANDIDATES_UNVERIFIED",
+             "current_index_status":"INDEX_CANDIDATES_UNVERIFIED",
+             "research_leads_from_previous_run":False,
+             "archived_research_source_run_id":None,
+             "candidates":[{"announcement_id":"123",
+               "official_pdf_url":"https://static.cninfo.com.cn/finalpage/2026-10-20/123.PDF",
+               "index_published_milliseconds_unverified":index_time,
+               "historical_PIT_verified":False,"original_bytes_captured":False}]},
             {"issuer":"sz.002717","vendor_asof_date":"2026-10-20",
              "original_vendor_csv_sha256":"d"*64,
              "official_asof_state_authenticated":False,
-             "independent_exchange_status_authenticated":False},
+             "independent_exchange_status_authenticated":False,
+             "status":"NO_INDEX_MATCH_NOT_NO_RISK","candidates":[],
+             "current_index_status":"NO_INDEX_MATCH_NOT_NO_RISK",
+             "research_leads_from_previous_run":False,
+             "archived_research_source_run_id":None},
             {"issuer":"sz.002731","vendor_asof_date":"2026-10-20",
              "original_vendor_csv_sha256":"e"*64,
              "official_asof_state_authenticated":False,
-             "independent_exchange_status_authenticated":False},
+             "independent_exchange_status_authenticated":False,
+             "status":"NO_INDEX_MATCH_NOT_NO_RISK","candidates":[],
+             "current_index_status":"NO_INDEX_MATCH_NOT_NO_RISK",
+             "research_leads_from_previous_run":False,
+             "archived_research_source_run_id":None},
         ]}
     return packets,cross,discovery
 
@@ -62,6 +79,7 @@ class IndexChronologyTests(unittest.TestCase):
         packet,cross,discovery=sources()
         cross["leads"][0]["index_timestamp_unverified"]=int(
             datetime(2026,10,19,16,tzinfo=ZoneInfo("Asia/Shanghai")).timestamp()*1000)
+        discovery["results"][0]["candidates"][0]["index_published_milliseconds_unverified"]=cross["leads"][0]["index_timestamp_unverified"]
         out=triage(packet,cross,discovery)
         self.assertEqual(out["index_after_event_day_research_warnings"],0)
         self.assertEqual(out["authenticated_first_publication_count"],0)
@@ -87,12 +105,44 @@ class IndexChronologyTests(unittest.TestCase):
             with self.subTest(case=case),self.assertRaises(ValueError):
                 triage(packet,cross,discovery)
 
+    def test_tampered_index_time_or_notice_or_run_fails_closed(self):
+        for case in ("index_time","index_absent","wrong_notice","wrong_url",
+                     "unsafe_doc","wrong_scope","wrong_run","wrong_status"):
+            packet,cross,discovery=copy.deepcopy(sources())
+            candidate=discovery["results"][0]["candidates"][0]
+            if case=="index_time":
+                candidate["index_published_milliseconds_unverified"]+=86400000
+            elif case=="index_absent":
+                candidate["index_published_milliseconds_unverified"]=None
+            elif case=="wrong_notice":
+                candidate["announcement_id"]="456"
+            elif case=="wrong_url":
+                candidate["official_pdf_url"]="https://static.cninfo.com.cn/finalpage/2026-10-20/456.PDF"
+            elif case=="unsafe_doc":
+                candidate["historical_PIT_verified"]=True
+            elif case=="wrong_scope":
+                cross["leads"][0]["index_source_scope"]="ARCHIVED_RESEARCH_LEAD_NOT_CURRENT_QUERY"
+            elif case=="wrong_run":
+                packet["review_queue"][0]["archived_research_source_run_id"]=45319344709
+            elif case=="wrong_status":
+                discovery["results"][0]["status"]="UNTRUSTED_SOURCE"
+            with self.subTest(case=case),self.assertRaises(ValueError):
+                triage(packet,cross,discovery)
+
     def test_archived_lead_preserves_source_run_and_does_not_become_pit(self):
         packet,cross,discovery=sources()
         cross["leads"][0]["index_source_scope"]="ARCHIVED_RESEARCH_LEAD_NOT_CURRENT_QUERY"
         cross["leads"][0]["archived_research_source_run_id"]=45319344709
         packet["review_queue"][0]["index_source_scope"]="ARCHIVED_RESEARCH_LEAD_NOT_CURRENT_QUERY"
         packet["review_queue"][0]["archived_research_source_run_id"]=45319344709
+        packet["review_queue"][0]["current_index_status"]="INDEX_UNAVAILABLE_NOT_NO_RISK"
+        cross["leads"][0]["current_index_status"]="INDEX_UNAVAILABLE_NOT_NO_RISK"
+        discovery["results"][0].update({
+            "status":"PREVIOUS_RUN_INDEX_LEADS_RESEARCH_ONLY",
+            "current_index_status":"INDEX_UNAVAILABLE_NOT_NO_RISK",
+            "current_index_was_unavailable":True,
+            "research_leads_from_previous_run":True,
+            "archived_research_source_run_id":45319344709})
         report=triage(packet,cross,discovery)
         lead=next(x for x in report["review_rows"]
                   if x["index_source_scope"]=="ARCHIVED_RESEARCH_LEAD_NOT_CURRENT_QUERY")
