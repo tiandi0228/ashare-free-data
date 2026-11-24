@@ -164,7 +164,7 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
-          import json, os
+          import json, os, hashlib
           from pathlib import Path
           from collections import Counter
           from collector.p2_p3_current_source_guard import validate_sources
@@ -180,8 +180,16 @@ jobs:
               if len(files)!=1:
                   raise ValueError(f"missing/ambiguous P3 source {name}: {len(files)}")
               return json.loads(files[0].read_bytes())
-          p2=json.loads((root/"production-cli-gap-triage.json").read_bytes())
+          production_bytes=(root/"production-cli-gap-triage.json").read_bytes()
+          receipt=json.loads((root/"p2-producer-cli-replay-witness.json").read_text())
+          assert receipt["phase"]=="P2_REAL_ORIGINAL_PRODUCER_CLI_REPLAY_RESEARCH_ONLY"
+          assert receipt["cli_matches_independent_replay"] is True
+          assert receipt["real_production_actions_artifact_created"] is False
+          assert receipt["cli_report_sha256"]==hashlib.sha256(production_bytes).hexdigest()
+          assert receipt["trade_gate"]=="BLOCKED" and receipt["orders"]==[]
+          p2=json.loads(production_bytes)
           epoch=p2["source_epoch_sha256"]
+          assert receipt["source_epoch_sha256"]==epoch
           coverage=json.loads((root/"current-coverage"/"summaries"/(epoch[:16]+".json")).read_bytes())
           p3_queue=unique("full_p1_queue.json")
           events=unique("p3_all_archived_original_event_episodes.json")
