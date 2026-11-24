@@ -116,6 +116,47 @@ jobs:
           print("P3 INDEPENDENT PDF SHA REPLAY PASS:",len(verified),
                 "authentic collected-byte digests; 0 official PIT certifications")
           PY
+      - name: Extract research-only PDF date text and risk contexts from SHA-replayed originals
+        run: |
+          set -euo pipefail
+          python -m pip install 'pypdf>=4,<7'
+          python -m collector.p3_real_p1_pdf_replay \
+            --root evidence/p3-asof/pdf-originals \
+            --out evidence/p3-asof/independent-pdf-replay.json
+          python -m collector.p3_real_p1_pdf_text_cues \
+            --root evidence/p3-asof/pdf-originals \
+            --out evidence/p3-asof/pdf-text-cues.json
+          python -m collector.p3_real_date_context_triage \
+            --source evidence/p3-asof/pdf-text-cues.json \
+            --out evidence/p3-asof/risk-date-contexts.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          base=Path("evidence/p3-asof")
+          receipt=json.loads((base/"pdf-originals/quality.json").read_bytes())
+          replay=json.loads((base/"independent-pdf-replay.json").read_bytes())
+          text=json.loads((base/"pdf-text-cues.json").read_bytes())
+          triage=json.loads((base/"risk-date-contexts.json").read_bytes())
+          assert replay["independently_sha_verified"]==receipt["retrieved"]
+          assert text["independently_replayed_originals"]==receipt["retrieved"]
+          assert text["source_count"]==receipt["attempted"]<=3
+          assert len(text["sources"])==receipt["attempted"]
+          assert triage["research_date_context_count"]==len(triage["candidate_contexts"])
+          assert all(row["historical_publication_time_verified"] is False
+                     and row["historical_effective_date_verified"] is False
+                     and row["human_review_required"] is True
+                     for row in triage["candidate_contexts"])
+          assert text["event_effective_dates_certified"]==0
+          assert triage["historical_issuer_states_certified"]==0
+          for report in (replay,text,triage):
+              assert report["trade_gate"]=="BLOCKED" and report["orders"]==[]
+              assert report["historical_PIT_verified"] is False if "historical_PIT_verified" in report else report["historical_PIT_eligible"]==0
+          print("P3 REAL PDF TEXT RESEARCH:",{"retrieved_sha_replayed":receipt["retrieved"],
+              "source_pdf_text_statuses":[x["text_status"] for x in text["sources"]],
+              "date_context_candidates":triage["research_date_context_count"],
+              "first_publication_authentications":0,"certified_official_intervals":0,
+              "trade_gate":"BLOCKED"})
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -124,6 +165,9 @@ jobs:
             evidence/p3-asof/official-index-unverified.json
             evidence/p3-asof/pdf-capture-index-input.json
             evidence/p3-asof/pdf-originals/quality.json
+            evidence/p3-asof/independent-pdf-replay.json
+            evidence/p3-asof/pdf-text-cues.json
+            evidence/p3-asof/risk-date-contexts.json
             evidence/p3-asof/pdf-originals/*.pdf
           retention-days: 14
           if-no-files-found: warn
