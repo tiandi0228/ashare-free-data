@@ -66,7 +66,6 @@ def build(crosswalk,triage):
         context_by_key[key]=excerpt
     result=[]
     used=set()
-    event_keys=set()
     for row in leads:
         if not isinstance(row,dict):
             raise ValueError("invalid source-bound event clue")
@@ -96,11 +95,6 @@ def build(crosswalk,triage):
         if key in used or key not in context_by_key:
             raise ValueError("unbound or duplicate SHA-matched review lead")
         used.add(key)
-        if len(directions)==1:
-            logical=(issuer,notice,digest,day,directions[0])
-            if logical in event_keys:
-                raise ValueError("multiple text excerpts claim one event: manual conflict resolution required")
-            event_keys.add(logical)
         excerpt=context_by_key[key]
         canonical=json.dumps([issuer,notice,digest,day,fingerprint,directions],
                              ensure_ascii=False,separators=(",",":"))
@@ -123,12 +117,28 @@ def build(crosswalk,triage):
         })
     if used!=set(context_by_key):
         raise ValueError("research text clues missing in derived review packet")
+    source_class_counts=Counter(CLASSES[row["research_classification"]] for row in leads)
+    raw_counts=Counter(row["review_queue"] for row in result)
+    if (raw_counts!=source_class_counts or
+        Counter(row["research_classification"] for row in leads)!=crosswalk.get("classification_counts")):
+        raise ValueError("source event-classification counts diverge")
+    # Multiple distinct text fragments describing one logical issuer/notice/
+    # day/action are ONE research lead, not independent confirmations.
+    # Preserve all fragments but quarantine the entire conflict group.
+    logical_counts=Counter(
+        (row["issuer"],row["announcement_id"],row["original_pdf_sha256"],
+         row["source_date_text_unverified"],row["event_direction_candidates"])
+        for row in result
+        if row["review_queue"]=="PRIORITY_INDEPENDENT_OFFICIAL_EVENT_REVIEW")
+    for row in result:
+        logical=(row["issuer"],row["announcement_id"],row["original_pdf_sha256"],
+                 row["source_date_text_unverified"],row["event_direction_candidates"])
+        if (row["review_queue"]=="PRIORITY_INDEPENDENT_OFFICIAL_EVENT_REVIEW"
+            and logical_counts[logical]>1):
+            row["review_queue"]="QUARANTINE_CONFLICTING_TEXT_EXCERPTS"
     ordered=sorted(result,key=lambda r:(r["review_queue"]!="PRIORITY_INDEPENDENT_OFFICIAL_EVENT_REVIEW",
                                         r["issuer"],r["announcement_id"],r["source_context_sha256"]))
     counts=Counter(row["review_queue"] for row in ordered)
-    expected=Counter(CLASSES[row["research_classification"]] for row in leads)
-    if counts!=expected or Counter(row["research_classification"] for row in leads)!=crosswalk.get("classification_counts"):
-        raise ValueError("source event-classification counts diverge")
     return {
         "phase":"P3_ASOF_ORIGINAL_NOTICE_MANUAL_REVIEW_PACKETS",
         "status":"OFFICIAL_PROOF_REQUIRED_NO_PIT_CERTIFICATION",
@@ -136,6 +146,7 @@ def build(crosswalk,triage):
         "total_contexts":len(result),
         "priority_event_candidates":counts["PRIORITY_INDEPENDENT_OFFICIAL_EVENT_REVIEW"],
         "ambiguous_quarantined":counts["QUARANTINE_MULTIPLE_CLAIMS"],
+        "conflicting_quarantined":counts["QUARANTINE_CONFLICTING_TEXT_EXCERPTS"],
         "other_quarantined":counts["QUARANTINE_NO_EXPLICIT_EVENT"],
         "review_queue":ordered,
         "official_first_publication_authenticated":0,
@@ -164,6 +175,7 @@ def main():
     print(json.dumps({"total":result["total_contexts"],
         "priority":result["priority_event_candidates"],
         "ambiguous":result["ambiguous_quarantined"],
+        "conflicts":result["conflicting_quarantined"],
         "other":result["other_quarantined"],
         "trade_gate":result["trade_gate"]}))
 
