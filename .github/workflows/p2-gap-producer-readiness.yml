@@ -1,0 +1,95 @@
+name: P2 gap producer prerequisite diagnosis (RESEARCH ONLY)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/p2-gap-producer-readiness.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Checkout read-only archive and P2 coverage references
+        run: |
+          set -euo pipefail
+          git fetch --depth=1 --no-tags origin research-csv-archive
+          git worktree add --detach "$RUNNER_TEMP/read-only-archive" FETCH_HEAD
+          git fetch --depth=1 --no-tags origin p2-feature-coverage
+          git worktree add --detach "$RUNNER_TEMP/read-only-coverage" FETCH_HEAD
+      - name: Audit same-epoch source preconditions without generating artifacts
+        env:
+          REPORT_PATH: ${{ runner.temp }}/p2-producer-readiness.json
+          ARCHIVE_ROOT: ${{ runner.temp }}/read-only-archive
+          COVERAGE_ROOT: ${{ runner.temp }}/read-only-coverage
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from collector.p1_active_migration_checkpoint import resolve
+          from collector.p2_original_gap_window_triage import check_current_checkpoint
+
+          report = {
+              "phase": "P2_GAP_PRODUCER_READINESS_RESEARCH_ONLY",
+              "producer_artifact_generated": False,
+              "official_PIT_certified": False,
+              "trade_gate": "BLOCKED",
+              "orders": [],
+              "checks": {},
+          }
+
+          try:
+              active = resolve(Path("."))
+              epoch = active["source_sha256"]
+              if not isinstance(epoch, str) or len(epoch) != 64:
+                  raise ValueError("invalid source epoch")
+              prefix = epoch[:16]
+              checkpoint_path = Path(active["checkpoint_path"])
+              archive_status_path = Path(os.environ["ARCHIVE_ROOT"]) / prefix / "archive_status.json"
+              coverage_path = Path(os.environ["COVERAGE_ROOT"]) / "summaries" / (prefix + ".json")
+              report["source_epoch_sha256"] = epoch
+              report["checks"]["checkpoint_file"] = checkpoint_path.is_file()
+              report["checks"]["archive_status_file"] = archive_status_path.is_file()
+              report["checks"]["coverage_summary_file"] = coverage_path.is_file()
+              if not all(report["checks"].values()):
+                  report["status"] = "MISSING_PREREQUISITE"
+              else:
+                  checkpoint = json.loads(checkpoint_path.read_text())
+                  archive_status = json.loads(archive_status_path.read_text())
+                  coverage = json.loads(coverage_path.read_text())
+                  witness = check_current_checkpoint(coverage, checkpoint, archive_status)
+                  if witness.get("trade_gate") != "BLOCKED":
+                      raise ValueError("unsafe P2 witness trade gate")
+                  report["status"] = "SAME_EPOCH_INPUTS_PASS"
+                  report["witness"] = {
+                      "checkpoint_completed_shards": witness["checkpoint_completed_shards"],
+                      "checkpoint_completed_issuers": witness["checkpoint_completed_issuers"],
+                      "gap_issuer_count": witness["gap_issuer_count"],
+                  }
+          except (ValueError, KeyError, FileNotFoundError, TypeError, json.JSONDecodeError) as exc:
+              report["status"] = "PREREQUISITE_REJECTED"
+              report["reason"] = type(exc).__name__ + ": " + str(exc)[:500]
+
+          assert report["trade_gate"] == "BLOCKED" and report["orders"] == []
+          assert report["official_PIT_certified"] is False
+          report_path = Path(os.environ["REPORT_PATH"])
+          report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
+          print(json.dumps(report, ensure_ascii=False, indent=2))
+          PY
+      - name: Upload bounded read-only prerequisite diagnosis
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p2-gap-producer-prerequisites-${{ github.run_id }}
+          path: ${{ runner.temp }}/p2-producer-readiness.json
+          retention-days: 7
+          if-no-files-found: warn
