@@ -85,7 +85,7 @@ def build(crosswalk,guard):
             action=CATEGORIES[2]
         else:
             action=CATEGORIES[3]
-        if leads==0 and pairs>0:
+        if diagnosis!="VENDOR_MARKED_NOT_TRADABLE_AT_ASOF" and leads==0 and pairs>0:
             # A historical text pair can exist when the current bounded event
             # projection has no event lead. Do not assert a negative source
             # finding: first authenticate the pair's original provenance.
