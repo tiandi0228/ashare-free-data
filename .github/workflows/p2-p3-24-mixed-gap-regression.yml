@@ -1,0 +1,80 @@
+name: P2 P3 actual 24 mixed-gap original evidence crosswalk regression (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p2_p3_gap_crosswalk.py'
+      - 'collector/p2_p3_issuer_proof_action_queue.py'
+      - '.github/workflows/p2-p3-24-mixed-gap-regression.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  real-original-join:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Download pinned actual 400-shard P2 original and P3 research artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/p2 evidence/p3
+          gh run download 45313779368 -R "${GITHUB_REPOSITORY}" \
+            -n p2-392-original-mixed-gap-replay -D evidence/p2
+          gh run download 45246691330 -R "${GITHUB_REPOSITORY}" \
+            -n p3-full-p1-official-scout-45246691330 -D evidence/p3
+          coverage=6772f36217d39cfedad0cb5b70789bc7d2c16c99
+          git fetch --depth=1 --no-tags origin "$coverage"
+          git show "$coverage:summaries/5ba00fbd720fad90.json" > evidence/p2-400-coverage.json
+      - name: Join exactly 24 gap issuers with P3 texts without PIT promotion
+        run: |
+          python - <<'PY'
+          import json
+          from collections import Counter
+          from pathlib import Path
+          from collector.p2_p3_current_source_guard import validate_sources
+          from collector.p2_p3_gap_crosswalk import crosswalk
+          from collector.p2_p3_issuer_proof_action_queue import build, CATEGORIES
+
+          def sole(root, filename):
+              found=list(Path(root).rglob(filename))
+              if len(found)!=1:
+                  raise ValueError(f"expected exactly one original source {filename}: {found}")
+              return json.loads(found[0].read_bytes())
+
+          p2=sole("evidence/p2", "p2-400-original-gap-triage.json")
+          p3_queue=sole("evidence/p3","full_p1_queue.json")
+          events=sole("evidence/p3","p3_all_archived_original_event_episodes.json")
+          pairs=sole("evidence/p3","p3_all_resume_original_text_pairs.json")
+          coverage=json.loads(Path("evidence/p2-400-coverage.json").read_bytes())
+          guard=validate_sources(p2,coverage,p3_queue,45313779368,45246691330)
+          cross=crosswalk(p2,events,pairs)
+          tasks=build(cross,guard)
+          assert coverage["observed_archived_shards"] == 400
+          assert coverage["issuer_evidence_gap_count"] == 24
+          assert p2["research_gap_issuers"] == cross["gap_issuers_examined"] == tasks["gap_issuer_count"] == 24
+          assert sorted(x["issuer"] for x in tasks["tasks"]) == coverage["gap_issuer_codes"]
+          assert Counter(x["vendor_gap_diagnosis"] for x in tasks["tasks"])["VENDOR_MARKED_NOT_TRADABLE_AT_ASOF"] == 3
+          assert tasks["review_action_counts"][CATEGORIES[4]] == 3
+          assert tasks["unresolved_issuer_count"] == 24
+          assert cross["official_halt_intervals_authenticated"] == tasks["official_halt_intervals_certified"] == 0
+          assert cross["feature_gaps_resolved"] == tasks["feature_gaps_resolved"] == 0
+          assert cross["historical_PIT_verified"] is False and tasks["historical_PIT_verified"] is False
+          assert cross["trade_gate"] == tasks["trade_gate"] == "BLOCKED"
+          assert cross["orders"] == tasks["orders"] == [] and tasks["actionable_buy_signals"] == []
+          Path("evidence/p2-p3-24-actual-gap-tasks.json").write_text(json.dumps(tasks,indent=2)+"\n")
+          print("PASS: real 400-shard P2 gap sources, 24 unresolved official proof tasks, 3 nontradable-asof, NO TRADES")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p2-p3-24-gap-regression-research-only
+          path: evidence/p2-p3-24-actual-gap-tasks.json
+          retention-days: 10
+          if-no-files-found: warn
