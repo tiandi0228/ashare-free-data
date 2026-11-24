@@ -84,11 +84,75 @@ jobs:
           (root/"integrated-p2-gap-report.json").write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
           print("PASS: integrated P2 actual original CSV replay; 24 unresolved gaps and NO TRADES")
           PY
+      - name: Download fixed P3 research originals for same-run P2 to P3 join
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/integration-p3"
+          gh run download 45246691330 -R "$GITHUB_REPOSITORY" \
+            -n p3-full-p1-official-scout-45246691330 -D "$RUNNER_TEMP/integration-p3"
+      - name: Verify current mixed P2 originals reach the full P3 official proof queue
+        env:
+          ROOT: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from collections import Counter
+          from collector.p2_p3_current_source_guard import validate_sources
+          from collector.p2_p3_gap_crosswalk import crosswalk
+          from collector.p2_p3_issuer_proof_action_queue import build, CATEGORIES
+
+          root=Path(os.environ["ROOT"])
+          def unique(name):
+              files=list((root/"integration-p3").rglob(name))
+              if len(files)!=1:
+                  raise ValueError(f"missing/ambiguous P3 source {name}: {len(files)}")
+              return json.loads(files[0].read_bytes())
+          p2=json.loads((root/"integrated-p2-gap-report.json").read_bytes())
+          epoch=p2["source_epoch_sha256"]
+          coverage=json.loads((root/"current-coverage"/"summaries"/(epoch[:16]+".json")).read_bytes())
+          p3_queue=unique("full_p1_queue.json")
+          events=unique("p3_all_archived_original_event_episodes.json")
+          pairs=unique("p3_all_resume_original_text_pairs.json")
+          # The run IDs below are fixed *research artifact locators*, never production credentials.
+          guard=validate_sources(p2,coverage,p3_queue,0+45356750790,45246691330)
+          joined=crosswalk(p2,events,pairs)
+          review=build(joined,guard)
+          assert review["gap_issuer_count"]==review["unresolved_issuer_count"]==24
+          assert sorted(x["issuer"] for x in review["tasks"])==coverage["gap_issuer_codes"]
+          assert Counter(x["vendor_gap_diagnosis"] for x in review["tasks"])["VENDOR_MARKED_NOT_TRADABLE_AT_ASOF"]==3
+          assert review["review_action_counts"][CATEGORIES[4]]==3
+          assert joined["feature_gaps_resolved"]==review["feature_gaps_resolved"]==0
+          assert joined["official_halt_intervals_authenticated"]==review["official_halt_intervals_certified"]==0
+          assert joined["historical_PIT_verified"] is False and review["historical_PIT_verified"] is False
+          assert joined["trade_gate"]==review["trade_gate"]=="BLOCKED"
+          assert review["orders"]==review["actionable_buy_signals"]==[]
+          assert all(x["buy_eligible"] is False for x in review["tasks"])
+          output={
+              "phase":"P2_P3_INTEGRATED_LIVE_ORIGINAL_CROSSWALK_RESEARCH_ONLY",
+              "source_epoch_sha256":epoch,
+              "p3_research_source_run_id":45246691330,
+              "gap_issuers":24,
+              "unresolved_issuers":24,
+              "vendor_nontradable_asof_issuers":3,
+              "official_intervals_certified":0,
+              "historical_PIT_verified":False,
+              "trade_gate":"BLOCKED",
+              "orders":[],
+          }
+          (root/"integrated-p2-p3-proof-queue.json").write_text(json.dumps(output,indent=2)+"\n")
+          print("PASS: freshly replayed original P2 gaps joined to P3 issuer proof queue; 24 unresolved, NO TRADES")
+          PY
       - name: Save independent research only (NOT a production input)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: p2-p3-integrated-original-replay-${{ github.run_id }}
-          path: ${{ runner.temp }}/integrated-p2-gap-report.json
+          path: |
+            ${{ runner.temp }}/integrated-p2-gap-report.json
+            ${{ runner.temp }}/integrated-p2-p3-proof-queue.json
           retention-days: 7
           if-no-files-found: warn
