@@ -29,6 +29,12 @@ class LiveGapRehearsalTests(unittest.TestCase):
         self.fail("unexpected request "+str((path,ref)))
 
     def test_real_roster_replayed_and_missing_only(self):
+        if not self.ledger["pending_shards"]:
+            # Full 400/400 is a legitimate terminal state, not a backfill bug.
+            # The rehearsal must refuse to propose any provider request.
+            with self.assertRaisesRegex(ValueError,"no missing P1 shards"):
+                rehearse("tiandi0228/ashare-free-data",self.fetch)
+            return
         result=rehearse("tiandi0228/ashare-free-data",self.fetch)
         done={x["index"] for x in self.ledger["completed"]}
         self.assertEqual(result["active_completed_shards"],self.ledger["completed_shards"])
