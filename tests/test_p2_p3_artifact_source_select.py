@@ -49,6 +49,26 @@ class ArtifactSourceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "no successful"):
             choose_run(rows[:3], lookup, "p2-original-gap-triage-")
 
+    def test_unknown_missing_and_pr_events_never_count_as_authentic_sources(self):
+        rows = [
+            run(15, event="repository_dispatch"),
+            run(14, event="pull_request_target"),
+            run(13, event="pull_request"),
+            run(12, event=None),
+            run(11, event=""),
+            run(10, event="push"),
+            run(9, event="workflow_dispatch"),
+            run(8, event="workflow_run"),
+        ]
+        visited = []
+        def lookup(i):
+            visited.append(i)
+            return [artifact("p2-original-gap-triage-" + str(i))]
+        self.assertEqual(choose_run(rows, lookup, "p2-original-gap-triage-"), 10)
+        self.assertEqual(visited, [10])
+        with self.assertRaisesRegex(ValueError, "no successful"):
+            choose_run(rows[:5], lookup, "p2-original-gap-triage-")
+
     def test_duplicate_or_ambiguous_fail_closed(self):
         with self.assertRaisesRegex(ValueError, "duplicate GitHub"):
             choose_run([run(2),run(2)], lambda _: [], "p2-original-gap-triage-")
