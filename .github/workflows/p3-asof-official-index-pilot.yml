@@ -177,6 +177,8 @@ jobs:
           assert r["research_issuers"]==3
           assert r["sha_verified_original_pdfs"]<=3
           assert r["date_context_leads"]==len(r["leads"])
+          triage=json.loads(Path("evidence/p3-asof/risk-date-contexts.json").read_bytes())
+          assert r["date_context_leads"]+r["duplicate_source_text_contexts_collapsed"]==triage["research_date_context_count"]
           assert sum(r["classification_counts"].values())==len(r["leads"])
           assert r["first_publication_times_independently_authenticated"]==0
           assert r["official_state_intervals_certified"]==0
