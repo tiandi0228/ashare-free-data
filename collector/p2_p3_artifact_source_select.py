@@ -9,6 +9,8 @@ import re
 import subprocess
 from pathlib import Path
 
+ALLOWED_SOURCE_EVENTS = frozenset(("push", "workflow_run", "workflow_dispatch"))
+
 SOURCES = {
     "p2": ("p2-original-gap-window-triage.yml", "p2-original-gap-triage-"),
     "p3": ("p3-full-p1-official-scout.yml", "p3-full-p1-official-scout-"),
@@ -33,7 +35,7 @@ def choose_run(rows, artifact_lookup, prefix, preferred_id=None):
         if row["databaseId"] in seen:
             raise ValueError("duplicate GitHub workflow run")
         seen.add(row["databaseId"])
-        if row.get("conclusion") == "success" and row.get("event") != "pull_request":
+        if row.get("conclusion") == "success" and row.get("event") in ALLOWED_SOURCE_EVENTS:
             candidates.append(row["databaseId"])
     candidates.sort(reverse=True)
     if preferred_id in candidates:
