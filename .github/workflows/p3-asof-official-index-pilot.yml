@@ -47,6 +47,13 @@ jobs:
           from pathlib import Path
           d=json.loads(Path("evidence/p3-asof/official-index-unverified.json").read_bytes())
           assert d["research_issuers"]==3 and len(d["results"])==3
+          assert d["max_transient_query_attempts_per_issuer"]==2
+          assert 3<=d["total_index_query_attempts"]<=6
+          assert 0<=d["transient_retry_issuers"]<=3
+          assert d["total_index_query_attempts"]==3+d["transient_retry_issuers"]
+          assert all(row["index_query_attempts"] in (1,2) and
+                     row["transient_transport_retry_used"] == (row["index_query_attempts"]==2)
+                     for row in d["results"])
           assert len({r["issuer"] for r in d["results"]})==3
           assert all(r["original_vendor_csv_sha256"] for r in d["results"])
           assert d["historical_first_publication_authenticated"] is False
@@ -57,6 +64,7 @@ jobs:
               "issuers":[r["issuer"] for r in d["results"]],
               "index_candidates":d["index_candidates"],
               "index_unavailable":d["index_unavailable"],
+              "transient_retries":d["transient_retry_issuers"],
               "no_match_not_no_risk":d["no_index_match_not_no_risk"],
               "trade_gate":"BLOCKED"})
           PY
