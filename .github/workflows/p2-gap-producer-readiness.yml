@@ -85,6 +85,53 @@ jobs:
           report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
           print(json.dumps(report, ensure_ascii=False, indent=2))
           PY
+      - name: Reproduce actual P2 gap triage using verified same-epoch originals
+        env:
+          REPORT_PATH: ${{ runner.temp }}/p2-producer-readiness.json
+          ARCHIVE_ROOT: ${{ runner.temp }}/read-only-archive
+          COVERAGE_ROOT: ${{ runner.temp }}/read-only-coverage
+          REPLAY_PATH: ${{ runner.temp }}/p2-gap-triage-research-replay.json
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+
+          report = json.loads(Path(os.environ["REPORT_PATH"]).read_text())
+          if report.get("status") != "SAME_EPOCH_INPUTS_PASS":
+              raise ValueError("P2 replay blocked: same-epoch prerequisites not verified")
+          epoch = report["source_epoch_sha256"]
+          coverage = Path(os.environ["COVERAGE_ROOT"]) / "summaries" / (epoch[:16] + ".json")
+          archive = Path(os.environ["ARCHIVE_ROOT"]) / epoch[:16]
+          output = Path(os.environ["REPLAY_PATH"])
+          subprocess.run([
+              "python", "-m", "collector.p2_original_gap_window_triage",
+              "--coverage", str(coverage), "--archive-epoch", str(archive),
+              "--out", str(output),
+          ], check=True, timeout=240)
+          triage = json.loads(output.read_text())
+          expected = report["witness"]["gap_issuer_count"]
+          if (triage.get("source_epoch_sha256") != epoch or
+              triage.get("research_gap_issuers") != expected or
+              triage.get("coverage_gaps_resolved") != 0 or
+              triage.get("historical_halt_intervals_certified") != 0 or
+              triage.get("historical_PIT_verified") is not False or
+              triage.get("trade_gate") != "BLOCKED" or
+              triage.get("orders") != []):
+              raise ValueError("P2 real replay source or no-trades assertion failed")
+          print("PASS: read-only original-source triage reproduced",
+                expected, "unresolved issuer gaps; trading still BLOCKED")
+          PY
+      - name: Upload independent diagnostic replay (not production source)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p2-gap-triage-independent-replay-${{ github.run_id }}
+          path: ${{ runner.temp }}/p2-gap-triage-research-replay.json
+          retention-days: 7
+          if-no-files-found: warn
       - name: Upload bounded read-only prerequisite diagnosis
         if: always()
         uses: actions/upload-artifact@v4
