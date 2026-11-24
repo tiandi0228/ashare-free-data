@@ -1,0 +1,49 @@
+name: P1 full archive completion guard regression (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p1_completion_guard.py'
+      - 'tests/test_p1_completion_guard.py'
+      - '.github/workflows/p1-fresh-vendor-roster.yml'
+      - '.github/workflows/p1-completion-guard-tests.yml'
+permissions:
+  contents: read
+jobs:
+  guard-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify complete, partial, duplicate and mismatched P1 guard
+        run: python -m unittest tests.test_p1_completion_guard tests.test_p1_checkpoint -v
+      - name: Replay genuine 400/400 immutable source and archive state
+        run: |
+          set -euo pipefail
+          main_sha="$(git ls-remote origin refs/heads/main | cut -f1)"
+          archive_sha="$(git ls-remote origin refs/heads/research-csv-archive | cut -f1)"
+          [[ "$main_sha" =~ ^[0-9a-f]{40}$ && "$archive_sha" =~ ^[0-9a-f]{40}$ ]]
+          git fetch --depth=1 --no-tags origin "$main_sha" "$archive_sha"
+          python -m collector.p1_completion_guard --main-sha "$main_sha" \
+            --archive-sha "$archive_sha" --out evidence/p1_completion_guard.json
+          python - <<'PYGUARD'
+          import json
+          from pathlib import Path
+          r = json.loads(Path("evidence/p1_completion_guard.json").read_bytes())
+          assert r["archived_shards"] == r["total_shards"] == 400
+          assert r["pending_shards"] == []
+          assert r["should_collect"] is False
+          assert r["status"] == "FULL_ARCHIVE_SKIP_VENDOR"
+          assert r["trade_gate"] == "BLOCKED" and r["orders"] == []
+          assert r["historical_PIT_verified"] is False
+          print("Verified P1 400/400: skip vendor requests; keep trading BLOCKED")
+          PYGUARD
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p1-completion-guard-test-receipt
+          path: evidence/p1_completion_guard.json
+          if-no-files-found: error
