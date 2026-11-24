@@ -2,8 +2,9 @@ import unittest
 from collector.p2_p3_artifact_source_select import choose_run, resolve
 
 
-def run(id, conclusion="success", event="workflow_run"):
-    return {"databaseId": id, "conclusion": conclusion, "event": event}
+def run(id, conclusion="success", event="workflow_run", branch="main", sha="a"*40):
+    return {"databaseId": id, "conclusion": conclusion, "event": event,
+            "headBranch": branch, "headSha": sha}
 
 
 def artifact(name, expired=False, size=100):
@@ -68,6 +69,44 @@ class ArtifactSourceTests(unittest.TestCase):
         self.assertEqual(visited, [10])
         with self.assertRaisesRegex(ValueError, "no successful"):
             choose_run(rows[:5], lookup, "p2-original-gap-triage-")
+
+    def test_nonmain_branch_and_missing_sha_never_supply_production_originals(self):
+        rows = [
+            run(32, branch="audit/p2-mixed"),
+            run(31, branch="main", sha=None),
+            run(30, branch="main", sha="not-a-commit"),
+            run(29, branch=None),
+            run(28, branch="main", sha="b"*40),
+        ]
+        visited=[]
+        def lookup(i):
+            visited.append(i)
+            return [artifact("p2-original-gap-triage-"+str(i))]
+        self.assertEqual(choose_run(rows, lookup, "p2-original-gap-triage-"),28)
+        self.assertEqual(visited,[28])
+        with self.assertRaisesRegex(ValueError,"no successful"):
+            choose_run(rows[:4],lookup,"p2-original-gap-triage-")
+
+    def test_triggering_run_must_have_main_branch_sha(self):
+        runs={
+            "p2-original-gap-window-triage.yml":[run(5)],
+            "p3-full-p1-official-scout.yml":[run(6)],
+        }
+        lookup=lambda i:[artifact(("p2-original-gap-triage-" if i==5 else
+                                   "p3-full-p1-official-scout-")+str(i))]
+        baseline={"conclusion":"success","id":5,
+                  "name":"P2 original CSV 21-bar gap root-cause audit (NO TRADES)",
+                  "head_branch":"main","head_sha":"b"*40}
+        result=resolve(lambda w:runs[w],lookup,baseline)
+        self.assertEqual(result["p2_run_id"],5)
+        for bad in (
+            {"head_branch":"audit/unsafe"},
+            {"head_branch":None},
+            {"head_sha":None},
+            {"head_sha":"not-a-sha"},
+        ):
+            with self.subTest(bad=bad),self.assertRaisesRegex(ValueError,"unrecognized"):
+                resolve(lambda w:runs[w],lookup,{**baseline,**bad})
 
     def test_duplicate_or_ambiguous_fail_closed(self):
         with self.assertRaisesRegex(ValueError, "duplicate GitHub"):
