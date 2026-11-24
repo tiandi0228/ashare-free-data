@@ -58,11 +58,43 @@ class AsofIndexResearchTests(unittest.TestCase):
         self.assertEqual(report["research_issuers"],3)
         self.assertEqual(report["index_candidates"],1)
         self.assertEqual(report["index_unavailable"],1)
+        self.assertEqual(report["transient_retry_issuers"],1)
+        self.assertEqual(report["total_index_query_attempts"],4)
         self.assertEqual(report["no_index_match_not_no_risk"],1)
         self.assertEqual(report["trade_gate"],"BLOCKED")
         self.assertEqual(report["orders"],[])
         self.assertFalse(report["independent_exchange_status_authenticated"])
         self.assertFalse(report["historical_PIT_verified"])
+
+    def test_bounded_transport_retry_and_no_retry_of_unsafe_source(self):
+        from urllib.error import HTTPError
+        attempts={}
+        def client(issuer,research_window=None):
+            attempts[issuer]=attempts.get(issuer,0)+1
+            if issuer=="sh.600293" and attempts[issuer]==1:
+                raise TimeoutError("transient")
+            if issuer=="sh.600301":
+                raise HTTPError("https://www.cninfo.com.cn/",429,"throttle",{},None)
+            return [{"historical_PIT_verified":False,"original_bytes_captured":False,
+                     "announcement_id":"345"}]
+        report=discover(*fixture(),client=client)
+        self.assertEqual(attempts,{"sh.600293":2,"sh.600301":2,"sh.600363":1})
+        self.assertEqual(report["transient_retry_issuers"],2)
+        self.assertEqual(report["total_index_query_attempts"],5)
+        self.assertEqual(report["index_unavailable"],1)
+        self.assertEqual(report["index_candidates"],2)
+        self.assertEqual(report["trade_gate"],"BLOCKED")
+        self.assertEqual(report["orders"],[])
+        unsafe_calls={}
+        def unsafe(issuer,research_window=None):
+            unsafe_calls[issuer]=unsafe_calls.get(issuer,0)+1
+            raise ValueError("forged source")
+        blocked=discover(*fixture(),client=unsafe)
+        self.assertEqual(sum(unsafe_calls.values()),3)
+        self.assertEqual(blocked["total_index_query_attempts"],3)
+        self.assertEqual(blocked["transient_retry_issuers"],0)
+        self.assertEqual(blocked["index_unavailable"],3)
+        self.assertEqual(blocked["historical_PIT_verified"],False)
 
     def test_forged_missing_duplicate_and_promoted_data_fail_closed(self):
         for scenario in ("epoch","missing","duplicate","asof_count","status",
