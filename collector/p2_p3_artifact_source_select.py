@@ -35,7 +35,10 @@ def choose_run(rows, artifact_lookup, prefix, preferred_id=None):
         if row["databaseId"] in seen:
             raise ValueError("duplicate GitHub workflow run")
         seen.add(row["databaseId"])
-        if row.get("conclusion") == "success" and row.get("event") in ALLOWED_SOURCE_EVENTS:
+        if row.get("conclusion") == "success" and row.get("event") in ALLOWED_SOURCE_EVENTS
+                and row.get("headBranch") == "main"
+                and isinstance(row.get("headSha"), str)
+                and re.fullmatch(r"[0-9a-f]{40}", row["headSha"])):
             candidates.append(row["databaseId"])
     candidates.sort(reverse=True)
     if preferred_id in candidates:
@@ -61,6 +64,9 @@ def resolve(list_runs, list_artifacts, triggered=None):
     if triggered is not None:
         if (not isinstance(triggered, dict) or triggered.get("conclusion") != "success"
                 or type(triggered.get("id")) is not int or triggered["id"] <= 0
+                or triggered.get("head_branch") != "main"
+                or not isinstance(triggered.get("head_sha"), str)
+                or re.fullmatch(r"[0-9a-f]{40}", triggered["head_sha"]) is None
                 or triggered.get("name") not in (
                     "P2 original CSV 21-bar gap root-cause audit (NO TRADES)",
                     "P3 rotating official originals for full audited P1 issuer queue (NO TRADES)")):
@@ -92,7 +98,7 @@ def main():
 
     def list_runs(workflow):
         return gh("run", "list", "-R", a.repo, "--workflow", workflow,
-                  "--limit", "100", "--json", "databaseId,conclusion,event")
+                  "--limit", "100", "--json", "databaseId,conclusion,event,headBranch,headSha")
 
     def list_artifacts(run_id):
         response = gh("api", f"repos/{a.repo}/actions/runs/{run_id}/artifacts",
