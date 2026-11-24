@@ -128,6 +128,9 @@ jobs:
           from collector.p2_p3_current_source_guard import validate_sources
           from collector.p2_p3_gap_crosswalk import crosswalk
           from collector.p2_p3_issuer_proof_action_queue import build, CATEGORIES
+          from collector.p3_gap_original_provenance_index import index as build_original_index
+          from collector.p3_manual_official_evidence_checklist import export as export_checklist
+          import csv
 
           root=Path(os.environ["ROOT"])
           def unique(name):
@@ -189,6 +192,30 @@ jobs:
               lambda:build(bad_joined,guard))
           assert len(rejected)==5
           print("PASS: 5 real-data fail-closed negative controls",rejected)
+          indexed=build_original_index(review,events,pairs)
+          checklist=export_checklist(review,indexed)
+          assert indexed["gap_issuer_count"]==24
+          assert checklist["review_count"]==24
+          assert checklist["asof_nontradable_tasks"]==3
+          assert sorted(x["issuer"] for x in checklist["review_rows"])==coverage["gap_issuer_codes"]
+          assert all(x["review_status"]=="NOT_AUTHENTICATED" for x in checklist["review_rows"])
+          assert all(x["buy_eligible"] is False for x in checklist["review_rows"])
+          assert checklist["official_first_publication_authenticated"]==0
+          assert checklist["official_state_intervals_certified"]==0
+          assert checklist["historical_PIT_verified"] is False
+          assert checklist["trade_gate"]=="BLOCKED" and checklist["orders"]==[]
+          assert len(set(x["review_id"] for x in checklist["review_rows"]))==24
+          (root/"p3-original-sha-provenance-index.json").write_text(
+              json.dumps(indexed,ensure_ascii=False,indent=2)+"\\n")
+          (root/"p3-official-issuer-review-checklist.json").write_text(
+              json.dumps(checklist,ensure_ascii=False,indent=2)+"\\n")
+          with (root/"p3-official-issuer-review-checklist.csv").open(
+                  "w",newline="",encoding="utf-8-sig") as out_csv:
+              fields=list(checklist["review_rows"][0])
+              writer=csv.DictWriter(out_csv,fieldnames=fields)
+              writer.writeheader()
+              writer.writerows(checklist["review_rows"])
+          print("PASS: 24 issuer official-proof worksheets, 3 exchange-asof cases, 0 certifications")
           output={
               "phase":"P2_P3_INTEGRATED_LIVE_ORIGINAL_CROSSWALK_RESEARCH_ONLY",
               "source_epoch_sha256":epoch,
@@ -205,6 +232,9 @@ jobs:
                   "p2_data_epoch":epoch,
               },
               "review_action_counts":review["review_action_counts"],
+              "sha_indexed_review_count":indexed["gap_issuer_count"],
+              "manual_proof_checklist_rows":checklist["review_count"],
+              "manual_proof_checklist_asof_nontradable":checklist["asof_nontradable_tasks"],
               "review_items": [{
                   "issuer":x["issuer"],
                   "diagnosis":x["vendor_gap_diagnosis"],
@@ -241,5 +271,8 @@ jobs:
           path: |
             ${{ runner.temp }}/integrated-p2-gap-report.json
             ${{ runner.temp }}/integrated-p2-p3-proof-queue.json
+            ${{ runner.temp }}/p3-original-sha-provenance-index.json
+            ${{ runner.temp }}/p3-official-issuer-review-checklist.json
+            ${{ runner.temp }}/p3-official-issuer-review-checklist.csv
           retention-days: 7
           if-no-files-found: warn
