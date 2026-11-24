@@ -90,6 +90,30 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/integration-p3"
+          python - <<'PY'
+          import json,os,subprocess
+          repo=os.environ["GITHUB_REPOSITORY"]
+          run_id=45246691330
+          expected="p3-full-p1-official-scout-"+str(run_id)
+          def api(path):
+              return json.loads(subprocess.check_output(
+                  ["gh","api",f"repos/{repo}/{path}"],text=True,timeout=35))
+          run=api(f"actions/runs/{run_id}")
+          if (run.get("conclusion")!="success" or
+              run.get("status")!="completed" or
+              run.get("event")=="pull_request" or
+              run.get("name")!="P3 rotating official originals for full audited P1 issuer queue (NO TRADES)"):
+              raise ValueError("P3 source run is not completed authentic research")
+          found=api(f"actions/runs/{run_id}/artifacts").get("artifacts")
+          if not isinstance(found,list):
+              raise ValueError("P3 artifact listing invalid")
+          matched=[a for a in found if a.get("name")==expected]
+          if (len(matched)!=1 or matched[0].get("expired") is not False or
+              type(matched[0].get("size_in_bytes")) is not int or
+              matched[0]["size_in_bytes"]<=0):
+              raise ValueError("P3 research original artifact missing/expired/empty")
+          print("PASS: P3 research source run and exact artifact verified (not PIT certification)")
+          PY
           gh run download 45246691330 -R "$GITHUB_REPOSITORY" \
             -n p3-full-p1-official-scout-45246691330 -D "$RUNNER_TEMP/integration-p3"
       - name: Verify current mixed P2 originals reach the full P3 official proof queue
