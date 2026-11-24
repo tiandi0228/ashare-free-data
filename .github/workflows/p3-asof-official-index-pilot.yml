@@ -5,6 +5,8 @@ on:
       - 'collector/p3_asof_official_index_research.py'
       - 'tests/test_p3_asof_official_index_research.py'
       - 'collector/p3_asof_index_research_continuity.py'
+      - 'collector/p3_asof_official_index_drift_audit.py'
+      - 'tests/test_p3_asof_official_index_drift_audit.py'
       - 'tests/test_p3_asof_index_research_continuity.py'
       - 'collector/p3_asof_original_notice_date_crosswalk.py'
       - 'tests/test_p3_asof_original_notice_date_crosswalk.py'
@@ -28,7 +30,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Test bounds and original SHA source constraints
-        run: python -m unittest -v tests.test_p3_asof_official_index_research tests.test_p3_asof_index_research_continuity tests.test_p3_asof_original_notice_date_crosswalk tests.test_p3_asof_original_notice_review_packets tests.test_p3_asof_publication_chronology_triage tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture
+        run: python -m unittest -v tests.test_p3_asof_official_index_research tests.test_p3_asof_index_research_continuity tests.test_p3_asof_official_index_drift_audit tests.test_p3_asof_original_notice_date_crosswalk tests.test_p3_asof_original_notice_review_packets tests.test_p3_asof_publication_chronology_triage tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture
       - name: Retrieve pinned real final P2 400-shard diagnoses
         env:
           GH_TOKEN: ${{ github.token }}
@@ -118,6 +120,36 @@ jobs:
               "official_PIT":False,
           })
           PY
+      - name: Audit cross-run metadata drift against the same pinned original index
+        run: |
+          set -euo pipefail
+          if test -s evidence/p3-asof/previous-index/official-index-unverified.json; then
+            python -m collector.p3_asof_official_index_drift_audit \
+              --current evidence/p3-asof/official-index-unverified.json \
+              --previous evidence/p3-asof/previous-index/official-index-unverified.json \
+              --previous-run 45319344709 \
+              --out evidence/p3-asof/cross-run-index-drift-research.json
+            python - <<'PY'
+          import json
+          from pathlib import Path
+          path=Path("evidence/p3-asof/cross-run-index-drift-research.json")
+          data=json.loads(path.read_text())
+          assert data["issuers_in_scope"]==3
+          assert data["comparison_rows"]==len(data["rows"])
+          assert data["comparison_rows"]==sum(data["comparison_class_counts"].values())
+          assert data["authenticated_first_publication_count"]==0
+          assert data["certified_exchange_intervals"]==0
+          assert data["historical_PIT_verified"] is False
+          assert data["trade_gate"]=="BLOCKED" and data["orders"]==[]
+          assert all(row["authenticated_first_publication"] is False
+                     and row["certified_exchange_state"] is False
+                     for row in data["rows"])
+          print("P3 CROSS-RUN INDEX METADATA:",data["comparison_class_counts"],
+                "unverified research only")
+          PY
+          else
+            echo "Prior artifact unavailable: drift audit skipped; no provenance certification"
+          fi
       - name: Bounded original CNINFO PDF capture with research-only historical leads
         run: |
           python -m collector.p3_real_target_pdf_capture \
@@ -330,6 +362,7 @@ jobs:
           path: |
             evidence/p3-asof/official-index-unverified.json
             evidence/p3-asof/research-continuity.json
+            evidence/p3-asof/cross-run-index-drift-research.json
             evidence/p3-asof/effective-discovery-research-only.json
             evidence/p3-asof/pdf-capture-index-input.json
             evidence/p3-asof/pdf-originals/quality.json
