@@ -62,6 +62,17 @@ class ReviewPacketsTests(unittest.TestCase):
         self.assertEqual(result["trade_gate"],"BLOCKED")
         self.assertEqual(result["orders"],[])
 
+    def test_repeated_identical_context_collapses_without_event_promotion(self):
+        cw,tri=fixture()
+        tri["candidate_contexts"].append(copy.deepcopy(tri["candidate_contexts"][0]))
+        tri["research_date_context_count"]=3
+        cw["duplicate_source_text_contexts_collapsed"]=1
+        result=build(cw,tri)
+        self.assertEqual(result["total_contexts"],2)
+        self.assertEqual(result["priority_event_candidates"],1)
+        self.assertEqual(result["official_state_intervals_certified"],0)
+        self.assertEqual(result["trade_gate"],"BLOCKED")
+
     def test_sha_mismatch_forged_claims_and_duplicates_rejected(self):
         for case in ("sha","clause","issuer","direction","classification",
                      "certification","duplicate","triage_duplicate","count",
