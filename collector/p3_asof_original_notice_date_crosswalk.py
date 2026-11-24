@@ -54,6 +54,15 @@ def join(discovery, receipt, pdf, triage):
             or row.get("independent_exchange_status_authenticated") is not False
             or not isinstance(row.get("candidates"), list)):
             raise ValueError("invalid vendor asof issuer")
+        if row.get("research_leads_from_previous_run") is True:
+            if (row.get("status")!="PREVIOUS_RUN_INDEX_LEADS_RESEARCH_ONLY"
+                or row.get("current_index_status")!="INDEX_UNAVAILABLE_NOT_NO_RISK"
+                or row.get("current_index_was_unavailable") is not True
+                or type(row.get("archived_research_source_run_id")) is not int
+                or row["archived_research_source_run_id"]<=0):
+                raise ValueError("previous source lead missing explicit unavailable provenance")
+        elif row.get("archived_research_source_run_id") is not None:
+            raise ValueError("unmarked previous source run ID")
         by_target[issuer] = row
         for item in row["candidates"]:
             key = (issuer, item.get("announcement_id"))
@@ -128,6 +137,11 @@ def join(discovery, receipt, pdf, triage):
             "original_pdf_sha256":src["sha256"],
             "original_pdf_url":src["url"],
             "index_timestamp_unverified":notice.get("index_published_milliseconds_unverified"),
+            "index_source_scope":("ARCHIVED_RESEARCH_LEAD_NOT_CURRENT_QUERY"
+                                  if by_target[key[0]].get("research_leads_from_previous_run") is True
+                                  else "CURRENT_INDEX_RESEARCH_UNVERIFIED"),
+            "archived_research_source_run_id":by_target[key[0]].get("archived_research_source_run_id"),
+            "current_index_status":by_target[key[0]].get("current_index_status"),
             "source_date_text":day,
             "source_context_sha256":fingerprint,
             "candidate_event_directions":positives,
