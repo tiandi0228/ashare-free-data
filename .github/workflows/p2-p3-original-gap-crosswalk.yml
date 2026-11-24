@@ -50,7 +50,7 @@ jobs:
       - name: Test original issuer join without promoting PIT
         run: python -m unittest -v tests.test_p2_p3_gap_crosswalk tests.test_p2_p3_artifact_source_select tests.test_p2_original_gap_window_triage tests.test_p2_p3_current_source_guard tests.test_p2_p3_issuer_proof_action_queue tests.test_p3_gap_original_provenance_index tests.test_p2_p3_workflow_epoch_binding
   replay_once:
-    if: ${{ ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
+    if: ${{ ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
     needs: offline
     runs-on: ubuntu-latest
     timeout-minutes: 6
@@ -199,5 +199,5 @@ jobs:
             evidence/p3-gap-original-pdf-source-index.json
             evidence/sources/selected-runs.json
             evidence/sources/current-p1-checkpoint.json
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 14
