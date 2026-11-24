@@ -4,6 +4,8 @@ on:
     paths:
       - 'collector/p3_asof_official_index_research.py'
       - 'tests/test_p3_asof_official_index_research.py'
+      - 'collector/p3_asof_index_research_continuity.py'
+      - 'tests/test_p3_asof_index_research_continuity.py'
       - 'collector/p3_asof_original_notice_date_crosswalk.py'
       - 'tests/test_p3_asof_original_notice_date_crosswalk.py'
       - 'collector/p3_asof_original_notice_review_packets.py'
@@ -24,7 +26,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Test bounds and original SHA source constraints
-        run: python -m unittest -v tests.test_p3_asof_official_index_research tests.test_p3_asof_original_notice_date_crosswalk tests.test_p3_asof_original_notice_review_packets tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture
+        run: python -m unittest -v tests.test_p3_asof_official_index_research tests.test_p3_asof_index_research_continuity tests.test_p3_asof_original_notice_date_crosswalk tests.test_p3_asof_original_notice_review_packets tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture
       - name: Retrieve pinned real final P2 400-shard diagnoses
         env:
           GH_TOKEN: ${{ github.token }}
@@ -68,21 +70,54 @@ jobs:
               "no_match_not_no_risk":d["no_index_match_not_no_risk"],
               "trade_gate":"BLOCKED"})
           PY
-      - name: Bounded original CNINFO PDF capture for retrieved index candidates
+      - name: Retrieve earlier same-epoch official research leads, read-only optional
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
+          mkdir -p evidence/p3-asof/previous-index
+          # Pinned successful historical research run; this is not PIT proof.
+          if gh run download 45319344709 -R "${GITHUB_REPOSITORY}" \
+              -n p3-asof-three-real-issuer-source-research \
+              -D evidence/p3-asof/previous-index; then
+            test -s evidence/p3-asof/previous-index/official-index-unverified.json
+          else
+            echo "Historical evidence artifact unavailable; no fallback will be used."
+          fi
+      - name: Reconcile current source failures with SHA-matched archived index leads
+        run: |
+          set -euo pipefail
+          PREVIOUS_ARGS=()
+          if test -s evidence/p3-asof/previous-index/official-index-unverified.json; then
+            PREVIOUS_ARGS=(--previous evidence/p3-asof/previous-index/official-index-unverified.json --previous-run 45319344709)
+          fi
+          python -m collector.p3_asof_index_research_continuity \
+            --current evidence/p3-asof/official-index-unverified.json \
+            "${PREVIOUS_ARGS[@]}" \
+            --out evidence/p3-asof/research-continuity.json
           python - <<'PY'
           import json
           from pathlib import Path
-          source=json.loads(Path("evidence/p3-asof/official-index-unverified.json").read_bytes())
-          index={
-              "phase":"P3_REAL_P1_LIVE_INDEX_DISCOVERY",
-              "trade_gate":"BLOCKED",
-              "historical_PIT_verified":False,
-              "results":[{"issuer":r["issuer"],"candidates":r["candidates"],
-                          "status":r["status"]} for r in source["results"]],
-          }
-          Path("evidence/p3-asof/pdf-capture-index-input.json").write_text(json.dumps(index)+"\n")
+          r=json.loads(Path("evidence/p3-asof/research-continuity.json").read_text())
+          assert r["current_index_unavailable"] in range(4)
+          assert r["previous_research_lead_issuers"]<=r["current_index_unavailable"]
+          assert r["historical_first_publication_authenticated"] is False
+          assert r["independent_exchange_status_authenticated"] is False
+          assert r["historical_PIT_verified"] is False
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          Path("evidence/p3-asof/effective-discovery-research-only.json").write_text(
+              json.dumps(r["effective_discovery"],ensure_ascii=False,indent=2)+"\n")
+          Path("evidence/p3-asof/pdf-capture-index-input.json").write_text(
+              json.dumps(r["pdf_index_for_bounded_research"],indent=2)+"\n")
+          print("P3 INDEX CONTINUITY:",{
+              "current_unavailable":r["current_index_unavailable"],
+              "old_leads_recovered":r["previous_research_lead_issuers"],
+              "old_codes":r["previous_research_lead_codes"],
+              "official_PIT":False,
+          })
           PY
+      - name: Bounded original CNINFO PDF capture with research-only historical leads
+        run: |
           python -m collector.p3_real_target_pdf_capture \
             --index evidence/p3-asof/pdf-capture-index-input.json \
             --out evidence/p3-asof/pdf-originals
@@ -173,7 +208,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m collector.p3_asof_original_notice_date_crosswalk \
-            --discovery evidence/p3-asof/official-index-unverified.json \
+            --discovery evidence/p3-asof/effective-discovery-research-only.json \
             --receipt evidence/p3-asof/pdf-originals/quality.json \
             --pdf-text evidence/p3-asof/pdf-text-cues.json \
             --triage evidence/p3-asof/risk-date-contexts.json \
@@ -234,6 +269,8 @@ jobs:
           name: p3-asof-three-real-issuer-source-research
           path: |
             evidence/p3-asof/official-index-unverified.json
+            evidence/p3-asof/research-continuity.json
+            evidence/p3-asof/effective-discovery-research-only.json
             evidence/p3-asof/pdf-capture-index-input.json
             evidence/p3-asof/pdf-originals/quality.json
             evidence/p3-asof/independent-pdf-replay.json
