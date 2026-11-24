@@ -85,6 +85,37 @@ jobs:
           print("P3 ORIGINAL PDF BYTES:",report["retrieved"],"of",report["attempted"],
                 "- research only, never issuer trading certification")
           PY
+      - name: Independently replay all fetched original PDFs and exact SHA receipts
+        run: |
+          python - <<'PY'
+          import hashlib,json,re
+          from pathlib import Path
+          from urllib.parse import urlsplit
+          report=json.loads(Path("evidence/p3-asof/pdf-originals/quality.json").read_bytes())
+          root=Path("evidence/p3-asof/pdf-originals")
+          candidates=json.loads(Path("evidence/p3-asof/official-index-unverified.json").read_bytes())
+          expected={r["issuer"] for r in candidates["results"]}
+          verified=set()
+          for row in report["sources"]:
+              assert row["issuer"] in expected
+              if not row["original_bytes_verified"]:
+                  continue
+              assert row["status"]=="PDF_ORIGINAL_RETRIEVED_RESEARCH_ONLY"
+              assert row["historical_first_publication_authenticated"] is False
+              assert row["historical_PIT_verified"] is False
+              filename=row["original_file"]
+              assert re.fullmatch(r"(?:sh|sz)_[0-9]{6}_[0-9]+\\.pdf",filename)
+              raw=(root/filename).read_bytes()
+              assert raw.startswith(b"%PDF-") and 3000<=len(raw)<=4000000
+              assert hashlib.sha256(raw).hexdigest()==row["sha256"]
+              assert urlsplit(row["url"]).hostname=="static.cninfo.com.cn"
+              assert row["issuer"] not in verified
+              verified.add(row["issuer"])
+          assert len(verified)==report["retrieved"]
+          assert report["retrieved"]<=3
+          print("P3 INDEPENDENT PDF SHA REPLAY PASS:",len(verified),
+                "authentic collected-byte digests; 0 official PIT certifications")
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
