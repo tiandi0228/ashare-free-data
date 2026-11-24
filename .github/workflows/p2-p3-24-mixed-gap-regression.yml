@@ -130,7 +130,7 @@ jobs:
           assert evidence_intake["trade_gate"] == "BLOCKED"
           assert evidence_intake["orders"] == evidence_intake["buy_signals"] == []
           Path("evidence/p3-24-independent-official-source-intake.json").write_text(
-              json.dumps(evidence_intake,indent=2)+"\\n")
+              json.dumps(evidence_intake,indent=2)+"\n")
           reparsed=json.loads(Path("evidence/p3-24-independent-official-source-intake.json").read_text())
           assert reparsed["issuers_in_scope"]==24
           Path("evidence/p2-p3-24-actual-gap-tasks.json").write_text(json.dumps(tasks,indent=2)+"\n")
