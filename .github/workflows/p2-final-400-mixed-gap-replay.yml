@@ -22,6 +22,10 @@ jobs:
       - name: Read immutable-at-run original archive and coverage references
         run: |
           set -euo pipefail
+          # Freeze the current main checkpoint independently of PR #360's old branch snapshot.
+          git fetch --depth=1 --no-tags origin c519f477b3a99733850ddafc74629838ca1f7f71
+          git worktree add --detach "$RUNNER_TEMP/current-main" FETCH_HEAD
+          test "$(git -C "$RUNNER_TEMP/current-main" rev-parse HEAD)" = c519f477b3a99733850ddafc74629838ca1f7f71
           git fetch --depth=1 --no-tags origin research-csv-archive
           git worktree add --detach "$RUNNER_TEMP/archive" FETCH_HEAD
           git fetch --depth=1 --no-tags origin p2-feature-coverage
@@ -31,6 +35,7 @@ jobs:
           ARCHIVE_DIR: ${{ runner.temp }}/archive
           COVERAGE_DIR: ${{ runner.temp }}/coverage
           OUTPUT: ${{ runner.temp }}/p2-final-mixed-gap-replay.json
+          MAIN_DIR: ${{ runner.temp }}/current-main
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -39,12 +44,13 @@ jobs:
           from collector.p1_active_migration_checkpoint import resolve
           from collector.p2_original_gap_window_triage import check_current_checkpoint, diagnose
 
-          source=resolve(Path("."))
+          main_root=Path(os.environ["MAIN_DIR"])
+          source=resolve(main_root)
           epoch=source["source_sha256"]
           assert len(epoch)==64
           coverage_path=Path(os.environ["COVERAGE_DIR"])/"summaries"/(epoch[:16]+".json")
           archive=Path(os.environ["ARCHIVE_DIR"])/epoch[:16]
-          checkpoint=json.loads(Path(source["checkpoint_path"]).read_text())
+          checkpoint=json.loads((main_root/source["checkpoint_path"]).read_text())
           coverage=json.loads(coverage_path.read_text())
           status=json.loads((archive/"archive_status.json").read_text())
           witness=check_current_checkpoint(coverage,checkpoint,status)
