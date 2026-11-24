@@ -104,7 +104,7 @@ jobs:
               assert row["historical_first_publication_authenticated"] is False
               assert row["historical_PIT_verified"] is False
               filename=row["original_file"]
-              assert re.fullmatch(r"(?:sh|sz)_[0-9]{6}_[0-9]+\\.pdf",filename)
+              assert re.fullmatch(r"(?:sh|sz)_[0-9]{6}_[0-9]+\.pdf",filename)
               raw=(root/filename).read_bytes()
               assert raw.startswith(b"%PDF-") and 3000<=len(raw)<=4000000
               assert hashlib.sha256(raw).hexdigest()==row["sha256"]
