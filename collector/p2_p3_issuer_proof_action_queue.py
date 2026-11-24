@@ -16,6 +16,7 @@ CATEGORIES=(
     "FIND_ORIGINAL_HALT_RESUME_ANNOUNCEMENTS",
     "FIND_MATCHING_RESUME_ORIGINAL_AND_CHRONOLOGY",
     "AUTHENTICATE_BOTH_ORIGINAL_PUBLICATION_TIMES_AND_EFFECTIVE_INTERVAL",
+    "VERIFY_ASOF_NONTRADABLE_EXCHANGE_AND_OFFICIAL_NOTICE",
 )
 
 
@@ -63,7 +64,8 @@ def build(crosswalk,guard):
             or type(pairs) is not int or not 0<=pairs<=10000
             or row.get("vendor_gap_diagnosis") not in (
                 "VENDOR_SUSPENDED_ROW_WITHIN_LAST_21",
-                "FEWER_THAN_21_VENDOR_ROWS_ASOF")
+                "FEWER_THAN_21_VENDOR_ROWS_ASOF",
+                "VENDOR_MARKED_NOT_TRADABLE_AT_ASOF")
             or not isinstance(row.get("vendor_csv_sha256"),str)
             or not SHA.fullmatch(row["vendor_csv_sha256"])
             or row.get("official_trading_state_covered_for_gap") is not False
@@ -73,7 +75,9 @@ def build(crosswalk,guard):
         with_leads+=int(leads>0)
         with_pairs+=int(pairs>0)
         diagnosis=row["vendor_gap_diagnosis"]
-        if diagnosis=="FEWER_THAN_21_VENDOR_ROWS_ASOF":
+        if diagnosis=="VENDOR_MARKED_NOT_TRADABLE_AT_ASOF":
+            action=CATEGORIES[4]
+        elif diagnosis=="FEWER_THAN_21_VENDOR_ROWS_ASOF":
             action=CATEGORIES[0]
         elif leads==0 and pairs==0:
             action=CATEGORIES[1]
@@ -98,7 +102,9 @@ def build(crosswalk,guard):
                 "SOURCE_AUTHENTIC_ORIGINAL_DOCUMENT_SHA",
                 "INDEPENDENT_FIRST_PUBLICATION_TIME_AND_SOURCE",
                 "EXCHANGE_EFFECTIVE_HALT_RESUME_INTERVAL_OR_LISTING_HISTORY",
-                "COMPLETE_POINT_IN_TIME_TRADABILITY_CROSSCHECK"],
+                "COMPLETE_POINT_IN_TIME_TRADABILITY_CROSSCHECK"] +
+                (["INDEPENDENT_ASOF_EXCHANGE_TRADING_STATUS"]
+                 if diagnosis=="VENDOR_MARKED_NOT_TRADABLE_AT_ASOF" else []),
             "official_evidence_authenticated":False,
             "historical_PIT_verified":False,
             "feature_gap_resolved":False,
