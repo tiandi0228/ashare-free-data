@@ -1,0 +1,98 @@
+name: P3 three asof-gap official index and original PDF pilot (RESEARCH ONLY)
+on:
+  pull_request:
+    paths:
+      - 'collector/p3_asof_official_index_research.py'
+      - 'tests/test_p3_asof_official_index_research.py'
+      - '.github/workflows/p3-asof-official-index-pilot.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  real-three-issuer-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test bounds and original SHA source constraints
+        run: python -m unittest -v tests.test_p3_asof_official_index_research tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture
+      - name: Retrieve pinned real final P2 400-shard diagnoses
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/sources/p2 evidence/p3-asof
+          gh run download 45313779368 -R "${GITHUB_REPOSITORY}" -n p2-392-original-mixed-gap-replay -D evidence/sources/p2
+          coverage=6772f36217d39cfedad0cb5b70789bc7d2c16c99
+          git fetch --depth=1 --no-tags origin "$coverage"
+          git show "$coverage:summaries/5ba00fbd720fad90.json" > evidence/sources/p2/final-coverage.json
+      - name: Read-only live index search for all three real nontradable asof issuers
+        run: |
+          set -euo pipefail
+          python -m collector.p3_asof_official_index_research \
+            --coverage evidence/sources/p2/final-coverage.json \
+            --gaps evidence/sources/p2/p2-400-original-gap-triage.json \
+            --out evidence/p3-asof/official-index-unverified.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path("evidence/p3-asof/official-index-unverified.json").read_bytes())
+          assert d["research_issuers"]==3 and len(d["results"])==3
+          assert len({r["issuer"] for r in d["results"]})==3
+          assert all(r["original_vendor_csv_sha256"] for r in d["results"])
+          assert d["historical_first_publication_authenticated"] is False
+          assert d["independent_exchange_status_authenticated"] is False
+          assert d["historical_PIT_verified"] is False
+          assert d["trade_gate"]=="BLOCKED" and d["orders"]==[] and d["buy_signals"]==[]
+          print("P3 REAL ASOF SOURCE RESEARCH:",{
+              "issuers":[r["issuer"] for r in d["results"]],
+              "index_candidates":d["index_candidates"],
+              "index_unavailable":d["index_unavailable"],
+              "no_match_not_no_risk":d["no_index_match_not_no_risk"],
+              "trade_gate":"BLOCKED"})
+          PY
+      - name: Bounded original CNINFO PDF capture for retrieved index candidates
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          source=json.loads(Path("evidence/p3-asof/official-index-unverified.json").read_bytes())
+          index={
+              "phase":"P3_REAL_P1_LIVE_INDEX_DISCOVERY",
+              "trade_gate":"BLOCKED",
+              "historical_PIT_verified":False,
+              "results":[{"issuer":r["issuer"],"candidates":r["candidates"],
+                          "status":r["status"]} for r in source["results"]],
+          }
+          Path("evidence/p3-asof/pdf-capture-index-input.json").write_text(json.dumps(index)+"\n")
+          PY
+          python -m collector.p3_real_target_pdf_capture \
+            --index evidence/p3-asof/pdf-capture-index-input.json \
+            --out evidence/p3-asof/pdf-originals
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report=json.loads(Path("evidence/p3-asof/pdf-originals/quality.json").read_bytes())
+          assert 0<=report["retrieved"]<=report["attempted"]<=3
+          assert report["historical_first_publication_authenticated"] is False
+          assert report["historical_PIT_verified"] is False
+          assert report["trade_gate"]=="BLOCKED" and report["orders"]==[]
+          print("P3 ORIGINAL PDF BYTES:",report["retrieved"],"of",report["attempted"],
+                "- research only, never issuer trading certification")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p3-asof-three-real-issuer-source-research
+          path: |
+            evidence/p3-asof/official-index-unverified.json
+            evidence/p3-asof/pdf-capture-index-input.json
+            evidence/p3-asof/pdf-originals/quality.json
+            evidence/p3-asof/pdf-originals/*.pdf
+          retention-days: 14
+          if-no-files-found: warn
