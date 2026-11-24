@@ -139,12 +139,16 @@ class IndexChronologyTests(unittest.TestCase):
 
     def test_archived_lead_preserves_source_run_and_does_not_become_pit(self):
         packet,cross,discovery=sources()
-        cross["leads"][0]["index_source_scope"]="ARCHIVED_RESEARCH_LEAD_NOT_CURRENT_QUERY"
-        cross["leads"][0]["archived_research_source_run_id"]=45319344709
-        packet["review_queue"][0]["index_source_scope"]="ARCHIVED_RESEARCH_LEAD_NOT_CURRENT_QUERY"
-        packet["review_queue"][0]["archived_research_source_run_id"]=45319344709
-        packet["review_queue"][0]["current_index_status"]="INDEX_UNAVAILABLE_NOT_NO_RISK"
-        cross["leads"][0]["current_index_status"]="INDEX_UNAVAILABLE_NOT_NO_RISK"
+        # A failed current *issuer query* affects all original notices for
+        # that issuer; one cannot mix current and archived provenance within it.
+        for lead in cross["leads"]:
+            lead["index_source_scope"]="ARCHIVED_RESEARCH_LEAD_NOT_CURRENT_QUERY"
+            lead["archived_research_source_run_id"]=45319344709
+            lead["current_index_status"]="INDEX_UNAVAILABLE_NOT_NO_RISK"
+        for row in packet["review_queue"]:
+            row["index_source_scope"]="ARCHIVED_RESEARCH_LEAD_NOT_CURRENT_QUERY"
+            row["archived_research_source_run_id"]=45319344709
+            row["current_index_status"]="INDEX_UNAVAILABLE_NOT_NO_RISK"
         discovery["results"][0].update({
             "status":"PREVIOUS_RUN_INDEX_LEADS_RESEARCH_ONLY",
             "current_index_status":"INDEX_UNAVAILABLE_NOT_NO_RISK",
