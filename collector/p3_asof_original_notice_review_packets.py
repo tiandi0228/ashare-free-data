@@ -94,6 +94,15 @@ def build(crosswalk,triage):
         key=(issuer,notice,digest,day,fingerprint)
         if key in used or key not in context_by_key:
             raise ValueError("unbound or duplicate SHA-matched review lead")
+        if (row.get("index_source_scope")=="ARCHIVED_RESEARCH_LEAD_NOT_CURRENT_QUERY"
+            and (type(row.get("archived_research_source_run_id")) is not int
+                 or row["archived_research_source_run_id"]<=0
+                 or row.get("current_index_status")!="INDEX_UNAVAILABLE_NOT_NO_RISK")):
+            raise ValueError("archived source lead not independently attributed")
+        if (row.get("index_source_scope") not in
+            (None,"CURRENT_INDEX_RESEARCH_UNVERIFIED",
+             "ARCHIVED_RESEARCH_LEAD_NOT_CURRENT_QUERY")):
+            raise ValueError("unknown original index lead provenance")
         used.add(key)
         excerpt=context_by_key[key]
         canonical=json.dumps([issuer,notice,digest,day,fingerprint,directions],
@@ -103,6 +112,9 @@ def build(crosswalk,triage):
             "issuer":issuer,"announcement_id":notice,
             "original_pdf_sha256":digest,
             "original_pdf_url_unverified":row.get("original_pdf_url"),
+            "index_source_scope":row.get("index_source_scope","CURRENT_INDEX_RESEARCH_UNVERIFIED"),
+            "archived_research_source_run_id":row.get("archived_research_source_run_id"),
+            "current_index_status":row.get("current_index_status"),
             "source_date_text_unverified":day,
             "source_context_sha256":fingerprint,
             "source_clause_excerpt":excerpt,
