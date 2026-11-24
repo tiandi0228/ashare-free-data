@@ -1,0 +1,86 @@
+name: P2 P3 real artifact-backed selection smoke test (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/p2-p3-artifact-backed-real-readonly.yml'
+      - 'collector/p2_p3_artifact_source_select.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  artifact-backed-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Select upstream sources only when backed by actual artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/source-proof"
+          python -m collector.p2_p3_artifact_source_select \
+            --repo "$GITHUB_REPOSITORY" \
+            --out "$RUNNER_TEMP/source-proof/selected.json"
+      - name: Download and independently validate both source artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import pathlib
+          import subprocess
+          import tempfile
+
+          root = pathlib.Path(os.environ["RUNNER_TEMP"]) / "source-proof"
+          selection = json.loads((root / "selected.json").read_text())
+          assert selection["status"] == "ARTIFACT_BACKED_SOURCE_RUNS_RESEARCH_ONLY"
+          assert selection["trade_gate"] == "BLOCKED"
+          assert selection["orders"] == []
+          assert selection["official_PIT_certified"] is False
+
+          for kind, prefix in (("p2", "p2-original-gap-triage-"),
+                               ("p3", "p3-full-p1-official-scout-")):
+              run_id = selection[kind + "_run_id"]
+              assert type(run_id) is int and run_id > 0
+              artifact_name = prefix + str(run_id)
+              metadata = json.loads(subprocess.check_output(
+                  ["gh", "api", "repos/" + os.environ["GITHUB_REPOSITORY"] +
+                   "/actions/runs/" + str(run_id) + "/artifacts",
+                   "--method", "GET", "-f", "per_page=100"], text=True))
+              matches = [a for a in metadata["artifacts"]
+                         if a.get("name") == artifact_name]
+              assert len(matches) == 1, "missing or ambiguous " + kind
+              assert matches[0]["expired"] is False
+              assert type(matches[0]["size_in_bytes"]) is int
+              assert matches[0]["size_in_bytes"] > 0
+              target = root / kind
+              target.mkdir()
+              subprocess.run(
+                  ["gh", "run", "download", str(run_id), "-R",
+                   os.environ["GITHUB_REPOSITORY"], "-n", artifact_name,
+                   "-D", str(target)], check=True, timeout=90)
+              files = [p for p in target.rglob("*") if p.is_file()]
+              assert files and any(p.stat().st_size > 0 for p in files), (
+                  "empty downloaded source " + kind)
+              print(kind, "source run", run_id, "files", len(files))
+          print("PASS: two nonempty, unexpired, precisely named and downloaded sources")
+          print("NO PIT CERTIFICATION; NO ORIGINAL ARCHIVE WRITE; NO TRADES")
+          PY
+      - name: Publish read-only source selection summary
+        if: success()
+        run: |
+          {
+            echo '### Real artifact-backed source smoke test'
+            echo 'Both selected source runs had downloadable evidence files.'
+            echo 'This does not establish same-epoch join, full replay, historical PIT or trading eligibility.'
+            echo 'trade_gate=BLOCKED; orders=[]'
+          } >> "$GITHUB_STEP_SUMMARY"
