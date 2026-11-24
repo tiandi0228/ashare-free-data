@@ -155,6 +155,40 @@ jobs:
           assert joined["trade_gate"]==review["trade_gate"]=="BLOCKED"
           assert review["orders"]==review["actionable_buy_signals"]==[]
           assert all(x["buy_eligible"] is False for x in review["tasks"])
+          # Negative controls on REAL source data: a pass must also demonstrate
+          # that cross-epoch/PIT-forged/promoted evidence is rejected, not just
+          # that the happy path works. Inputs are cloned; originals stay intact.
+          import copy
+          rejected=[]
+          def must_reject(label,operation):
+              try:
+                  operation()
+              except ValueError:
+                  rejected.append(label)
+              else:
+                  raise AssertionError("UNSAFE ACCEPTANCE: "+label)
+          bad_p2=copy.deepcopy(p2)
+          bad_p2["source_epoch_sha256"]="0"*64
+          must_reject("cross_epoch_p2",
+              lambda:validate_sources(bad_p2,coverage,p3_queue,int(os.environ["GITHUB_RUN_ID"]),45246691330))
+          bad_queue=copy.deepcopy(p3_queue)
+          bad_queue["roster_source_sha256"]="f"*64
+          must_reject("cross_epoch_p3",
+              lambda:validate_sources(p2,coverage,bad_queue,int(os.environ["GITHUB_RUN_ID"]),45246691330))
+          bad_coverage=copy.deepcopy(coverage)
+          bad_coverage["historical_PIT_verified"]=True
+          must_reject("forged_coverage_PIT",
+              lambda:validate_sources(p2,bad_coverage,p3_queue,int(os.environ["GITHUB_RUN_ID"]),45246691330))
+          bad_p2_status=copy.deepcopy(p2)
+          bad_p2_status["coverage_gaps_resolved"]=24
+          must_reject("forged_gap_repairs",
+              lambda:crosswalk(bad_p2_status,events,pairs))
+          bad_joined=copy.deepcopy(joined)
+          bad_joined["official_halt_intervals_authenticated"]=1
+          must_reject("forged_official_interval",
+              lambda:build(bad_joined,guard))
+          assert len(rejected)==5
+          print("PASS: 5 real-data fail-closed negative controls",rejected)
           output={
               "phase":"P2_P3_INTEGRATED_LIVE_ORIGINAL_CROSSWALK_RESEARCH_ONLY",
               "source_epoch_sha256":epoch,
@@ -163,6 +197,7 @@ jobs:
               "unresolved_issuers":24,
               "vendor_nontradable_asof_issuers":3,
               "official_intervals_certified":0,
+              "fail_closed_negative_controls":rejected,
               "historical_PIT_verified":False,
               "trade_gate":"BLOCKED",
               "orders":[],
