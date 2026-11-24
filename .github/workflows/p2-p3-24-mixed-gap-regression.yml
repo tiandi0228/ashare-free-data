@@ -4,6 +4,8 @@ on:
     paths:
       - 'collector/p2_p3_gap_crosswalk.py'
       - 'collector/p2_p3_issuer_proof_action_queue.py'
+      - 'collector/p3_gap_original_provenance_index.py'
+      - 'tests/test_p3_gap_original_provenance_index.py'
       - '.github/workflows/p2-p3-24-mixed-gap-regression.yml'
 permissions:
   contents: read
@@ -41,6 +43,7 @@ jobs:
           from collector.p2_p3_current_source_guard import validate_sources
           from collector.p2_p3_gap_crosswalk import crosswalk
           from collector.p2_p3_issuer_proof_action_queue import build, CATEGORIES
+          from collector.p3_gap_original_provenance_index import index
 
           def sole(root, filename):
               found=list(Path(root).rglob(filename))
@@ -68,6 +71,21 @@ jobs:
           assert cross["historical_PIT_verified"] is False and tasks["historical_PIT_verified"] is False
           assert cross["trade_gate"] == tasks["trade_gate"] == "BLOCKED"
           assert cross["orders"] == tasks["orders"] == [] and tasks["actionable_buy_signals"] == []
+          proof=index(tasks,events,pairs)
+          assert proof["gap_issuer_count"] == 24 == len(proof["issuers"])
+          assert sorted(row["issuer"] for row in proof["issuers"]) == coverage["gap_issuer_codes"]
+          assert proof["p2_source_run_id"] == 45313779368
+          assert proof["p3_source_run_id"] == 45246691330
+          assert proof["authenticated_first_publication_count"] == 0
+          assert proof["certified_exchange_intervals"] == 0
+          assert proof["historical_PIT_verified"] is False
+          assert proof["trade_gate"] == "BLOCKED" and proof["orders"] == []
+          asof=[row for row in proof["issuers"] if row["research_action"] == CATEGORIES[4]]
+          assert len(asof) == 3
+          assert all(row["complete_official_state_interval_certified"] is False
+                     and row["buy_eligible"] is False for row in asof)
+          Path("evidence/p2-p3-24-original-pdf-source-index.json").write_text(
+              json.dumps(proof,indent=2)+"\n")
           Path("evidence/p2-p3-24-actual-gap-tasks.json").write_text(json.dumps(tasks,indent=2)+"\n")
           print("PASS: real 400-shard P2 gap sources, 24 unresolved official proof tasks, 3 nontradable-asof, NO TRADES")
           PY
@@ -75,6 +93,8 @@ jobs:
         if: always()
         with:
           name: p2-p3-24-gap-regression-research-only
-          path: evidence/p2-p3-24-actual-gap-tasks.json
+          path: |
+            evidence/p2-p3-24-actual-gap-tasks.json
+            evidence/p2-p3-24-original-pdf-source-index.json
           retention-days: 10
           if-no-files-found: warn
