@@ -39,7 +39,8 @@ def build(crosswalk,triage):
     if (not isinstance(leads,list) or not isinstance(contexts,list)
         or len(leads)>100 or len(leads)!=crosswalk.get("date_context_leads")
         or len(contexts)!=triage.get("research_date_context_count")
-        or len(leads)!=len(contexts) or crosswalk.get("research_issuers")!=3):
+        or crosswalk.get("duplicate_source_text_contexts_collapsed",0)!=len(contexts)-len(leads)
+        or len(contexts)<len(leads) or crosswalk.get("research_issuers")!=3):
         raise ValueError("P3 clue counts disagree")
     context_by_key={}
     for row in contexts:
@@ -59,7 +60,9 @@ def build(crosswalk,triage):
             raise ValueError("invalid independent source text")
         key=(issuer,notice,digest,day,hashlib.sha256(excerpt.encode()).hexdigest())
         if key in context_by_key:
-            raise ValueError("duplicated PDF source text clue")
+            # An identical repeated clause is the same source material,
+            # never a second independent supporting announcement.
+            continue
         context_by_key[key]=excerpt
     result=[]
     used=set()
