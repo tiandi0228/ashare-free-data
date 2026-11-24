@@ -74,6 +74,25 @@ class AsofOriginalNoticeDateCrosswalkTests(unittest.TestCase):
         self.assertEqual(report["official_state_intervals_certified"],0)
         self.assertEqual(report["trade_gate"],"BLOCKED")
 
+    def test_archived_index_source_is_never_pretended_current(self):
+        d,r,p,t=fixtures()
+        row=d["results"][0]
+        row["research_leads_from_previous_run"]=True
+        row["status"]="PREVIOUS_RUN_INDEX_LEADS_RESEARCH_ONLY"
+        row["current_index_status"]="INDEX_UNAVAILABLE_NOT_NO_RISK"
+        row["current_index_was_unavailable"]=True
+        row["archived_research_source_run_id"]=45319344709
+        out=join(d,r,p,t)
+        lead=out["leads"][0]
+        self.assertEqual(lead["index_source_scope"],"ARCHIVED_RESEARCH_LEAD_NOT_CURRENT_QUERY")
+        self.assertEqual(lead["archived_research_source_run_id"],45319344709)
+        self.assertEqual(lead["current_index_status"],"INDEX_UNAVAILABLE_NOT_NO_RISK")
+        self.assertFalse(lead["historical_first_publication_authenticated"])
+        self.assertEqual(out["trade_gate"],"BLOCKED")
+        row["archived_research_source_run_id"]=None
+        with self.assertRaisesRegex(ValueError,"previous source"):
+            join(d,r,p,t)
+
     def test_nonaffirmative_clause_not_promoted(self):
         d,r,p,t=fixtures()
         t["candidate_contexts"][0]["source_text_context"]="公司拟于2026年10月20日起停牌。"
