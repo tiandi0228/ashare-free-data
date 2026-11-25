@@ -68,3 +68,12 @@ class TestJoin(unittest.TestCase):
         self.assertEqual(join(a,b,partial)["partial_calendar_csv_matches"],0)
         partial["notice_candidates"][0]["original_pdf_verified"]=True
         with self.assertRaises(ValueError): join(a,b,partial)
+
+    def test_dynamic_source_run_and_epoch(self):
+        a,b=fixture()
+        result=join(a,b,crosswalk_run=123,expected_epoch="c"*64)
+        self.assertEqual(result["source_crosswalk_run"],123)
+        with self.assertRaisesRegex(ValueError,"stale"):
+            join(a,b,crosswalk_run=123,expected_epoch="d"*64)
+        with self.assertRaises(ValueError):
+            join(a,b,crosswalk_run=0)

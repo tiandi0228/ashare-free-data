@@ -90,18 +90,37 @@ jobs:
           git fetch --depth=1 origin 8eb1814453316fdce8ff7a07f0d1cbc14c09ac61
           git worktree add --detach "$RUNNER_TEMP/p3-603183" 8eb1814453316fdce8ff7a07f0d1cbc14c09ac61
           (cd "$RUNNER_TEMP/p3-603183"; python -m collector.p3_603183_gap_replay --archive "$RUNNER_TEMP/p3-archive" > "$RUNNER_TEMP/603183.json")
-      - name: Join independently regenerated originals to pinned production crosswalk
+      - name: Join independently regenerated originals to current production crosswalk
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh run download 45540676282 -R "${GITHUB_REPOSITORY}" -n p2-p3-original-gap-crosswalk-45540676282 -D crosswalk
+          python - <<'PY'
+          import json,subprocess,os
+          from pathlib import Path
+          from collector.p2_p3_artifact_source_select import choose_run
+          from collector.p1_active_migration_checkpoint import resolve
+          repo=os.environ["GITHUB_REPOSITORY"]
+          def gh(*args):
+              return json.loads(subprocess.check_output(["gh",*args],text=True,timeout=40))
+          rows=gh("run","list","-R",repo,"--workflow","p2-p3-original-gap-crosswalk.yml","--limit","100","--json","databaseId,conclusion,event,headBranch,headSha")
+          def artifacts(run):
+              return gh("api",f"repos/{repo}/actions/runs/{run}/artifacts","-f","per_page=100","--method","GET")["artifacts"]
+          chosen=choose_run(rows,artifacts,"p2-p3-original-gap-crosswalk-")
+          checkpoint=resolve(Path("."))
+          Path("selected-crosswalk.json").write_text(json.dumps({"run_id":chosen,"source_epoch":checkpoint["source_sha256"]}))
+          PY
+          RUN=$(python -c 'import json;print(json.load(open("selected-crosswalk.json"))["run_id"])')
+          EPOCH=$(python -c 'import json;print(json.load(open("selected-crosswalk.json"))["source_epoch"])')
+          gh run download "$RUN" -R "${GITHUB_REPOSITORY}" -n "p2-p3-original-gap-crosswalk-$RUN" -D crosswalk
           INDEX=$(find crosswalk -name p3-gap-original-pdf-source-index.json)
           test -f "$INDEX"
-          python -m collector.p3_scoped_current_gap_join --index "$INDEX" --partial-calendar "$RUNNER_TEMP/603183.json" "$RUNNER_TEMP/600825.json" "$RUNNER_TEMP/002860.json" "$RUNNER_TEMP/002813.json" "$RUNNER_TEMP/605303.json" "$RUNNER_TEMP/002870.json" "$RUNNER_TEMP/603400.json" "$RUNNER_TEMP/601238.json" "$RUNNER_TEMP/000582.json" "$RUNNER_TEMP/000668.json" > scoped-join.json
+          python -m collector.p3_scoped_current_gap_join --index "$INDEX" --crosswalk-run "$RUN" --expected-epoch "$EPOCH" --partial-calendar "$RUNNER_TEMP/603183.json" "$RUNNER_TEMP/600825.json" "$RUNNER_TEMP/002860.json" "$RUNNER_TEMP/002813.json" "$RUNNER_TEMP/605303.json" "$RUNNER_TEMP/002870.json" "$RUNNER_TEMP/603400.json" "$RUNNER_TEMP/601238.json" "$RUNNER_TEMP/000582.json" "$RUNNER_TEMP/000668.json" > scoped-join.json
           cat scoped-join.json
       - uses: actions/upload-artifact@v4
         with:
           name: p3-scoped-current-gap-join
-          path: scoped-join.json
+          path: |
+            scoped-join.json
+            selected-crosswalk.json
           if-no-files-found: error

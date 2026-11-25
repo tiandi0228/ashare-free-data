@@ -57,11 +57,15 @@ def partial_calendar_match(index, report):
     matched=len(rows)==1 and rows[0]["vendor_csv_sha256"]==csv
     return dict(issuer="sh.603183",source_csv_matches=matched,matched_vendor_days=3 if matched else 0,scheduled_closure_days=7 if matched else 0,original_pdf_verified=False,official_first_release_verified=False,feature_gap_resolved=False,buy_eligible=False)
 
-def join(index,reports,partial=None):
+def join(index,reports,partial=None,*,crosswalk_run=45540676282,expected_epoch=None):
+    if type(crosswalk_run) is not int or crosswalk_run<=0:
+        raise ValueError("invalid crosswalk run ID")
     safe(index)
     if index.get("phase")!="P3_GAP_ISSUER_ORIGINAL_PDF_PROVENANCE_REVIEW_INDEX" or index.get("authenticated_first_publication_count")!=0 or index.get("certified_exchange_intervals")!=0 or index.get("feature_gaps_resolved")!=0:
         raise ValueError("unsafe index")
     epoch=digest(index["source_epoch_sha256"])
+    if expected_epoch is not None and epoch!=digest(expected_epoch):
+        raise ValueError("stale crosswalk epoch")
     rows=index["issuers"]
     if len(rows)!=index["gap_issuer_count"] or len({r["issuer"] for r in rows})!=len(rows):
         raise ValueError("invalid gap roster")
@@ -98,12 +102,14 @@ def join(index,reports,partial=None):
         paired=sum(a in hashes and b in hashes for a,b in pairs)
         out.append(dict(issuer=issuer,source_csv_matches=match,matched_notice_sha256=exact,matched_pair_count=paired,official_first_release_verified=False,feature_gap_resolved=False,buy_eligible=False))
     partial_result=partial_calendar_match(index,partial) if partial is not None else None
-    return dict(partial_calendar_replay=partial_result,partial_calendar_csv_matches=int(bool(partial_result and partial_result["source_csv_matches"])),phase="P3_SCOPED_REPLAY_CURRENT_GAP_JOIN",source_epoch_sha256=epoch,source_crosswalk_run=45540676282,p2_source_run_id=index["p2_source_run_id"],p3_source_run_id=index["p3_source_run_id"],gap_issuer_count=len(out),issuer_csv_matches=sum(r["source_csv_matches"] for r in out),issuer_notice_matches=sum(bool(r["matched_notice_sha256"]) for r in out),matched_notice_hashes=sum(len(r["matched_notice_sha256"]) for r in out),issuer_pair_matches=sum(r["matched_pair_count"]>0 for r in out),matched_pairs=sum(r["matched_pair_count"] for r in out),issuers=out,official_first_release_count=0,feature_gaps_resolved=0,historical_PIT_verified=False,trade_gate="BLOCKED",orders=[],executable_candidates=[])
+    return dict(partial_calendar_replay=partial_result,partial_calendar_csv_matches=int(bool(partial_result and partial_result["source_csv_matches"])),phase="P3_SCOPED_REPLAY_CURRENT_GAP_JOIN",source_epoch_sha256=epoch,source_crosswalk_run=crosswalk_run,p2_source_run_id=index["p2_source_run_id"],p3_source_run_id=index["p3_source_run_id"],gap_issuer_count=len(out),issuer_csv_matches=sum(r["source_csv_matches"] for r in out),issuer_notice_matches=sum(bool(r["matched_notice_sha256"]) for r in out),matched_notice_hashes=sum(len(r["matched_notice_sha256"]) for r in out),issuer_pair_matches=sum(r["matched_pair_count"]>0 for r in out),matched_pairs=sum(r["matched_pair_count"] for r in out),issuers=out,official_first_release_count=0,feature_gaps_resolved=0,historical_PIT_verified=False,trade_gate="BLOCKED",orders=[],executable_candidates=[])
 
 if __name__=="__main__":
     p=argparse.ArgumentParser()
     p.add_argument("--index",type=Path,required=True)
     p.add_argument("--partial-calendar",type=Path)
+    p.add_argument("--crosswalk-run",type=int,required=True)
+    p.add_argument("--expected-epoch",required=True)
     p.add_argument("reports",nargs="+",type=Path)
     a=p.parse_args()
-    print(json.dumps(join(json.loads(a.index.read_text()),[json.loads(x.read_text()) for x in a.reports],json.loads(a.partial_calendar.read_text()) if a.partial_calendar else None),indent=2))
+    print(json.dumps(join(json.loads(a.index.read_text()),[json.loads(x.read_text()) for x in a.reports],json.loads(a.partial_calendar.read_text()) if a.partial_calendar else None,crosswalk_run=a.crosswalk_run,expected_epoch=a.expected_epoch),indent=2))
