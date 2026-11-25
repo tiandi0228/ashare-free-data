@@ -66,6 +66,16 @@ def index(queue,events,pairs):
             or task.get("official_evidence_authenticated") is not False
             or task.get("buy_eligible") is not False):
             raise ValueError("forged research task or duplicate issuer")
+        # The vendor as-of 'not tradable' label is not an authenticated
+        # exchange state. Require a dedicated official verification task,
+        # even when an unrelated halt/resume PDF text lead happens to exist.
+        if task.get("vendor_gap_diagnosis") == "VENDOR_MARKED_NOT_TRADABLE_AT_ASOF":
+            if (task.get("research_action") !=
+                    "VERIFY_ASOF_NONTRADABLE_EXCHANGE_AND_OFFICIAL_NOTICE"
+                or not isinstance(task.get("required_official_evidence"),list)
+                or "INDEPENDENT_ASOF_EXCHANGE_TRADING_STATUS" not in
+                    task["required_official_evidence"]):
+                raise ValueError("as-of vendor label requires independent exchange status proof")
         task_by_issuer[issuer]=task
     doc_by_issuer={issuer:[] for issuer in task_by_issuer}
     seen=set()

@@ -92,6 +92,32 @@ class OriginalProofSourceIndexTests(unittest.TestCase):
         self.assertEqual(out["trade_gate"],"BLOCKED")
         self.assertEqual(out["orders"],[])
 
+    def test_vendor_nontradable_asof_requires_separate_exchange_proof_task(self):
+        q,e,p=copy.deepcopy(fixtures())
+        task=q["tasks"][1]
+        task["vendor_gap_diagnosis"]="VENDOR_MARKED_NOT_TRADABLE_AT_ASOF"
+        task["research_action"]="VERIFY_ASOF_NONTRADABLE_EXCHANGE_AND_OFFICIAL_NOTICE"
+        task["required_official_evidence"]=[
+            "SOURCE_AUTHENTIC_ORIGINAL_DOCUMENT_SHA",
+            "INDEPENDENT_ASOF_EXCHANGE_TRADING_STATUS"]
+        out=index(q,e,p)
+        self.assertEqual(out["gap_issuer_count"],2)
+        asof=next(item for item in out["issuers"] if item["issuer"]=="sh.600002")
+        self.assertEqual(asof["research_action"],
+            "VERIFY_ASOF_NONTRADABLE_EXCHANGE_AND_OFFICIAL_NOTICE")
+        self.assertFalse(asof["complete_official_state_interval_certified"])
+        self.assertFalse(asof["buy_eligible"])
+        self.assertEqual(out["certified_exchange_intervals"],0)
+        for kind in ("action","evidence"):
+            q2=copy.deepcopy(q)
+            if kind=="action":
+                q2["tasks"][1]["research_action"]="FIND_ORIGINAL_HALT_RESUME_ANNOUNCEMENTS"
+            else:
+                q2["tasks"][1]["required_official_evidence"].remove(
+                    "INDEPENDENT_ASOF_EXCHANGE_TRADING_STATUS")
+            with self.subTest(kind=kind),self.assertRaisesRegex(ValueError,"exchange status proof"):
+                index(q2,e,p)
+
     def test_missing_pdf_or_pair_evidence_cannot_keep_existing_task_count(self):
         for what in ("doc","pair"):
             queue,events,pairs=copy.deepcopy(fixtures())

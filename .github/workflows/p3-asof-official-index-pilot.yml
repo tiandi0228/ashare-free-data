@@ -1,0 +1,379 @@
+name: P3 three asof-gap official index and original PDF pilot (RESEARCH ONLY)
+on:
+  pull_request:
+    paths:
+      - 'collector/p3_asof_official_index_research.py'
+      - 'tests/test_p3_asof_official_index_research.py'
+      - 'collector/p3_asof_index_research_continuity.py'
+      - 'collector/p3_asof_official_index_drift_audit.py'
+      - 'tests/test_p3_asof_official_index_drift_audit.py'
+      - 'tests/test_p3_asof_index_research_continuity.py'
+      - 'collector/p3_asof_original_notice_date_crosswalk.py'
+      - 'tests/test_p3_asof_original_notice_date_crosswalk.py'
+      - 'collector/p3_asof_original_notice_review_packets.py'
+      - 'collector/p3_asof_publication_chronology_triage.py'
+      - 'tests/test_p3_asof_publication_chronology_triage.py'
+      - 'tests/test_p3_asof_original_notice_review_packets.py'
+      - '.github/workflows/p3-asof-official-index-pilot.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  real-three-issuer-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test bounds and original SHA source constraints
+        run: python -m unittest -v tests.test_p3_asof_official_index_research tests.test_p3_asof_index_research_continuity tests.test_p3_asof_official_index_drift_audit tests.test_p3_asof_original_notice_date_crosswalk tests.test_p3_asof_original_notice_review_packets tests.test_p3_asof_publication_chronology_triage tests.test_p3_real_target_index_probe tests.test_p3_real_target_pdf_capture
+      - name: Retrieve pinned real final P2 400-shard diagnoses
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/sources/p2 evidence/p3-asof
+          gh run download 45313779368 -R "${GITHUB_REPOSITORY}" -n p2-392-original-mixed-gap-replay -D evidence/sources/p2
+          coverage=6772f36217d39cfedad0cb5b70789bc7d2c16c99
+          git fetch --depth=1 --no-tags origin "$coverage"
+          git show "$coverage:summaries/5ba00fbd720fad90.json" > evidence/sources/p2/final-coverage.json
+      - name: Read-only live index search for all three real nontradable asof issuers
+        run: |
+          set -euo pipefail
+          python -m collector.p3_asof_official_index_research \
+            --coverage evidence/sources/p2/final-coverage.json \
+            --gaps evidence/sources/p2/p2-400-original-gap-triage.json \
+            --out evidence/p3-asof/official-index-unverified.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path("evidence/p3-asof/official-index-unverified.json").read_bytes())
+          assert d["research_issuers"]==3 and len(d["results"])==3
+          assert d["max_transient_query_attempts_per_issuer"]==2
+          assert 3<=d["total_index_query_attempts"]<=6
+          assert 0<=d["transient_retry_issuers"]<=3
+          assert d["total_index_query_attempts"]==3+d["transient_retry_issuers"]
+          assert all(row["index_query_attempts"] in (1,2) and
+                     row["transient_transport_retry_used"] == (row["index_query_attempts"]==2)
+                     for row in d["results"])
+          assert len({r["issuer"] for r in d["results"]})==3
+          assert all(r["original_vendor_csv_sha256"] for r in d["results"])
+          assert d["historical_first_publication_authenticated"] is False
+          assert d["independent_exchange_status_authenticated"] is False
+          assert d["historical_PIT_verified"] is False
+          assert d["trade_gate"]=="BLOCKED" and d["orders"]==[] and d["buy_signals"]==[]
+          print("P3 REAL ASOF SOURCE RESEARCH:",{
+              "issuers":[r["issuer"] for r in d["results"]],
+              "index_candidates":d["index_candidates"],
+              "index_unavailable":d["index_unavailable"],
+              "transient_retries":d["transient_retry_issuers"],
+              "no_match_not_no_risk":d["no_index_match_not_no_risk"],
+              "trade_gate":"BLOCKED"})
+          PY
+      - name: Retrieve earlier same-epoch official research leads, read-only optional
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/p3-asof/previous-index
+          # Pinned successful historical research run; this is not PIT proof.
+          if gh run download 45319344709 -R "${GITHUB_REPOSITORY}" \
+              -n p3-asof-three-real-issuer-source-research \
+              -D evidence/p3-asof/previous-index; then
+            test -s evidence/p3-asof/previous-index/official-index-unverified.json
+          else
+            echo "Historical evidence artifact unavailable; no fallback will be used."
+          fi
+      - name: Reconcile current source failures with SHA-matched archived index leads
+        run: |
+          set -euo pipefail
+          PREVIOUS_ARGS=()
+          if test -s evidence/p3-asof/previous-index/official-index-unverified.json; then
+            PREVIOUS_ARGS=(--previous evidence/p3-asof/previous-index/official-index-unverified.json --previous-run 45319344709)
+          fi
+          python -m collector.p3_asof_index_research_continuity \
+            --current evidence/p3-asof/official-index-unverified.json \
+            "${PREVIOUS_ARGS[@]}" \
+            --out evidence/p3-asof/research-continuity.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("evidence/p3-asof/research-continuity.json").read_text())
+          assert r["current_index_unavailable"] in range(4)
+          assert r["previous_research_lead_issuers"]<=r["current_index_unavailable"]
+          assert r["historical_first_publication_authenticated"] is False
+          assert r["independent_exchange_status_authenticated"] is False
+          assert r["historical_PIT_verified"] is False
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[]
+          Path("evidence/p3-asof/effective-discovery-research-only.json").write_text(
+              json.dumps(r["effective_discovery"],ensure_ascii=False,indent=2)+"\n")
+          Path("evidence/p3-asof/pdf-capture-index-input.json").write_text(
+              json.dumps(r["pdf_index_for_bounded_research"],indent=2)+"\n")
+          print("P3 INDEX CONTINUITY:",{
+              "current_unavailable":r["current_index_unavailable"],
+              "old_leads_recovered":r["previous_research_lead_issuers"],
+              "old_codes":r["previous_research_lead_codes"],
+              "official_PIT":False,
+          })
+          PY
+      - name: Audit cross-run metadata drift against the same pinned original index
+        run: |
+          set -euo pipefail
+          if test -s evidence/p3-asof/previous-index/official-index-unverified.json; then
+            python -m collector.p3_asof_official_index_drift_audit \
+              --current evidence/p3-asof/official-index-unverified.json \
+              --previous evidence/p3-asof/previous-index/official-index-unverified.json \
+              --previous-run 45319344709 \
+              --out evidence/p3-asof/cross-run-index-drift-research.json
+            python - <<'PY'
+          import json
+          from pathlib import Path
+          path=Path("evidence/p3-asof/cross-run-index-drift-research.json")
+          data=json.loads(path.read_text())
+          assert data["issuers_in_scope"]==3
+          assert data["comparison_rows"]==len(data["rows"])
+          assert data["comparison_rows"]==sum(data["comparison_class_counts"].values())
+          assert data["authenticated_first_publication_count"]==0
+          assert data["certified_exchange_intervals"]==0
+          assert data["historical_PIT_verified"] is False
+          assert data["trade_gate"]=="BLOCKED" and data["orders"]==[]
+          assert all(row["authenticated_first_publication"] is False
+                     and row["certified_exchange_state"] is False
+                     for row in data["rows"])
+          print("P3 CROSS-RUN INDEX METADATA:",data["comparison_class_counts"],
+                "unverified research only")
+          PY
+          else
+            echo "Prior artifact unavailable: drift audit skipped; no provenance certification"
+          fi
+      - name: Bounded original CNINFO PDF capture with research-only historical leads
+        run: |
+          python -m collector.p3_real_target_pdf_capture \
+            --index evidence/p3-asof/pdf-capture-index-input.json \
+            --out evidence/p3-asof/pdf-originals
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report=json.loads(Path("evidence/p3-asof/pdf-originals/quality.json").read_bytes())
+          assert 0<=report["retrieved"]<=report["attempted"]<=3
+          assert report["historical_first_publication_authenticated"] is False
+          assert report["historical_PIT_verified"] is False
+          assert report["trade_gate"]=="BLOCKED" and report["orders"]==[]
+          print("P3 ORIGINAL PDF BYTES:",report["retrieved"],"of",report["attempted"],
+                "- research only, never issuer trading certification")
+          PY
+      - name: Independently replay all fetched original PDFs and exact SHA receipts
+        run: |
+          python - <<'PY'
+          import hashlib,json,re
+          from pathlib import Path
+          from urllib.parse import urlsplit
+          report=json.loads(Path("evidence/p3-asof/pdf-originals/quality.json").read_bytes())
+          root=Path("evidence/p3-asof/pdf-originals")
+          candidates=json.loads(Path("evidence/p3-asof/official-index-unverified.json").read_bytes())
+          expected={r["issuer"] for r in candidates["results"]}
+          verified=set()
+          for row in report["sources"]:
+              assert row["issuer"] in expected
+              if not row["original_bytes_verified"]:
+                  continue
+              assert row["status"]=="PDF_ORIGINAL_RETRIEVED_RESEARCH_ONLY"
+              assert row["historical_first_publication_authenticated"] is False
+              assert row["historical_PIT_verified"] is False
+              filename=row["original_file"]
+              assert re.fullmatch(r"(?:sh|sz)_[0-9]{6}_[0-9]+\.pdf",filename)
+              raw=(root/filename).read_bytes()
+              assert raw.startswith(b"%PDF-") and 3000<=len(raw)<=4000000
+              assert hashlib.sha256(raw).hexdigest()==row["sha256"]
+              assert urlsplit(row["url"]).hostname=="static.cninfo.com.cn"
+              assert row["issuer"] not in verified
+              verified.add(row["issuer"])
+          assert len(verified)==report["retrieved"]
+          assert report["retrieved"]<=3
+          print("P3 INDEPENDENT PDF SHA REPLAY PASS:",len(verified),
+                "authentic collected-byte digests; 0 official PIT certifications")
+          PY
+      - name: Extract research-only PDF date text and risk contexts from SHA-replayed originals
+        run: |
+          set -euo pipefail
+          python -m pip install 'pypdf>=4,<7'
+          python -m collector.p3_real_p1_pdf_replay \
+            --root evidence/p3-asof/pdf-originals \
+            --out evidence/p3-asof/independent-pdf-replay.json
+          python -m collector.p3_real_p1_pdf_text_cues \
+            --root evidence/p3-asof/pdf-originals \
+            --out evidence/p3-asof/pdf-text-cues.json
+          python -m collector.p3_real_date_context_triage \
+            --source evidence/p3-asof/pdf-text-cues.json \
+            --out evidence/p3-asof/risk-date-contexts.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          base=Path("evidence/p3-asof")
+          receipt=json.loads((base/"pdf-originals/quality.json").read_bytes())
+          replay=json.loads((base/"independent-pdf-replay.json").read_bytes())
+          text=json.loads((base/"pdf-text-cues.json").read_bytes())
+          triage=json.loads((base/"risk-date-contexts.json").read_bytes())
+          assert replay["independently_sha_verified"]==receipt["retrieved"]
+          assert text["independently_replayed_originals"]==receipt["retrieved"]
+          assert text["source_count"]==receipt["attempted"]<=3
+          assert len(text["sources"])==receipt["attempted"]
+          assert triage["research_date_context_count"]==len(triage["candidate_contexts"])
+          assert all(row["historical_publication_time_verified"] is False
+                     and row["historical_effective_date_verified"] is False
+                     and row["human_review_required"] is True
+                     for row in triage["candidate_contexts"])
+          assert text["event_effective_dates_certified"]==0
+          assert triage["historical_issuer_states_certified"]==0
+          for report in (replay,text,triage):
+              assert report["trade_gate"]=="BLOCKED" and report["orders"]==[]
+              assert report["historical_PIT_verified"] is False if "historical_PIT_verified" in report else report["historical_PIT_eligible"]==0
+          print("P3 REAL PDF TEXT RESEARCH:",{"retrieved_sha_replayed":receipt["retrieved"],
+              "source_pdf_text_statuses":[x["text_status"] for x in text["sources"]],
+              "date_context_candidates":triage["research_date_context_count"],
+              "first_publication_authentications":0,"certified_official_intervals":0,
+              "trade_gate":"BLOCKED"})
+          PY
+      - name: Reconcile three SHA-verified original notices to dated text clauses (unverified)
+        run: |
+          set -euo pipefail
+          python -m collector.p3_asof_original_notice_date_crosswalk \
+            --discovery evidence/p3-asof/effective-discovery-research-only.json \
+            --receipt evidence/p3-asof/pdf-originals/quality.json \
+            --pdf-text evidence/p3-asof/pdf-text-cues.json \
+            --triage evidence/p3-asof/risk-date-contexts.json \
+            --out evidence/p3-asof/original-notice-date-leads.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("evidence/p3-asof/original-notice-date-leads.json").read_bytes())
+          assert r["research_issuers"]==3
+          assert r["sha_verified_original_pdfs"]<=3
+          assert r["date_context_leads"]==len(r["leads"])
+          continuity=json.loads(Path("evidence/p3-asof/research-continuity.json").read_bytes())
+          archived=[x for x in r["leads"] if x["index_source_scope"]=="ARCHIVED_RESEARCH_LEAD_NOT_CURRENT_QUERY"]
+          expected=set(continuity["previous_research_lead_codes"])
+          assert {x["issuer"] for x in archived}.issubset(expected)
+          assert all(x["archived_research_source_run_id"]==continuity["previous_artifact_run_id"]
+                     and x["current_index_status"]=="INDEX_UNAVAILABLE_NOT_NO_RISK"
+                     for x in archived)
+          assert all(x["historical_first_publication_authenticated"] is False for x in archived)
+          triage=json.loads(Path("evidence/p3-asof/risk-date-contexts.json").read_bytes())
+          assert r["date_context_leads"]+r["duplicate_source_text_contexts_collapsed"]==triage["research_date_context_count"]
+          assert sum(r["classification_counts"].values())==len(r["leads"])
+          assert r["first_publication_times_independently_authenticated"]==0
+          assert r["official_state_intervals_certified"]==0
+          assert r["historical_PIT_verified"] is False
+          assert r["trade_gate"]=="BLOCKED" and r["orders"]==[] and r["buy_signals"]==[]
+          assert all(x["historical_first_publication_authenticated"] is False
+                     and x["official_effective_interval_certified"] is False
+                     and x["historical_trade_eligible"] is False
+                     for x in r["leads"])
+          print("P3 ORIGINAL NOTICE DATE CROSSWALK:",r["date_context_leads"],
+                r["classification_counts"],"0 authenticated first-publication times")
+          PY
+      - name: Generate source-SHA tied official review packets, no approval
+        run: |
+          set -euo pipefail
+          python -m collector.p3_asof_original_notice_review_packets \
+            --crosswalk evidence/p3-asof/original-notice-date-leads.json \
+            --triage evidence/p3-asof/risk-date-contexts.json \
+            --json-out evidence/p3-asof/original-notice-review-packets.json \
+            --csv-out evidence/p3-asof/original-notice-review-packets.csv
+          python - <<'PY'
+          import csv,json
+          from pathlib import Path
+          d=json.loads(Path("evidence/p3-asof/original-notice-review-packets.json").read_text())
+          with Path("evidence/p3-asof/original-notice-review-packets.csv").open(
+                  encoding="utf-8-sig",newline="") as f:
+              rows=list(csv.DictReader(f))
+          assert d["total_contexts"]==len(rows)
+          assert d["priority_event_candidates"]+d["ambiguous_quarantined"]+d["conflicting_quarantined"]+d["other_quarantined"]==len(rows)
+          assert all(r["review_status"]=="NOT_AUTHENTICATED" for r in rows)
+          assert all(r["index_source_scope"] in
+                     ("CURRENT_INDEX_RESEARCH_UNVERIFIED","ARCHIVED_RESEARCH_LEAD_NOT_CURRENT_QUERY")
+                     for r in rows)
+          assert all(r["current_index_status"]=="INDEX_UNAVAILABLE_NOT_NO_RISK"
+                     for r in rows if r["index_source_scope"]=="ARCHIVED_RESEARCH_LEAD_NOT_CURRENT_QUERY")
+          assert all(r["buy_eligible"]=="False" for r in rows)
+          assert d["official_first_publication_authenticated"]==0
+          assert d["official_state_intervals_certified"]==0
+          assert d["historical_PIT_verified"] is False
+          assert d["trade_gate"]=="BLOCKED" and d["orders"]==[] and d["buy_signals"]==[]
+          print("P3 REAL ORIGINAL NOTICE REVIEW:",d["total_contexts"],
+                "priority",d["priority_event_candidates"],
+                "ambiguous",d["ambiguous_quarantined"],
+                "conflicts",d["conflicting_quarantined"],
+                "other",d["other_quarantined"],"official certified 0")
+          PY
+      - name: Independently triage CNINFO index timestamp versus PDF event date (unverified)
+        run: |
+          set -euo pipefail
+          python -m collector.p3_asof_publication_chronology_triage \
+            --packets evidence/p3-asof/original-notice-review-packets.json \
+            --crosswalk evidence/p3-asof/original-notice-date-leads.json \
+            --discovery evidence/p3-asof/effective-discovery-research-only.json \
+            --json-out evidence/p3-asof/chronology-review-unverified.json \
+            --csv-out evidence/p3-asof/chronology-review-unverified.csv
+          python - <<'PY'
+          import csv,json
+          from pathlib import Path
+          report=json.loads(Path("evidence/p3-asof/chronology-review-unverified.json").read_text())
+          with Path("evidence/p3-asof/chronology-review-unverified.csv").open(
+                  encoding="utf-8-sig",newline="") as f:
+              rows=list(csv.DictReader(f))
+          assert report["reviewed_date_contexts"]==len(rows)
+          originals=json.loads(Path("evidence/p3-asof/effective-discovery-research-only.json").read_bytes())
+          index={
+              (issuer["issuer"],c["announcement_id"]):c
+              for issuer in originals["results"] for c in issuer["candidates"]
+          }
+          assert all((row["issuer"],row["announcement_id"]) in index for row in rows)
+          for row in report["review_rows"]:
+              source=index[(row["issuer"],row["announcement_id"])]
+              assert row["original_pdf_url"]==source["official_pdf_url"]
+              assert row["cninfo_index_time_shanghai_unverified"] is None or source.get(
+                  "index_published_milliseconds_unverified") is not None
+              assert row["first_publication_time_independently_authenticated"] is False
+              assert row["exchange_state_interval_certified"] is False
+          assert 0<=report["priority_review_candidates"]<=len(rows)
+          assert 0<=report["index_after_event_day_research_warnings"]<=len(rows)
+          assert report["authenticated_first_publication_count"]==0
+          assert report["certified_exchange_intervals"]==0
+          assert report["historical_PIT_verified"] is False
+          assert report["trade_gate"]=="BLOCKED" and report["orders"]==[] and report["buy_signals"]==[]
+          assert all(row["review_status"]=="NEEDS_INDEPENDENT_OFFICIAL_SOURCE"
+                     and row["buy_eligible"]=="False" for row in rows)
+          print("P3 CHRONOLOGY RESEARCH:",{
+              "reviewed":len(rows),
+              "priority":report["priority_review_candidates"],
+              "index_after_event_day":report["index_after_event_day_research_warnings"],
+              "index_after_vendor_asof":report["index_after_vendor_asof_research_warnings"],
+              "authenticated":0,"gate":"BLOCKED"})
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p3-asof-three-real-issuer-source-research
+          path: |
+            evidence/p3-asof/official-index-unverified.json
+            evidence/p3-asof/research-continuity.json
+            evidence/p3-asof/cross-run-index-drift-research.json
+            evidence/p3-asof/effective-discovery-research-only.json
+            evidence/p3-asof/pdf-capture-index-input.json
+            evidence/p3-asof/pdf-originals/quality.json
+            evidence/p3-asof/independent-pdf-replay.json
+            evidence/p3-asof/pdf-text-cues.json
+            evidence/p3-asof/risk-date-contexts.json
+            evidence/p3-asof/original-notice-date-leads.json
+            evidence/p3-asof/original-notice-review-packets.json
+            evidence/p3-asof/original-notice-review-packets.csv
+            evidence/p3-asof/chronology-review-unverified.json
+            evidence/p3-asof/chronology-review-unverified.csv
+            evidence/p3-asof/pdf-originals/*.pdf
+          retention-days: 14
+          if-no-files-found: warn
