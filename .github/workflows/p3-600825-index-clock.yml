@@ -1,0 +1,29 @@
+name: P3 600825 disclosure index clock replay (NO TRADES)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'collector/p3_600825_index_clock.py'
+      - 'tests/test_p3_600825_index_clock.py'
+      - 'evidence/p3_600825_index/**'
+      - '.github/workflows/p3-600825-index-clock.yml'
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest tests.test_p3_600825_index_clock -v
+      - run: python -m collector.p3_600825_index_clock > 600825-clock-replay.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p3-600825-index-clock-replay
+          path: 600825-clock-replay.json
+          if-no-files-found: error
