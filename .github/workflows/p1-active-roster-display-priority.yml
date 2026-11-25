@@ -1,0 +1,40 @@
+name: P1 active-roster source-priority audit (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p1_active_roster_display_priority.py'
+      - 'tests/test_p1_active_roster_display_priority.py'
+      - '.github/workflows/p1-active-roster-display-priority.yml'
+  push:
+    branches:
+      - 'audit/p1-active-roster-source-priority-20261112'
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Confirm active roster original and deny old epoch display
+        run: |
+          set -euo pipefail
+          python -m unittest -v tests.test_p1_active_roster_display_priority
+          python -m collector.p1_active_roster_display_priority \
+            --root . --out /tmp/p1-active-display.json
+          python - <<'PY'
+          import json
+          r=json.load(open('/tmp/p1-active-display.json'))
+          assert r['active']['source_sha256'] != r['legacy_alias']['source_sha256']
+          assert r['alias_replaces_active_source'] is False
+          assert r['cross_epoch_counts_addable'] is False
+          assert r['overall_P1_project_completion_pct'] is None
+          assert r['trade_gate'] == 'BLOCKED'
+          assert r['orders'] == [] and r['executable_candidates'] == []
+          assert r['historical_PIT_verified'] is False
+          PY
