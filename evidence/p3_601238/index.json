@@ -1,0 +1,29 @@
+[
+  {
+    "announcement_id": "1225564444",
+    "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-15/1225564444.PDF",
+    "index_published_milliseconds_unverified": 1789401600000,
+    "announcement_title_unverified": "广汽集团关于筹划重大资产重组事项的停牌公告",
+    "index_page_observed": 1,
+    "original_bytes_captured": false,
+    "historical_PIT_verified": false
+  },
+  {
+    "announcement_id": "1225572692",
+    "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-19/1225572692.PDF",
+    "index_published_milliseconds_unverified": 1789747200000,
+    "announcement_title_unverified": "广汽集团关于筹划重大资产重组事项的停牌进展公告",
+    "index_page_observed": 1,
+    "original_bytes_captured": false,
+    "historical_PIT_verified": false
+  },
+  {
+    "announcement_id": "1225586271",
+    "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-29/1225586271.PDF",
+    "index_published_milliseconds_unverified": 1790611200000,
+    "announcement_title_unverified": "广汽集团关于披露《发行股份购买资产并募集配套资金暨关联交易预案》的一般风险提示暨公司股票复牌的公告",
+    "index_page_observed": 1,
+    "original_bytes_captured": false,
+    "historical_PIT_verified": false
+  }
+]
