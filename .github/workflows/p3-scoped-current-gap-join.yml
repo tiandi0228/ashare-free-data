@@ -1,5 +1,12 @@
 name: P3 scoped original replay vs production gap evidence (NO TRADES)
 on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p3_scoped_current_gap_join.py'
+      - 'tests/test_p3_scoped_current_gap_join.py'
+      - '.github/workflows/p3-scoped-current-gap-join.yml'
   pull_request:
     branches: [main]
     paths:
@@ -71,31 +78,73 @@ jobs:
             cd "$RUNNER_TEMP/p3-601238"
             python -m collector.p3_601238_original_replay "$RUNNER_TEMP/p3-archive" > "$RUNNER_TEMP/601238.json"
           )
-      - name: Independently replay two additional archived PDF pairs
+      - name: Independently replay two additional pinned PDF pairs
         env:
           GH_TOKEN: ${{ github.token }}
+          FORCE_SOURCE_RECOVERY: ${{ github.event_name == 'pull_request' }}
         run: |
           set -euo pipefail
           python -m pip install 'pypdf>=5,<7'
           git fetch --depth=1 origin cdb8265565fbe8bf6c4374dd94e08e548c5d64b5 a6b7ba20a7945dbb9e99046d444ab58ad5764780
           git worktree add --detach "$RUNNER_TEMP/p3-000582" cdb8265565fbe8bf6c4374dd94e08e548c5d64b5
           git worktree add --detach "$RUNNER_TEMP/p3-000668" a6b7ba20a7945dbb9e99046d444ab58ad5764780
-          gh run download 43843287137 -R "$GITHUB_REPOSITORY" -n p3-000582-halt-resume-replay -D "$RUNNER_TEMP/raw582"
-          gh run download 43995110167 -R "$GITHUB_REPOSITORY" -n p3-000668-halt-resume-evidence -D "$RUNNER_TEMP/raw668"
+          mkdir -p "$RUNNER_TEMP/raw582" "$RUNNER_TEMP/raw668"
+          # Recover from immutable public archive commits and exact official URLs
+          # if the historical CI artifacts have expired. The pinned replay
+          # verifies every PDF and CSV digest regardless of transport.
+          if [[ "$FORCE_SOURCE_RECOVERY" == "true" ]] || ! gh run download 43843287137 -R "$GITHUB_REPOSITORY" -n p3-000582-halt-resume-replay -D "$RUNNER_TEMP/raw582"; then
+            echo "RECOVERY_SOURCE: 000582 pinned official originals and archive"
+            git fetch --depth=1 origin 9928ba76ceaeac72506a3e6d4af63bac8d98c279
+            git show 9928ba76ceaeac72506a3e6d4af63bac8d98c279:5ba00fbd720fad90/shard_0231/sz_000582.csv > "$RUNNER_TEMP/raw582/source.csv"
+            curl -fsS --max-time 30 --max-filesize 4194304 'https://disc.static.szse.cn/download/disc/disk03/finalpage/2026-10-08/4bff47b8-2edf-4822-96ce-ee71323e794c.PDF' -o "$RUNNER_TEMP/raw582/halt.pdf"
+            curl -fsS --max-time 30 --max-filesize 4194304 'https://static.cninfo.com.cn/finalpage/2026-10-12/1225599813.PDF' -o "$RUNNER_TEMP/raw582/resume.pdf"
+          fi
+          if [[ "$FORCE_SOURCE_RECOVERY" == "true" ]] || ! gh run download 43995110167 -R "$GITHUB_REPOSITORY" -n p3-000668-halt-resume-evidence -D "$RUNNER_TEMP/raw668"; then
+            echo "RECOVERY_SOURCE: 000668 pinned official originals and archive"
+            git fetch --depth=1 origin 7129bdd738de2030c2bd40cb5fa05c1d654fbd8d
+            git show 7129bdd738de2030c2bd40cb5fa05c1d654fbd8d:5ba00fbd720fad90/shard_0237/sz_000668.csv > "$RUNNER_TEMP/raw668/source.csv"
+            curl -fsS --max-time 30 --max-filesize 4194304 'https://static.cninfo.com.cn/finalpage/2026-10-08/1225591961.PDF' -o "$RUNNER_TEMP/raw668/halt.pdf"
+            curl -fsS --max-time 30 --max-filesize 4194304 'https://disc.static.szse.cn/download/disc/disk03/finalpage/2026-10-13/a94b3320-be06-43d5-bbff-19649a5c627e.PDF' -o "$RUNNER_TEMP/raw668/resume.pdf"
+          fi
           (cd "$RUNNER_TEMP/p3-000582"; python -m collector.p3_000582_halt_replay --halt "$RUNNER_TEMP/raw582/halt.pdf" --resume "$RUNNER_TEMP/raw582/resume.pdf" --vendor "$RUNNER_TEMP/raw582/source.csv" --out "$RUNNER_TEMP/000582.json")
           (cd "$RUNNER_TEMP/p3-000668"; python -m collector.p3_000668_halt_replay "$RUNNER_TEMP/raw668/halt.pdf" "$RUNNER_TEMP/raw668/resume.pdf" "$RUNNER_TEMP/raw668/source.csv" "$RUNNER_TEMP/000668.json")
-      - name: Join independently regenerated originals to pinned production crosswalk
+      - name: Regenerate partial 603183 calendar evidence without PDF certification
+        run: |
+          set -euo pipefail
+          git fetch --depth=1 origin 8eb1814453316fdce8ff7a07f0d1cbc14c09ac61
+          git worktree add --detach "$RUNNER_TEMP/p3-603183" 8eb1814453316fdce8ff7a07f0d1cbc14c09ac61
+          (cd "$RUNNER_TEMP/p3-603183"; python -m collector.p3_603183_gap_replay --archive "$RUNNER_TEMP/p3-archive" > "$RUNNER_TEMP/603183.json")
+      - name: Join independently regenerated originals to current production crosswalk
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh run download 45540676282 -R "${GITHUB_REPOSITORY}" -n p2-p3-original-gap-crosswalk-45540676282 -D crosswalk
+          python - <<'PY'
+          import json,subprocess,os
+          from pathlib import Path
+          from collector.p2_p3_artifact_source_select import choose_run
+          from collector.p1_active_migration_checkpoint import resolve
+          repo=os.environ["GITHUB_REPOSITORY"]
+          def gh(*args):
+              return json.loads(subprocess.check_output(["gh",*args],text=True,timeout=40))
+          rows=gh("run","list","-R",repo,"--workflow","p2-p3-original-gap-crosswalk.yml","--limit","100","--json","databaseId,conclusion,event,headBranch,headSha")
+          def artifacts(run):
+              return gh("api",f"repos/{repo}/actions/runs/{run}/artifacts","-f","per_page=100","--method","GET")["artifacts"]
+          chosen=choose_run(rows,artifacts,"p2-p3-original-gap-crosswalk-")
+          checkpoint=resolve(Path("."))
+          Path("selected-crosswalk.json").write_text(json.dumps({"run_id":chosen,"source_epoch":checkpoint["source_sha256"]}))
+          PY
+          RUN=$(python -c 'import json;print(json.load(open("selected-crosswalk.json"))["run_id"])')
+          EPOCH=$(python -c 'import json;print(json.load(open("selected-crosswalk.json"))["source_epoch"])')
+          gh run download "$RUN" -R "${GITHUB_REPOSITORY}" -n "p2-p3-original-gap-crosswalk-$RUN" -D crosswalk
           INDEX=$(find crosswalk -name p3-gap-original-pdf-source-index.json)
           test -f "$INDEX"
-          python -m collector.p3_scoped_current_gap_join --index "$INDEX" "$RUNNER_TEMP/600825.json" "$RUNNER_TEMP/002860.json" "$RUNNER_TEMP/002813.json" "$RUNNER_TEMP/605303.json" "$RUNNER_TEMP/002870.json" "$RUNNER_TEMP/603400.json" "$RUNNER_TEMP/601238.json" "$RUNNER_TEMP/000582.json" "$RUNNER_TEMP/000668.json" > scoped-join.json
+          python -m collector.p3_scoped_current_gap_join --index "$INDEX" --crosswalk-run "$RUN" --expected-epoch "$EPOCH" --partial-calendar "$RUNNER_TEMP/603183.json" "$RUNNER_TEMP/600825.json" "$RUNNER_TEMP/002860.json" "$RUNNER_TEMP/002813.json" "$RUNNER_TEMP/605303.json" "$RUNNER_TEMP/002870.json" "$RUNNER_TEMP/603400.json" "$RUNNER_TEMP/601238.json" "$RUNNER_TEMP/000582.json" "$RUNNER_TEMP/000668.json" > scoped-join.json
           cat scoped-join.json
       - uses: actions/upload-artifact@v4
         with:
           name: p3-scoped-current-gap-join
-          path: scoped-join.json
+          path: |
+            scoped-join.json
+            selected-crosswalk.json
           if-no-files-found: error
