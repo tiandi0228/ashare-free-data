@@ -23,6 +23,33 @@ def choose(plan,prior=None,start_index=0,limit=4):
     order=list(range(start_index,count))+list(range(start_index))
     return [i for i in order if i not in done][:limit]
 
+
+def choose_scheduled_tail(plan, prior, start_index, limit, *, threshold=0.90):
+    """Finish the lowest missing shards once 90% of the frozen roster is archived.
+
+    Before 90% keep the established rotating selection. All inputs are audited
+    before choosing a new vendor request. This changes schedule selection only:
+    explicit manual gap windows and ordinary CLI callers retain their behavior.
+    """
+    verify_prior_for_selection(plan, prior)
+    if type(limit) is not int or limit not in (1, 2):
+        raise ValueError("scheduled collection must remain at one or two shards")
+    count = plan["shard_count"]
+    if prior is None or prior["completed_shards"] / count < threshold:
+        return choose(plan, prior, start_index=start_index)[:limit]
+    pending = prior["pending_shards"]
+    if pending != sorted(set(pending)):
+        raise ValueError("unsorted or duplicate scheduled gap indices")
+    # A vendor failure on the first low-numbered gap must not consume
+    # every subsequent scheduled slot. Deprioritize only failures recorded
+    # by the preceding *validated* same-epoch checkpoint, never promote them
+    # to completed or omit them from pending. Once other gaps are exhausted
+    # the failed ones are retried, still bounded by the same per-run cap.
+    recently_failed = set(prior["failed_in_this_reconciliation"]) & set(pending)
+    ready = [i for i in pending if i not in recently_failed]
+    return (ready if ready else pending)[:limit]
+
+
 def choose_gap_window(plan, prior, window, limit=1):
     """Opt-in deterministic missing-only backfill; default cron is untouched."""
     verify_prior_for_selection(plan, prior)
@@ -118,6 +145,7 @@ def main():
     p.add_argument("--output-file",required=True)
     p.add_argument("--gap-window",help="Opt-in inclusive pending-only start:end window; does not change cron defaults")
     p.add_argument("--per-run",type=int,default=1,choices=(1,2))
+    p.add_argument("--prioritize-final-gaps",action="store_true",help="Scheduled-only bounded lowest-pending collection at >=90% completion")
     a=p.parse_args()
     plan=json.loads(Path(a.plan).read_text())
     prior=json.loads(Path(a.prior).read_text()) if a.prior else None
@@ -127,7 +155,10 @@ def main():
     # Reliability pilot: one independently verifiable shard per workflow run.
     # A later failed shard must not prevent a successful first shard from
     # reaching the archive audit and durable checkpoint steps.
+    if a.prioritize_final_gaps and os.environ.get("GITHUB_EVENT_NAME") != "schedule":
+        raise ValueError("final-gap priority is scheduled-only")
     selected=(choose_gap_window(plan,prior,a.gap_window,a.per_run) if a.gap_window is not None
+              else choose_scheduled_tail(plan,prior,start,a.per_run) if a.prioritize_final_gaps
               else choose(plan,prior,start_index=start)[:a.per_run])
     if not selected:raise ValueError("all P1 shards completed: do not recapture")
     with Path(a.output_file).open("a") as out:
