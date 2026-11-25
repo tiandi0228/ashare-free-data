@@ -7,6 +7,28 @@ from pathlib import Path
 SHA = re.compile(r"[0-9a-f]{64}")
 EXPECTED = {"sh.600825","sz.002860","sz.002813","sh.605303","sz.002870","sh.603400","sh.601238"}
 ARCHIVE = "7028eb4c9cc7f23add64958bc6f2611565476538"
+EXTRA = {"sz.000582":"9928ba76ceaeac72506a3e6d4af63bac8d98c279","sz.000668":"7129bdd738de2030c2bd40cb5fa05c1d654fbd8d"}
+EXPECTED.update(EXTRA)
+
+def normalize(report):
+    issuer=report["issuer"]
+    if issuer not in EXTRA: return report
+    safe(report)
+    if report.get("phase")!="P3_BOUNDED_OFFICIAL_TEXT_VENDOR_STATUS_MATCH" or report.get("first_publication_time_verified") is not False or report.get("full_halt_interval_certified") is not False or report.get("p2_feature_gaps_resolved")!=0:
+        raise ValueError("unsafe extra replay")
+    archive=report.get("archive_commit",report.get("vendor_archive_commit"))
+    if archive!=EXTRA[issuer]: raise ValueError("wrong extra archive")
+    if issuer=="sz.000582":
+        originals=report["official_originals"]
+        if set(originals)!={"halt","resume"}: raise ValueError("missing pair")
+        hashes=[digest(x["sha256"]) for x in originals.values()]
+    else:
+        if report.get("official_pdf_digests_match_pinned_originals") is not True: raise ValueError("unverified pair")
+        originals=report["notice_originals"]
+        if {x["announcement_number"] for x in originals}!={"2026-064","2026-066"}: raise ValueError("missing pair")
+        hashes=[digest(x["observed_pdf_sha256"]) for x in originals]
+    if len(hashes)!=2 or len(set(hashes))!=2: raise ValueError("invalid pair")
+    return dict(report,archive_commit=archive,entire_issuer_gap_closed=False,notices=[dict(sha256=h,official_first_release=None) for h in hashes])
 
 def digest(x):
     if not isinstance(x,str) or not SHA.fullmatch(x):
@@ -27,9 +49,10 @@ def join(index,reports):
         raise ValueError("invalid gap roster")
     scoped={}
     for report in reports:
+        report=normalize(report)
         safe(report)
         issuer=report["issuer"]
-        if issuer in scoped or issuer not in EXPECTED or report.get("archive_commit")!=ARCHIVE or report.get("entire_issuer_gap_closed") is not False:
+        if issuer in scoped or issuer not in EXPECTED or report.get("archive_commit")!=EXTRA.get(issuer,ARCHIVE) or report.get("entire_issuer_gap_closed") is not False:
             raise ValueError("invalid replay scope")
         csv=digest(report.get("vendor_csv_sha256",report.get("csv_sha256")))
         hashes=set()
