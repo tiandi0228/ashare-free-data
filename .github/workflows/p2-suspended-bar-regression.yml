@@ -1,0 +1,52 @@
+name: P2 suspended vendor-bar regression and original replay (NO TRADES)
+on:
+  push:
+    branches: ['fix/p2-suspended-bar-structural-validation-20261111']
+    paths:
+      - 'collector/p2_independent_bars.py'
+      - 'tests/test_p2_suspended_bar_integrity.py'
+      - 'tests/test_p2_real_archive_features.py'
+      - '.github/workflows/p2-suspended-bar-regression.yml'
+  pull_request:
+    paths:
+      - 'collector/p2_independent_bars.py'
+      - 'tests/test_p2_suspended_bar_integrity.py'
+      - 'tests/test_p2_real_archive_features.py'
+      - '.github/workflows/p2-suspended-bar-regression.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test fail-closed suspended and active CSV parsing
+        run: python -m unittest -v tests.test_p2_independent_bars tests.test_p2_suspended_bar_integrity tests.test_p2_real_archive_features
+      - name: Replay frozen original vendor suspension samples (NO TRADES)
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin 5be9d6ad76d8635defe02f8d90bc50ad4c03c086
+          git worktree add --detach source-archive FETCH_HEAD
+          python - <<'PY'
+          from pathlib import Path
+          from collector.p2_independent_bars import assess
+          root=Path('source-archive/3529685a3d2d6402')
+          total=active=suspended=0
+          for n in range(12,16):
+              result=assess(root/f'shard_{n:04d}')
+              assert result['trade_gate']=='BLOCKED'
+              assert result['orders']==[] and result['executable_candidates']==[]
+              assert result['historical_PIT_verified'] is False
+              total+=result['issuer_count']
+              active+=result['total_active_rows']
+              suspended+=result['vendor_suspended_rows']
+          assert total==32 and active==15488 and suspended==32,(total,active,suspended)
+          print(f'PASS: {total} original issuers; {active} active vendor rows; {suspended} vendor suspended rows. NO TRADES')
+          PY
