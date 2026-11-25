@@ -1,0 +1,85 @@
+name: StockMate frozen P2-P4 engineering acceptance measured (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/p2-p4-frozen-acceptance-measured.yml'
+      - 'collector/progress_baseline.py'
+      - 'progress_manifest.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  measured-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run frozen ten-criterion per-phase software contracts with exact source SHA
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/frozen-progress"
+          SHA="$(git rev-parse HEAD)"
+          python -m collector.progress_baseline \
+            --root . --manifest progress_manifest.json \
+            --commit "$SHA" --run-tests \
+            --out "$RUNNER_TEMP/frozen-progress/acceptance.json"
+      - name: Assert report truthfulness, independently count verified tests, and publish
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          root=Path(os.environ["RUNNER_TEMP"])/"frozen-progress"
+          data=json.loads((root/"acceptance.json").read_text())
+          assert data["source_commit"]==__import__("subprocess").check_output(["git","rev-parse","HEAD"],text=True).strip()
+          assert data["tests_executed"] is True
+          assert data["trade_gate"]=="BLOCKED" and data["orders"]==[]
+          assert data["historical_PIT_verified"] is False
+          assert data["status"]=="OFFLINE_ACCEPTANCE_ONLY"
+          output={}
+          for phase in ("P2","P3","P4"):
+              state=data["stages"][phase]
+              criteria=state["criteria"]
+              assert len(criteria)==10 and len({x["id"] for x in criteria})==10
+              verified=[x for x in criteria if x["passed"] is True]
+              assert all(x["weight"]==10 for x in criteria)
+              assert all(x["evidence"]["verification"]=="OFFLINE_UNITTEST_PASSED_IN_THIS_RUN" for x in verified)
+              score=10*len(verified)
+              assert state["engineering_acceptance_baseline_pct"]==score
+              assert state["data_certification_pct"] is None
+              assert state["formal_trading_ready"] is False
+              output[phase]={"verified_offline_criteria":len(verified),
+                             "total_criteria":10,
+                             "engineering_acceptance_baseline_pct":score,
+                             "real_data_certification_pct":None,
+                             "trading_ready":False}
+          summary={"source_commit":data["source_commit"],"engineering":output,
+                   "phase_business_milestones_not_measured":True,
+                   "historical_PIT_verified":False,
+                   "trade_gate":"BLOCKED","orders":[]}
+          (root/"summary.json").write_text(json.dumps(summary,indent=2)+"\n")
+          lines=["### P2-P4 independently measured frozen OFFLINE engineering contracts",
+                 "| Phase | Passed/10 | Engineering-only | PIT-certified |",
+                 "| --- | ---: | ---: | --- |"]
+          for phase,item in output.items():
+              lines.append(f"| {phase} | {item['verified_offline_criteria']}/10 | {item['engineering_acceptance_baseline_pct']}% | No |")
+          lines += ["","This is NOT overall completion, historical source certification or trading eligibility.",
+                    "It does not change the separate four-milestone business acceptance percentages.",
+                    "trade_gate=BLOCKED; orders=[]"]
+          with open(os.environ["GITHUB_STEP_SUMMARY"],"a") as out:
+              out.write("\n".join(lines)+"\n")
+          print(json.dumps(summary))
+          PY
+      - name: Archive auditable per-criterion and summary reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: stockmate-p2-p4-frozen-engineering-${{ github.run_id }}
+          path: ${{ runner.temp }}/frozen-progress/
+          retention-days: 30
+          if-no-files-found: error
