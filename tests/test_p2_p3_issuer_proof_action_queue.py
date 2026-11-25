@@ -56,7 +56,8 @@ class SourceEvidenceActionQueueTests(unittest.TestCase):
     def test_exact_issuer_actions_without_any_tradable_claim(self):
         report=build(*sample())
         self.assertEqual(report["gap_issuer_count"],4)
-        self.assertEqual(report["review_action_counts"],dict.fromkeys(CATEGORIES,1))
+        self.assertEqual(report["review_action_counts"],
+                         {**dict.fromkeys(CATEGORIES,1), CATEGORIES[4]:0})
         self.assertEqual(report["issuer_with_same_issuer_text_lead"],2)
         self.assertEqual(report["issuer_with_resume_text_pair"],1)
         self.assertEqual(report["p1_completed_shards_in_source_scope"],197)
@@ -72,6 +73,39 @@ class SourceEvidenceActionQueueTests(unittest.TestCase):
                             and x["buy_eligible"] is False
                             and x["official_evidence_authenticated"] is False
                             for x in report["tasks"]))
+
+    def test_asof_nontradable_issuers_get_separate_exchange_evidence_tasks(self):
+        crosswalk,guard=sample()
+        for n in range(3):
+            issuer=f"sz.{300100+n:06d}"
+            guard["issuer_codes"].append(issuer)
+            crosswalk["issuer_evidence"].append({
+                "issuer":issuer,
+                "vendor_gap_diagnosis":"VENDOR_MARKED_NOT_TRADABLE_AT_ASOF",
+                "vendor_csv_sha256":f"{n+1:064x}",
+                "same_issuer_official_pdf_text_leads":0,
+                "same_issuer_sha_linked_resume_text_pairs":0,
+                "official_trading_state_covered_for_gap":False,
+                "gap_resolved":False,
+            })
+        guard["issuer_codes"].sort()
+        guard["p2_vendor_gap_issuers"]=7
+        crosswalk["gap_issuers_examined"]=7
+        queue=build(crosswalk,guard)
+        self.assertEqual(queue["gap_issuer_count"],7)
+        self.assertEqual(queue["review_action_counts"][CATEGORIES[4]],3)
+        asof=[r for r in queue["tasks"] if r["research_action"]==CATEGORIES[4]]
+        self.assertEqual(len(asof),3)
+        self.assertTrue(all("INDEPENDENT_ASOF_EXCHANGE_TRADING_STATUS"
+                            in r["required_official_evidence"] for r in asof))
+        self.assertTrue(all(r["official_evidence_authenticated"] is False
+                            and r["historical_PIT_verified"] is False
+                            and r["feature_gap_resolved"] is False
+                            and r["buy_eligible"] is False for r in asof))
+        self.assertEqual(queue["unresolved_issuer_count"],7)
+        self.assertEqual(queue["official_halt_intervals_certified"],0)
+        self.assertEqual(queue["trade_gate"],"BLOCKED")
+        self.assertEqual(queue["orders"],[])
 
     def test_source_issuer_or_count_mismatches_fail_closed(self):
         for index,key,value in (
