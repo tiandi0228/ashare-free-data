@@ -1,0 +1,343 @@
+name: P2 P3 integration independent regression (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p2_original_gap_window_triage.py'
+      - 'collector/p2_p3_artifact_source_select.py'
+      - 'collector/p2_p3_gap_crosswalk.py'
+      - 'collector/p2_p3_issuer_proof_action_queue.py'
+      - 'tests/test_p2_original_gap_window_triage.py'
+      - 'tests/test_p2_p3_artifact_source_select.py'
+      - 'tests/test_p2_p3_production_workflow_contract.py'
+      - '.github/workflows/p2-p3-integration-regression.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test integrated P2 gap producer, artifact selection and P3 proof queue
+        run: |
+          python -m unittest -v \
+            tests.test_p2_original_gap_window_triage \
+            tests.test_p2_p3_artifact_source_select \
+            tests.test_p2_p3_current_source_guard \
+            tests.test_p2_p3_gap_crosswalk \
+            tests.test_p2_p3_issuer_proof_action_queue \
+            tests.test_p2_p3_production_workflow_contract
+  real-original:
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Load exact 400-shard checkpoint and current original research archive
+        run: |
+          set -euo pipefail
+          git fetch --depth=1 --no-tags origin c519f477b3a99733850ddafc74629838ca1f7f71
+          git worktree add --detach "$RUNNER_TEMP/current-main" FETCH_HEAD
+          git fetch --depth=1 --no-tags origin research-csv-archive
+          git worktree add --detach "$RUNNER_TEMP/actual-archive" FETCH_HEAD
+          git fetch --depth=1 --no-tags origin p2-feature-coverage
+          git worktree add --detach "$RUNNER_TEMP/current-coverage" FETCH_HEAD
+      - name: Diagnose actual original 24 gaps with integrated source code
+        env:
+          ROOT: ${{ runner.temp }}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          from collector.p1_active_migration_checkpoint import resolve
+          from collector.p2_original_gap_window_triage import check_current_checkpoint,diagnose
+          root=Path(os.environ["ROOT"])
+          main=root/"current-main"
+          active=resolve(main)
+          epoch=active["source_sha256"]
+          checkpoint=json.loads((main/active["checkpoint_path"]).read_text())
+          archive=root/"actual-archive"/epoch[:16]
+          status=json.loads((archive/"archive_status.json").read_text())
+          coverage=json.loads((root/"current-coverage"/"summaries"/(epoch[:16]+".json")).read_text())
+          witness=check_current_checkpoint(coverage,checkpoint,status)
+          assert witness["checkpoint_completed_shards"]==400
+          assert witness["gap_issuer_count"]==24
+          assert coverage["gap_reason_counts"]=={"INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS":21,"VENDOR_NOT_TRADABLE_ASOF":3}
+          result=diagnose(coverage,archive)
+          assert result["research_gap_issuers"]==24
+          assert result["diagnosis_counts"]["VENDOR_MARKED_NOT_TRADABLE_AT_ASOF"]==3
+          assert result["coverage_gaps_resolved"]==0
+          assert result["historical_PIT_verified"] is False
+          assert result["trade_gate"]=="BLOCKED" and result["orders"]==[]
+          (root/"integrated-p2-gap-report.json").write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
+          print("PASS: integrated P2 actual original CSV replay; 24 unresolved gaps and NO TRADES")
+          PY
+      - name: Replay exact production P2 module CLI and compare artifact bytes
+        env:
+          ROOT: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,os,subprocess,sys
+          from pathlib import Path
+          from collector.p1_active_migration_checkpoint import resolve
+          root=Path(os.environ["ROOT"])
+          active=resolve(root/"current-main")
+          epoch=active["source_sha256"]
+          coverage=root/"current-coverage"/"summaries"/(epoch[:16]+".json")
+          archive=root/"actual-archive"/epoch[:16]
+          output=root/"production-cli-gap-triage.json"
+          subprocess.run([sys.executable,"-m","collector.p2_original_gap_window_triage",
+              "--coverage",str(coverage),"--archive-epoch",str(archive),
+              "--out",str(output)],check=True,timeout=160)
+          independent_bytes=(root/"integrated-p2-gap-report.json").read_bytes()
+          production_bytes=output.read_bytes()
+          from_cli=json.loads(production_bytes)
+          if production_bytes!=independent_bytes:
+              raise ValueError("production P2 CLI bytes differ from independently rendered artifact")
+          # Reproduce the exact evidence path and filename used by the
+          # read-only production upload-artifact / downstream gh download pair.
+          evidence=root/"producer-artifact-layout"/"evidence"
+          evidence.mkdir(parents=True,exist_ok=True)
+          delivered=evidence/"p2-original-gap-triage.json"
+          delivered.write_bytes(production_bytes)
+          if delivered.read_bytes()!=production_bytes:
+              raise ValueError("P2 producer artifact handoff bytes diverged")
+          if from_cli["research_gap_issuers"]!=24 or from_cli["coverage_gaps_resolved"]!=0:
+              raise ValueError("production CLI gap evidence was modified")
+          if from_cli["trade_gate"]!="BLOCKED" or from_cli["orders"]!=[]:
+              raise ValueError("unsafe production CLI gap report")
+          audit={
+              "phase":"P2_REAL_ORIGINAL_PRODUCER_CLI_REPLAY_RESEARCH_ONLY",
+              "source_epoch_sha256":epoch,
+              "source_checkpoint_commit":"c519f477b3a99733850ddafc74629838ca1f7f71",
+              "cli_matches_independent_replay":True,
+              "cli_report_sha256":hashlib.sha256(output.read_bytes()).hexdigest(),
+              "real_production_actions_artifact_created":False,
+              "gaps_unresolved":24,
+              "historical_PIT_verified":False,
+              "trade_gate":"BLOCKED",
+              "orders":[],
+          }
+          (root/"p2-producer-cli-replay-witness.json").write_text(
+              json.dumps(audit,ensure_ascii=False,indent=2)+"\n")
+          print("PASS: production P2 CLI actual 400-shard vendor original replay matches independent result")
+          PY
+      - name: Download fixed P3 research originals for same-run P2 to P3 join
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/integration-p3"
+          python - <<'PY'
+          import json,os,subprocess
+          repo=os.environ["GITHUB_REPOSITORY"]
+          run_id=45246691330
+          expected="p3-full-p1-official-scout-"+str(run_id)
+          def api(path):
+              return json.loads(subprocess.check_output(
+                  ["gh","api",f"repos/{repo}/{path}"],text=True,timeout=35))
+          run=api(f"actions/runs/{run_id}")
+          if (run.get("conclusion")!="success" or
+              run.get("status")!="completed" or
+              run.get("event")=="pull_request" or
+              run.get("name")!="P3 rotating official originals for full audited P1 issuer queue (NO TRADES)"):
+              raise ValueError("P3 source run is not completed authentic research")
+          found=api(f"actions/runs/{run_id}/artifacts").get("artifacts")
+          if not isinstance(found,list):
+              raise ValueError("P3 artifact listing invalid")
+          matched=[a for a in found if a.get("name")==expected]
+          if (len(matched)!=1 or matched[0].get("expired") is not False or
+              type(matched[0].get("size_in_bytes")) is not int or
+              matched[0]["size_in_bytes"]<=0):
+              raise ValueError("P3 research original artifact missing/expired/empty")
+          print("PASS: P3 research source run and exact artifact verified (not PIT certification)")
+          PY
+          gh run download 45246691330 -R "$GITHUB_REPOSITORY" \
+            -n p3-full-p1-official-scout-45246691330 -D "$RUNNER_TEMP/integration-p3"
+      - name: Verify current mixed P2 originals reach the full P3 official proof queue
+        env:
+          ROOT: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os, hashlib
+          from pathlib import Path
+          from collections import Counter
+          from collector.p2_p3_current_source_guard import validate_sources
+          from collector.p2_p3_gap_crosswalk import crosswalk
+          from collector.p2_p3_issuer_proof_action_queue import build, CATEGORIES
+          from collector.p3_gap_original_provenance_index import index as build_original_index
+          from collector.p3_manual_official_evidence_checklist import export as export_checklist
+          import csv
+
+          root=Path(os.environ["ROOT"])
+          def unique(name):
+              files=list((root/"integration-p3").rglob(name))
+              if len(files)!=1:
+                  raise ValueError(f"missing/ambiguous P3 source {name}: {len(files)}")
+              return json.loads(files[0].read_bytes())
+          production_bytes=(root/"production-cli-gap-triage.json").read_bytes()
+          receipt=json.loads((root/"p2-producer-cli-replay-witness.json").read_text())
+          assert receipt["phase"]=="P2_REAL_ORIGINAL_PRODUCER_CLI_REPLAY_RESEARCH_ONLY"
+          assert receipt["cli_matches_independent_replay"] is True
+          assert receipt["real_production_actions_artifact_created"] is False
+          assert receipt["cli_report_sha256"]==hashlib.sha256(production_bytes).hexdigest()
+          delivered=root/"producer-artifact-layout"/"evidence"/"p2-original-gap-triage.json"
+          if delivered.read_bytes()!=production_bytes:
+              raise ValueError("P3 source artifact is not byte-identical to original CLI")
+          assert receipt["trade_gate"]=="BLOCKED" and receipt["orders"]==[]
+          p2=json.loads(production_bytes)
+          epoch=p2["source_epoch_sha256"]
+          assert receipt["source_epoch_sha256"]==epoch
+          coverage=json.loads((root/"current-coverage"/"summaries"/(epoch[:16]+".json")).read_bytes())
+          p3_queue=unique("full_p1_queue.json")
+          events=unique("p3_all_archived_original_event_episodes.json")
+          pairs=unique("p3_all_resume_original_text_pairs.json")
+          # The run IDs below are fixed *research artifact locators*, never production credentials.
+          guard=validate_sources(p2,coverage,p3_queue,int(os.environ["GITHUB_RUN_ID"]),45246691330)
+          joined=crosswalk(p2,events,pairs)
+          review=build(joined,guard)
+          assert review["gap_issuer_count"]==review["unresolved_issuer_count"]==24
+          assert sorted(x["issuer"] for x in review["tasks"])==coverage["gap_issuer_codes"]
+          assert Counter(x["vendor_gap_diagnosis"] for x in review["tasks"])["VENDOR_MARKED_NOT_TRADABLE_AT_ASOF"]==3
+          assert review["review_action_counts"][CATEGORIES[4]]==3
+          assert joined["feature_gaps_resolved"]==review["feature_gaps_resolved"]==0
+          assert joined["official_halt_intervals_authenticated"]==review["official_halt_intervals_certified"]==0
+          assert joined["historical_PIT_verified"] is False and review["historical_PIT_verified"] is False
+          assert joined["trade_gate"]==review["trade_gate"]=="BLOCKED"
+          assert review["orders"]==review["actionable_buy_signals"]==[]
+          assert all(x["buy_eligible"] is False for x in review["tasks"])
+          # Negative controls on REAL source data: a pass must also demonstrate
+          # that cross-epoch/PIT-forged/promoted evidence is rejected, not just
+          # that the happy path works. Inputs are cloned; originals stay intact.
+          import copy
+          rejected=[]
+          def must_reject(label,operation):
+              try:
+                  operation()
+              except ValueError:
+                  rejected.append(label)
+              else:
+                  raise AssertionError("UNSAFE ACCEPTANCE: "+label)
+          bad_p2=copy.deepcopy(p2)
+          bad_p2["source_epoch_sha256"]="0"*64
+          must_reject("cross_epoch_p2",
+              lambda:validate_sources(bad_p2,coverage,p3_queue,int(os.environ["GITHUB_RUN_ID"]),45246691330))
+          bad_queue=copy.deepcopy(p3_queue)
+          bad_queue["roster_source_sha256"]="f"*64
+          must_reject("cross_epoch_p3",
+              lambda:validate_sources(p2,coverage,bad_queue,int(os.environ["GITHUB_RUN_ID"]),45246691330))
+          bad_coverage=copy.deepcopy(coverage)
+          bad_coverage["historical_PIT_verified"]=True
+          must_reject("forged_coverage_PIT",
+              lambda:validate_sources(p2,bad_coverage,p3_queue,int(os.environ["GITHUB_RUN_ID"]),45246691330))
+          bad_p2_status=copy.deepcopy(p2)
+          bad_p2_status["coverage_gaps_resolved"]=24
+          must_reject("forged_gap_repairs",
+              lambda:crosswalk(bad_p2_status,events,pairs))
+          bad_joined=copy.deepcopy(joined)
+          bad_joined["official_halt_intervals_authenticated"]=1
+          must_reject("forged_official_interval",
+              lambda:build(bad_joined,guard))
+          assert len(rejected)==5
+          print("PASS: 5 real-data fail-closed negative controls",rejected)
+          indexed=build_original_index(review,events,pairs)
+          checklist=export_checklist(review,indexed)
+          assert indexed["gap_issuer_count"]==24
+          assert checklist["review_count"]==24
+          assert checklist["asof_nontradable_tasks"]==3
+          assert sorted(x["issuer"] for x in checklist["review_rows"])==coverage["gap_issuer_codes"]
+          assert all(x["review_status"]=="NOT_AUTHENTICATED" for x in checklist["review_rows"])
+          assert all(x["buy_eligible"] is False for x in checklist["review_rows"])
+          assert checklist["official_first_publication_authenticated"]==0
+          assert checklist["official_state_intervals_certified"]==0
+          assert checklist["historical_PIT_verified"] is False
+          assert checklist["trade_gate"]=="BLOCKED" and checklist["orders"]==[]
+          assert len(set(x["review_id"] for x in checklist["review_rows"]))==24
+          (root/"p3-original-sha-provenance-index.json").write_text(
+              json.dumps(indexed,ensure_ascii=False,indent=2)+"\n")
+          (root/"p3-official-issuer-review-checklist.json").write_text(
+              json.dumps(checklist,ensure_ascii=False,indent=2)+"\n")
+          with (root/"p3-official-issuer-review-checklist.csv").open(
+                  "w",newline="",encoding="utf-8-sig") as out_csv:
+              fields=list(checklist["review_rows"][0])
+              writer=csv.DictWriter(out_csv,fieldnames=fields)
+              writer.writeheader()
+              writer.writerows(checklist["review_rows"])
+          print("PASS: 24 issuer official-proof worksheets, 3 exchange-asof cases, 0 certifications")
+          output={
+              "phase":"P2_P3_INTEGRATED_LIVE_ORIGINAL_CROSSWALK_RESEARCH_ONLY",
+              "source_epoch_sha256":epoch,
+              "p3_research_source_run_id":45246691330,
+              "gap_issuers":24,
+              "unresolved_issuers":24,
+              "vendor_nontradable_asof_issuers":3,
+              "official_intervals_certified":0,
+              "fail_closed_negative_controls":rejected,
+              "source_provenance": {
+                  "p2_original_replayed_in_run":int(os.environ["GITHUB_RUN_ID"]),
+                  "p3_research_locator_run":45246691330,
+                  "p3_authentic_source_run_checked":True,
+                  "p2_data_epoch":epoch,
+              },
+              "review_action_counts":review["review_action_counts"],
+              "sha_indexed_review_count":indexed["gap_issuer_count"],
+              "manual_proof_checklist_rows":checklist["review_count"],
+              "manual_proof_checklist_asof_nontradable":checklist["asof_nontradable_tasks"],
+              "review_items": [{
+                  "issuer":x["issuer"],
+                  "diagnosis":x["vendor_gap_diagnosis"],
+                  "next_evidence_action":x["research_action"],
+                  "source_csv_sha256":x["original_vendor_csv_sha256"],
+                  "official_evidence_authenticated":False,
+              } for x in review["tasks"]],
+              "production_readiness": {
+                  "p2_officially_named_producer_artifact_verified":False,
+                  "p2_p3_production_consumption_verified":False,
+                  "first_publication_authenticated":False,
+                  "historical_PIT_certified":False,
+                  "merging_main_authorized":False,
+              },
+              "required_next_steps": [
+                  "REVIEW_AND_APPROVE_DEPENDENCY_PRS",
+                  "VERIFY_MAIN_P2_PRODUCER_ARTIFACT",
+                  "VERIFY_MAIN_P2_P3_ARTIFACT_CONSUMPTION",
+                  "AUTHENTICATE_FIRST_PUBLICATION_AND_EXCHANGE_INTERVALS",
+                  "REVALIDATE_PIT_AND_RISK_BEFORE_ANY_TRADE",
+              ],
+              "historical_PIT_verified":False,
+              "trade_gate":"BLOCKED",
+              "orders":[],
+          }
+          (root/"integrated-p2-p3-proof-queue.json").write_text(json.dumps(output,indent=2)+"\n")
+          print("PASS: freshly replayed original P2 gaps joined to P3 issuer proof queue; 24 unresolved, NO TRADES")
+          PY
+      - name: Save independent research only (NOT a production input)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p2-p3-integrated-original-replay-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/integrated-p2-gap-report.json
+            ${{ runner.temp }}/production-cli-gap-triage.json
+            ${{ runner.temp }}/producer-artifact-layout/evidence/p2-original-gap-triage.json
+            ${{ runner.temp }}/p2-producer-cli-replay-witness.json
+            ${{ runner.temp }}/integrated-p2-p3-proof-queue.json
+            ${{ runner.temp }}/p3-original-sha-provenance-index.json
+            ${{ runner.temp }}/p3-official-issuer-review-checklist.json
+            ${{ runner.temp }}/p3-official-issuer-review-checklist.csv
+          retention-days: 7
+          if-no-files-found: warn
