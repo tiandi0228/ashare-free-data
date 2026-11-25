@@ -20,3 +20,24 @@ After an authorized merge, locate the push-triggered run by the merge commit SHA
 - Confirm that the shard's original receipt and CSV files exist at the audited archive commit. Independently re-read the live archive index and epoch checkpoint and compare the index sets. Compare the accepted shard entry, including its receipt SHA, to the live checkpoint. Later runs can add more shards, so use the per-run receipt to attribute the increment, not the difference between two global counters.
 - A failed run or missing acceptance receipt is not a successful pilot. Inspect the preflight, archive audit, and checkpoint state before retrying. If Git accepted the archive but checkpoint verification failed, use the existing orphan reconciliation path. Do not force-push or overwrite the archived bytes.
 - `trade_gate` stays `BLOCKED`. A successful pilot does not certify historical PIT coverage or unlock trading.
+
+### Independent receipt replay
+
+After a successful targeted run, download the exact run-attempt receipt and save
+the Actions run metadata as JSON. Read the current checkpoint and archive index
+from matching immutable commits. Export the **original** checkpoint object named
+by `checkpoint_blob_sha` with `git cat-file blob <sha>` without formatting its
+JSON. Check out the audited archive commit separately and use that shard's
+`quality.json` with its original CSVs as siblings. Supply the independently
+reviewed workflow SHA and audited archive SHA.
+
+```sh
+python -m collector.p1_single_gap_acceptance \
+  --run actions-run.json --receipt p1_manual_gap_acceptance.json \
+  --checkpoint-blob at-acceptance-checkpoint.json --live live-checkpoint.json \
+  --archive-status live-archive-status.json --quality audited-shard/quality.json \
+  --shard 232 --workflow-sha "$REVIEWED_WORKFLOW_SHA" --archive-sha "$AUDITED_ARCHIVE_SHA"
+```
+
+The shard number is an example. This verifier performs no dispatch or writes.
+A probe fingerprint or a scheduled run is not a manual acceptance receipt.
