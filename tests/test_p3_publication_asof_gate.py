@@ -25,6 +25,32 @@ class PublicationAsOfTests(unittest.TestCase):
         before=assess([a],"2026-10-19T23:30:00+08:00")
         self.assertFalse(before["events"][0]["effective_by_decision_date"])
 
+    def test_date_only_is_not_intraday_effectiveness(self):
+        result=assess([self.sample()], "2026-10-20T09:30:00+08:00")["events"][0]
+        self.assertTrue(result["effective_by_decision_date"])
+        self.assertFalse(result["effective_by_decision_instant"])
+
+    def test_authenticated_effective_clock_and_publication_must_both_be_reached(self):
+        event=self.sample()
+        event.update(authenticated_effective_at="2026-10-20T09:30:00+08:00",
+                     effective_timestamp_independently_authenticated=True)
+        before=assess([event], "2026-10-20T01:29:59+00:00")["events"][0]
+        at=assess([event], "2026-10-20T01:30:00+00:00")["events"][0]
+        self.assertTrue(before["effective_by_decision_date"])
+        self.assertFalse(before["effective_by_decision_instant"])
+        self.assertTrue(at["effective_by_decision_instant"])
+        event["authenticated_first_published_at"]="2026-10-20T09:31:00+08:00"
+        self.assertFalse(assess([event], "2026-10-20T01:30:00+00:00")["events"][0]
+                         ["effective_by_decision_instant"])
+
+    def test_invalid_effective_clock_is_rejected(self):
+        for fields in ({"authenticated_effective_at":"2026-10-20T09:30:00+08:00"},
+                       {"effective_timestamp_independently_authenticated":True},
+                       {"effective_timestamp_independently_authenticated":True,
+                        "authenticated_effective_at":"2026-10-19T15:30:00+00:00"}):
+            with self.subTest(fields=fields), self.assertRaises(ValueError):
+                assess([self.sample() | fields], "2026-10-20T09:30:00+08:00")
+
     def test_executable_candidate_cannot_pass_event_gate(self):
         a=self.sample();a["executable_candidates"]=[{"code":"sh.600421"}]
         with self.assertRaisesRegex(ValueError,"risk boundary"):

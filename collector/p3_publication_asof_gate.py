@@ -57,12 +57,23 @@ def assess(events, decision_instant):
             gap="EFFECTIVE_DATE_AFTER_DECISION"
         else:
             gap="EVENT_KNOWN_FULL_DAILY_STATE_UNCERTIFIED"
+        # A calendar day match is not an intraday effective-time claim.
+        effective_clock_proven = e.get("effective_timestamp_independently_authenticated") is True
+        effective_clock = e.get("authenticated_effective_at")
+        if effective_clock_proven != (effective_clock is not None):
+            raise ValueError("effective-time proof fields must be paired")
+        effective_instant = instant(effective_clock) if effective_clock_proven else None
+        if (effective_instant is not None
+                and effective_instant.astimezone(ZoneInfo("Asia/Shanghai")).date() != effective):
+            raise ValueError("effective instant and Shanghai calendar date disagree")
         known=bool(attested and published_at<=asof)
         effective_at_asof=bool(known and effective<=asof.astimezone(ZoneInfo('Asia/Shanghai')).date())
         results.append({"issuer":e["issuer"],"kind":e["kind"],
                         "effective_date":effective.isoformat(),
                         "known_before_decision":known,
                         "effective_by_decision_date":effective_at_asof,
+                        "effective_by_decision_instant":bool(
+                            known and effective_instant is not None and effective_instant<=asof),
                         "certified_full_daily_state":False,
                         "publication_proof_status":gap,
                         "original_sha256":digest})
@@ -75,6 +86,7 @@ def assess(events, decision_instant):
             "events":results,
             "known_event_count":sum(r["known_before_decision"] for r in results),
             "publication_proof_status_counts":dict(sorted(proof_status_counts.items())),
+            "date_level_effectiveness_is_not_intraday_proof":True,
             "complete_historical_risk_state":False,
             "eligible_for_trading":False,
             "trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
