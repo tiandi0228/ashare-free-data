@@ -1,0 +1,39 @@
+name: P0 isolated offline acceptance (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p0_isolated_acceptance.py'
+      - 'tests/test_p0_isolated_acceptance.py'
+      - '.github/workflows/p0-isolated-acceptance.yml'
+  push:
+    branches:
+      - 'audit/p0-isolated-acceptance-20261112'
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test conservative evidence classification
+        run: python -m unittest -v tests.test_p0_isolated_acceptance
+      - name: Execute 4 existing P0 offline contract modules
+        run: |
+          python -m collector.p0_isolated_acceptance --out /tmp/p0-offline-acceptance.json
+          python - <<'PY'
+          import json
+          r=json.load(open('/tmp/p0-offline-acceptance.json'))
+          assert r['selected_offline_modules_passed']==4
+          assert r['current_complete_P0_phase_acceptance_pct'] is None
+          assert r['live_quote_freshness_verified'] is False
+          assert r['live_multiday_continuity_verified'] is False
+          assert r['production_ready'] is False
+          assert r['trade_gate']=='BLOCKED'
+          assert r['orders']==[] and r['executable_candidates']==[]
+          PY
