@@ -1,0 +1,120 @@
+name: P2 pinned 392-shard mixed original gap replay (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p2_original_gap_window_triage.py'
+      - '.github/workflows/p2-392-mixed-gap-replay.yml'
+permissions:
+  contents: read
+jobs:
+  original-mixed-gap-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Pin authentic 392-shard research original archive and P2 summary
+        run: |
+          set -euo pipefail
+          archive=b23597cd361e9811d5ea9a32e830a6f4a3adc4f4
+          coverage=56c2cbb0533009835acf05c737826ab7eea370fb
+          git fetch --depth=1 --no-tags origin "$archive" "$coverage"
+          git worktree add --detach "$RUNNER_TEMP/original-archive" "$archive"
+          git worktree add --detach "$RUNNER_TEMP/durable-coverage" "$coverage"
+      - name: Re-diagnose all real 24 mixed gaps from SHA-verified original CSVs
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/original-archive/5ba00fbd720fad90"
+          coverage="$RUNNER_TEMP/durable-coverage/summaries/5ba00fbd720fad90.json"
+          mkdir -p evidence
+          python -m collector.p2_original_gap_window_triage --coverage "$coverage" --archive-epoch "$root" --out evidence/p2-392-original-gap-triage.json
+          python - <<'PY392'
+          import json
+          from collections import Counter
+          from pathlib import Path
+          import os
+
+          coverage = json.loads((Path(os.environ["RUNNER_TEMP"]) / "durable-coverage" / "summaries" / "5ba00fbd720fad90.json").read_bytes())
+          report = json.loads(Path("evidence/p2-392-original-gap-triage.json").read_bytes())
+          assert coverage["observed_archived_shards"] == coverage["checkpoint_completed_shards"] == 392
+          assert coverage["unobserved_archived_shards"] == 0
+          assert coverage["issuer_evidence_gap_count"] == 24
+          assert coverage["gap_reason_counts"] == {
+              "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS": 21,
+              "VENDOR_NOT_TRADABLE_ASOF": 3,
+          }
+          assert report["research_gap_issuers"] == len(report["results"]) == 24
+          assert len({r["issuer"] for r in report["results"]}) == 24
+          assert Counter(r["diagnosis"] for r in report["results"]) == report["diagnosis_counts"]
+          assert report["diagnosis_counts"].get("VENDOR_MARKED_NOT_TRADABLE_AT_ASOF") == 3
+          assert sum(n for k,n in report["diagnosis_counts"].items() if k != "VENDOR_MARKED_NOT_TRADABLE_AT_ASOF") == 21
+          assert all(r["official_halt_explanation_authenticated"] is False for r in report["results"])
+          assert report["coverage_gaps_resolved"] == 0
+          assert report["historical_PIT_verified"] is False
+          assert report["trade_gate"] == "BLOCKED" and report["orders"] == []
+          assert report["buy_signals"] == [] and report["executable_candidates"] == []
+          print("PASS: 392 pinned archived shards, 24 original SHA-traced gaps, 21 window + 3 asof nontradable, NO TRADES")
+          PY392
+
+      - name: Pin complete 400-shard research original archive and P2 summary
+        run: |
+          set -euo pipefail
+          archive=6f9a0afa124de76de58c401343243a9147496a9e
+          coverage=6772f36217d39cfedad0cb5b70789bc7d2c16c99
+          git fetch --depth=1 --no-tags origin "$archive" "$coverage"
+          git worktree add --detach "$RUNNER_TEMP/final-original-archive" "$archive"
+          git worktree add --detach "$RUNNER_TEMP/final-durable-coverage" "$coverage"
+      - name: Verify 400-shard durable coverage and all 24 original SHA-backed gaps
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/final-original-archive/5ba00fbd720fad90"
+          coverage="$RUNNER_TEMP/final-durable-coverage/summaries/5ba00fbd720fad90.json"
+          python -m collector.p2_original_gap_window_triage --coverage "$coverage" --archive-epoch "$root" --out evidence/p2-400-original-gap-triage.json
+          python - <<'PY400'
+          import json
+          import os
+          from pathlib import Path
+          from collections import Counter
+
+          root=Path(os.environ["RUNNER_TEMP"])
+          coverage=json.loads((root/"final-durable-coverage/summaries/5ba00fbd720fad90.json").read_bytes())
+          archive=json.loads((root/"final-original-archive/5ba00fbd720fad90/archive_status.json").read_bytes())
+          report=json.loads(Path("evidence/p2-400-original-gap-triage.json").read_bytes())
+          assert coverage["checkpoint_completed_shards"] == coverage["observed_archived_shards"] == 400
+          assert coverage["unobserved_archived_shards"] == 0
+          assert len(archive["archived_shards"]) == len(set(archive["archived_shards"])) == 400
+          assert set(archive["archived_shards"]) == set(range(400))
+          assert coverage["feature_complete_shards"] == 377
+          assert coverage["observed_feature_or_gap_issuers"] == 3194
+          assert coverage["feature_issuer_count"] == 3170
+          assert coverage["issuer_evidence_gap_count"] == 24
+          assert coverage["gap_reason_counts"] == {
+              "INSUFFICIENT_CONTIGUOUS_TRADABLE_BARS":21,
+              "VENDOR_NOT_TRADABLE_ASOF":3,
+          }
+          assert len(coverage["gap_issuer_codes"]) == 24
+          assert report["research_gap_issuers"] == 24 == len(report["results"])
+          assert sorted(row["issuer"] for row in report["results"]) == coverage["gap_issuer_codes"]
+          assert Counter(row["diagnosis"] for row in report["results"]) == report["diagnosis_counts"]
+          assert report["diagnosis_counts"].get("VENDOR_MARKED_NOT_TRADABLE_AT_ASOF") == 3
+          assert sum(v for k,v in report["diagnosis_counts"].items() if k != "VENDOR_MARKED_NOT_TRADABLE_AT_ASOF") == 21
+          assert all(row["official_halt_explanation_authenticated"] is False for row in report["results"])
+          assert report["coverage_gaps_resolved"] == 0
+          assert report["historical_PIT_verified"] is False
+          assert archive["trade_gate"] == coverage["trade_gate"] == report["trade_gate"] == "BLOCKED"
+          assert report["orders"] == [] and report["buy_signals"] == [] and report["executable_candidates"] == []
+          print("PASS: full P1 400/400 + P2 377/400, 21+3 original evidence gaps independently replayed; no trade unlock")
+          PY400
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p2-392-original-mixed-gap-replay
+          path: |
+            evidence/p2-392-original-gap-triage.json
+            evidence/p2-400-original-gap-triage.json
+          retention-days: 14
+          if-no-files-found: warn

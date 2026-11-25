@@ -1,0 +1,174 @@
+{
+  "phase": "P2_TRAILING_WINDOW_HALT_DATE_RECONCILIATION_FINAL_BATCH",
+  "asof": "2026-10-20",
+  "archive_commit": "968b47863467ebfd00154e38cdf50851f3c3285b",
+  "calendar_source": "https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml",
+  "matched_suspension_issuer_days": 21,
+  "rows": [
+    {
+      "issuer": "sh.600301",
+      "shard": "shard_0027",
+      "csv_sha256": "2f163fecfb61ea758ecdbd98edb1d7a4b05c32172a78df31801ec3b9f3d5a5f4",
+      "halt_first": "2026-09-14",
+      "resume": "2026-09-21",
+      "matched": [
+        "2026-09-14",
+        "2026-09-15",
+        "2026-09-16",
+        "2026-09-17",
+        "2026-09-18"
+      ],
+      "announcements": [
+        {
+          "url": "https://static.cninfo.com.cn/finalpage/2026-09-19/1225571318.PDF",
+          "pdf_sha256": "2577251f9a0c7b28321c3c90cd89887b8c3c58d4982c689d4ad0d99b6dbe104c"
+        }
+      ],
+      "official_first_release": null
+    },
+    {
+      "issuer": "sh.600363",
+      "shard": "shard_0033",
+      "csv_sha256": "e4c01fa609951f30d25ec28ff729fa862c4815eca4ae279c9d7aeb1940f0fee2",
+      "halt_first": "2026-09-29",
+      "resume": "2026-09-30",
+      "matched": [
+        "2026-09-29"
+      ],
+      "announcements": [
+        {
+          "url": "https://static.cninfo.com.cn/finalpage/2026-09-29/1225584110.PDF",
+          "pdf_sha256": "0e57d98df61f9060eb3e6f29eda39ef9ce0e079b9d0c1b32703249fa4f3d3228"
+        }
+      ],
+      "official_first_release": null
+    },
+    {
+      "issuer": "sh.601995",
+      "shard": "shard_0120",
+      "csv_sha256": "c62152568423890c5bfc384fa4e0ec34e9ef71b9a092011b75b83a9e282d6609",
+      "halt_first": "2026-09-15",
+      "resume": "2026-09-23",
+      "matched": [
+        "2026-09-15",
+        "2026-09-16",
+        "2026-09-17",
+        "2026-09-18",
+        "2026-09-21",
+        "2026-09-22"
+      ],
+      "announcements": [
+        {
+          "url": "https://static.cninfo.com.cn/finalpage/2026-09-23/1225577325.PDF",
+          "pdf_sha256": "8565ab0fd5e751d3b963dbac3c734e2af5e297726b962c4525c229b0796862ac"
+        },
+        {
+          "url": "https://paper.cnstock.com/html/2026-09/08/content_2265977.htm",
+          "role": "issuer halt notice republication"
+        }
+      ],
+      "official_first_release": null
+    },
+    {
+      "issuer": "sh.603159",
+      "shard": "shard_0137",
+      "csv_sha256": "c36cfc0437a88c63a3f63385a147c8f203cb0fc29ea5086dd71f32607bc24eb2",
+      "halt_first": "2026-09-10",
+      "resume": "2026-09-17",
+      "matched": [
+        "2026-09-14",
+        "2026-09-15",
+        "2026-09-16"
+      ],
+      "announcements": [
+        {
+          "url": "https://static.cninfo.com.cn/finalpage/2026-09-17/1225568804.PDF",
+          "pdf_sha256": "3b926f1c0f1b01bc2ee0c8e8ec4236b0d0973d6b4b798ea1f4b13d115b12d456"
+        }
+      ],
+      "official_first_release": null
+    },
+    {
+      "issuer": "sh.603517",
+      "shard": "shard_0166",
+      "csv_sha256": "f6e5848ea8ff0e682608d96342adf68594140f9e7eac3aaad75afbfb2dc2394a",
+      "halt_first": "2026-10-19",
+      "resume": "2026-10-20",
+      "matched": [
+        "2026-10-19"
+      ],
+      "announcements": [
+        {
+          "url": "https://static.cninfo.com.cn/finalpage/2026-10-19/1225609996.PDF",
+          "pdf_sha256": "33531fddb6a838242c0f899ca394c470c2e910fa4dc266796cff8b71b4d7cec0"
+        }
+      ],
+      "official_first_release": null
+    },
+    {
+      "issuer": "sh.603759",
+      "shard": "shard_0182",
+      "csv_sha256": "b5d17da3ca737e21479b5e4b5a1ad41c7f13f777f42b8eaf419f30c35dcce4dc",
+      "halt_first": "2026-10-19",
+      "resume": "2026-10-20",
+      "matched": [
+        "2026-10-19"
+      ],
+      "announcements": [
+        {
+          "url": "https://static.cninfo.com.cn/finalpage/2026-10-20/1225611487.PDF",
+          "pdf_sha256": "08c23fc547c71ef1a781f9d4c62c00394f57ebd03a3921f8e66744ce63ff1266"
+        }
+      ],
+      "official_first_release": null
+    },
+    {
+      "issuer": "sh.603838",
+      "shard": "shard_0186",
+      "csv_sha256": "98441e8dcbfae442ec14a7004a95ce5abff8d876b8cd69e1e754a77b16436e86",
+      "halt_first": "2026-10-19",
+      "resume": "2026-10-20",
+      "matched": [
+        "2026-10-19"
+      ],
+      "announcements": [
+        {
+          "url": "https://static.cninfo.com.cn/finalpage/2026-10-17/1225608268.PDF",
+          "pdf_sha256": "1527d7b7339276698033b0e6ba5f40725faa8d9d71f449b7d4499ee84e316ac7"
+        }
+      ],
+      "official_first_release": null
+    },
+    {
+      "issuer": "sz.002667",
+      "shard": "shard_0356",
+      "csv_sha256": "2e0b4c8f12e053d6978d118875303321a82a69739b7b30d96216859257e7e9ca",
+      "halt_first": "2026-09-30",
+      "resume": "2026-10-12",
+      "matched": [
+        "2026-09-30",
+        "2026-10-08",
+        "2026-10-09"
+      ],
+      "announcements": [
+        {
+          "url": "https://disc.static.szse.cn/download/disc/disk03/finalpage/2026-10-12/ffbc649f-ba2a-4559-a871-cf8b53ee3d02.PDF",
+          "pdf_sha256": "8b8cd4ecfd6d3d431d5f3ce452341c791a4b716a35f36348f45cc173dd9ee9c8"
+        },
+        {
+          "url": "https://epaper.cs.com.cn/zgzqb/html/2026-09/30/nw.D110000zgzqb_20260930_4-B006.htm",
+          "role": "issuer halt notice republication"
+        }
+      ],
+      "official_first_release": null
+    }
+  ],
+  "total_gap_causes_explained_across_batches": 20,
+  "total_matched_suspension_issuer_days_for_17_trailing_window_gaps": 87,
+  "scope": "Effective date evidence only, not first publication or historical PIT. Respect frozen 21-bar feature window. No retroactive entries.",
+  "coverage_gaps_resolved": 0,
+  "historical_PIT_verified": false,
+  "trade_gate": "BLOCKED",
+  "orders": [],
+  "executable_candidates": []
+}
