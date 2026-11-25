@@ -102,10 +102,19 @@ jobs:
           subprocess.run([sys.executable,"-m","collector.p2_original_gap_window_triage",
               "--coverage",str(coverage),"--archive-epoch",str(archive),
               "--out",str(output)],check=True,timeout=160)
-          direct=json.loads((root/"integrated-p2-gap-report.json").read_text())
-          from_cli=json.loads(output.read_text())
-          if from_cli!=direct:
-              raise ValueError("production P2 CLI and independent in-process replay disagree")
+          independent_bytes=(root/"integrated-p2-gap-report.json").read_bytes()
+          production_bytes=output.read_bytes()
+          from_cli=json.loads(production_bytes)
+          if production_bytes!=independent_bytes:
+              raise ValueError("production P2 CLI bytes differ from independently rendered artifact")
+          # Reproduce the exact evidence path and filename used by the
+          # read-only production upload-artifact / downstream gh download pair.
+          evidence=root/"producer-artifact-layout"/"evidence"
+          evidence.mkdir(parents=True,exist_ok=True)
+          delivered=evidence/"p2-original-gap-triage.json"
+          delivered.write_bytes(production_bytes)
+          if delivered.read_bytes()!=production_bytes:
+              raise ValueError("P2 producer artifact handoff bytes diverged")
           if from_cli["research_gap_issuers"]!=24 or from_cli["coverage_gaps_resolved"]!=0:
               raise ValueError("production CLI gap evidence was modified")
           if from_cli["trade_gate"]!="BLOCKED" or from_cli["orders"]!=[]:
@@ -186,6 +195,9 @@ jobs:
           assert receipt["cli_matches_independent_replay"] is True
           assert receipt["real_production_actions_artifact_created"] is False
           assert receipt["cli_report_sha256"]==hashlib.sha256(production_bytes).hexdigest()
+          delivered=root/"producer-artifact-layout"/"evidence"/"p2-original-gap-triage.json"
+          if delivered.read_bytes()!=production_bytes:
+              raise ValueError("P3 source artifact is not byte-identical to original CLI")
           assert receipt["trade_gate"]=="BLOCKED" and receipt["orders"]==[]
           p2=json.loads(production_bytes)
           epoch=p2["source_epoch_sha256"]
@@ -321,6 +333,7 @@ jobs:
           path: |
             ${{ runner.temp }}/integrated-p2-gap-report.json
             ${{ runner.temp }}/production-cli-gap-triage.json
+            ${{ runner.temp }}/producer-artifact-layout/evidence/p2-original-gap-triage.json
             ${{ runner.temp }}/p2-producer-cli-replay-witness.json
             ${{ runner.temp }}/integrated-p2-p3-proof-queue.json
             ${{ runner.temp }}/p3-original-sha-provenance-index.json
