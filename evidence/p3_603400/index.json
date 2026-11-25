@@ -1,0 +1,29 @@
+[
+  {
+    "announcement_id": "1225588894",
+    "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-30/1225588894.PDF",
+    "index_published_milliseconds_unverified": 1790697600000,
+    "announcement_title_unverified": "华之杰关于筹划发行股份及支付现金购买资产并募集配套资金事项的一般风险提示暨股票复牌公告",
+    "index_page_observed": 1,
+    "original_bytes_captured": false,
+    "historical_PIT_verified": false
+  },
+  {
+    "announcement_id": "1225573898",
+    "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-22/1225573898.PDF",
+    "index_published_milliseconds_unverified": 1790006400000,
+    "announcement_title_unverified": "华之杰关于筹划发行股份及支付现金方式购买资产并募集配套资金事项的停牌进展公告",
+    "index_page_observed": 1,
+    "original_bytes_captured": false,
+    "historical_PIT_verified": false
+  },
+  {
+    "announcement_id": "1225564363",
+    "official_pdf_url": "https://static.cninfo.com.cn/finalpage/2026-09-15/1225564363.PDF",
+    "index_published_milliseconds_unverified": 1789401600000,
+    "announcement_title_unverified": "华之杰关于筹划发行股份及支付现金方式购买资产并募集配套资金事项的停牌公告",
+    "index_page_observed": 1,
+    "original_bytes_captured": false,
+    "historical_PIT_verified": false
+  }
+]
