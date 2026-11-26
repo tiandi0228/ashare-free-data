@@ -1,0 +1,30 @@
+{
+  "executable_candidates": [],
+  "full_market_coverage": false,
+  "github_run_attempt": 1,
+  "github_run_id": 45890396700,
+  "historical_PIT_verified": false,
+  "immutable_original_sha256": {
+    "current_tail_report.json": "9f7334279c2d83f69f5e63a393ea87fdacd0932d0399823fb6e26acdefac8063",
+    "independent_verification.json": "9274be53c4b610a46be0008338ef34f78ee473ce2b6c1d76c26ca68c4aa83a5e",
+    "sh_601100_current.csv": "f008d463daf504e6939a2e3cb1fdee02ba7bc3284105812c9a490d1495d66009",
+    "sh_601101_current.csv": "920bcd1e33a435345689cfb8d5567d253be3edb9856a7a4acc9074dd6f0f1a04",
+    "sh_601106_current.csv": "c95026bd9ea481ee17e3974c90b3284ff802330a87b8b54729a26dc7f72f7204",
+    "sh_601107_current.csv": "3f60e995deac837ae6edf13bef2d36f22b55f612f33891a89c699f51abe09b58",
+    "sh_601108_current.csv": "f6f1e3ef16ffe393ef2f048028905f61a30a48544028859feeb03171748db908",
+    "sh_601111_current.csv": "3748ef66c2205516ac0f98f6761dafadcb987e004732284f771633181e88740c",
+    "sh_601112_current.csv": "aa53773005d73a0e83af99d5563e35f58131907f3732ec60910ac523494ce6e4",
+    "sh_601113_current.csv": "f91a6fc177d27b3c8acdd3c2bd4d8b300c30fe6527713f957182448d045213d3"
+  },
+  "non_executable_ma20_crossings": 10,
+  "observation_as_of_day": "2026-11-26",
+  "observed_issuers": 8,
+  "orders": [],
+  "phase": "P4_CURRENT_TAIL_PERMANENT_RESEARCH_RECEIPT",
+  "source_archive_commit": "47f0e40ab01004aab2418dc41e7408a882da1354",
+  "source_epoch_sha256": "5ba00fbd720fad90c343591cc33e885b824adf182306b893e5b3ed4030bff022",
+  "source_p1_frozen_end": "2026-10-20",
+  "trade_gate": "BLOCKED",
+  "trading_signal_authorized": false,
+  "verified_new_vendor_rows": 216
+}
