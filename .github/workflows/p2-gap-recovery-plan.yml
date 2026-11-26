@@ -5,6 +5,8 @@ on:
       - 'collector/p2_gap_recovery_plan.py'
       - 'collector/p2_full_refresh_manifest.py'
       - 'collector/p2_refresh_checkpoint.py'
+      - 'collector/p2_refresh_batch_replay.py'
+      - 'tests/test_p2_refresh_batch_replay.py'
       - 'tests/test_p2_refresh_checkpoint.py'
       - 'tests/test_p2_full_refresh_manifest.py'
       - 'collector/p2_residual_risk.py'
@@ -19,6 +21,8 @@ on:
       - 'collector/p2_gap_recovery_plan.py'
       - 'collector/p2_full_refresh_manifest.py'
       - 'collector/p2_refresh_checkpoint.py'
+      - 'collector/p2_refresh_batch_replay.py'
+      - 'tests/test_p2_refresh_batch_replay.py'
       - 'tests/test_p2_refresh_checkpoint.py'
       - 'tests/test_p2_full_refresh_manifest.py'
       - 'collector/p2_residual_risk.py'
@@ -41,7 +45,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest tests.test_p2_gap_recovery_plan tests.test_p2_original_gap_window_triage tests.test_p2_gap_extension_replay tests.test_p2_residual_risk tests.test_p2_full_refresh_manifest tests.test_p2_refresh_checkpoint -v
+      - run: python -m unittest tests.test_p2_gap_recovery_plan tests.test_p2_original_gap_window_triage tests.test_p2_gap_extension_replay tests.test_p2_residual_risk tests.test_p2_full_refresh_manifest tests.test_p2_refresh_checkpoint tests.test_p2_refresh_batch_replay -v
       - name: Replay pinned originals and coverage
         run: |
           set -euo pipefail
