@@ -1,7 +1,7 @@
 name: P4 prospective daily research capture (NO TRADES)
 on:
-  schedule:
-    - cron: '40 11 * * 1-5'
+  # Planned schedule (19:40 Beijing weekdays) deliberately not registered.
+  # A separately authorized PR must add the schedule trigger.
   pull_request:
     branches: [main]
     paths:
@@ -45,7 +45,7 @@ jobs:
           python-version: '3.11'
       - run: python -m unittest tests.test_p4_prospective_daily_capture tests.test_p4_prospective_package_audit tests.test_p4_pilot_schedule_gate tests.test_p4_pilot_run_guard -v
   capture:
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'schedule' && vars.P4_PILOT_SCHEDULE_ENABLED == 'true'))
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
     needs: offline
     runs-on: ubuntu-latest
     timeout-minutes: 8
