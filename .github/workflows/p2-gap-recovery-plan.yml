@@ -1,0 +1,41 @@
+name: P2 gap prospective recovery plan (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p2_gap_recovery_plan.py'
+      - 'tests/test_p2_gap_recovery_plan.py'
+      - '.github/workflows/p2-gap-recovery-plan.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p2_gap_recovery_plan.py'
+      - 'tests/test_p2_gap_recovery_plan.py'
+      - '.github/workflows/p2-gap-recovery-plan.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest tests.test_p2_gap_recovery_plan tests.test_p2_original_gap_window_triage -v
+      - name: Replay pinned originals and coverage
+        run: |
+          set -euo pipefail
+          git fetch --depth=1 origin cea3a55aa14805d7b6b776b44d3782a70be582e2
+          git worktree add --detach "$RUNNER_TEMP/archive" FETCH_HEAD
+          git fetch --depth=1 origin 6772f36217d39cfedad0cb5b70789bc7d2c16c99
+          git worktree add --detach "$RUNNER_TEMP/coverage" FETCH_HEAD
+          python -m collector.p2_gap_recovery_plan --coverage "$RUNNER_TEMP/coverage/summaries/5ba00fbd720fad90.json" --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --out p2-gap-recovery.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p2-gap-recovery
+          path: p2-gap-recovery.json
+          if-no-files-found: error
