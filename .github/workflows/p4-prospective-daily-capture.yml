@@ -1,11 +1,15 @@
 name: P4 prospective daily research capture (NO TRADES)
 on:
+  schedule:
+    - cron: '40 11 * * 1-5'
   pull_request:
     branches: [main]
     paths:
       - 'collector/p4_prospective_daily_capture.py'
       - 'tests/test_p4_prospective_daily_capture.py'
       - 'collector/p4_prospective_package_audit.py'
+      - 'collector/p4_pilot_schedule_gate.py'
+      - 'tests/test_p4_pilot_schedule_gate.py'
       - 'tests/test_p4_prospective_package_audit.py'
       - 'collector/p2_independent_bars.py'
       - '.github/workflows/p4-prospective-daily-capture.yml'
@@ -13,6 +17,8 @@ on:
     branches: [main]
     paths:
       - 'collector/p4_prospective_package_audit.py'
+      - 'collector/p4_pilot_schedule_gate.py'
+      - 'tests/test_p4_pilot_schedule_gate.py'
       - 'tests/test_p4_prospective_package_audit.py'
       - '.github/workflows/p4-prospective-daily-capture.yml'
   workflow_dispatch:
@@ -32,9 +38,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest tests.test_p4_prospective_daily_capture tests.test_p4_prospective_package_audit -v
+      - run: python -m unittest tests.test_p4_prospective_daily_capture tests.test_p4_prospective_package_audit tests.test_p4_pilot_schedule_gate -v
   capture:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'schedule' && vars.P4_PILOT_SCHEDULE_ENABLED == 'true'))
     needs: offline
     runs-on: ubuntu-latest
     timeout-minutes: 8
@@ -58,10 +64,16 @@ jobs:
           with open(os.environ["GITHUB_OUTPUT"], "a") as out:
               print(f"day={day or ''}", file=out)
           PY
-      - name: Verify timestamp evidence and capture bounded vendor rows
+      - name: Vendor calendar preflight (research only)
+        id: calendar
         if: steps.window.outputs.day != ''
+        run: |
+          python -m pip install 'baostock>=0.8,<1'
+          timeout 60s python -m collector.p4_pilot_schedule_gate --enabled
+      - name: Verify timestamp evidence and capture bounded vendor rows
+        if: steps.calendar.outputs.day != ''
         env:
-          EXPECTED_DAY: ${{ steps.window.outputs.day }}
+          EXPECTED_DAY: ${{ steps.calendar.outputs.day }}
           EVIDENCE_COMMIT: c1c459475230056a7d9b71d3828f47fb4cd4bbbc
         run: |
           git fetch --depth=1 origin "$EVIDENCE_COMMIT"
@@ -90,9 +102,9 @@ jobs:
           python -m zipfile -c "$RUNNER_TEMP/p4-package-smoke.zip" p4-evidence-package/*
           python -m collector.p4_prospective_package_audit "$RUNNER_TEMP/p4-package-smoke.zip" --day "$EXPECTED_DAY"
       - uses: actions/upload-artifact@v4
-        if: steps.window.outputs.day != ''
+        if: steps.calendar.outputs.day != ''
         with:
-          name: p4-prospective-${{ steps.window.outputs.day }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: p4-prospective-${{ steps.calendar.outputs.day }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: p4-evidence-package/
           if-no-files-found: error
           retention-days: 90
