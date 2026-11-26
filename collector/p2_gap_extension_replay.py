@@ -4,6 +4,8 @@ from datetime import date
 from pathlib import Path
 from collector.p2_independent_bars import FIELDS,audit_csv
 from collector.p2_gap_recovery_plan import recovery
+from collector.p4_curated_session_exit import sessions_between
+from decimal import Decimal
 
 START="2026-10-21"
 END="2026-11-25"
@@ -15,8 +17,24 @@ def inspect(original,extension,code):
     if new["first"]<START or new["last"]>END:raise ValueError("extension outside bounded window")
     rows=list(csv.DictReader(original.decode("utf-8-sig").splitlines()))+list(csv.DictReader(extension.decode("utf-8-sig").splitlines()))
     r=recovery(rows,END)
+    extension_days=[x['date'] for x in rows if x['date']>=START]
+    expected=sessions_between(START,END)
+    missing=sorted(set(expected)-set(extension_days))
+    unexpected=sorted(set(extension_days)-set(expected))
+    recent=rows[-21:]
+    window_ok=(len(recent)==21 and [x['date'] for x in recent]==sessions_between(recent[0]['date'],END) and all(x['tradestatus']=='1' for x in recent))
+    volume_ok=window_ok and sum(Decimal(x['volume']) for x in recent[:-1])>0
+    complete=not missing and not unexpected
+    eligible=complete and window_ok and volume_ok
+    features=None
+    if eligible:
+        close=[Decimal(x['close']) for x in recent];volume=[Decimal(x['volume']) for x in recent]
+        ma=sum(close[-20:])/20;high=max(close[-20:])
+        features=dict(ma20_close_cny=str(ma.quantize(Decimal('0.0001'))),volume_vs_prior20_ratio=str((volume[-1]/(sum(volume[:-1])/20)).quantize(Decimal('0.0001'))),trailing20_close_drawdown_pct=str(((high-close[-1])/high*100).quantize(Decimal('0.0001'))))
     return dict(r,latest_observed_day=new["last"],new_vendor_rows=new["total_rows"],
-                recovered_at_new_cutoff=new["last"]==END and r["additional_consecutive_observations_needed"]==0,
+                recovered_at_new_cutoff=eligible, expected_extension_sessions=len(expected),
+                missing_expected_sessions=missing, unexpected_sessions=unexpected,
+                curated_session_window_complete=window_ok, research_features=features,
                 extension_sha256=hashlib.sha256(extension).hexdigest())
 
 def run(plan,root,out,client):
@@ -59,6 +77,7 @@ def run(plan,root,out,client):
             results.append(item)
     finally:client.logout()
     return dict(asof=END,issuer_count=len(results),new_cutoff_vendor_window_recovered=sum(x["recovered_at_new_cutoff"] for x in results),
+                extension_calendar_complete=sum(x.get('missing_expected_sessions')==[] and x.get('unexpected_sessions')==[] for x in results),
                 extensions_observed=sum(x["status"]=="VENDOR_EXTENSION_OBSERVED" for x in results),
                 historical_gaps_resolved=0,official_sessions_verified=False,historical_PIT_verified=False,
                 trade_gate="BLOCKED",orders=[],executable_candidates=[],results=results)
