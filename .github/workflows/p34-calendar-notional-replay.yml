@@ -1,0 +1,23 @@
+name: P3 P4 scoped calendar and notional replay (NO TRADES)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'collector/p34_calendar_notional_replay.py'
+      - 'collector/p4_position_notional_guard.py'
+      - 'tests/test_p34_calendar_notional_replay.py'
+      - '.github/workflows/p34-calendar-notional-replay.yml'
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest tests.test_p34_calendar_notional_replay tests.test_p4_position_notional_guard tests.test_p4_calendar_limit_gate -v
