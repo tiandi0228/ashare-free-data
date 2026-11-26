@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'collector/p2_gap_recovery_plan.py'
+      - 'collector/p2_full_refresh_manifest.py'
+      - 'tests/test_p2_full_refresh_manifest.py'
       - 'collector/p2_residual_risk.py'
       - 'tests/test_p2_residual_risk.py'
       - 'collector/p2_gap_extension_replay.py'
@@ -13,6 +15,8 @@ on:
     branches: [main]
     paths:
       - 'collector/p2_gap_recovery_plan.py'
+      - 'collector/p2_full_refresh_manifest.py'
+      - 'tests/test_p2_full_refresh_manifest.py'
       - 'collector/p2_residual_risk.py'
       - 'tests/test_p2_residual_risk.py'
       - 'collector/p2_gap_extension_replay.py'
@@ -33,7 +37,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest tests.test_p2_gap_recovery_plan tests.test_p2_original_gap_window_triage tests.test_p2_gap_extension_replay tests.test_p2_residual_risk -v
+      - run: python -m unittest tests.test_p2_gap_recovery_plan tests.test_p2_original_gap_window_triage tests.test_p2_gap_extension_replay tests.test_p2_residual_risk tests.test_p2_full_refresh_manifest -v
       - name: Replay pinned originals and coverage
         run: |
           set -euo pipefail
@@ -50,11 +54,14 @@ jobs:
         run: |
           command -v pdftotext || (sudo apt-get update && sudo apt-get install -y poppler-utils)
           python -m collector.p2_residual_risk --root p2-gap-extension --out p2-residual-risk
+      - name: Prepare read-only full-universe refresh manifest (no additional collection)
+        run: python -m collector.p2_full_refresh_manifest --coverage "$RUNNER_TEMP/coverage/summaries/5ba00fbd720fad90.json" --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --out p2-full-refresh-manifest.json
       - uses: actions/upload-artifact@v4
         with:
           name: p2-gap-recovery
           path: |
             p2-gap-recovery.json
+            p2-full-refresh-manifest.json
             p2-gap-extension/
             p2-residual-risk/
           if-no-files-found: error
