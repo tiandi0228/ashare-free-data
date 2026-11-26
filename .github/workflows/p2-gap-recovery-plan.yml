@@ -3,12 +3,16 @@ on:
   pull_request:
     paths:
       - 'collector/p2_gap_recovery_plan.py'
+      - 'collector/p2_gap_extension_replay.py'
+      - 'tests/test_p2_gap_extension_replay.py'
       - 'tests/test_p2_gap_recovery_plan.py'
       - '.github/workflows/p2-gap-recovery-plan.yml'
   push:
     branches: [main]
     paths:
       - 'collector/p2_gap_recovery_plan.py'
+      - 'collector/p2_gap_extension_replay.py'
+      - 'tests/test_p2_gap_extension_replay.py'
       - 'tests/test_p2_gap_recovery_plan.py'
       - '.github/workflows/p2-gap-recovery-plan.yml'
   workflow_dispatch:
@@ -25,7 +29,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest tests.test_p2_gap_recovery_plan tests.test_p2_original_gap_window_triage -v
+      - run: python -m unittest tests.test_p2_gap_recovery_plan tests.test_p2_original_gap_window_triage tests.test_p2_gap_extension_replay -v
       - name: Replay pinned originals and coverage
         run: |
           set -euo pipefail
@@ -34,8 +38,14 @@ jobs:
           git fetch --depth=1 origin 6772f36217d39cfedad0cb5b70789bc7d2c16c99
           git worktree add --detach "$RUNNER_TEMP/coverage" FETCH_HEAD
           python -m collector.p2_gap_recovery_plan --coverage "$RUNNER_TEMP/coverage/summaries/5ba00fbd720fad90.json" --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --out p2-gap-recovery.json
+      - name: Observe bounded historical extensions (research only)
+        run: |
+          python -m pip install 'baostock>=0.8,<1'
+          timeout 300s python -m collector.p2_gap_extension_replay --plan p2-gap-recovery.json --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --out p2-gap-extension
       - uses: actions/upload-artifact@v4
         with:
           name: p2-gap-recovery
-          path: p2-gap-recovery.json
+          path: |
+            p2-gap-recovery.json
+            p2-gap-extension/
           if-no-files-found: error
