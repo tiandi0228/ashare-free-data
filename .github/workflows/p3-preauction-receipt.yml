@@ -1,0 +1,39 @@
+name: P3 prospective pre-auction receipt (NO TRADES)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p3_preauction*.py'
+      - 'collector/p3_sina_preauction_probe.py'
+      - 'tests/test_p3_preauction*.py'
+      - 'tests/test_p3_sina_preauction_probe.py'
+      - '.github/workflows/p3-preauction-receipt.yml'
+  pull_request:
+    paths:
+      - 'collector/p3_preauction_receipt.py'
+      - 'tests/test_p3_preauction_receipt.py'
+      - 'collector/p3_sina_preauction_probe.py'
+      - 'tests/test_p3_sina_preauction_probe.py'
+      - 'collector/p3_preauction_trial.py'
+      - 'tests/test_p3_preauction_trial.py'
+      - 'collector/p3_preauction_verify.py'
+      - 'tests/test_p3_preauction_verify.py'
+      - '.github/workflows/p3-preauction-receipt.yml'
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest discover -s tests -p test_p3_preauction_receipt.py -v
+      - run: python -m unittest discover -s tests -p test_p3_sina_preauction_probe.py -v
+      - run: python -m unittest discover -s tests -p test_p3_preauction_trial.py -v
+      - run: python -m unittest discover -s tests -p test_p3_preauction_verify.py -v
