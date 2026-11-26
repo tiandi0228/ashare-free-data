@@ -6,6 +6,8 @@ on:
       - 'collector/p2_full_refresh_manifest.py'
       - 'collector/p2_refresh_checkpoint.py'
       - 'collector/p2_refresh_batch_replay.py'
+      - 'collector/p2_refresh_aggregate.py'
+      - 'tests/test_p2_refresh_aggregate.py'
       - 'collector/p2_refresh_batch_observe.py'
       - 'tests/test_p2_refresh_batch_replay.py'
       - 'tests/test_p2_refresh_checkpoint.py'
@@ -23,6 +25,8 @@ on:
       - 'collector/p2_full_refresh_manifest.py'
       - 'collector/p2_refresh_checkpoint.py'
       - 'collector/p2_refresh_batch_replay.py'
+      - 'collector/p2_refresh_aggregate.py'
+      - 'tests/test_p2_refresh_aggregate.py'
       - 'collector/p2_refresh_batch_observe.py'
       - 'tests/test_p2_refresh_batch_replay.py'
       - 'tests/test_p2_refresh_checkpoint.py'
@@ -47,7 +51,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest tests.test_p2_gap_recovery_plan tests.test_p2_original_gap_window_triage tests.test_p2_gap_extension_replay tests.test_p2_residual_risk tests.test_p2_full_refresh_manifest tests.test_p2_refresh_checkpoint tests.test_p2_refresh_batch_replay -v
+      - run: python -m unittest tests.test_p2_gap_recovery_plan tests.test_p2_original_gap_window_triage tests.test_p2_gap_extension_replay tests.test_p2_residual_risk tests.test_p2_full_refresh_manifest tests.test_p2_refresh_checkpoint tests.test_p2_refresh_batch_replay tests.test_p2_refresh_aggregate.AggregateTests -v
       - name: Replay pinned originals and coverage
         run: |
           set -euo pipefail
@@ -72,6 +76,8 @@ jobs:
         run: |
           timeout 180s python -m collector.p2_refresh_batch_observe --manifest p2-full-refresh-manifest.json --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --batch-index 0 --out p2-batch-0000
           python -m collector.p2_refresh_batch_replay --manifest p2-full-refresh-manifest.json --receipt p2-batch-0000/receipt.json --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --extension-dir p2-batch-0000 --out p2-batch-0000-independent.json
+      - name: Aggregate independently replayed pilot only
+        run: python -m collector.p2_refresh_aggregate --manifest p2-full-refresh-manifest.json --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --packages p2-batch-0000 --out p2-refresh-aggregate.json
       - uses: actions/upload-artifact@v4
         with:
           name: p2-gap-recovery
@@ -81,6 +87,7 @@ jobs:
             p2-refresh-checkpoint.json
             p2-batch-0000/
             p2-batch-0000-independent.json
+            p2-refresh-aggregate.json
             p2-gap-extension/
             p2-residual-risk/
           if-no-files-found: error
