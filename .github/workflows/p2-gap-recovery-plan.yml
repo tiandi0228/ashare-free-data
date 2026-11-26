@@ -6,6 +6,7 @@ on:
       - 'collector/p2_full_refresh_manifest.py'
       - 'collector/p2_refresh_checkpoint.py'
       - 'collector/p2_refresh_batch_replay.py'
+      - 'collector/p2_refresh_batch_observe.py'
       - 'tests/test_p2_refresh_batch_replay.py'
       - 'tests/test_p2_refresh_checkpoint.py'
       - 'tests/test_p2_full_refresh_manifest.py'
@@ -22,6 +23,7 @@ on:
       - 'collector/p2_full_refresh_manifest.py'
       - 'collector/p2_refresh_checkpoint.py'
       - 'collector/p2_refresh_batch_replay.py'
+      - 'collector/p2_refresh_batch_observe.py'
       - 'tests/test_p2_refresh_batch_replay.py'
       - 'tests/test_p2_refresh_checkpoint.py'
       - 'tests/test_p2_full_refresh_manifest.py'
@@ -66,6 +68,10 @@ jobs:
         run: python -m collector.p2_full_refresh_manifest --coverage "$RUNNER_TEMP/coverage/summaries/5ba00fbd720fad90.json" --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --out p2-full-refresh-manifest.json
       - name: Initialize full refresh checkpoint without provider calls
         run: python -m collector.p2_refresh_checkpoint --manifest p2-full-refresh-manifest.json --out p2-refresh-checkpoint.json
+      - name: One bounded batch pilot (8 issuers maximum, no schedule)
+        run: |
+          timeout 180s python -m collector.p2_refresh_batch_observe --manifest p2-full-refresh-manifest.json --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --batch-index 0 --out p2-batch-0000
+          python -m collector.p2_refresh_batch_replay --manifest p2-full-refresh-manifest.json --receipt p2-batch-0000/receipt.json --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --extension-dir p2-batch-0000 --out p2-batch-0000-independent.json
       - uses: actions/upload-artifact@v4
         with:
           name: p2-gap-recovery
@@ -73,6 +79,8 @@ jobs:
             p2-gap-recovery.json
             p2-full-refresh-manifest.json
             p2-refresh-checkpoint.json
+            p2-batch-0000/
+            p2-batch-0000-independent.json
             p2-gap-extension/
             p2-residual-risk/
           if-no-files-found: error
