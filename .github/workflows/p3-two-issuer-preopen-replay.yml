@@ -58,8 +58,28 @@ jobs:
           assert r["trade_gate"] == "BLOCKED" and r["orders"] == r["executable_candidates"] == []
           print("PREOPEN_REPLAY:", json.dumps({"notice_checks":r["notice_checks"],"known_at_cutoff":r["known_at_cutoff"],"trade_gate":r["trade_gate"]}))
           PYCODE
+      - name: Independently retrieve both official copies of 002860 notice
+        run: |
+          set -euo pipefail
+          curl -fsS --max-time 35 --max-filesize 4194304 'https://static.cninfo.com.cn/finalpage/2026-10-14/1225604019.PDF' -o "$RUNNER_TEMP/cninfo-002860.pdf"
+          curl -fsS --max-time 35 --max-filesize 4194304 'https://disc.static.szse.cn/download/disc/disk03/finalpage/2026-10-14/2f0457c8-7fda-4e8e-b3ea-25799041a231.PDF' -o "$RUNNER_TEMP/szse-002860.pdf"
+          python - <<'PYCODE'
+          import hashlib,json,os
+          from pathlib import Path
+          root=Path(os.environ["RUNNER_TEMP"])
+          a=(root/"cninfo-002860.pdf").read_bytes()
+          b=(root/"szse-002860.pdf").read_bytes()
+          expected="4c9fe6862db1119fbe4090f590ff7c00c76d791ece3be58543559a5c82238eee"
+          if not a.startswith(b"%PDF-") or a!=b or hashlib.sha256(a).hexdigest()!=expected:
+              raise ValueError("official copy bytes mismatch")
+          r={"issuer":"sz.002860","notice_number":"2026-047","independent_retrieval_in_this_run":True,"identical_pdf_sha256":expected,"official_first_release_verified":False,"historical_PIT_verified":False,"trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
+          Path("cross-publisher-replay.json").write_text(json.dumps(r,sort_keys=True)+"\n")
+          print("CROSS_PUBLISHER_REPLAY:",json.dumps(r,sort_keys=True))
+          PYCODE
       - uses: actions/upload-artifact@v4
         with:
           name: p3-two-issuer-preopen-replay
-          path: preopen-replay.json
+          path: |
+            preopen-replay.json
+            cross-publisher-replay.json
           if-no-files-found: error
