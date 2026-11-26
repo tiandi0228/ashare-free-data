@@ -4,6 +4,8 @@ on:
     paths:
       - 'collector/p2_gap_recovery_plan.py'
       - 'collector/p2_full_refresh_manifest.py'
+      - 'collector/p2_refresh_checkpoint.py'
+      - 'tests/test_p2_refresh_checkpoint.py'
       - 'tests/test_p2_full_refresh_manifest.py'
       - 'collector/p2_residual_risk.py'
       - 'tests/test_p2_residual_risk.py'
@@ -16,6 +18,8 @@ on:
     paths:
       - 'collector/p2_gap_recovery_plan.py'
       - 'collector/p2_full_refresh_manifest.py'
+      - 'collector/p2_refresh_checkpoint.py'
+      - 'tests/test_p2_refresh_checkpoint.py'
       - 'tests/test_p2_full_refresh_manifest.py'
       - 'collector/p2_residual_risk.py'
       - 'tests/test_p2_residual_risk.py'
@@ -37,7 +41,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest tests.test_p2_gap_recovery_plan tests.test_p2_original_gap_window_triage tests.test_p2_gap_extension_replay tests.test_p2_residual_risk tests.test_p2_full_refresh_manifest -v
+      - run: python -m unittest tests.test_p2_gap_recovery_plan tests.test_p2_original_gap_window_triage tests.test_p2_gap_extension_replay tests.test_p2_residual_risk tests.test_p2_full_refresh_manifest tests.test_p2_refresh_checkpoint -v
       - name: Replay pinned originals and coverage
         run: |
           set -euo pipefail
@@ -56,12 +60,15 @@ jobs:
           python -m collector.p2_residual_risk --root p2-gap-extension --out p2-residual-risk
       - name: Prepare read-only full-universe refresh manifest (no additional collection)
         run: python -m collector.p2_full_refresh_manifest --coverage "$RUNNER_TEMP/coverage/summaries/5ba00fbd720fad90.json" --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --out p2-full-refresh-manifest.json
+      - name: Initialize full refresh checkpoint without provider calls
+        run: python -m collector.p2_refresh_checkpoint --manifest p2-full-refresh-manifest.json --out p2-refresh-checkpoint.json
       - uses: actions/upload-artifact@v4
         with:
           name: p2-gap-recovery
           path: |
             p2-gap-recovery.json
             p2-full-refresh-manifest.json
+            p2-refresh-checkpoint.json
             p2-gap-extension/
             p2-residual-risk/
           if-no-files-found: error
