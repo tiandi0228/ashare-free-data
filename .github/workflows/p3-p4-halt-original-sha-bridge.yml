@@ -7,6 +7,7 @@ on:
       - 'collector/p3_p4_official_halt_gap_manifest.py'
       - 'collector/p3_halt_gap_priority.py'
       - 'collector/p3_002931_priority_notice_replay.py'
+      - 'collector/p3_600491_priority_notice_replay.py'
       - 'tests/test_p3_halt_gap_priority.py'
       - 'tests/test_p3_p4_halt_original_sha_bridge.py'
       - '.github/workflows/p3-p4-halt-original-sha-bridge.yml'
@@ -16,6 +17,7 @@ on:
       - 'collector/p3_p4_official_halt_gap_manifest.py'
       - 'collector/p3_halt_gap_priority.py'
       - 'collector/p3_002931_priority_notice_replay.py'
+      - 'collector/p3_600491_priority_notice_replay.py'
       - 'tests/test_p3_halt_gap_priority.py'
       - 'tests/test_p3_p4_halt_original_sha_bridge.py'
       - '.github/workflows/p3-p4-halt-original-sha-bridge.yml'
@@ -148,6 +150,8 @@ jobs:
         run: |
           command -v pdftotext || (sudo apt-get update && sudo apt-get install -y poppler-utils)
           python -m collector.p3_002931_priority_notice_replay p3_p4_priority_queue.json --out p3_002931_notice_replay
+      - name: Retrieve partial original evidence for second-priority issuer
+        run: python -m collector.p3_600491_priority_notice_replay p3_p4_priority_queue.json --out p3_600491_notice_replay
       - uses: actions/upload-artifact@v4
         with:
           name: p3-p4-frozen-original-sha-join-${{ github.run_id }}
@@ -157,5 +161,6 @@ jobs:
             p3_p4_full_epoch_gap_queue.json
             p3_p4_priority_queue.json
             p3_002931_notice_replay/
+            p3_600491_notice_replay/
           if-no-files-found: error
           retention-days: 30
