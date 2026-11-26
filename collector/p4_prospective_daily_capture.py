@@ -53,8 +53,10 @@ def read_day(client, code, day):
     return raw
 
 
-def capture(root, now, provider, *, clock=None):
+def capture(root, now, provider, *, clock=None, expected_day=None):
     day = eligible_day(now)
+    if expected_day is not None and day != expected_day:
+        raise ValueError("capture day differs from approved day")
     receipt = {
         "status": "OUTSIDE_CAPTURE_WINDOW", "beijing_day": day,
         "registration_sha256": REGISTRATION,
@@ -144,6 +146,7 @@ def verify_receipt(destination):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--expected-day")
     args = parser.parse_args()
 
     def provider():
@@ -152,7 +155,7 @@ def main():
 
     def clock():
         return datetime.now(timezone.utc)
-    result = capture(args.out, clock(), provider, clock=clock)
+    result = capture(args.out, clock(), provider, clock=clock, expected_day=args.expected_day)
     if result["beijing_day"] is not None:
         result = verify_receipt(args.out / result["beijing_day"])
     print(json.dumps({k: v for k, v in result.items() if k != "rows"}, sort_keys=True))

@@ -111,3 +111,11 @@ class DailyCaptureTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "day boundary"):
                 capture(folder, FIRST, Provider, clock=lambda: utc("2026-12-01T16:00:00"))
             self.assertFalse((Path(folder) / "2026-12-01/receipt.json").exists())
+
+    def test_expected_day_mismatch_never_accesses_provider(self):
+        provider = Mock()
+        with tempfile.TemporaryDirectory() as folder:
+            with self.assertRaisesRegex(ValueError, "approved day"):
+                capture(folder, FIRST, provider, expected_day="2026-12-02")
+            self.assertFalse(list(Path(folder).iterdir()))
+        provider.assert_not_called()
