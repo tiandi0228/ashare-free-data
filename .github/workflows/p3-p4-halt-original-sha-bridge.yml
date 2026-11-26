@@ -7,6 +7,7 @@ on:
       - 'collector/p3_p4_official_halt_gap_manifest.py'
       - 'collector/p3_halt_gap_priority.py'
       - 'collector/p3_halt_evidence_ledger.py'
+      - 'tests/test_p3_halt_evidence_ledger.py'
       - 'collector/p3_two_issuer_notice_leads.py'
       - 'collector/p3_002969_retrospective_replay.py'
       - 'collector/p3_002931_priority_notice_replay.py'
@@ -20,6 +21,7 @@ on:
       - 'collector/p3_p4_official_halt_gap_manifest.py'
       - 'collector/p3_halt_gap_priority.py'
       - 'collector/p3_halt_evidence_ledger.py'
+      - 'tests/test_p3_halt_evidence_ledger.py'
       - 'collector/p3_two_issuer_notice_leads.py'
       - 'collector/p3_002969_retrospective_replay.py'
       - 'collector/p3_002931_priority_notice_replay.py'
@@ -42,7 +44,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Verify immutable original vendor SHA handoff with synthetic and archived fixtures
-        run: python -m unittest -v tests.test_p3_p4_halt_original_sha_bridge tests.test_p4_real_exit_availability tests.test_p3_halt_gap_priority
+        run: python -m unittest -v tests.test_p3_p4_halt_original_sha_bridge tests.test_p4_real_exit_availability tests.test_p3_halt_gap_priority tests.test_p3_halt_evidence_ledger
       - name: Assert source code cannot produce broker authorization
         run: |
           python - <<'PY'
