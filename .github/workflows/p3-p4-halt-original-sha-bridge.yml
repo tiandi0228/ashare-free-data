@@ -1,0 +1,183 @@
+name: P3 P4 original SHA-bound vendor halt review (NO TRADES)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/p4_real_exit_availability.py'
+      - 'collector/p3_p4_official_halt_gap_manifest.py'
+      - 'collector/p3_halt_gap_priority.py'
+      - 'collector/p3_halt_evidence_ledger.py'
+      - 'tests/test_p3_halt_evidence_ledger.py'
+      - 'collector/p3_two_issuer_notice_leads.py'
+      - 'collector/p3_002969_retrospective_replay.py'
+      - 'collector/p3_002931_priority_notice_replay.py'
+      - 'collector/p3_600491_priority_notice_replay.py'
+      - 'tests/test_p3_halt_gap_priority.py'
+      - 'tests/test_p3_p4_halt_original_sha_bridge.py'
+      - '.github/workflows/p3-p4-halt-original-sha-bridge.yml'
+  pull_request:
+    paths:
+      - 'collector/p4_real_exit_availability.py'
+      - 'collector/p3_p4_official_halt_gap_manifest.py'
+      - 'collector/p3_halt_gap_priority.py'
+      - 'collector/p3_halt_evidence_ledger.py'
+      - 'tests/test_p3_halt_evidence_ledger.py'
+      - 'collector/p3_two_issuer_notice_leads.py'
+      - 'collector/p3_002969_retrospective_replay.py'
+      - 'collector/p3_002931_priority_notice_replay.py'
+      - 'collector/p3_600491_priority_notice_replay.py'
+      - 'tests/test_p3_halt_gap_priority.py'
+      - 'tests/test_p3_p4_halt_original_sha_bridge.py'
+      - '.github/workflows/p3-p4-halt-original-sha-bridge.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify immutable original vendor SHA handoff with synthetic and archived fixtures
+        run: python -m unittest -v tests.test_p3_p4_halt_original_sha_bridge tests.test_p4_real_exit_availability tests.test_p3_halt_gap_priority tests.test_p3_halt_evidence_ledger
+      - name: Assert source code cannot produce broker authorization
+        run: |
+          python - <<'PY'
+          from collector.p3_p4_official_halt_gap_manifest import build
+          from collector.p4_real_exit_availability import audit
+          assert 'BLOCKED' in build.__code__.co_consts
+          print('P3/P4 immutable-source review only; no trading authorized')
+          PY
+      - name: Cross-check frozen real originals through P2 to P4 to P3 without authorizing trades
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin 5be9d6ad76d8635defe02f8d90bc50ad4c03c086
+          git worktree add --detach source-archive FETCH_HEAD
+          mkdir -p bounded-originals/epoch
+          for n in 0012 0013 0014 0015; do
+            cp -a "source-archive/3529685a3d2d6402/shard_${n}" "bounded-originals/epoch/"
+          done
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          from collector.p2_independent_bars import assess
+          from collector.p4_real_exit_availability import audit
+          from collector.p3_p4_official_halt_gap_manifest import build
+
+          root=Path("bounded-originals")
+          csv_shas={}
+          active=suspended=0
+          for shard in sorted((root/"epoch").glob("shard_*")):
+              r=assess(shard)
+              assert r["trade_gate"]=="BLOCKED" and r["historical_PIT_verified"] is False
+              active+=r["total_active_rows"]
+              suspended+=r["vendor_suspended_rows"]
+              for item in r["details"]:
+                  p=shard/(item["code"].replace(".","_")+".csv")
+                  csv_shas[item["code"]]=hashlib.sha256(p.read_bytes()).hexdigest()
+          assert len(csv_shas)==32 and active==15488 and suspended==32
+          p4=audit(root)
+          p3=build(root)
+          assert p4["trade_gate"]=="BLOCKED" and p4["orders"]==[] and p4["fills_verified"]==0
+          assert p3["trade_gate"]=="BLOCKED" and p3["orders"]==[] and p3["executable_candidates"]==[]
+          assert p3["officially_certified_halt_dates"]==0
+          assert p3["historical_PIT_trade_eligible"] is False
+          assert p3["vendor_suspended_exit_observations"]==p4["target_vendor_suspended"]
+          assert sum(map(lambda x:len(x["affected_entry_dates"]),p3["pending_official_evidence"]))==p4["target_vendor_suspended"]
+          for row in p4["vendor_halt_crosscheck_queue"]:
+              assert row["original_csv_sha256"]==csv_shas[row["code"]]
+              assert row["official_halt_verified"] is False
+          for row in p3["pending_official_evidence"]:
+              assert row["original_csv_sha256"]==csv_shas[row["code"]]
+              assert row["official_effective_date_authenticated"] is False
+              assert row["official_publication_time_authenticated"] is False
+          report={
+              "phase":"P3_P4_BOUNDED_FROZEN_REAL_ORIGINAL_SHA_JOIN",
+              "source_commit":"5be9d6ad76d8635defe02f8d90bc50ad4c03c086",
+              "shards":[12,13,14,15],"issuers":len(csv_shas),
+              "vendor_active_rows":active,"vendor_suspended_rows":suspended,
+              "p4_suspended_exit_observations":p4["target_vendor_suspended"],
+              "p3_sha_bound_gap_dates":p3["distinct_issuer_halt_dates"],
+              "official_halts_authenticated":0,"historical_PIT_verified":False,
+              "fills_verified":0,"trade_gate":"BLOCKED","orders":[],"executable_candidates":[]
+          }
+          Path("p3_p4_frozen_sha_join_report.json").write_text(json.dumps(report,indent=2)+"\n")
+          print("HALT_SHA_REPLAY:",json.dumps(report,sort_keys=True))
+          PY
+      - name: Expand original SHA replay to complete pinned 2114-issuer research epoch
+        run: |
+          set -euo pipefail
+          ARCHIVE=7028eb4c9cc7f23add64958bc6f2611565476538
+          git fetch --depth=1 origin "$ARCHIVE"
+          git worktree add --detach "$RUNNER_TEMP/full-archive" "$ARCHIVE"
+          python - <<'PY'
+          import hashlib,json,os,subprocess
+          from pathlib import Path
+          from collector.p2_independent_bars import assess
+          from collector.p4_real_exit_availability import audit
+          from collector.p3_p4_official_halt_gap_manifest import build
+          root=Path(os.environ["RUNNER_TEMP"])/"full-archive"
+          assert subprocess.check_output(["git","-C",str(root),"rev-parse","HEAD"],text=True).strip()=="7028eb4c9cc7f23add64958bc6f2611565476538"
+          assert not subprocess.check_output(["git","-C",str(root),"status","--porcelain","--untracked-files=all"],text=True).strip()
+          # Link only the registered epoch, not other historical snapshots.
+          scoped=Path(os.environ["RUNNER_TEMP"])/"full-epoch-scope"
+          scoped.mkdir()
+          (scoped/"epoch").symlink_to(root/"5ba00fbd720fad90",target_is_directory=True)
+          hashes={}
+          for receipt in sorted((scoped/"epoch").glob("shard_*/quality.json")):
+              for item in assess(receipt.parent)["details"]:
+                  code=item["code"]
+                  assert code not in hashes
+                  hashes[code]=hashlib.sha256((receipt.parent/(code.replace(".","_")+".csv")).read_bytes()).hexdigest()
+          assert len(hashes)==2114
+          p4=audit(scoped)
+          p3=build(scoped)
+          assert p4["verified_issuers"]==p3["source_verified_issuers"]==len(hashes)
+          assert p4["trade_gate"]==p3["trade_gate"]=="BLOCKED"
+          assert p4["orders"]==p3["orders"]==p4["executable_candidates"]==p3["executable_candidates"]==[]
+          assert p4["fills_verified"]==p3["officially_certified_halt_dates"]==0
+          assert p3["historical_PIT_trade_eligible"] is False
+          assert p4["target_vendor_suspended"]==p3["vendor_suspended_exit_observations"]
+          for row in p3["pending_official_evidence"]:
+              assert row["original_csv_sha256"]==hashes[row["code"]]
+              assert row["official_effective_date_authenticated"] is False
+              assert row["official_publication_time_authenticated"] is False
+          report={"source_commit":"7028eb4c9cc7f23add64958bc6f2611565476538","epoch":"5ba00fbd720fad90","issuers":len(hashes),"target_vendor_suspended":p4["target_vendor_suspended"],"distinct_issuer_halt_dates":p3["distinct_issuer_halt_dates"],"officially_certified_halt_dates":0,"trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
+          Path("p3_p4_full_epoch_summary.json").write_text(json.dumps(report,indent=2)+"\n")
+          Path("p3_p4_full_epoch_gap_queue.json").write_text(json.dumps(p3,indent=2)+"\n")
+          print("FULL_EPOCH_HALT_REPLAY:",json.dumps(report,sort_keys=True))
+          PY
+      - name: Generate issuer-prioritized official evidence queue
+        run: python -m collector.p3_halt_gap_priority p3_p4_full_epoch_gap_queue.json --out p3_p4_priority_queue.json
+      - name: Retrieve original notices for highest-priority issuer
+        run: |
+          command -v pdftotext || (sudo apt-get update && sudo apt-get install -y poppler-utils)
+          python -m collector.p3_002931_priority_notice_replay p3_p4_priority_queue.json --out p3_002931_notice_replay
+      - name: Retrieve partial original evidence for second-priority issuer
+        run: python -m collector.p3_600491_priority_notice_replay p3_p4_priority_queue.json --out p3_600491_notice_replay
+      - name: Corroborate 002969 January intervals and June resume
+        run: python -m collector.p3_002969_retrospective_replay p3_p4_priority_queue.json --out p3_002969_retrospective_replay
+      - name: Verify 603159 and 601010 notice leads by source class
+        run: python -m collector.p3_two_issuer_notice_leads p3_p4_priority_queue.json --out p3_two_issuer_notice_leads
+      - name: Reconcile all scoped evidence against the 186-date queue
+        run: python -m collector.p3_halt_evidence_ledger p3_p4_priority_queue.json --out p3_halt_evidence_ledger.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p3-p4-frozen-original-sha-join-${{ github.run_id }}
+          path: |
+            p3_p4_frozen_sha_join_report.json
+            p3_p4_full_epoch_summary.json
+            p3_p4_full_epoch_gap_queue.json
+            p3_p4_priority_queue.json
+            p3_halt_evidence_ledger.json
+            p3_two_issuer_notice_leads/
+            p3_002969_retrospective_replay/
+            p3_002931_notice_replay/
+            p3_600491_notice_replay/
+          if-no-files-found: error
+          retention-days: 30
