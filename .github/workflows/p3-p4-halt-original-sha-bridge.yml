@@ -19,7 +19,7 @@ permissions:
 jobs:
   audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -93,9 +93,55 @@ jobs:
           Path("p3_p4_frozen_sha_join_report.json").write_text(json.dumps(report,indent=2)+"\n")
           print("HALT_SHA_REPLAY:",json.dumps(report,sort_keys=True))
           PY
+      - name: Expand original SHA replay to complete pinned 2114-issuer research epoch
+        run: |
+          set -euo pipefail
+          ARCHIVE=7028eb4c9cc7f23add64958bc6f2611565476538
+          git fetch --depth=1 origin "$ARCHIVE"
+          git worktree add --detach "$RUNNER_TEMP/full-archive" "$ARCHIVE"
+          python - <<'PY'
+          import hashlib,json,os,subprocess
+          from pathlib import Path
+          from collector.p2_independent_bars import assess
+          from collector.p4_real_exit_availability import audit
+          from collector.p3_p4_official_halt_gap_manifest import build
+          root=Path(os.environ["RUNNER_TEMP"])/"full-archive"
+          assert subprocess.check_output(["git","-C",str(root),"rev-parse","HEAD"],text=True).strip()=="7028eb4c9cc7f23add64958bc6f2611565476538"
+          assert not subprocess.check_output(["git","-C",str(root),"status","--porcelain","--untracked-files=all"],text=True).strip()
+          # Link only the registered epoch, not other historical snapshots.
+          scoped=Path(os.environ["RUNNER_TEMP"])/"full-epoch-scope"
+          scoped.mkdir()
+          (scoped/"epoch").symlink_to(root/"5ba00fbd720fad90",target_is_directory=True)
+          hashes={}
+          for receipt in sorted((scoped/"epoch").glob("shard_*/quality.json")):
+              for item in assess(receipt.parent)["details"]:
+                  code=item["code"]
+                  assert code not in hashes
+                  hashes[code]=hashlib.sha256((receipt.parent/(code.replace(".","_")+".csv")).read_bytes()).hexdigest()
+          assert len(hashes)==2114
+          p4=audit(scoped)
+          p3=build(scoped)
+          assert p4["verified_issuers"]==p3["source_verified_issuers"]==len(hashes)
+          assert p4["trade_gate"]==p3["trade_gate"]=="BLOCKED"
+          assert p4["orders"]==p3["orders"]==p4["executable_candidates"]==p3["executable_candidates"]==[]
+          assert p4["fills_verified"]==p3["officially_certified_halt_dates"]==0
+          assert p3["historical_PIT_trade_eligible"] is False
+          assert p4["target_vendor_suspended"]==p3["vendor_suspended_exit_observations"]
+          for row in p3["pending_official_evidence"]:
+              assert row["original_csv_sha256"]==hashes[row["code"]]
+              assert row["official_effective_date_authenticated"] is False
+              assert row["official_publication_time_authenticated"] is False
+          report={"source_commit":"7028eb4c9cc7f23add64958bc6f2611565476538","epoch":"5ba00fbd720fad90","issuers":len(hashes),"target_vendor_suspended":p4["target_vendor_suspended"],"distinct_issuer_halt_dates":p3["distinct_issuer_halt_dates"],"officially_certified_halt_dates":0,"trade_gate":"BLOCKED","orders":[],"executable_candidates":[]}
+          Path("p3_p4_full_epoch_summary.json").write_text(json.dumps(report,indent=2)+"\n")
+          Path("p3_p4_full_epoch_gap_queue.json").write_text(json.dumps(p3,indent=2)+"\n")
+          print("FULL_EPOCH_HALT_REPLAY:",json.dumps(report,sort_keys=True))
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: p3-p4-frozen-original-sha-join-${{ github.run_id }}
-          path: p3_p4_frozen_sha_join_report.json
+          path: |
+            p3_p4_frozen_sha_join_report.json
+            p3_p4_full_epoch_summary.json
+            p3_p4_full_epoch_gap_queue.json
           if-no-files-found: error
           retention-days: 30
