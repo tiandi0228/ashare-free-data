@@ -6,6 +6,7 @@ on:
       - 'collector/p4_real_exit_availability.py'
       - 'collector/p3_p4_official_halt_gap_manifest.py'
       - 'collector/p3_halt_gap_priority.py'
+      - 'collector/p3_halt_evidence_ledger.py'
       - 'collector/p3_two_issuer_notice_leads.py'
       - 'collector/p3_002969_retrospective_replay.py'
       - 'collector/p3_002931_priority_notice_replay.py'
@@ -18,6 +19,7 @@ on:
       - 'collector/p4_real_exit_availability.py'
       - 'collector/p3_p4_official_halt_gap_manifest.py'
       - 'collector/p3_halt_gap_priority.py'
+      - 'collector/p3_halt_evidence_ledger.py'
       - 'collector/p3_two_issuer_notice_leads.py'
       - 'collector/p3_002969_retrospective_replay.py'
       - 'collector/p3_002931_priority_notice_replay.py'
@@ -160,6 +162,8 @@ jobs:
         run: python -m collector.p3_002969_retrospective_replay p3_p4_priority_queue.json --out p3_002969_retrospective_replay
       - name: Verify 603159 and 601010 notice leads by source class
         run: python -m collector.p3_two_issuer_notice_leads p3_p4_priority_queue.json --out p3_two_issuer_notice_leads
+      - name: Reconcile all scoped evidence against the 186-date queue
+        run: python -m collector.p3_halt_evidence_ledger p3_p4_priority_queue.json --out p3_halt_evidence_ledger.json
       - uses: actions/upload-artifact@v4
         with:
           name: p3-p4-frozen-original-sha-join-${{ github.run_id }}
@@ -168,6 +172,7 @@ jobs:
             p3_p4_full_epoch_summary.json
             p3_p4_full_epoch_gap_queue.json
             p3_p4_priority_queue.json
+            p3_halt_evidence_ledger.json
             p3_two_issuer_notice_leads/
             p3_002969_retrospective_replay/
             p3_002931_notice_replay/
