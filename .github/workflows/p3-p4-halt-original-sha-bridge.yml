@@ -6,6 +6,7 @@ on:
       - 'collector/p4_real_exit_availability.py'
       - 'collector/p3_p4_official_halt_gap_manifest.py'
       - 'collector/p3_halt_gap_priority.py'
+      - 'collector/p3_002969_retrospective_replay.py'
       - 'collector/p3_002931_priority_notice_replay.py'
       - 'collector/p3_600491_priority_notice_replay.py'
       - 'tests/test_p3_halt_gap_priority.py'
@@ -16,6 +17,7 @@ on:
       - 'collector/p4_real_exit_availability.py'
       - 'collector/p3_p4_official_halt_gap_manifest.py'
       - 'collector/p3_halt_gap_priority.py'
+      - 'collector/p3_002969_retrospective_replay.py'
       - 'collector/p3_002931_priority_notice_replay.py'
       - 'collector/p3_600491_priority_notice_replay.py'
       - 'tests/test_p3_halt_gap_priority.py'
@@ -152,6 +154,8 @@ jobs:
           python -m collector.p3_002931_priority_notice_replay p3_p4_priority_queue.json --out p3_002931_notice_replay
       - name: Retrieve partial original evidence for second-priority issuer
         run: python -m collector.p3_600491_priority_notice_replay p3_p4_priority_queue.json --out p3_600491_notice_replay
+      - name: Corroborate 002969 January intervals and June resume
+        run: python -m collector.p3_002969_retrospective_replay p3_p4_priority_queue.json --out p3_002969_retrospective_replay
       - uses: actions/upload-artifact@v4
         with:
           name: p3-p4-frozen-original-sha-join-${{ github.run_id }}
@@ -160,6 +164,7 @@ jobs:
             p3_p4_full_epoch_summary.json
             p3_p4_full_epoch_gap_queue.json
             p3_p4_priority_queue.json
+            p3_002969_retrospective_replay/
             p3_002931_notice_replay/
             p3_600491_notice_replay/
           if-no-files-found: error
