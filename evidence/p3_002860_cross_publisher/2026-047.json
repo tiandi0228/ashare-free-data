@@ -1,0 +1,11 @@
+{
+  "issuer": "sz.002860",
+  "notice_number": "2026-047",
+  "effective_day": "2026-10-14",
+  "cninfo_url": "https://static.cninfo.com.cn/finalpage/2026-10-14/1225604019.PDF",
+  "szse_url": "https://disc.static.szse.cn/download/disc/disk03/finalpage/2026-10-14/2f0457c8-7fda-4e8e-b3ea-25799041a231.PDF",
+  "observed_identical_pdf_sha256": "4c9fe6862db1119fbe4090f590ff7c00c76d791ece3be58543559a5c82238eee",
+  "comparison": "LOCAL_BYTE_COMPARISON_RETRIEVED_2026-11-13",
+  "official_first_release_verified": false,
+  "trade_gate": "BLOCKED"
+}
