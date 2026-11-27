@@ -20,10 +20,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api repos/${{ github.repository }}/actions/artifacts/15168059844/zip > frozen.zip
-          echo 'fc8609a0745b9eb34e7431c8f4e72ea88eea5f048c7b92f707548432635cd3b1  frozen.zip' | sha256sum -c -
+          gh api repos/${{ github.repository }}/actions/artifacts/15169345741/zip > frozen.zip
+          echo '29c314f023379729e5308b805a0ecd35188eccbdaeed4046387b7a2e1d35981d  frozen.zip' | sha256sum -c -
       - name: Verify original vendor status and emit tasks
-        run: python -m collector.p3_refresh_gap_triage --artifact frozen.zip --sha256 fc8609a0745b9eb34e7431c8f4e72ea88eea5f048c7b92f707548432635cd3b1 --count 2944 --out p3-refresh-gap-triage.json
+        run: python -m collector.p3_refresh_gap_triage --artifact frozen.zip --sha256 29c314f023379729e5308b805a0ecd35188eccbdaeed4046387b7a2e1d35981d --count 3194 --out p3-refresh-gap-triage.json
       - uses: actions/upload-artifact@v4
         with:
           name: p3-refresh-gap-triage
