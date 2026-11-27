@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'collector/p3_refresh_gap_triage.py'
+      - 'collector/p3_residual_notice_bridge.py'
+      - 'tests/test_p3_residual_notice_bridge.py'
       - '.github/workflows/p3-refresh-gap-triage.yml'
   workflow_dispatch:
 permissions:
@@ -24,8 +26,16 @@ jobs:
           echo '29c314f023379729e5308b805a0ecd35188eccbdaeed4046387b7a2e1d35981d  frozen.zip' | sha256sum -c -
       - name: Verify original vendor status and emit tasks
         run: python -m collector.p3_refresh_gap_triage --artifact frozen.zip --sha256 29c314f023379729e5308b805a0ecd35188eccbdaeed4046387b7a2e1d35981d --count 3194 --out p3-refresh-gap-triage.json
+      - name: Independently bridge pinned official originals
+        run: |
+          python -m unittest tests.test_p3_residual_notice_bridge -v
+          command -v pdftotext || (sudo apt-get update && sudo apt-get install -y poppler-utils)
+          python -m collector.p3_residual_notice_bridge --artifact frozen.zip --queue p3-refresh-gap-triage.json --root p3-residual-originals --out p3-residual-bridge.json
       - uses: actions/upload-artifact@v4
         with:
           name: p3-refresh-gap-triage
-          path: p3-refresh-gap-triage.json
+          path: |
+            p3-refresh-gap-triage.json
+            p3-residual-bridge.json
+            p3-residual-originals/
           if-no-files-found: error
