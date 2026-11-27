@@ -16,6 +16,8 @@ on:
       - 'collector/p3_last_originals.py'
       - 'collector/p3_final_cninfo_index.py'
       - 'collector/p3_complete_original_ledger.py'
+      - 'collector/p3_risk_timeline.py'
+      - 'tests/test_p3_risk_timeline.py'
       - 'tests/test_p3_complete_original_ledger.py'
       - 'tests/test_p3_final_cninfo_index.py'
       - 'tests/test_p3_last_originals.py'
@@ -63,6 +65,10 @@ jobs:
           python -m unittest tests.test_p3_exchange_originals tests.test_p3_initial_halt_original tests.test_p3_pinned_originals tests.test_p3_additional_originals tests.test_p3_next_originals tests.test_p3_resume_originals tests.test_p3_final_gap_leads tests.test_p3_unified_ledger tests.test_p3_last_originals tests.test_p3_final_cninfo_index tests.test_p3_complete_original_ledger -v
           gh api repos/${{ github.repository }}/actions/artifacts/15208525769/zip > complete-source.zip
           python -m collector.p3_complete_original_ledger --archive complete-source.zip --queue p3-refresh-gap-triage.json --root p3-complete-originals --out p3-complete-original-ledger.json
+      - name: Replay retrospective risk intervals and ST transitions
+        run: |
+          python -m unittest tests.test_p3_risk_timeline -v
+          python -m collector.p3_risk_timeline --queue p3-refresh-gap-triage.json --ledger p3-complete-original-ledger.json --root p3-complete-originals --archive frozen.zip --out p3-risk-timeline.json
       - uses: actions/upload-artifact@v4
         with:
           name: p3-refresh-gap-triage
@@ -71,6 +77,7 @@ jobs:
             p3-residual-bridge.json
             p3-public-notice-leads.json
             p3-complete-original-ledger.json
+            p3-risk-timeline.json
             p3-complete-originals/
             p3-residual-originals/
           if-no-files-found: error
