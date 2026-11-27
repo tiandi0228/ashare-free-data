@@ -19,6 +19,8 @@ on:
       - 'collector/p3_risk_timeline.py'
       - 'collector/p3_interval_extension.py'
       - 'collector/p3_resume_index_extension.py'
+      - 'collector/p3_delist_timeline.py'
+      - 'tests/test_p3_delist_timeline.py'
       - 'tests/test_p3_resume_index_extension.py'
       - 'tests/test_p3_interval_extension.py'
       - 'tests/test_p3_risk_timeline.py'
@@ -81,6 +83,10 @@ jobs:
         run: |
           python -m unittest tests.test_p3_resume_index_extension -v
           python -m collector.p3_resume_index_extension --queue p3-refresh-gap-triage.json --timeline p3-risk-timeline.json --prior p3-interval-extension.json --archive frozen.zip --root p3-resume-index-originals --out p3-resume-index-extension.json
+      - name: Separate delisting and pending-decision tails from ordinary halts
+        run: |
+          python -m unittest tests.test_p3_delist_timeline -v
+          python -m collector.p3_delist_timeline --queue p3-refresh-gap-triage.json --ledger p3-complete-original-ledger.json --bridge p3-residual-bridge.json --prior p3-resume-index-extension.json --archive frozen.zip --root p3-complete-originals --out p3-delist-timeline.json
       - uses: actions/upload-artifact@v4
         with:
           name: p3-refresh-gap-triage
@@ -92,6 +98,7 @@ jobs:
             p3-risk-timeline.json
             p3-interval-extension.json
             p3-resume-index-extension.json
+            p3-delist-timeline.json
             p3-resume-index-originals/
             p3-interval-originals/
             p3-complete-originals/
