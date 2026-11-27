@@ -4,6 +4,8 @@ on:
     paths:
       - 'collector/p4_flat_bar_risk.py'
       - 'collector/p4_proxy_limit_join.py'
+      - 'collector/p4_official_limit_queue.py'
+      - 'tests/test_p4_official_limit_queue.py'
       - 'tests/test_p4_proxy_limit_join.py'
       - 'tests/test_p4_flat_bar_risk.py'
       - '.github/workflows/p4-flat-bar-risk.yml'
@@ -19,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - run: python -m unittest tests.test_p4_flat_bar_risk tests.test_p4_proxy_limit_join -v
+      - run: python -m unittest tests.test_p4_flat_bar_risk tests.test_p4_proxy_limit_join tests.test_p4_official_limit_queue -v
       - name: Audit frozen vendor original bytes
         env:
           GH_TOKEN: ${{ github.token }}
@@ -33,10 +35,13 @@ jobs:
           set -euo pipefail
           gh api repos/${{ github.repository }}/actions/artifacts/15177785662/zip > strategy.zip
           python -m collector.p4_proxy_limit_join --frozen frozen.zip --strategy strategy.zip --risk p4-flat-bar-risk.json --out p4-proxy-limit-join.json
+      - name: Prioritize unique official limit evidence tasks
+        run: python -m collector.p4_official_limit_queue --risk p4-flat-bar-risk.json --join p4-proxy-limit-join.json --out p4-official-limit-queue.json
       - uses: actions/upload-artifact@v4
         with:
           name: p4-flat-bar-risk
           path: |
             p4-flat-bar-risk.json
             p4-proxy-limit-join.json
+            p4-official-limit-queue.json
           if-no-files-found: error
