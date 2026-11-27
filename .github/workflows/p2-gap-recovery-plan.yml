@@ -69,11 +69,11 @@ jobs:
         run: python -m collector.p2_full_refresh_manifest --coverage "$RUNNER_TEMP/coverage/summaries/5ba00fbd720fad90.json" --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --out p2-full-refresh-manifest.json
       - name: Initialize full refresh checkpoint without provider calls
         run: python -m collector.p2_refresh_checkpoint --manifest p2-full-refresh-manifest.json --out p2-refresh-checkpoint.json
-      - name: Recover fixed 176-batch checkpoint
+      - name: Recover fixed 240-batch checkpoint
         uses: actions/download-artifact@v4
         with:
           name: p2-gap-recovery
-          run-id: 45924726834
+          run-id: 45926823845
           github-token: ${{ github.token }}
           path: previous-pilot
       - name: Reuse and verify pinned gap evidence (no redundant provider calls)
@@ -113,15 +113,15 @@ jobs:
           import json
           from pathlib import Path
           r=json.loads(Path("previous-accepted.json").read_text())
-          assert r["accepted_batch_indices"]==list(range(176)) and r["accepted_issuers"]==1408
-          assert r["next_pending_batch"]==176 and r["trade_gate"]=="BLOCKED"
+          assert r["accepted_batch_indices"]==list(range(240)) and r["accepted_issuers"]==1920
+          assert r["next_pending_batch"]==240 and r["trade_gate"]=="BLOCKED"
           assert r["manifest_sha256"]=="4a1383eed37e8befa49a0769ae583f093d5f355cc46366eb62dc56680b67ae0b"
           assert r["orders"]==r["executable_candidates"]==[]
           PY
           cp -a previous-pilot/p2-batch-* .
           # Retain serial bounded queries. Stop on the first failed batch.
           # Successful earlier packages remain available in the artifact.
-          for i in $(seq 176 239); do
+          for i in $(seq 240 303); do
             package=$(printf 'p2-batch-%04d' "$i")
             timeout 180s python -m collector.p2_refresh_batch_observe --manifest p2-full-refresh-manifest.json --archive-epoch "$ROOT" --batch-index "$i" --out "$package"
             sleep 2
@@ -131,8 +131,8 @@ jobs:
           import json
           from pathlib import Path
           r=json.loads(Path("p2-refresh-aggregate.json").read_text())
-          assert r["accepted_batch_indices"]==list(range(240)) and r["accepted_issuers"]==1920
-          assert r["next_pending_batch"]==240 and r["trade_gate"]=="BLOCKED"
+          assert r["accepted_batch_indices"]==list(range(304)) and r["accepted_issuers"]==2432
+          assert r["next_pending_batch"]==304 and r["trade_gate"]=="BLOCKED"
           assert r["orders"]==r["executable_candidates"]==[]
           PY
       - uses: actions/upload-artifact@v4
