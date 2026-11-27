@@ -12,6 +12,8 @@ on:
       - 'collector/p3_next_originals.py'
       - 'collector/p3_resume_originals.py'
       - 'collector/p3_final_gap_leads.py'
+      - 'collector/p3_unified_ledger.py'
+      - 'tests/test_p3_unified_ledger.py'
       - 'tests/test_p3_final_gap_leads.py'
       - 'tests/test_p3_resume_originals.py'
       - 'tests/test_p3_next_originals.py'
@@ -48,29 +50,13 @@ jobs:
           python -m collector.p3_residual_notice_bridge --artifact frozen.zip --queue p3-refresh-gap-triage.json --root p3-residual-originals --out p3-residual-bridge.json
       - name: Reconcile additional public notice leads
         run: python -m collector.p3_public_notice_leads --queue p3-refresh-gap-triage.json --bridge p3-residual-bridge.json --out p3-public-notice-leads.json
-      - name: Replay four pinned originals without issuer network retrieval
+      - name: Revalidate all fifteen originals and build unified ledger offline
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          python -m unittest tests.test_p3_exchange_originals tests.test_p3_initial_halt_original tests.test_p3_pinned_originals -v
-          gh api repos/${{ github.repository }}/actions/artifacts/15202840379/zip > pinned-originals.zip
-          python -m collector.p3_pinned_originals --archive pinned-originals.zip --queue p3-refresh-gap-triage.json --root p3-pinned-originals --out p3-pinned-originals.json
-      - name: Verify two additional exchange notice originals
-        run: |
-          python -m unittest tests.test_p3_additional_originals -v
-          python -m collector.p3_additional_originals --leads p3-public-notice-leads.json --pinned p3-pinned-originals.json --root p3-additional-originals --out p3-additional-originals.json
-      - name: Verify three newly matched CNINFO originals
-        run: |
-          python -m unittest tests.test_p3_next_originals -v
-          python -m collector.p3_next_originals --queue p3-refresh-gap-triage.json --prior p3-additional-originals.json --root p3-next-originals --out p3-next-originals.json
-      - name: Verify four new exchange and CNINFO resume originals
-        run: |
-          python -m unittest tests.test_p3_resume_originals -v
-          python -m collector.p3_resume_originals --queue p3-refresh-gap-triage.json --prior p3-next-originals.json --root p3-resume-originals --out p3-resume-originals.json
-      - name: Reconcile final six public leads and two official originals
-        run: |
-          python -m unittest tests.test_p3_final_gap_leads -v
-          python -m collector.p3_final_gap_leads --queue p3-refresh-gap-triage.json --prior p3-resume-originals.json --root p3-final-gap-originals --out p3-final-gap-leads.json
+          python -m unittest tests.test_p3_exchange_originals tests.test_p3_initial_halt_original tests.test_p3_pinned_originals tests.test_p3_additional_originals tests.test_p3_next_originals tests.test_p3_resume_originals tests.test_p3_final_gap_leads tests.test_p3_unified_ledger -v
+          gh api repos/${{ github.repository }}/actions/artifacts/15206412835/zip > unified-source.zip
+          python -m collector.p3_unified_ledger --archive unified-source.zip --queue p3-refresh-gap-triage.json --root p3-unified-originals --out p3-unified-ledger.json
       - uses: actions/upload-artifact@v4
         with:
           name: p3-refresh-gap-triage
@@ -78,15 +64,7 @@ jobs:
             p3-refresh-gap-triage.json
             p3-residual-bridge.json
             p3-public-notice-leads.json
-            p3-pinned-originals.json
-            p3-additional-originals.json
-            p3-next-originals.json
-            p3-resume-originals.json
-            p3-final-gap-leads.json
-            p3-final-gap-originals/
-            p3-resume-originals/
-            p3-next-originals/
-            p3-additional-originals/
-            p3-pinned-originals/
+            p3-unified-ledger.json
+            p3-unified-originals/
             p3-residual-originals/
           if-no-files-found: error
