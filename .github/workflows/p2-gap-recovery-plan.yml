@@ -44,7 +44,7 @@ permissions:
 jobs:
   audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -73,39 +73,41 @@ jobs:
         run: python -m collector.p2_full_refresh_manifest --coverage "$RUNNER_TEMP/coverage/summaries/5ba00fbd720fad90.json" --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --out p2-full-refresh-manifest.json
       - name: Initialize full refresh checkpoint without provider calls
         run: python -m collector.p2_refresh_checkpoint --manifest p2-full-refresh-manifest.json --out p2-refresh-checkpoint.json
-      - name: Recover the fixed previously accepted pilot artifact
+      - name: Recover fixed four-batch checkpoint
         uses: actions/download-artifact@v4
         with:
           name: p2-gap-recovery
-          run-id: 45827068692
+          run-id: 45828584817
           github-token: ${{ github.token }}
           path: previous-pilot
-      - name: Independently revalidate previous pilot and observe only three new batches
+      - name: Revalidate prior originals and execute at most twelve additional batches
         run: |
           set -euo pipefail
           ROOT="$RUNNER_TEMP/archive/5ba00fbd720fad90"
-          python -m collector.p2_refresh_aggregate --manifest p2-full-refresh-manifest.json --archive-epoch "$ROOT" --packages previous-pilot/p2-batch-0000 --out previous-accepted.json
+          python -m collector.p2_refresh_aggregate --manifest p2-full-refresh-manifest.json --archive-epoch "$ROOT" --packages previous-pilot/p2-batch-000{0,1,2,3} --out previous-accepted.json
           python - <<'PY'
           import json
           from pathlib import Path
           r=json.loads(Path("previous-accepted.json").read_text())
-          assert r["accepted_batch_indices"]==[0] and r["accepted_issuers"]==8
-          assert r["next_pending_batch"]==1 and r["trade_gate"]=="BLOCKED"
+          assert r["accepted_batch_indices"]==list(range(4)) and r["accepted_issuers"]==32
+          assert r["next_pending_batch"]==4 and r["trade_gate"]=="BLOCKED"
           assert r["manifest_sha256"]=="4a1383eed37e8befa49a0769ae583f093d5f355cc46366eb62dc56680b67ae0b"
           PY
-          cp -a previous-pilot/p2-batch-0000 p2-batch-0000
-          for i in 1 2 3; do
+          cp -a previous-pilot/p2-batch-000{0,1,2,3} .
+          # Each batch remains eight issuers maximum, serial, bounded, and
+          # independently replayed. No recursive dispatch or scheduled trigger.
+          for i in $(seq 4 15); do
             package=$(printf 'p2-batch-%04d' "$i")
-            timeout 120s python -m collector.p2_refresh_batch_observe --manifest p2-full-refresh-manifest.json --archive-epoch "$ROOT" --batch-index "$i" --out "$package"
+            timeout 90s python -m collector.p2_refresh_batch_observe --manifest p2-full-refresh-manifest.json --archive-epoch "$ROOT" --batch-index "$i" --out "$package"
             sleep 2
           done
-          python -m collector.p2_refresh_aggregate --manifest p2-full-refresh-manifest.json --archive-epoch "$ROOT" --packages p2-batch-0000 p2-batch-0001 p2-batch-0002 p2-batch-0003 --out p2-refresh-aggregate.json
+          python -m collector.p2_refresh_aggregate --manifest p2-full-refresh-manifest.json --archive-epoch "$ROOT" --packages p2-batch-* --out p2-refresh-aggregate.json
           python - <<'PY'
           import json
           from pathlib import Path
           r=json.loads(Path("p2-refresh-aggregate.json").read_text())
-          assert r["accepted_batch_indices"]==[0,1,2,3] and r["accepted_issuers"]==32
-          assert r["next_pending_batch"]==4 and r["trade_gate"]=="BLOCKED"
+          assert r["accepted_batch_indices"]==list(range(16)) and r["accepted_issuers"]==128
+          assert r["next_pending_batch"]==16 and r["trade_gate"]=="BLOCKED"
           assert r["orders"]==r["executable_candidates"]==[]
           PY
       - uses: actions/upload-artifact@v4
@@ -115,10 +117,7 @@ jobs:
             p2-gap-recovery.json
             p2-full-refresh-manifest.json
             p2-refresh-checkpoint.json
-            p2-batch-0000/
-            p2-batch-0001/
-            p2-batch-0002/
-            p2-batch-0003/
+            p2-batch-*/
             previous-accepted.json
             p2-refresh-aggregate.json
             p2-gap-extension/
