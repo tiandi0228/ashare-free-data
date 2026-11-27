@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'collector/p2_gap_recovery_plan.py'
+      - 'collector/p2_short_signal_replay.py'
+      - 'tests/test_p2_short_signal_replay.py'
       - 'collector/p2_full_refresh_manifest.py'
       - 'collector/p2_refresh_checkpoint.py'
       - 'collector/p2_refresh_batch_replay.py'
@@ -23,6 +25,8 @@ on:
     branches: [main]
     paths:
       - 'collector/p2_gap_recovery_plan.py'
+      - 'collector/p2_short_signal_replay.py'
+      - 'tests/test_p2_short_signal_replay.py'
       - 'collector/p2_full_refresh_manifest.py'
       - 'collector/p2_refresh_checkpoint.py'
       - 'collector/p2_refresh_batch_replay.py'
@@ -54,7 +58,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest tests.test_p2_gap_recovery_plan tests.test_p2_original_gap_window_triage tests.test_p2_gap_extension_replay tests.test_p2_residual_risk tests.test_p2_full_refresh_manifest tests.test_p2_refresh_checkpoint tests.test_p2_refresh_batch_replay tests.test_p2_refresh_aggregate.AggregateTests tests.test_p2_refresh_provider_retry -v
+      - run: python -m unittest tests.test_p2_gap_recovery_plan tests.test_p2_original_gap_window_triage tests.test_p2_gap_extension_replay tests.test_p2_residual_risk tests.test_p2_full_refresh_manifest tests.test_p2_refresh_checkpoint tests.test_p2_refresh_batch_replay tests.test_p2_refresh_aggregate.AggregateTests tests.test_p2_refresh_provider_retry tests.test_p2_short_signal_replay -v
       - name: Replay pinned originals and coverage
         run: |
           set -euo pipefail
@@ -132,6 +136,8 @@ jobs:
           assert r["orders"]==r["executable_candidates"]==[]
           print("P2_FROZEN_FULL_REPLAY: 400 batches, 3194 issuers, 3175 features, 19 gaps; provider_calls=0")
           PY
+      - name: Replay short-horizon research signal on frozen originals
+        run: python -m collector.p2_short_signal_replay --manifest p2-full-refresh-manifest.json --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --packages . --report p2-refresh-aggregate.json --out p2-short-signal-replay.json
       - uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
@@ -142,6 +148,7 @@ jobs:
             p2-refresh-checkpoint.json
             p2-batch-*/
             p2-refresh-aggregate.json
+            p2-short-signal-replay.json
             p2-gap-extension/
             p2-residual-risk/
           if-no-files-found: error
