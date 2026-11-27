@@ -7,6 +7,8 @@ on:
       - 'collector/p3_public_notice_leads.py'
       - 'collector/p3_exchange_originals.py'
       - 'collector/p3_initial_halt_original.py'
+      - 'collector/p3_pinned_originals.py'
+      - 'tests/test_p3_pinned_originals.py'
       - 'tests/test_p3_initial_halt_original.py'
       - 'tests/test_p3_exchange_originals.py'
       - 'tests/test_p3_residual_notice_bridge.py'
@@ -38,14 +40,13 @@ jobs:
           python -m collector.p3_residual_notice_bridge --artifact frozen.zip --queue p3-refresh-gap-triage.json --root p3-residual-originals --out p3-residual-bridge.json
       - name: Reconcile additional public notice leads
         run: python -m collector.p3_public_notice_leads --queue p3-refresh-gap-triage.json --bridge p3-residual-bridge.json --out p3-public-notice-leads.json
-      - name: Attempt official exchange originals with explicit failure ledger
+      - name: Replay four pinned originals without issuer network retrieval
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          python -m unittest tests.test_p3_exchange_originals -v
-          python -m collector.p3_exchange_originals --leads p3-public-notice-leads.json --root p3-exchange-originals --out p3-exchange-originals.json
-      - name: Verify initial halt original separately from resumption
-        run: |
-          python -m unittest tests.test_p3_initial_halt_original -v
-          python -m collector.p3_initial_halt_original --leads p3-public-notice-leads.json --root p3-initial-halt-originals --out p3-initial-halt-original.json
+          python -m unittest tests.test_p3_exchange_originals tests.test_p3_initial_halt_original tests.test_p3_pinned_originals -v
+          gh api repos/${{ github.repository }}/actions/artifacts/15202840379/zip > pinned-originals.zip
+          python -m collector.p3_pinned_originals --archive pinned-originals.zip --queue p3-refresh-gap-triage.json --root p3-pinned-originals --out p3-pinned-originals.json
       - uses: actions/upload-artifact@v4
         with:
           name: p3-refresh-gap-triage
@@ -53,9 +54,7 @@ jobs:
             p3-refresh-gap-triage.json
             p3-residual-bridge.json
             p3-public-notice-leads.json
-            p3-exchange-originals.json
-            p3-initial-halt-original.json
-            p3-initial-halt-originals/
-            p3-exchange-originals/
+            p3-pinned-originals.json
+            p3-pinned-originals/
             p3-residual-originals/
           if-no-files-found: error
