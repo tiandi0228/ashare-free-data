@@ -10,6 +10,8 @@ on:
       - 'collector/p3_pinned_originals.py'
       - 'collector/p3_additional_originals.py'
       - 'collector/p3_next_originals.py'
+      - 'collector/p3_resume_originals.py'
+      - 'tests/test_p3_resume_originals.py'
       - 'tests/test_p3_next_originals.py'
       - 'tests/test_p3_additional_originals.py'
       - 'tests/test_p3_pinned_originals.py'
@@ -24,7 +26,7 @@ permissions:
 jobs:
   triage:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -59,6 +61,10 @@ jobs:
         run: |
           python -m unittest tests.test_p3_next_originals -v
           python -m collector.p3_next_originals --queue p3-refresh-gap-triage.json --prior p3-additional-originals.json --root p3-next-originals --out p3-next-originals.json
+      - name: Verify four new exchange and CNINFO resume originals
+        run: |
+          python -m unittest tests.test_p3_resume_originals -v
+          python -m collector.p3_resume_originals --queue p3-refresh-gap-triage.json --prior p3-next-originals.json --root p3-resume-originals --out p3-resume-originals.json
       - uses: actions/upload-artifact@v4
         with:
           name: p3-refresh-gap-triage
@@ -69,6 +75,8 @@ jobs:
             p3-pinned-originals.json
             p3-additional-originals.json
             p3-next-originals.json
+            p3-resume-originals.json
+            p3-resume-originals/
             p3-next-originals/
             p3-additional-originals/
             p3-pinned-originals/
