@@ -46,7 +46,7 @@ permissions:
 jobs:
   audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 65
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
@@ -63,26 +63,48 @@ jobs:
           git fetch --depth=1 origin 6772f36217d39cfedad0cb5b70789bc7d2c16c99
           git worktree add --detach "$RUNNER_TEMP/coverage" FETCH_HEAD
           python -m collector.p2_gap_recovery_plan --coverage "$RUNNER_TEMP/coverage/summaries/5ba00fbd720fad90.json" --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --out p2-gap-recovery.json
-      - name: Observe bounded historical extensions (research only)
-        run: |
-          python -m pip install 'baostock>=0.8,<1'
-          timeout 300s python -m collector.p2_gap_extension_replay --plan p2-gap-recovery.json --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --out p2-gap-extension
-      - name: Reconcile residual gaps against issuer disclosure originals
-        run: |
-          command -v pdftotext || (sudo apt-get update && sudo apt-get install -y poppler-utils)
-          python -m collector.p2_residual_risk --root p2-gap-extension --out p2-residual-risk
+      - name: Install bounded historical query provider
+        run: python -m pip install 'baostock>=0.8,<1'
       - name: Prepare read-only full-universe refresh manifest (no additional collection)
         run: python -m collector.p2_full_refresh_manifest --coverage "$RUNNER_TEMP/coverage/summaries/5ba00fbd720fad90.json" --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --out p2-full-refresh-manifest.json
       - name: Initialize full refresh checkpoint without provider calls
         run: python -m collector.p2_refresh_checkpoint --manifest p2-full-refresh-manifest.json --out p2-refresh-checkpoint.json
-      - name: Recover fixed twenty-four-batch checkpoint
+      - name: Recover fixed forty-batch checkpoint
         uses: actions/download-artifact@v4
         with:
           name: p2-gap-recovery
-          run-id: 45921418157
+          run-id: 45922307477
           github-token: ${{ github.token }}
           path: previous-pilot
-      - name: Revalidate prior originals and execute at most sixteen additional batches
+      - name: Reuse and verify pinned gap evidence (no redundant provider calls)
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, hashlib
+          from pathlib import Path
+          p=Path("previous-pilot")
+          plan=json.loads(Path("p2-gap-recovery.json").read_bytes())
+          ext=json.loads((p/"p2-gap-extension/report.json").read_bytes())
+          residual=json.loads((p/"p2-residual-risk/report.json").read_bytes())
+          assert ext["trade_gate"]==residual["trade_gate"]=="BLOCKED"
+          assert ext["orders"]==ext["executable_candidates"]==residual["orders"]==residual["executable_candidates"]==[]
+          assert ext["issuer_count"]==24 and ext["new_cutoff_vendor_window_recovered"]==22
+          assert residual["notice_explained"]==2
+          by_code={r["issuer"]:r for r in plan["rows"]}
+          for r in ext["results"]:
+              code=r["issuer"]
+              assert code in by_code and r["original_csv_sha256"]==by_code[code]["original_csv_sha256"]
+              f=p/"p2-gap-extension"/r["filename"]
+              assert f.is_file() and not f.is_symlink()
+              assert hashlib.sha256(f.read_bytes()).hexdigest()==r["extension_sha256"]
+          for r in residual["results"]:
+              assert r["notice_text_verified"] is True
+              f=p/"p2-residual-risk"/(r["issuer"]+".pdf")
+              assert f.is_file() and not f.is_symlink()
+              assert hashlib.sha256(f.read_bytes()).hexdigest()==r["pdf_sha256"]
+          PY
+          cp -a previous-pilot/p2-gap-extension previous-pilot/p2-residual-risk .
+      - name: Revalidate prior originals and execute at most twenty-four additional batches
         run: |
           set -euo pipefail
           ROOT="$RUNNER_TEMP/archive/5ba00fbd720fad90"
@@ -91,15 +113,15 @@ jobs:
           import json
           from pathlib import Path
           r=json.loads(Path("previous-accepted.json").read_text())
-          assert r["accepted_batch_indices"]==list(range(24)) and r["accepted_issuers"]==192
-          assert r["next_pending_batch"]==24 and r["trade_gate"]=="BLOCKED"
+          assert r["accepted_batch_indices"]==list(range(40)) and r["accepted_issuers"]==320
+          assert r["next_pending_batch"]==40 and r["trade_gate"]=="BLOCKED"
           assert r["manifest_sha256"]=="4a1383eed37e8befa49a0769ae583f093d5f355cc46366eb62dc56680b67ae0b"
           assert r["orders"]==r["executable_candidates"]==[]
           PY
           cp -a previous-pilot/p2-batch-* .
           # Retain serial bounded queries. Stop on the first failed batch.
           # Successful earlier packages remain available in the artifact.
-          for i in $(seq 24 39); do
+          for i in $(seq 40 63); do
             package=$(printf 'p2-batch-%04d' "$i")
             timeout 180s python -m collector.p2_refresh_batch_observe --manifest p2-full-refresh-manifest.json --archive-epoch "$ROOT" --batch-index "$i" --out "$package"
             sleep 2
@@ -109,8 +131,8 @@ jobs:
           import json
           from pathlib import Path
           r=json.loads(Path("p2-refresh-aggregate.json").read_text())
-          assert r["accepted_batch_indices"]==list(range(40)) and r["accepted_issuers"]==320
-          assert r["next_pending_batch"]==40 and r["trade_gate"]=="BLOCKED"
+          assert r["accepted_batch_indices"]==list(range(64)) and r["accepted_issuers"]==512
+          assert r["next_pending_batch"]==64 and r["trade_gate"]=="BLOCKED"
           assert r["orders"]==r["executable_candidates"]==[]
           PY
       - uses: actions/upload-artifact@v4
