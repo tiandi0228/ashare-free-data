@@ -5,6 +5,7 @@ on:
       - 'collector/p4_flat_bar_risk.py'
       - 'collector/p4_proxy_limit_join.py'
       - 'collector/p4_official_limit_queue.py'
+      - 'collector/p4_limit_notice_leads.py'
       - 'tests/test_p4_official_limit_queue.py'
       - 'tests/test_p4_proxy_limit_join.py'
       - 'tests/test_p4_flat_bar_risk.py'
@@ -37,6 +38,10 @@ jobs:
           python -m collector.p4_proxy_limit_join --frozen frozen.zip --strategy strategy.zip --risk p4-flat-bar-risk.json --out p4-proxy-limit-join.json
       - name: Prioritize unique official limit evidence tasks
         run: python -m collector.p4_official_limit_queue --risk p4-flat-bar-risk.json --join p4-proxy-limit-join.json --out p4-official-limit-queue.json
+      - name: Capture two retrospective official-channel notice originals
+        run: |
+          command -v pdftotext || (sudo apt-get update && sudo apt-get install -y poppler-utils)
+          python -m collector.p4_limit_notice_leads --queue p4-official-limit-queue.json --root p4-notice-originals --out p4-limit-notice-leads.json
       - uses: actions/upload-artifact@v4
         with:
           name: p4-flat-bar-risk
@@ -44,4 +49,6 @@ jobs:
             p4-flat-bar-risk.json
             p4-proxy-limit-join.json
             p4-official-limit-queue.json
+            p4-limit-notice-leads.json
+            p4-notice-originals/
           if-no-files-found: error
