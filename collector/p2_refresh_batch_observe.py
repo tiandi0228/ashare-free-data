@@ -1,10 +1,39 @@
 """Single bounded batch observation; no schedule, broker, or archive writes."""
-import argparse,csv,hashlib,io,json,re
+import argparse,csv,hashlib,io,json,re,time
 from pathlib import Path
 from collector.p2_refresh_checkpoint import reconcile
 from collector.p2_gap_extension_replay import START,END,inspect
 from collector.p2_independent_bars import FIELDS
 from collector.p2_refresh_batch_replay import verify,checked_bytes
+
+class ProviderResponseError(ValueError):
+    def __init__(self,stage,error_code,schema_mismatch):
+        self.stage=stage
+        self.error_code=str(error_code)[:32]
+        self.schema_mismatch=schema_mismatch
+        super().__init__("provider response rejected")
+
+def query_once(client,code):
+    q=client.query_history_k_data_plus(code,fields=",".join(FIELDS),start_date=START,end_date=END,frequency="d",adjustflag="3")
+    if q.error_code!="0" or list(q.fields)!=FIELDS:raise ProviderResponseError("query",q.error_code,list(q.fields)!=FIELDS)
+    rows=[]
+    while q.next():
+        r=list(q.get_row_data())
+        if len(r)!=len(FIELDS) or not all(isinstance(x,str) for x in r):raise ValueError("invalid vendor row")
+        rows.append(r)
+        if len(rows)>36:raise ValueError("unbounded response")
+    if q.error_code!="0" or not rows:raise ProviderResponseError("iteration",q.error_code,False)
+    return rows
+
+def query_with_retry(client,code,index,sleep=time.sleep):
+    for attempt in range(1,4):
+        try:
+            return query_once(client,code)
+        except ProviderResponseError as e:
+            print("P2_PROVIDER_REJECT:",json.dumps(dict(batch_index=index,issuer=code,attempt=attempt,stage=e.stage,error_code=e.error_code,schema_mismatch=e.schema_mismatch)),flush=True)
+            if attempt==3:raise
+            sleep(5*attempt)
+    raise AssertionError("unreachable")
 
 def observe(manifest,index,root,out,client):
     reconcile(manifest,[])
@@ -22,15 +51,7 @@ def observe(manifest,index,root,out,client):
     try:
         for row in batch["issuers"]:
             code=row["code"]
-            q=client.query_history_k_data_plus(code,fields=",".join(FIELDS),start_date=START,end_date=END,frequency="d",adjustflag="3")
-            if q.error_code!="0" or list(q.fields)!=FIELDS:raise ValueError("bad provider response")
-            rows=[]
-            while q.next():
-                r=list(q.get_row_data())
-                if len(r)!=len(FIELDS) or not all(isinstance(x,str) for x in r):raise ValueError("invalid vendor row")
-                rows.append(r)
-                if len(rows)>36:raise ValueError("unbounded response")
-            if q.error_code!="0" or not rows:raise ValueError("incomplete vendor response")
+            rows=query_with_retry(client,code,index)
             stream=io.StringIO(newline="")
             writer=csv.writer(stream,lineterminator="\n")
             writer.writerow(FIELDS);writer.writerows(rows)

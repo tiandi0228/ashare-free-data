@@ -9,6 +9,7 @@ on:
       - 'collector/p2_refresh_aggregate.py'
       - 'tests/test_p2_refresh_aggregate.py'
       - 'collector/p2_refresh_batch_observe.py'
+      - 'tests/test_p2_refresh_provider_retry.py'
       - 'tests/test_p2_refresh_batch_replay.py'
       - 'tests/test_p2_refresh_checkpoint.py'
       - 'tests/test_p2_full_refresh_manifest.py'
@@ -28,6 +29,7 @@ on:
       - 'collector/p2_refresh_aggregate.py'
       - 'tests/test_p2_refresh_aggregate.py'
       - 'collector/p2_refresh_batch_observe.py'
+      - 'tests/test_p2_refresh_provider_retry.py'
       - 'tests/test_p2_refresh_batch_replay.py'
       - 'tests/test_p2_refresh_checkpoint.py'
       - 'tests/test_p2_full_refresh_manifest.py'
@@ -44,7 +46,7 @@ permissions:
 jobs:
   audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
         with:
@@ -52,7 +54,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest tests.test_p2_gap_recovery_plan tests.test_p2_original_gap_window_triage tests.test_p2_gap_extension_replay tests.test_p2_residual_risk tests.test_p2_full_refresh_manifest tests.test_p2_refresh_checkpoint tests.test_p2_refresh_batch_replay tests.test_p2_refresh_aggregate.AggregateTests -v
+      - run: python -m unittest tests.test_p2_gap_recovery_plan tests.test_p2_original_gap_window_triage tests.test_p2_gap_extension_replay tests.test_p2_residual_risk tests.test_p2_full_refresh_manifest tests.test_p2_refresh_checkpoint tests.test_p2_refresh_batch_replay tests.test_p2_refresh_aggregate.AggregateTests tests.test_p2_refresh_provider_retry -v
       - name: Replay pinned originals and coverage
         run: |
           set -euo pipefail
@@ -80,7 +82,7 @@ jobs:
           run-id: 45918536647
           github-token: ${{ github.token }}
           path: previous-pilot
-      - name: Revalidate prior originals and execute at most forty-eight additional batches
+      - name: Revalidate prior originals and execute at most eight additional batches
         run: |
           set -euo pipefail
           ROOT="$RUNNER_TEMP/archive/5ba00fbd720fad90"
@@ -97,9 +99,9 @@ jobs:
           cp -a previous-pilot/p2-batch-* .
           # Retain serial bounded queries. Stop on the first failed batch.
           # Successful earlier packages remain available in the artifact.
-          for i in $(seq 16 63); do
+          for i in $(seq 16 23); do
             package=$(printf 'p2-batch-%04d' "$i")
-            timeout 90s python -m collector.p2_refresh_batch_observe --manifest p2-full-refresh-manifest.json --archive-epoch "$ROOT" --batch-index "$i" --out "$package"
+            timeout 180s python -m collector.p2_refresh_batch_observe --manifest p2-full-refresh-manifest.json --archive-epoch "$ROOT" --batch-index "$i" --out "$package"
             sleep 2
           done
           python -m collector.p2_refresh_aggregate --manifest p2-full-refresh-manifest.json --archive-epoch "$ROOT" --packages p2-batch-* --out p2-refresh-aggregate.json
@@ -107,8 +109,8 @@ jobs:
           import json
           from pathlib import Path
           r=json.loads(Path("p2-refresh-aggregate.json").read_text())
-          assert r["accepted_batch_indices"]==list(range(64)) and r["accepted_issuers"]==512
-          assert r["next_pending_batch"]==64 and r["trade_gate"]=="BLOCKED"
+          assert r["accepted_batch_indices"]==list(range(24)) and r["accepted_issuers"]==192
+          assert r["next_pending_batch"]==24 and r["trade_gate"]=="BLOCKED"
           assert r["orders"]==r["executable_candidates"]==[]
           PY
       - uses: actions/upload-artifact@v4
