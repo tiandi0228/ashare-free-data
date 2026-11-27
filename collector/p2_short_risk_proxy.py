@@ -13,12 +13,12 @@ def pnl(buy,sell,qty):
     cost=buy*qty;proceeds=sell*qty
     return proceeds-cost-commission(cost)-commission(proceeds)-proceeds*STAMP
 
-def feasibility():
+def feasibility(stop_pct=D(".02"),target_pct=D(".05")):
     # Upper bound: ignore lot rounding and entry fee when allocating capital;
     # use only minimum fees on both legs. Any real modeled size is no better.
     notional=CAPITAL/(1+SLIPPAGE)
-    stop_net=D(".98")*(1-SLIPPAGE)*(1-STAMP)
-    target_net=D("1.05")*(1-SLIPPAGE)*(1-STAMP)
+    stop_net=(1-stop_pct)*(1-SLIPPAGE)*(1-STAMP)
+    target_net=(1+target_pct)*(1-SLIPPAGE)*(1-STAMP)
     buy=1+SLIPPAGE
     loss_rate=buy-stop_net
     reward_rate=target_net-buy
@@ -31,12 +31,12 @@ def feasibility():
                 ignores_lot_rounding_and_entry_fee_in_allocation=True,
                 minimum_fees_only=True)
 
-def budget(open_price):
+def budget(open_price,stop_pct=D(".02"),target_pct=D(".05")):
     if not open_price.is_finite() or open_price<=0:raise ValueError("invalid entry price")
-    if feasibility()["impossible_under_frozen_parameters"]:return None
+    if feasibility(stop_pct,target_pct)["impossible_under_frozen_parameters"]:return None
     buy=open_price*(1+SLIPPAGE)
-    stop=open_price*D(".98")
-    target=open_price*D("1.05")
+    stop=open_price*(1-stop_pct)
+    target=open_price*(1+target_pct)
     lots=int((CAPITAL/(100*buy)).to_integral_value(rounding=ROUND_FLOOR))
     for n in range(lots,0,-1):
         q=n*100
@@ -47,14 +47,14 @@ def budget(open_price):
         return q,buy,stop,target,loss,reward
     return None
 
-def observe(day,bars,calendar):
+def observe(day,bars,calendar,stop_pct=D(".02"),target_pct=D(".05")):
     i=calendar.index(day)
     future=calendar[i+1:i+6]
     if not future:return dict(status="RIGHT_CENSORED")
     entry=bars.get(future[0])
     if not entry or entry["tradestatus"]!="1" or D(entry["volume"])<=0:return dict(status="ENTRY_UNAVAILABLE")
     if date.fromisoformat(future[0]).weekday()==4:return dict(status="FRIDAY_ENTRY_BLOCKED")
-    b=budget(D(entry["open"]))
+    b=budget(D(entry["open"]),stop_pct,target_pct)
     if b is None:return dict(status="RISK_BUDGET_REJECTED")
     q,buy,stop,target,loss,reward=b
     def finish(day,price,reason):
@@ -77,7 +77,7 @@ def observe(day,bars,calendar):
         if j==4:return finish(d,c,"FIFTH_SESSION_CLOSE")
     return dict(status="RIGHT_CENSORED")
 
-def run(manifest,root,packages,report,signal_report):
+def run(manifest,root,packages,report,signal_report,stop_pct=D(".02"),target_pct=D(".05")):
     for r in (report,signal_report):
         if r["trade_gate"]!="BLOCKED" or r["historical_PIT_verified"] is not False or r["orders"]!=[] or r["executable_candidates"]!=[]:raise ValueError("unsafe source")
     if report["target_asof"]!="2026-11-25" or report["accepted_issuers"]!=3194 or report["full_universe_observed"] is not True or signal_report["asof"]!="2026-11-25":raise ValueError("wrong scope")
@@ -98,16 +98,16 @@ def run(manifest,root,packages,report,signal_report):
             audit_csv(a,code);audit_csv(b,code)
             bars={r["date"]:r for r in list(csv.DictReader(a.decode("utf-8-sig").splitlines()))+list(csv.DictReader(b.decode("utf-8-sig").splitlines()))}
             if max(bars)>"2026-11-25":raise ValueError("future bar")
-            for day in claimed[code]:details.append(dict(code=code,signal_day=day,**observe(day,bars,calendar)))
+            for day in claimed[code]:details.append(dict(code=code,signal_day=day,**observe(day,bars,calendar,stop_pct,target_pct)))
     if seen!=set(by) or len(details)!=signal_report["signal_count"]:raise ValueError("incomplete scope")
     priced=[r for r in details if r["status"]=="PRICED_EXIT_PROXY"]
     net=[D(r["net_capital_return_pct"]) for r in priced]
-    return dict(asof="2026-11-25",signal_count=len(details),parameter_feasibility=feasibility(),status_counts=dict(Counter(r["status"] for r in details)),
+    return dict(asof="2026-11-25",signal_count=len(details),parameter_feasibility=feasibility(stop_pct,target_pct),status_counts=dict(Counter(r["status"] for r in details)),
                 exit_reasons=dict(Counter(r["exit_reason"] for r in priced)),positive_proxy_count=sum(v>0 for v in net),
                 mean_capital_proxy_pct=str((sum(net)/len(net)).quantize(D(".0001"))) if net else None,
                 loss_budget_breaches=sum(r["loss_budget_breached"] for r in priced),
                 risk_budget_basis="8000 CNY capital, planned net loss <=3%, modeled net reward/loss >=2",
-                stop_target_basis="entry vendor open; 2%/5%; T+1; Friday entry blocked and Friday close exit; dual touches unresolved",
+                stop_target_basis=f"entry vendor open; {stop_pct*100}%/{target_pct*100}%; T+1; Friday entry blocked and Friday close exit; dual touches unresolved",
                 daily_bar_intraday_sequence_verified=False,limit_band_verified=False,corporate_actions_verified=False,portfolio_simulated=False,
                 execution_verified=False,historical_PIT_verified=False,trade_gate="BLOCKED",orders=[],executable_candidates=[],details=details)
 

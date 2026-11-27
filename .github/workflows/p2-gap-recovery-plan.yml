@@ -6,6 +6,8 @@ on:
       - 'collector/p2_short_signal_replay.py'
       - 'collector/p2_short_horizon_proxy.py'
       - 'collector/p2_short_risk_proxy.py'
+      - 'collector/p2_short_parameter_grid.py'
+      - 'tests/test_p2_short_parameter_grid.py'
       - 'tests/test_p2_short_risk_proxy.py'
       - 'tests/test_p2_short_horizon_proxy.py'
       - 'tests/test_p2_short_signal_replay.py'
@@ -32,6 +34,8 @@ on:
       - 'collector/p2_short_signal_replay.py'
       - 'collector/p2_short_horizon_proxy.py'
       - 'collector/p2_short_risk_proxy.py'
+      - 'collector/p2_short_parameter_grid.py'
+      - 'tests/test_p2_short_parameter_grid.py'
       - 'tests/test_p2_short_risk_proxy.py'
       - 'tests/test_p2_short_horizon_proxy.py'
       - 'tests/test_p2_short_signal_replay.py'
@@ -66,7 +70,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest tests.test_p2_gap_recovery_plan tests.test_p2_original_gap_window_triage tests.test_p2_gap_extension_replay tests.test_p2_residual_risk tests.test_p2_full_refresh_manifest tests.test_p2_refresh_checkpoint tests.test_p2_refresh_batch_replay tests.test_p2_refresh_aggregate.AggregateTests tests.test_p2_refresh_provider_retry tests.test_p2_short_signal_replay tests.test_p2_short_horizon_proxy tests.test_p2_short_risk_proxy -v
+      - run: python -m unittest tests.test_p2_gap_recovery_plan tests.test_p2_original_gap_window_triage tests.test_p2_gap_extension_replay tests.test_p2_residual_risk tests.test_p2_full_refresh_manifest tests.test_p2_refresh_checkpoint tests.test_p2_refresh_batch_replay tests.test_p2_refresh_aggregate.AggregateTests tests.test_p2_refresh_provider_retry tests.test_p2_short_signal_replay tests.test_p2_short_horizon_proxy tests.test_p2_short_risk_proxy tests.test_p2_short_parameter_grid -v
       - name: Replay pinned originals and coverage
         run: |
           set -euo pipefail
@@ -150,6 +154,8 @@ jobs:
         run: python -m collector.p2_short_horizon_proxy --manifest p2-full-refresh-manifest.json --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --packages . --report p2-refresh-aggregate.json --signal-report p2-short-signal-replay.json --out p2-short-horizon-proxy.json
       - name: Research risk budget and daily-bar exit proxies
         run: python -m collector.p2_short_risk_proxy --manifest p2-full-refresh-manifest.json --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --packages . --report p2-refresh-aggregate.json --signal-report p2-short-signal-replay.json --out p2-short-risk-proxy.json
+      - name: Compare fixed research-only parameter grid
+        run: python -m collector.p2_short_parameter_grid --manifest p2-full-refresh-manifest.json --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --packages . --report p2-refresh-aggregate.json --signal-report p2-short-signal-replay.json --baseline p2-short-risk-proxy.json --out p2-short-parameter-grid.json
       - uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
@@ -163,6 +169,7 @@ jobs:
             p2-short-signal-replay.json
             p2-short-horizon-proxy.json
             p2-short-risk-proxy.json
+            p2-short-parameter-grid.json
             p2-gap-extension/
             p2-residual-risk/
           if-no-files-found: error
