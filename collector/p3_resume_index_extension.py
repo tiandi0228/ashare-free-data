@@ -13,12 +13,22 @@ def sha(b):return hashlib.sha256(b).hexdigest()
 def select(raw,code,title,lo,hi):
     data=json.loads(raw)
     if data.get("hasMore") is not False:raise ValueError("incomplete index")
-    rows=[r for r in data.get("announcements",[]) if r.get("secCode")==code[3:] and re.sub(r"\s+","",re.sub(r"<[^>]+>","",r.get("announcementTitle",""))).split("：")[-1]==title]
+    announcements=data.get("announcements")
+    if not isinstance(announcements,list):raise ValueError("empty or invalid announcement index")
+    rows=[r for r in announcements if r.get("secCode")==code[3:] and re.sub(r"\s+","",re.sub(r"<[^>]+>","",r.get("announcementTitle",""))).split("：")[-1]==title]
     if len(rows)!=1:raise ValueError("missing or ambiguous notice")
     r=rows[0];p=r["adjunctUrl"]
     if not re.fullmatch(r"finalpage/2026-[0-9]{2}-[0-9]{2}/[0-9]+\.PDF",p,re.I) or not lo<=p.split("/")[1]<=hi:raise ValueError("invalid attachment")
     if type(r["announcementTime"]) is not int:raise ValueError("invalid timestamp")
     return r,"https://static.cninfo.com.cn/"+p
+def stock_key(raw,code):
+    data=json.loads(raw)
+    if not isinstance(data,list):raise ValueError("invalid security lookup")
+    rows=[r for r in data if r.get("code")==code[3:]]
+    if len(rows)!=1:raise ValueError("missing or ambiguous security lookup")
+    org=rows[0].get("orgId")
+    if not isinstance(org,str) or not re.fullmatch(r"[A-Za-z0-9]+",org):raise ValueError("invalid organization ID")
+    return code[3:]+","+org
 def curl(url,p,extra=()):
     subprocess.run(["curl","--fail","--silent","--show-error","--connect-timeout","8","--max-time","30","--max-filesize","5000000",*extra,"--output",str(p),url],check=True,capture_output=True)
 def run(queue,timeline,prior,archive,root):
@@ -42,9 +52,16 @@ def run(queue,timeline,prior,archive,root):
             r=dict(issuer=code,extension_sha256=t["extension_sha256"],initial_pdf_sha256=docs[code]["pdf_sha256"],official_original_verified=False,first_publication_verified=False,full_interval_verified=False,official_certified=False)
             stage="index"
             try:
-                payload=urlencode(dict(pageNum=1,pageSize=100,column=column,tabName="fulltext",stock=code[3:],searchkey=title,plate="",category="",seDate=lo+"~"+hi,isHLtitle="false"))
+                lookup=root/(code+"-security.json")
+                curl("https://www.cninfo.com.cn/new/information/topSearch/query",lookup,("-H","Referer: https://www.cninfo.com.cn/","--data",urlencode(dict(keyWord=code[3:],maxNum=10))))
+                lookup_raw=lookup.read_bytes();r["security_lookup_sha256"]=sha(lookup_raw)
+                key=stock_key(lookup_raw,code);r["security_key"]=key
+                payload=urlencode(dict(pageNum=1,pageSize=100,column=column,tabName="fulltext",stock=key,searchkey="",plate="",category="",secid="",trade="",sortName="",sortType="",seDate=lo+"~"+hi,isHLtitle="false"))
                 curl("https://www.cninfo.com.cn/new/hisAnnouncement/query",meta,("-H","Referer: https://www.cninfo.com.cn/","--data",payload))
-                raw=meta.read_bytes();r["index_sha256"]=sha(raw);row,url=select(raw,code,title,lo,hi)
+                raw=meta.read_bytes();r["index_sha256"]=sha(raw)
+                data=json.loads(raw);r["index_titles"]=[x.get("announcementTitle") for x in (data.get("announcements") or []) if x.get("secCode")==code[3:]]
+                row,url=select(raw,code,title,lo,hi)
+                if row.get("orgId")!=key.split(",")[1]:raise ValueError("organization mismatch")
                 r.update(url=url,index_announcement_id=row["announcementId"],index_timestamp_ms=row["announcementTime"],index_timestamp_semantics_verified=False)
                 stage="pdf";curl(url,p);raw=p.read_bytes();verified_pdf(raw,sha(raw))
                 stage="identity";text=subprocess.check_output(["pdftotext","-layout",str(p),"-"],text=True,timeout=15)
