@@ -13,6 +13,8 @@ on:
       - 'collector/p3_resume_originals.py'
       - 'collector/p3_final_gap_leads.py'
       - 'collector/p3_unified_ledger.py'
+      - 'collector/p3_last_originals.py'
+      - 'tests/test_p3_last_originals.py'
       - 'tests/test_p3_unified_ledger.py'
       - 'tests/test_p3_final_gap_leads.py'
       - 'tests/test_p3_resume_originals.py'
@@ -57,6 +59,10 @@ jobs:
           python -m unittest tests.test_p3_exchange_originals tests.test_p3_initial_halt_original tests.test_p3_pinned_originals tests.test_p3_additional_originals tests.test_p3_next_originals tests.test_p3_resume_originals tests.test_p3_final_gap_leads tests.test_p3_unified_ledger -v
           gh api repos/${{ github.repository }}/actions/artifacts/15206412835/zip > unified-source.zip
           python -m collector.p3_unified_ledger --archive unified-source.zip --queue p3-refresh-gap-triage.json --root p3-unified-originals --out p3-unified-ledger.json
+      - name: Verify three remaining official PDF targets
+        run: |
+          python -m unittest tests.test_p3_last_originals -v
+          python -m collector.p3_last_originals --ledger p3-unified-ledger.json --root p3-last-originals --out p3-last-originals.json
       - uses: actions/upload-artifact@v4
         with:
           name: p3-refresh-gap-triage
@@ -65,6 +71,8 @@ jobs:
             p3-residual-bridge.json
             p3-public-notice-leads.json
             p3-unified-ledger.json
+            p3-last-originals.json
+            p3-last-originals/
             p3-unified-originals/
             p3-residual-originals/
           if-no-files-found: error
