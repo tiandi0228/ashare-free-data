@@ -46,7 +46,7 @@ permissions:
 jobs:
   audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 170
+    timeout-minutes: 220
     steps:
       - uses: actions/checkout@v4
         with:
@@ -69,11 +69,11 @@ jobs:
         run: python -m collector.p2_full_refresh_manifest --coverage "$RUNNER_TEMP/coverage/summaries/5ba00fbd720fad90.json" --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --out p2-full-refresh-manifest.json
       - name: Initialize full refresh checkpoint without provider calls
         run: python -m collector.p2_refresh_checkpoint --manifest p2-full-refresh-manifest.json --out p2-refresh-checkpoint.json
-      - name: Recover fixed sixty-four-batch checkpoint
+      - name: Recover fixed 112-batch checkpoint
         uses: actions/download-artifact@v4
         with:
           name: p2-gap-recovery
-          run-id: 45923353236
+          run-id: 45924075237
           github-token: ${{ github.token }}
           path: previous-pilot
       - name: Reuse and verify pinned gap evidence (no redundant provider calls)
@@ -104,7 +104,7 @@ jobs:
               assert hashlib.sha256(f.read_bytes()).hexdigest()==r["pdf_sha256"]
           PY
           cp -a previous-pilot/p2-gap-extension previous-pilot/p2-residual-risk .
-      - name: Revalidate prior originals and execute at most forty-eight additional batches
+      - name: Revalidate prior originals and execute at most sixty-four additional batches
         run: |
           set -euo pipefail
           ROOT="$RUNNER_TEMP/archive/5ba00fbd720fad90"
@@ -113,15 +113,15 @@ jobs:
           import json
           from pathlib import Path
           r=json.loads(Path("previous-accepted.json").read_text())
-          assert r["accepted_batch_indices"]==list(range(64)) and r["accepted_issuers"]==512
-          assert r["next_pending_batch"]==64 and r["trade_gate"]=="BLOCKED"
+          assert r["accepted_batch_indices"]==list(range(112)) and r["accepted_issuers"]==896
+          assert r["next_pending_batch"]==112 and r["trade_gate"]=="BLOCKED"
           assert r["manifest_sha256"]=="4a1383eed37e8befa49a0769ae583f093d5f355cc46366eb62dc56680b67ae0b"
           assert r["orders"]==r["executable_candidates"]==[]
           PY
           cp -a previous-pilot/p2-batch-* .
           # Retain serial bounded queries. Stop on the first failed batch.
           # Successful earlier packages remain available in the artifact.
-          for i in $(seq 64 111); do
+          for i in $(seq 112 175); do
             package=$(printf 'p2-batch-%04d' "$i")
             timeout 180s python -m collector.p2_refresh_batch_observe --manifest p2-full-refresh-manifest.json --archive-epoch "$ROOT" --batch-index "$i" --out "$package"
             sleep 2
@@ -131,8 +131,8 @@ jobs:
           import json
           from pathlib import Path
           r=json.loads(Path("p2-refresh-aggregate.json").read_text())
-          assert r["accepted_batch_indices"]==list(range(112)) and r["accepted_issuers"]==896
-          assert r["next_pending_batch"]==112 and r["trade_gate"]=="BLOCKED"
+          assert r["accepted_batch_indices"]==list(range(176)) and r["accepted_issuers"]==1408
+          assert r["next_pending_batch"]==176 and r["trade_gate"]=="BLOCKED"
           assert r["orders"]==r["executable_candidates"]==[]
           PY
       - uses: actions/upload-artifact@v4
