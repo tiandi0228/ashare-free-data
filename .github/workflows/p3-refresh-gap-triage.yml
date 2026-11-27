@@ -1,0 +1,31 @@
+name: P3 refresh gap frozen evidence triage (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p3_refresh_gap_triage.py'
+      - '.github/workflows/p3-refresh-gap-triage.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download immutable prior refresh evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/${{ github.repository }}/actions/artifacts/15166266650/zip > frozen.zip
+          echo 'dc488455c7f88d64392ecd1c6bd9e34595eecf17cb40e556a00eff4d91decd1c  frozen.zip' | sha256sum -c -
+      - name: Verify original vendor status and emit tasks
+        run: python -m collector.p3_refresh_gap_triage --artifact frozen.zip --sha256 dc488455c7f88d64392ecd1c6bd9e34595eecf17cb40e556a00eff4d91decd1c --count 1408 --out p3-refresh-gap-triage.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p3-refresh-gap-triage
+          path: p3-refresh-gap-triage.json
+          if-no-files-found: error
