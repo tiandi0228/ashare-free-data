@@ -11,6 +11,8 @@ on:
       - 'collector/p3_additional_originals.py'
       - 'collector/p3_next_originals.py'
       - 'collector/p3_resume_originals.py'
+      - 'collector/p3_final_gap_leads.py'
+      - 'tests/test_p3_final_gap_leads.py'
       - 'tests/test_p3_resume_originals.py'
       - 'tests/test_p3_next_originals.py'
       - 'tests/test_p3_additional_originals.py'
@@ -65,6 +67,10 @@ jobs:
         run: |
           python -m unittest tests.test_p3_resume_originals -v
           python -m collector.p3_resume_originals --queue p3-refresh-gap-triage.json --prior p3-next-originals.json --root p3-resume-originals --out p3-resume-originals.json
+      - name: Reconcile final six public leads and two official originals
+        run: |
+          python -m unittest tests.test_p3_final_gap_leads -v
+          python -m collector.p3_final_gap_leads --queue p3-refresh-gap-triage.json --prior p3-resume-originals.json --root p3-final-gap-originals --out p3-final-gap-leads.json
       - uses: actions/upload-artifact@v4
         with:
           name: p3-refresh-gap-triage
@@ -76,6 +82,8 @@ jobs:
             p3-additional-originals.json
             p3-next-originals.json
             p3-resume-originals.json
+            p3-final-gap-leads.json
+            p3-final-gap-originals/
             p3-resume-originals/
             p3-next-originals/
             p3-additional-originals/
