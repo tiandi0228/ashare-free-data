@@ -6,6 +6,11 @@ SOURCES={
 "sh.600185":("2026-11-26/600185_20261126_WKCR.pdf",("600185","重大资产重组","复牌","11月12日","11月26日")),
 "sh.600567":("2026-11-26/600567_20261126_2HXN.pdf",("600567","重大事项","复牌","2026-075","11月26日")),
 }
+def official_urls(suffix):
+    if not re.fullmatch(r"2026-[0-9]{2}-[0-9]{2}/[0-9]{6}_2026[0-9]{4}_[A-Z0-9]+\.pdf",suffix):raise ValueError("invalid exchange path")
+    # Same exchange disclosure path, alternate official host; no third-party bytes.
+    return ["https://static.sse.com.cn/disclosure/listedinfo/announcement/c/new/"+suffix,
+            "https://big5.sse.com.cn/site/cht/www.sse.com.cn/disclosure/listedinfo/announcement/c/new/"+suffix]
 def verify(text,tokens):
     normalized=re.sub(r"\s+","",text).replace("－","-").replace("—","-")
     return all(t in normalized for t in tokens)
@@ -18,22 +23,31 @@ def run(leads,root):
         url="https://static.sse.com.cn/disclosure/listedinfo/announcement/c/new/"+suffix
         p=root/(code+".pdf")
         r=dict(issuer=code,url=url,official_original_verified=False,first_publication_verified=False,official_certified=False,resume_vendor_observed=False)
-        stage="download"
-        try:
-            subprocess.run(["curl","--fail","--silent","--show-error","--max-time","30","--max-filesize","5000000","--output",str(p),url],check=True)
-            stage="pdf_format"
-            raw=p.read_bytes()
-            r.update(received_bytes=len(raw),received_sha256=hashlib.sha256(raw).hexdigest(),pdf_magic=raw.startswith(b"%PDF-"))
-            if not raw.startswith(b"%PDF-") or len(raw)>5000000:raise ValueError("invalid PDF")
-            stage="pdf_text"
-            text=subprocess.check_output(["pdftotext","-layout",str(p),"-"],text=True,timeout=20)
-            stage="identity_tokens"
-            normalized=re.sub(r"\s+","",text).replace("－","-").replace("—","-")
-            r["missing_tokens"]=[t for t in tokens if t not in normalized]
-            if not verify(text,tokens):raise ValueError("document identity mismatch")
-            r.update(official_original_verified=True,source_sha256=hashlib.sha256(raw).hexdigest(),file=p.name,evidence_type="ISSUER_NOTICE_RETROSPECTIVE")
-        except (OSError,ValueError,subprocess.SubprocessError) as e:
-            p.unlink(missing_ok=True);r.update(failure=type(e).__name__,failure_stage=stage,failure_detail=str(e)[:200])
+        r["attempts"]=[]
+        for url in official_urls(suffix):
+            stage="download"
+            attempt=dict(url=url)
+            try:
+                subprocess.run(["curl","--fail","--silent","--show-error","--connect-timeout","8","--max-time","20","--max-filesize","5000000","--output",str(p),url],check=True,capture_output=True)
+                stage="pdf_format"
+                raw=p.read_bytes()
+                attempt.update(received_bytes=len(raw),received_sha256=hashlib.sha256(raw).hexdigest(),pdf_magic=raw.startswith(b"%PDF-"))
+                if not raw.startswith(b"%PDF-") or len(raw)>5000000:raise ValueError("invalid PDF")
+                stage="pdf_text"
+                text=subprocess.check_output(["pdftotext","-layout",str(p),"-"],text=True,timeout=15)
+                stage="identity_tokens"
+                normalized=re.sub(r"\s+","",text).replace("－","-").replace("—","-")
+                attempt["missing_tokens"]=[t for t in tokens if t not in normalized]
+                if not verify(text,tokens):raise ValueError("document identity mismatch")
+                r.update(url=url,official_original_verified=True,source_sha256=hashlib.sha256(raw).hexdigest(),file=p.name,evidence_type="ISSUER_NOTICE_RETROSPECTIVE")
+                attempt["status"]="VERIFIED";r["attempts"].append(attempt);break
+            except (OSError,ValueError,subprocess.SubprocessError) as e:
+                p.unlink(missing_ok=True)
+                attempt.update(failure=type(e).__name__,failure_stage=stage,failure_detail=str(e)[:200])
+                if isinstance(e,subprocess.CalledProcessError):
+                    attempt["exit_code"]=e.returncode
+                    if isinstance(e.stderr,bytes):attempt["stderr"]=e.stderr.decode("utf-8",errors="replace")[:300]
+                r["attempts"].append(attempt)
         records.append(r)
     return dict(asof=leads["asof"],attempted=len(records),originals_verified=sum(r["official_original_verified"] for r in records),official_certified=0,historical_PIT_verified=False,trade_gate="BLOCKED",orders=[],executable_candidates=[],records=records)
 if __name__=="__main__":
