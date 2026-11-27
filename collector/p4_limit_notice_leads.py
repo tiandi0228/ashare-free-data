@@ -2,6 +2,8 @@
 import argparse,hashlib,json,subprocess,re
 from pathlib import Path
 LEADS=(
+ ("sh.601599","2026-11-03","2026-11-04","2026-041","https://static.cninfo.com.cn/finalpage/2026-11-04/1225656149.PDF","11月3日"),
+ ("sh.600892","2026-11-03","2026-11-05","2026-060","https://static.cninfo.com.cn/finalpage/2026-11-05/1225658168.PDF","2026年11月3日"),
  ("sh.603030","2026-11-18","2026-11-20","2026-046","https://big5.sse.com.cn/site/cht/www.sse.com.cn/disclosure/listedinfo/announcement/c/new/2026-11-20/603030_20261120_5NAS.pdf","2026年11月18日"),
  ("sh.603396","2026-11-11","2026-11-16","2026-069","https://static.cninfo.com.cn/finalpage/2026-11-16/1225672373.PDF","2026年11月11日"),
 )
@@ -18,7 +20,7 @@ def assess(queue,root):
         if not raw.startswith(b"%PDF-") or len(raw)>5000000:raise ValueError("not PDF")
         s=subprocess.check_output(["pdftotext","-layout",str(p),"-"],timeout=30).decode("utf-8")
         s=re.sub(r"\s+","",s).replace("－","-").replace("–","-")
-        if not all(t in s for t in (code.split(".")[1],number,token,"股票交易风险提示公告","涨幅偏离值")):raise ValueError("document identity mismatch")
+        if not all(t in s for t in (code.split(".")[1],number,token,"涨幅偏离值")) or not any(t in s for t in ("股票交易风险提示公告","股票交易异常波动公告")):raise ValueError("document identity mismatch")
         records.append(dict(code=code,day=day,notice_date=pub,notice_number=number,url=url,source_sha256=hashlib.sha256(raw).hexdigest(),file=p.name,evidence_type="RETROSPECTIVE_MULTI_DAY_ABNORMAL_MOVE_NOTICE",official_limit_verified=False,first_publication_verified=False,fill_verified=False))
     return dict(asof=queue["asof"],priority_targets=len(keys),original_notice_leads=len(records),official_limit_certified=0,historical_PIT_verified=False,execution_verified=False,trade_gate="BLOCKED",orders=[],executable_candidates=[],records=records)
 if __name__=="__main__":
