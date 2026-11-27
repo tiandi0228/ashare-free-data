@@ -18,6 +18,8 @@ on:
       - 'collector/p3_complete_original_ledger.py'
       - 'collector/p3_risk_timeline.py'
       - 'collector/p3_interval_extension.py'
+      - 'collector/p3_resume_index_extension.py'
+      - 'tests/test_p3_resume_index_extension.py'
       - 'tests/test_p3_interval_extension.py'
       - 'tests/test_p3_risk_timeline.py'
       - 'tests/test_p3_complete_original_ledger.py'
@@ -75,6 +77,10 @@ jobs:
         run: |
           python -m unittest tests.test_p3_interval_extension -v
           python -m collector.p3_interval_extension --queue p3-refresh-gap-triage.json --timeline p3-risk-timeline.json --archive frozen.zip --root p3-interval-originals --out p3-interval-extension.json
+      - name: Resolve two additional resumption notices from official index
+        run: |
+          python -m unittest tests.test_p3_resume_index_extension -v
+          python -m collector.p3_resume_index_extension --queue p3-refresh-gap-triage.json --timeline p3-risk-timeline.json --prior p3-interval-extension.json --archive frozen.zip --root p3-resume-index-originals --out p3-resume-index-extension.json
       - uses: actions/upload-artifact@v4
         with:
           name: p3-refresh-gap-triage
@@ -85,6 +91,8 @@ jobs:
             p3-complete-original-ledger.json
             p3-risk-timeline.json
             p3-interval-extension.json
+            p3-resume-index-extension.json
+            p3-resume-index-originals/
             p3-interval-originals/
             p3-complete-originals/
             p3-residual-originals/
