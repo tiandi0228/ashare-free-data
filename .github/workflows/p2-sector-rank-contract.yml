@@ -4,6 +4,8 @@ on:
     paths:
       - 'collector/p2_sector_rank_contract.py'
       - 'collector/p2_sector_return_input.py'
+      - 'collector/p2_market_breadth.py'
+      - 'tests/test_p2_market_breadth.py'
       - 'tests/test_p2_sector_return_input.py'
       - 'tests/test_p2_sector_rank_contract.py'
       - '.github/workflows/p2-sector-rank-contract.yml'
@@ -19,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - run: python -m unittest tests.test_p2_sector_rank_contract tests.test_p2_sector_return_input -v
+      - run: python -m unittest tests.test_p2_sector_rank_contract tests.test_p2_sector_return_input tests.test_p2_market_breadth -v
       - name: Verify frozen universe artifact and demonstrate missing sector evidence
         env:
           GH_TOKEN: ${{ github.token }}
@@ -28,10 +30,13 @@ jobs:
           echo '29c314f023379729e5308b805a0ecd35188eccbdaeed4046387b7a2e1d35981d  frozen.zip' | sha256sum -c -
           python -m collector.p2_sector_return_input --artifact frozen.zip --out sector-input.json
           python -m collector.p2_sector_rank_contract --input sector-input.json --out p2-sector-contract.json
+      - name: Compute frozen universe market breadth diagnostic
+        run: python -m collector.p2_market_breadth --input sector-input.json --out p2-market-breadth.json
       - uses: actions/upload-artifact@v4
         with:
           name: p2-sector-contract
           path: |
             p2-sector-contract.json
             sector-input.json
+            p2-market-breadth.json
           if-no-files-found: error
