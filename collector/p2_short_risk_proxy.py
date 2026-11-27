@@ -3,7 +3,7 @@ import argparse,csv,json
 from collections import Counter,defaultdict
 from decimal import Decimal as D,ROUND_FLOOR
 from pathlib import Path
-from collector.p2_short_horizon_proxy import CAPITAL,SLIPPAGE,STAMP,commission
+from collector.p2_short_horizon_proxy import CAPITAL,SLIPPAGE,STAMP,MIN_FEE,commission
 from collector.p2_refresh_batch_replay import checked_bytes
 from collector.p2_independent_bars import audit_csv
 from collector.p4_curated_session_exit import sessions_between
@@ -13,7 +13,27 @@ def pnl(buy,sell,qty):
     cost=buy*qty;proceeds=sell*qty
     return proceeds-cost-commission(cost)-commission(proceeds)-proceeds*STAMP
 
+def feasibility():
+    # Upper bound: ignore lot rounding and entry fee when allocating capital;
+    # use only minimum fees on both legs. Any real modeled size is no better.
+    notional=CAPITAL/(1+SLIPPAGE)
+    stop_net=D(".98")*(1-SLIPPAGE)*(1-STAMP)
+    target_net=D("1.05")*(1-SLIPPAGE)*(1-STAMP)
+    buy=1+SLIPPAGE
+    loss_rate=buy-stop_net
+    reward_rate=target_net-buy
+    fees=2*MIN_FEE
+    ratio=(notional*reward_rate-fees)/(notional*loss_rate+fees)
+    margin=notional*max(D(0),reward_rate-2*loss_rate)-3*fees
+    return dict(net_reward_risk_upper_bound=str(ratio.quantize(D(".000001"))),
+                reward_minus_twice_loss_upper_cny=str(margin.quantize(D(".000001"))),
+                impossible_under_frozen_parameters=margin<0,
+                ignores_lot_rounding_and_entry_fee_in_allocation=True,
+                minimum_fees_only=True)
+
 def budget(open_price):
+    if not open_price.is_finite() or open_price<=0:raise ValueError("invalid entry price")
+    if feasibility()["impossible_under_frozen_parameters"]:return None
     buy=open_price*(1+SLIPPAGE)
     stop=open_price*D(".98")
     target=open_price*D("1.05")
@@ -82,7 +102,7 @@ def run(manifest,root,packages,report,signal_report):
     if seen!=set(by) or len(details)!=signal_report["signal_count"]:raise ValueError("incomplete scope")
     priced=[r for r in details if r["status"]=="PRICED_EXIT_PROXY"]
     net=[D(r["net_capital_return_pct"]) for r in priced]
-    return dict(asof="2026-11-25",signal_count=len(details),status_counts=dict(Counter(r["status"] for r in details)),
+    return dict(asof="2026-11-25",signal_count=len(details),parameter_feasibility=feasibility(),status_counts=dict(Counter(r["status"] for r in details)),
                 exit_reasons=dict(Counter(r["exit_reason"] for r in priced)),positive_proxy_count=sum(v>0 for v in net),
                 mean_capital_proxy_pct=str((sum(net)/len(net)).quantize(D(".0001"))) if net else None,
                 loss_budget_breaches=sum(r["loss_budget_breached"] for r in priced),
