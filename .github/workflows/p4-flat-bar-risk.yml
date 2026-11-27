@@ -1,0 +1,31 @@
+name: P4 frozen flat bar risk audit (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p4_flat_bar_risk.py'
+      - 'tests/test_p4_flat_bar_risk.py'
+      - '.github/workflows/p4-flat-bar-risk.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python -m unittest tests.test_p4_flat_bar_risk -v
+      - name: Audit frozen vendor original bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/${{ github.repository }}/actions/artifacts/15169345741/zip > frozen.zip
+          python -m collector.p4_flat_bar_risk --artifact frozen.zip --out p4-flat-bar-risk.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p4-flat-bar-risk
+          path: p4-flat-bar-risk.json
+          if-no-files-found: error
