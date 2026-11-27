@@ -4,6 +4,7 @@ on:
     paths:
       - 'collector/p3_refresh_gap_triage.py'
       - 'collector/p3_residual_notice_bridge.py'
+      - 'collector/p3_public_notice_leads.py'
       - 'tests/test_p3_residual_notice_bridge.py'
       - '.github/workflows/p3-refresh-gap-triage.yml'
   workflow_dispatch:
@@ -31,11 +32,14 @@ jobs:
           python -m unittest tests.test_p3_residual_notice_bridge -v
           command -v pdftotext || (sudo apt-get update && sudo apt-get install -y poppler-utils)
           python -m collector.p3_residual_notice_bridge --artifact frozen.zip --queue p3-refresh-gap-triage.json --root p3-residual-originals --out p3-residual-bridge.json
+      - name: Reconcile additional public notice leads
+        run: python -m collector.p3_public_notice_leads --queue p3-refresh-gap-triage.json --bridge p3-residual-bridge.json --out p3-public-notice-leads.json
       - uses: actions/upload-artifact@v4
         with:
           name: p3-refresh-gap-triage
           path: |
             p3-refresh-gap-triage.json
             p3-residual-bridge.json
+            p3-public-notice-leads.json
             p3-residual-originals/
           if-no-files-found: error
