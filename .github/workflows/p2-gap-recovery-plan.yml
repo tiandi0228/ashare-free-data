@@ -4,6 +4,8 @@ on:
     paths:
       - 'collector/p2_gap_recovery_plan.py'
       - 'collector/p2_short_signal_replay.py'
+      - 'collector/p2_short_horizon_proxy.py'
+      - 'tests/test_p2_short_horizon_proxy.py'
       - 'tests/test_p2_short_signal_replay.py'
       - 'collector/p2_full_refresh_manifest.py'
       - 'collector/p2_refresh_checkpoint.py'
@@ -26,6 +28,8 @@ on:
     paths:
       - 'collector/p2_gap_recovery_plan.py'
       - 'collector/p2_short_signal_replay.py'
+      - 'collector/p2_short_horizon_proxy.py'
+      - 'tests/test_p2_short_horizon_proxy.py'
       - 'tests/test_p2_short_signal_replay.py'
       - 'collector/p2_full_refresh_manifest.py'
       - 'collector/p2_refresh_checkpoint.py'
@@ -58,7 +62,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest tests.test_p2_gap_recovery_plan tests.test_p2_original_gap_window_triage tests.test_p2_gap_extension_replay tests.test_p2_residual_risk tests.test_p2_full_refresh_manifest tests.test_p2_refresh_checkpoint tests.test_p2_refresh_batch_replay tests.test_p2_refresh_aggregate.AggregateTests tests.test_p2_refresh_provider_retry tests.test_p2_short_signal_replay -v
+      - run: python -m unittest tests.test_p2_gap_recovery_plan tests.test_p2_original_gap_window_triage tests.test_p2_gap_extension_replay tests.test_p2_residual_risk tests.test_p2_full_refresh_manifest tests.test_p2_refresh_checkpoint tests.test_p2_refresh_batch_replay tests.test_p2_refresh_aggregate.AggregateTests tests.test_p2_refresh_provider_retry tests.test_p2_short_signal_replay tests.test_p2_short_horizon_proxy -v
       - name: Replay pinned originals and coverage
         run: |
           set -euo pipefail
@@ -138,6 +142,8 @@ jobs:
           PY
       - name: Replay short-horizon research signal on frozen originals
         run: python -m collector.p2_short_signal_replay --manifest p2-full-refresh-manifest.json --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --packages . --report p2-refresh-aggregate.json --out p2-short-signal-replay.json
+      - name: Observe 3 4 5 session vendor proxies (not fills)
+        run: python -m collector.p2_short_horizon_proxy --manifest p2-full-refresh-manifest.json --archive-epoch "$RUNNER_TEMP/archive/5ba00fbd720fad90" --packages . --report p2-refresh-aggregate.json --signal-report p2-short-signal-replay.json --out p2-short-horizon-proxy.json
       - uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
@@ -149,6 +155,7 @@ jobs:
             p2-batch-*/
             p2-refresh-aggregate.json
             p2-short-signal-replay.json
+            p2-short-horizon-proxy.json
             p2-gap-extension/
             p2-residual-risk/
           if-no-files-found: error
