@@ -18,15 +18,22 @@ def run(leads,root):
         url="https://static.sse.com.cn/disclosure/listedinfo/announcement/c/new/"+suffix
         p=root/(code+".pdf")
         r=dict(issuer=code,url=url,official_original_verified=False,first_publication_verified=False,official_certified=False,resume_vendor_observed=False)
+        stage="download"
         try:
             subprocess.run(["curl","--fail","--silent","--show-error","--max-time","30","--max-filesize","5000000","--output",str(p),url],check=True)
+            stage="pdf_format"
             raw=p.read_bytes()
+            r.update(received_bytes=len(raw),received_sha256=hashlib.sha256(raw).hexdigest(),pdf_magic=raw.startswith(b"%PDF-"))
             if not raw.startswith(b"%PDF-") or len(raw)>5000000:raise ValueError("invalid PDF")
+            stage="pdf_text"
             text=subprocess.check_output(["pdftotext","-layout",str(p),"-"],text=True,timeout=20)
+            stage="identity_tokens"
+            normalized=re.sub(r"\s+","",text).replace("－","-").replace("—","-")
+            r["missing_tokens"]=[t for t in tokens if t not in normalized]
             if not verify(text,tokens):raise ValueError("document identity mismatch")
             r.update(official_original_verified=True,source_sha256=hashlib.sha256(raw).hexdigest(),file=p.name,evidence_type="ISSUER_NOTICE_RETROSPECTIVE")
         except (OSError,ValueError,subprocess.SubprocessError) as e:
-            p.unlink(missing_ok=True);r["failure"]=type(e).__name__
+            p.unlink(missing_ok=True);r.update(failure=type(e).__name__,failure_stage=stage,failure_detail=str(e)[:200])
         records.append(r)
     return dict(asof=leads["asof"],attempted=len(records),originals_verified=sum(r["official_original_verified"] for r in records),official_certified=0,historical_PIT_verified=False,trade_gate="BLOCKED",orders=[],executable_candidates=[],records=records)
 if __name__=="__main__":
