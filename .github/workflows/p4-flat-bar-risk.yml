@@ -1,0 +1,90 @@
+name: P4 frozen flat bar risk audit (NO TRADES)
+on:
+  pull_request:
+    paths:
+      - 'collector/p4_flat_bar_risk.py'
+      - 'collector/p4_proxy_limit_join.py'
+      - 'collector/p4_official_limit_queue.py'
+      - 'collector/p4_limit_notice_leads.py'
+      - 'collector/p4_residual_notice_queue.py'
+      - 'collector/p4_residual_notice_discovery.py'
+      - 'collector/p4_residual_notice_pdf.py'
+      - 'tests/test_p4_residual_notice_pdf.py'
+      - 'tests/test_p4_residual_notice_discovery.py'
+      - 'tests/test_p4_residual_notice_queue.py'
+      - 'collector/p4_limit_rule_overlay.py'
+      - 'tests/test_p4_limit_rule_overlay.py'
+      - 'tests/test_p4_official_limit_queue.py'
+      - 'tests/test_p4_proxy_limit_join.py'
+      - 'tests/test_p4_flat_bar_risk.py'
+      - '.github/workflows/p4-flat-bar-risk.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python -m unittest tests.test_p4_flat_bar_risk tests.test_p4_proxy_limit_join tests.test_p4_official_limit_queue tests.test_p4_limit_rule_overlay -v
+      - name: Audit frozen vendor original bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/${{ github.repository }}/actions/artifacts/15169345741/zip > frozen.zip
+          python -m collector.p4_flat_bar_risk --artifact frozen.zip --out p4-flat-bar-risk.json
+      - name: Join fixed strategy evidence to flat-bar risk
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api repos/${{ github.repository }}/actions/artifacts/15177785662/zip > strategy.zip
+          python -m collector.p4_proxy_limit_join --frozen frozen.zip --strategy strategy.zip --risk p4-flat-bar-risk.json --out p4-proxy-limit-join.json
+      - name: Prioritize unique official limit evidence tasks
+        run: python -m collector.p4_official_limit_queue --risk p4-flat-bar-risk.json --join p4-proxy-limit-join.json --out p4-official-limit-queue.json
+      - name: Capture two retrospective official-channel notice originals
+        run: |
+          command -v pdftotext || (sudo apt-get update && sudo apt-get install -y poppler-utils)
+          python -m collector.p4_limit_notice_leads --queue p4-official-limit-queue.json --root p4-notice-originals --out p4-limit-notice-leads.json
+      - name: Derive residual priority notice evidence tasks
+        run: |
+          python -m unittest tests.test_p4_residual_notice_queue -v
+          python -m collector.p4_residual_notice_queue --queue p4-official-limit-queue.json --leads p4-limit-notice-leads.json --out p4-residual-notice-queue.json
+      - name: Discover official index candidates for five priority tasks
+        run: |
+          python -m unittest tests.test_p4_residual_notice_discovery -v
+          python -m collector.p4_residual_notice_discovery --queue p4-residual-notice-queue.json --root p4-residual-index --out p4-residual-notice-discovery.json
+      - name: Verify candidate PDF originals and explicit event dates
+        run: |
+          python -m unittest tests.test_p4_residual_notice_pdf -v
+          python -m collector.p4_residual_notice_pdf --discovery p4-residual-notice-discovery.json --queue p4-residual-notice-queue.json --root p4-residual-pdfs --out p4-residual-notice-pdf.json
+      - name: Discover and verify second disjoint five-task window
+        run: |
+          python -m collector.p4_residual_notice_discovery --queue p4-residual-notice-queue.json --offset 5 --root p4-residual-index-b2 --out p4-residual-notice-discovery-b2.json
+          python -m collector.p4_residual_notice_pdf --discovery p4-residual-notice-discovery-b2.json --queue p4-residual-notice-queue.json --root p4-residual-pdfs-b2 --out p4-residual-notice-pdf-b2.json
+      - name: Apply dated general rule overlay without certifying securities
+        run: python -m collector.p4_limit_rule_overlay --risk p4-flat-bar-risk.json --out p4-limit-rule-overlay.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p4-flat-bar-risk
+          path: |
+            p4-flat-bar-risk.json
+            p4-proxy-limit-join.json
+            p4-official-limit-queue.json
+            p4-limit-notice-leads.json
+            p4-residual-notice-queue.json
+            p4-residual-notice-discovery.json
+            p4-residual-notice-pdf.json
+            p4-residual-pdfs/
+            p4-residual-notice-discovery-b2.json
+            p4-residual-notice-pdf-b2.json
+            p4-residual-index-b2/
+            p4-residual-pdfs-b2/
+            p4-residual-index/
+            p4-limit-rule-overlay.json
+            p4-notice-originals/
+          if-no-files-found: error
