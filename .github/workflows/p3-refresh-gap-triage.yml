@@ -19,6 +19,8 @@ on:
       - 'collector/p3_risk_timeline.py'
       - 'collector/p3_interval_extension.py'
       - 'collector/p3_resume_index_extension.py'
+      - 'collector/p3_final_resume.py'
+      - 'tests/test_p3_final_resume.py'
       - 'collector/p3_delist_timeline.py'
       - 'tests/test_p3_delist_timeline.py'
       - 'tests/test_p3_resume_index_extension.py'
@@ -87,6 +89,10 @@ jobs:
         run: |
           python -m unittest tests.test_p3_delist_timeline -v
           python -m collector.p3_delist_timeline --queue p3-refresh-gap-triage.json --ledger p3-complete-original-ledger.json --bridge p3-residual-bridge.json --prior p3-resume-index-extension.json --archive frozen.zip --root p3-complete-originals --out p3-delist-timeline.json
+      - name: Verify final two ordinary halt resume notices
+        run: |
+          python -m unittest tests.test_p3_final_resume -v
+          python -m collector.p3_final_resume --queue p3-refresh-gap-triage.json --ledger p3-complete-original-ledger.json --prior p3-delist-timeline.json --archive frozen.zip --root p3-final-resume-originals --out p3-final-resume.json
       - uses: actions/upload-artifact@v4
         with:
           name: p3-refresh-gap-triage
@@ -99,6 +105,8 @@ jobs:
             p3-interval-extension.json
             p3-resume-index-extension.json
             p3-delist-timeline.json
+            p3-final-resume.json
+            p3-final-resume-originals/
             p3-resume-index-originals/
             p3-interval-originals/
             p3-complete-originals/
