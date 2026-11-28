@@ -6,6 +6,8 @@ on:
       - 'collector/p4_proxy_limit_join.py'
       - 'collector/p4_official_limit_queue.py'
       - 'collector/p4_limit_notice_leads.py'
+      - 'collector/p4_residual_notice_queue.py'
+      - 'tests/test_p4_residual_notice_queue.py'
       - 'collector/p4_limit_rule_overlay.py'
       - 'tests/test_p4_limit_rule_overlay.py'
       - 'tests/test_p4_official_limit_queue.py'
@@ -44,6 +46,10 @@ jobs:
         run: |
           command -v pdftotext || (sudo apt-get update && sudo apt-get install -y poppler-utils)
           python -m collector.p4_limit_notice_leads --queue p4-official-limit-queue.json --root p4-notice-originals --out p4-limit-notice-leads.json
+      - name: Derive residual priority notice evidence tasks
+        run: |
+          python -m unittest tests.test_p4_residual_notice_queue -v
+          python -m collector.p4_residual_notice_queue --queue p4-official-limit-queue.json --leads p4-limit-notice-leads.json --out p4-residual-notice-queue.json
       - name: Apply dated general rule overlay without certifying securities
         run: python -m collector.p4_limit_rule_overlay --risk p4-flat-bar-risk.json --out p4-limit-rule-overlay.json
       - uses: actions/upload-artifact@v4
@@ -54,6 +60,7 @@ jobs:
             p4-proxy-limit-join.json
             p4-official-limit-queue.json
             p4-limit-notice-leads.json
+            p4-residual-notice-queue.json
             p4-limit-rule-overlay.json
             p4-notice-originals/
           if-no-files-found: error
