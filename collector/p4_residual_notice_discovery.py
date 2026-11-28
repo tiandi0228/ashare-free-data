@@ -24,11 +24,11 @@ def candidates(raw,code,org,day):
         if not re.fullmatch(r"finalpage/2026-[0-9]{2}-[0-9]{2}/[0-9]+\.PDF",p,re.I) or not day<=p.split("/")[1]<=end or type(r.get("announcementTime")) is not int:continue
         rows.append(dict(title=title,url="https://static.cninfo.com.cn/"+p,announcement_id=r["announcementId"],index_timestamp_ms=r["announcementTime"],index_timestamp_semantics_verified=False))
     return rows
-def run(queue,root,limit=5):
+def run(queue,root,limit=5,offset=0):
     if queue["trade_gate"]!="BLOCKED" or queue["orders"]!=[] or queue["executable_candidates"]!=[] or queue["official_limit_certified"]!=0 or queue["historical_PIT_verified"] is not False or queue["asof"]!="2026-11-25":raise ValueError("unsafe input")
-    if not 1<=limit<=5 or queue["remaining_notice_tasks"]!=len(queue["tasks"]):raise ValueError("bad scope")
+    if not 1<=limit<=5 or not 0<=offset<len(queue['tasks']) or queue["remaining_notice_tasks"]!=len(queue["tasks"]):raise ValueError("bad scope")
     root.mkdir(parents=True,exist_ok=True);records=[]
-    for t in queue["tasks"][:limit]:
+    for t in queue["tasks"][offset:offset+limit]:
         code,day=t["code"],t["day"]
         if not re.fullmatch(r"(?:sh\.60[0-5]|sz\.00[0-3])[0-9]{3}",code):raise ValueError("bad code")
         prefix=code+"-"+day;end=(date.fromisoformat(day)+timedelta(days=7)).isoformat()
@@ -42,5 +42,5 @@ def run(queue,root,limit=5):
         records.append(r)
     return dict(asof=queue["asof"],attempted=len(records),tasks_with_index_candidates=sum(bool(r["candidates"]) for r in records),original_notice_leads_added=0,official_limit_certified=0,historical_PIT_verified=False,execution_verified=False,trade_gate="BLOCKED",orders=[],executable_candidates=[],records=records)
 if __name__=="__main__":
-    p=argparse.ArgumentParser();p.add_argument("--queue",type=Path,required=True);p.add_argument("--root",type=Path,required=True);p.add_argument("--out",type=Path,required=True);a=p.parse_args()
-    r=run(json.loads(a.queue.read_bytes()),a.root);a.out.write_text(json.dumps(r,indent=2)+"\n");print("P4_INDEX_DISCOVERY:",json.dumps(r))
+    p=argparse.ArgumentParser();p.add_argument("--queue",type=Path,required=True);p.add_argument("--root",type=Path,required=True);p.add_argument("--out",type=Path,required=True);p.add_argument("--offset",type=int,default=0);a=p.parse_args()
+    r=run(json.loads(a.queue.read_bytes()),a.root,offset=a.offset);a.out.write_text(json.dumps(r,indent=2)+"\n");print("P4_INDEX_DISCOVERY:",json.dumps(r))
