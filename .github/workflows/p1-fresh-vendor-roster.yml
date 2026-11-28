@@ -28,6 +28,7 @@ on:
       - 'collector/p1_repair_pick.py'
       - 'collector/p1_epoch_compare.py'
       - 'collector/p1_recovery_origin_token.py'
+      - 'collector/p1_completion_guard.py'
   schedule:
     - cron: '10 1 * * 1-5' # 09:10 Beijing; reviewed capped two-shard slot
     - cron: '10 3 * * 1-5' # 11:10 Beijing; sixth reviewed capped dual-shard pilot (NOT parallel)
@@ -68,7 +69,31 @@ concurrency:
   group: p1-fresh-mainboard-roster-serial
   cancel-in-progress: false
 jobs:
+  completion-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      collect: ${{ steps.check.outputs.collect }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check exact main and original archive before any provider call
+        id: check
+        run: |
+          set -euo pipefail
+          main_sha="$(git ls-remote origin refs/heads/main | cut -f1)"
+          archive_sha="$(git ls-remote origin refs/heads/research-csv-archive | cut -f1)"
+          [[ "$main_sha" =~ ^[a-f0-9]{40}$ && "$archive_sha" =~ ^[a-f0-9]{40}$ ]]
+          git fetch --depth=1 --no-tags origin "$main_sha" "$archive_sha"
+          python -m collector.p1_completion_guard --main-sha "$main_sha" \
+            --archive-sha "$archive_sha" --out evidence/p1_completion_guard.json
   roster:
+    needs: completion-guard
+    if: needs.completion-guard.outputs.collect == 'true'
     runs-on: ubuntu-latest
     env:
       P1_RECOVERY_TOKEN: ${{ github.event_name == 'workflow_dispatch' && inputs.recovery_token || '' }}
