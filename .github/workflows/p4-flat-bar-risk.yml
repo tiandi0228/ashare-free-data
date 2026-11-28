@@ -62,6 +62,10 @@ jobs:
         run: |
           python -m unittest tests.test_p4_residual_notice_pdf -v
           python -m collector.p4_residual_notice_pdf --discovery p4-residual-notice-discovery.json --queue p4-residual-notice-queue.json --root p4-residual-pdfs --out p4-residual-notice-pdf.json
+      - name: Discover and verify second disjoint five-task window
+        run: |
+          python -m collector.p4_residual_notice_discovery --queue p4-residual-notice-queue.json --offset 5 --root p4-residual-index-b2 --out p4-residual-notice-discovery-b2.json
+          python -m collector.p4_residual_notice_pdf --discovery p4-residual-notice-discovery-b2.json --queue p4-residual-notice-queue.json --root p4-residual-pdfs-b2 --out p4-residual-notice-pdf-b2.json
       - name: Apply dated general rule overlay without certifying securities
         run: python -m collector.p4_limit_rule_overlay --risk p4-flat-bar-risk.json --out p4-limit-rule-overlay.json
       - uses: actions/upload-artifact@v4
@@ -76,6 +80,10 @@ jobs:
             p4-residual-notice-discovery.json
             p4-residual-notice-pdf.json
             p4-residual-pdfs/
+            p4-residual-notice-discovery-b2.json
+            p4-residual-notice-pdf-b2.json
+            p4-residual-index-b2/
+            p4-residual-pdfs-b2/
             p4-residual-index/
             p4-limit-rule-overlay.json
             p4-notice-originals/
