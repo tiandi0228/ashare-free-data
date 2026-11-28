@@ -8,6 +8,8 @@ on:
       - 'collector/p4_limit_notice_leads.py'
       - 'collector/p4_residual_notice_queue.py'
       - 'collector/p4_residual_notice_discovery.py'
+      - 'collector/p4_residual_notice_pdf.py'
+      - 'tests/test_p4_residual_notice_pdf.py'
       - 'tests/test_p4_residual_notice_discovery.py'
       - 'tests/test_p4_residual_notice_queue.py'
       - 'collector/p4_limit_rule_overlay.py'
@@ -56,6 +58,10 @@ jobs:
         run: |
           python -m unittest tests.test_p4_residual_notice_discovery -v
           python -m collector.p4_residual_notice_discovery --queue p4-residual-notice-queue.json --root p4-residual-index --out p4-residual-notice-discovery.json
+      - name: Verify candidate PDF originals and explicit event dates
+        run: |
+          python -m unittest tests.test_p4_residual_notice_pdf -v
+          python -m collector.p4_residual_notice_pdf --discovery p4-residual-notice-discovery.json --queue p4-residual-notice-queue.json --root p4-residual-pdfs --out p4-residual-notice-pdf.json
       - name: Apply dated general rule overlay without certifying securities
         run: python -m collector.p4_limit_rule_overlay --risk p4-flat-bar-risk.json --out p4-limit-rule-overlay.json
       - uses: actions/upload-artifact@v4
@@ -68,6 +74,8 @@ jobs:
             p4-limit-notice-leads.json
             p4-residual-notice-queue.json
             p4-residual-notice-discovery.json
+            p4-residual-notice-pdf.json
+            p4-residual-pdfs/
             p4-residual-index/
             p4-limit-rule-overlay.json
             p4-notice-originals/
