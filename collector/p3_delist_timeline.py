@@ -15,6 +15,18 @@ def classify(rows,missing,calendar):
     if missing!=expected or len(expected)!=9 or set(dates)&set(expected):raise ValueError("delisting tail mismatch")
     if rows[-1]["tradestatus"]!="1":raise ValueError("last day not active")
     return "DELISTING_TAIL_RETROSPECTIVELY_EXPLAINED"
+def remaining_queue(tasks,resolved):
+    """Derive unresolved ordinary halt tasks from issuer identities, not totals."""
+    pending=set(tasks)
+    if len(pending)!=19 or len(resolved)!=17 or not set(resolved)<=pending:
+        raise ValueError("inconsistent resolved issuer scope")
+    remaining=sorted(pending-set(resolved))
+    if len(remaining)!=2:
+        raise ValueError("unexpected remaining scope")
+    return [{"issuer":code,"extension_sha256":tasks[code]["extension_sha256"],
+             "vendor_nontradable_days":tasks[code]["vendor_nontradable_days"],
+             "task":"VERIFY_HALT_RESUME_ORIGINAL_AND_INTERVAL",
+             "official_certified":False} for code in remaining]
 def run(queue,ledger,bridge,prior,archive,root):
     for r in (queue,ledger,bridge,prior):safe(r)
     if sha(archive.read_bytes())!=queue["source_artifact_sha256"]:raise ValueError("archive mismatch")
@@ -37,7 +49,10 @@ def run(queue,ledger,bridge,prior,archive,root):
                 if p["status"]!="HALTED_PENDING_DELIST_DECISION" or len(rows)!=26 or any(r["code"]!=code or r["tradestatus"]!="0" for r in rows) or t["missing_expected_sessions"]:raise ValueError("pending decision mismatch")
                 status="PENDING_DELIST_DECISION_HALT_OBSERVED"
             records.append(dict(issuer=code,status=status,pdf_sha256=d["pdf_sha256"],extension_sha256=t["extension_sha256"],first_publication_verified=False,full_interval_verified=False,official_certified=False,eligible_for_trading=False,missing_expected_sessions=t["missing_expected_sessions"]))
-    return dict(asof=queue["asof"],gap_issuers=19,retrospective_resume_matches=13,announced_resume_after_cutoff=2,delisting_tail_explained=1,pending_delist_halt_observed=1,remaining_other_interval_gaps=2,official_certified=0,historical_PIT_verified=False,trade_gate="BLOCKED",orders=[],executable_candidates=[],records=records)
+    from collector.p3_risk_timeline import INTERVALS
+    resolved=set(INTERVALS)|{CODE,PENDING,"sz.002827"}|{r["issuer"] for r in prior["records"] if r.get("official_original_verified") is True and r.get("status")=="RETROSPECTIVE_INTERVAL_MATCH"}
+    remaining=remaining_queue(tasks,resolved)
+    return dict(remaining_tasks=remaining,asof=queue["asof"],gap_issuers=19,retrospective_resume_matches=13,announced_resume_after_cutoff=2,delisting_tail_explained=1,pending_delist_halt_observed=1,remaining_other_interval_gaps=2,official_certified=0,historical_PIT_verified=False,trade_gate="BLOCKED",orders=[],executable_candidates=[],records=records)
 if __name__=="__main__":
     p=argparse.ArgumentParser()
     for x in ("queue","ledger","bridge","prior","archive","root","out"):p.add_argument("--"+x,type=Path,required=True)
